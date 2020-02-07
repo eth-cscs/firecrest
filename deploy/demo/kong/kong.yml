@@ -1,0 +1,66 @@
+_format_version: "1.1"
+
+plugins:
+- name: jwt
+  # global plugin: applies to all request
+  config:
+    #_comment: "MUST add exp (expiration) and nbf, not enabled by default"
+    claims_to_verify: [exp,nbf]
+- name: request-termination
+  route: reject
+  config:
+    status_code: 400
+    message: "Invalid"
+
+
+consumers:
+  - username: default2  # name is irrelevant but required
+    jwt_secrets:
+    - key: http://localhost:8080/auth/realms/kcrealm
+      algorithm: "RS256"
+      rsa_public_key: "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqB44q32bQp8LbyW6dQvgsjseXESkLT1g5LQKGb+P79AC+nOAtxhn8i/kmgc6zsQH8NlUtNJruLxlzdo2/OGmlDGYZH1x6VmAwvJPJ4er0xPUrvZ8YclxYQC16PY5LFiQRNBMRyQwP5Kne1O46FpmADFVWMfoabdnaqoXexxB56b25o8tE2ulRBgfpnrRgZAvf7kWjugRCNO06FV074FVMYHA1aBk0ICyaFCDM/Tb5oaDyGr5c/ZvdrRUrw8vaiYyMgaAnnJPL75cebGoHeMJaEyZalsHA+iuhRAfeAwpSClsmhVqnfH7a7hqrqumVRo27dydqmfVgpFjU5gbFcBZ5wIDAQAB\n-----END PUBLIC KEY-----"
+
+routes:
+- name: reject
+  # rejects any undefined route with 'request-termination' plugin
+  paths:
+  - /
+
+services:
+- name: compute
+  url: http://192.168.220.9:5006
+  routes:
+  - name: compute
+    methods: [DELETE,GET,POST]
+    paths:
+    - /compute/
+- name: status
+  url: http://192.168.220.4:5001
+  routes:
+  - name: status
+    methods: [GET]
+    paths:
+    - /status/
+- name: storage
+  url: http://192.168.220.5:5002
+  routes:
+  - name: storage
+    methods: [GET,POST,PUT]
+    paths:
+    - /storage/
+- name: tasks
+  url: http://192.168.220.6:5003
+  routes:
+  - name: tasks
+    methods: [GET]
+    paths:
+    - /tasks/
+- name: utilities
+  url: http://192.168.220.7:5004
+  routes:
+  - name: utilities
+    methods: [DELETE,GET,POST,PUT]
+    paths:
+    - /utilities/
+
+

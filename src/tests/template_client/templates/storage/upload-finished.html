@@ -1,0 +1,30 @@
+{% extends "demo_base.html" %}
+{% block title %}External File Upload{% endblock %}
+{% block content %}
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+<script type="text/javascript">
+
+
+
+</script>
+
+
+  <h1>Large data transfer to CSCS</h1>
+
+   <h2>Step 3: Finish the upload process</h2>
+  {% if response != None %}
+    {% if not response.ok %}
+
+      <div style="display: block; border-color: red; border-style: solid" id="error">
+	    <h3>Error</h3>
+	    <p>{{ response.json()["error"] }}</p>
+	    <a href="{{ request.url_root}}storage/upload-finished/{{ taskid }}">Try again</a>
+	  </div>
+    {% endif %}
+  {% else %}
+    {{ wtf.quick_form(form) }}
+  {% endif %}
+{% endblock %}
+

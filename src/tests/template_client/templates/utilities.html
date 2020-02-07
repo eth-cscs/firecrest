@@ -1,0 +1,386 @@
+{% extends "demo_base.html" %}
+{% block title %}Utilities microservice{% endblock %}
+{% block content %}
+<style>
+/*table {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+td, th {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
+
+tr:nth-child(even) {
+  background-color: #dddddd;
+}*/
+</style>
+
+<script>
+
+	function viewUpload(obj){
+
+
+
+		var divUpload = document.getElementById("divUpload");
+		if (divUpload.style.display == "none"){
+
+			divUpload.style.display = "inline";
+			obj.className = "btn btn-info active";
+			return;
+
+		}
+		divUpload.style.display = "none";
+		obj.className = "btn btn-info";
+
+	}
+
+	function createFormPost(url,data){ /*data is a dictionary*/
+		
+		var form = document.createElement("form");
+		form.setAttribute("method", "POST");
+		form.setAttribute("action", url);
+
+		for(var key in data){
+			if(data.hasOwnProperty(key)) {
+				var field = document.createElement("input");
+				field.setAttribute("type","hidden");
+				field.setAttribute("name",key);
+				field.setAttribute("value",data[key]);
+
+				form.appendChild(field);
+			}
+		}
+		
+		document.body.appendChild(form);
+		form.submit();
+
+	}
+
+	function upload(dirPath,machine,action){
+
+		console.log(dirPath+"-"+machine);
+                console.log(action);
+		
+		var upload_form = document.forms[0];
+
+		upload_form.action=action;
+                upload_form.method = "POST";
+
+		var targetPath = document.createElement("input");
+		targetPath.setAttribute("type","hidden");
+		targetPath.setAttribute("name","targetPath");
+		targetPath.setAttribute("value",dirPath);
+
+		var machinename = document.createElement("input");
+		machinename.setAttribute("type","hidden");
+		machinename.setAttribute("name","machine");
+		machinename.setAttribute("value",machine);
+		
+		upload_form.appendChild(targetPath);
+		upload_form.appendChild(machinename);
+		
+
+		upload_form.submit();
+
+		
+		
+
+	}
+
+
+	function chown(dirPath,fileName,machine,user,group){
+		console.log(dirPath);
+		console.log(fileName);
+		console.log(machine);
+		console.log(user+":"+group);
+
+		var owner = prompt("Insert new user and group in this format",user+":"+group);
+		if (owner == null || owner == "")
+			return;
+
+		var res = owner.split(":");
+		
+		var newgroup = res[1];
+		var newowner = res[0];
+
+		console.log(newowner+":"+newgroup);
+
+		var url = "{{ request.url_root }}utilities/chown";
+
+		var data = { 	"targetPath": dirPath+"/"+fileName,
+				"owner": newowner,
+				"group": newgroup,
+				"path": dirPath,
+				"machine": machine
+
+		};
+
+		createFormPost(url,data);
+			
+		
+
+	}
+
+	function to_octal(mode){
+		var sum = 0;
+
+		if (mode[0] == "r"){
+			sum += 4;
+		}
+		if (mode[1] == "w"){
+			sum += 2;
+		}			
+		if (mode[2] == "x"){
+			sum += 1;
+		}		
+		
+		return sum.toString();	
+		 
+
+	}
+
+	function permissions_to_octal(mode){
+		var user_p = mode.slice(0,3);
+		var group_p = mode.slice(3,6);
+		var all_p = mode.slice(6,9);
+
+		var newmode = to_octal(user_p) + to_octal(group_p) + to_octal(all_p);
+
+		return newmode;
+
+
+	}
+
+	function makedir(dirPath,machine){
+		console.log(dirPath);
+		console.log(machine);
+		
+	
+
+		var newdir = prompt("Insert name for the new directory in "+dirPath,"new-dir");
+		if (newdir == null || newdir == "")
+			return;
+
+		console.log(newdir);
+
+		var url = "{{ request.url_root }}utilities/mkdir";
+
+		var data = { 	"targetPath": dirPath+"/"+newdir,
+				"path": dirPath,
+				"machine": machine
+
+		};
+
+		createFormPost(url,data);
+			
+		
+
+	}
+
+	function chmod(dirPath,fileName,machine,mode){
+		console.log(dirPath);
+		console.log(fileName);
+		console.log(machine);
+		console.log(mode);
+		
+		var octal_mode = permissions_to_octal(mode);
+		
+
+		var newmode = prompt("Insert new permissions in octal notation",octal_mode);
+		if (newmode == null || newmode == "")
+			return;
+
+		console.log(newmode);
+
+		var url = "{{ request.url_root }}utilities/chmod";
+
+		var data = { 	"targetPath": dirPath+"/"+fileName,
+				"mode": newmode,
+				"path": dirPath,
+				"machine": machine
+
+		};
+
+		createFormPost(url,data);
+			
+		
+
+	}
+
+	function action(action,dirPath,fileName,machine){
+		/* action: copy, rename, */ 
+
+		console.log(action);
+		console.log(dirPath);
+		console.log(fileName);
+		console.log(machine);
+
+		if (action == "copy" || action == "rename"){
+			var targetPath = prompt("Insert full target path to "+action+" file",dirPath);
+
+			if (targetPath == null || targetPath == "")
+				return;
+		
+			var url = "{{ request.url_root }}utilities/"+action;		
+			console.log(url);
+			var data = { 
+				"machine":machine, 
+				"path":dirPath,
+				"sourcePath": dirPath+"/"+fileName,
+				"targetPath": targetPath  };
+						
+		}		
+		else if (action == "rm"){
+		
+			var targetPath = dirPath+"/"+fileName;	
+			if (confirm("Do you really want to delete "+targetPath+"?")){
+
+				var url = "{{ request.url_root }}utilities/"+action;		
+				var data = { 
+					"machine":machine, 
+					"path":dirPath,
+					"targetPath": targetPath  };
+				
+
+			}else return;
+
+		}
+		else if (action == "download"){
+
+			var sourcePath = dirPath+"/"+fileName;
+			if (confirm("Dowload the file "+sourcePath+"?")){
+
+				var url = "{{ request.url_root }}utilities/"+action;		
+				var data = { 
+					"machine":machine, 
+					"path":dirPath,
+					"sourcePath": sourcePath  };
+				
+
+			}else return;
+			
+
+		}
+
+
+
+		
+		createFormPost(url,data);
+		
+
+	}
+
+</script>
+
+<h1>
+  Utilities microservice
+</h1>
+
+{% if result %}
+	{% if result == "error" %}
+		<div class="bg-danger"><b>Error</b>: {{ description }}</div>
+	{% else %}
+		<div class="bg-success"><b>Success</b>: {{ description }}  </div>
+	{% endif %}
+{% endif %}
+
+
+{% if not response.ok %}
+        {% set error_headers = ["X-Machine-Does-Not-Exist","X-Machine-Not-Available","X-Permission-Denied","X-Invalid-Path","X-Timeout","X-Exists"] %}
+
+
+    <div class="bg-danger"><b>Error:</b> Description: {{ response.json()["description"] }}:
+
+              {% for header,value in response.headers.items() %}
+                {% if header in error_headers %}
+                  Reason: {{ header }}: {{ value }}
+                   {%  break %}
+                {% endif %}
+              {% endfor %}
+         </div>
+
+{%  endif %}
+
+
+<form class="form-group" method="POST" action="utilities" enctype="multipart/form-data">
+
+
+
+
+
+
+  <div>
+      <a class="btn btn-info" href="#" onclick="viewUpload(this);">Upload</a>
+        <div id="divUpload" style="display:none; float: left">
+            <input type="file" name="upload"/>
+                <a class="btn btn-default btn-sm" href="#" onclick="upload('{{ path }}','{{ machine }}','{{ request.url_root }}utilities/upload');">Submit</a>
+        </div>
+    <a class="btn btn-primary" href="#" onclick="makedir('{{ path }}','{{ machine }}');">New directory</a></td>
+  </div>
+
+ <table style="border-spacing: 15px; border-collapse: separate">
+    <tr >
+        <td><b>System</b></td> <td> {{ form.machine(class="form-control")  }}</td>
+        <td><b>Path:</b></td> <td>{{ form.filepath(size=70, class="form-control") }}</td>
+        <td><input class="btn btn-default" type="submit" value="List"/></td>
+ </table>
+
+
+    <table class="table table-hover">
+        <tr><th>Type</th><th>Permissions</th><th>User</th><th>Group</th><th>Size</th><th>Date</th><th>Name</th><th>Symlink</th><th>Actions</th></tr>
+    {% if response.ok %}
+
+
+
+
+      {% if path != "/" %}
+		{% set back_path = "/".join(path.split("/")[:-1]) %}
+		<tr><td colspan="9"><a href="{{ request.url_root }}utilities?targetPath={{ back_path }}&machinename={{ machine }}">[up dir]</a></td></tr>
+	  {% endif %}
+
+      {% for row in response.json()['output'] %}
+	    {% if row["type"] == "d" %} {# if is a directory, href to it #}
+	    	{% set is_dir = True %}
+		{% endif %}
+        <tr>
+			<td>{{ row["type"] }}</td>
+			<td>{{ row["permissions"] }}</td>
+			<td>{{ row["user"] }}</td>
+			<td>{{ row["group"] }}</td>
+			<td>{{ row["size"] }}</td>
+			<td>{{ row["last_modified"] }}</td>
+
+		{% if is_dir %}
+		  	<td><a href="{{ request.url_root }}utilities?targetPath={{ path }}/{{ row['name'] }}&machinename={{ machine }}">{{ row['name'] }}</a></td>
+		{% else %}
+		 	<td>{{ row["name"] }}</td>
+		
+		{% endif %}
+ 		<td>{{ row["link"] }}</td>		
+		
+		<td>	<a href="#" onclick="action('copy','{{ path }}','{{ row['name'] }}','{{ machine }}');">cp</a> | 
+			<a href="#" onclick="action('rename','{{ path }}','{{ row['name'] }}','{{ machine }}');">mv</a> | 
+
+		{% if not is_dir %}
+			<a href="#" onclick="action('download','{{ path }}','{{ row['name'] }}','{{ machine }}');">get</a> | 
+		{% endif %}
+			<a href="#" onclick="action('rm','{{ path }}','{{ row['name'] }}','{{ machine }}');">rm</a> | 
+			<a href="#" onclick="chown('{{ path }}','{{ row['name'] }}','{{ machine }}','{{ row['user'] }}','{{ row['group'] }}');">chown</a> | 
+			<a href="#" onclick="chmod('{{ path }}','{{ row['name'] }}','{{ machine }}', '{{ row['permissions'] }}');">chmod</a> | 
+		</tr>
+      {% endfor %}
+
+    {% endif %}
+
+
+  </table>
+
+</form>
+
+
+{% endblock %}
+

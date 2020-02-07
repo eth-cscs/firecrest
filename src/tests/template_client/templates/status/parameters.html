@@ -1,0 +1,26 @@
+{% extends "demo_base.html" %}
+{% block title %}Status microservice{% endblock %}
+{% block content %}
+
+
+<h1>
+  Status microservice
+</h1>
+
+<h2>Parameters of all services in FirecREST</h2>
+
+{% for ms in response.json()['out'] %}
+<h3>Microservice: {{ ms }}</h3>
+  <table class="table table-hover">
+    <tr><th>Parameter</th><th>Value</th><th>Unit</th></tr>
+
+    {% for param in response.json()['out'][ms] %}
+
+    <tr><td>{{ param['name'] }}</td><td>{{ param['value'] }}</td><td>{{ param['unit'] }}</td></tr>
+
+    {% endfor %}
+
+  </table>
+{% endfor %}
+
+{% endblock %}

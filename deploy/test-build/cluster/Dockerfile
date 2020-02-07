@@ -1,0 +1,77 @@
+# partially based on https://github.com/giovtorres/slurm-docker-cluster
+
+FROM centos:7
+
+ARG SLURM_VERSION=19.05.4
+
+###    && yum -y update \
+RUN set -ex \
+    && yum makecache fast \
+    && yum -y install epel-release \
+    && yum -y install \
+       bzip2 \
+       gcc \
+       gcc-c++\
+       make \
+       mariadb-devel \
+       mariadb-server \
+       munge \
+       munge-devel \
+       openssh-server \
+       perl \
+       python-pip \
+       psmisc \
+       wget \
+    && yum clean all \
+    && rm -rf /var/cache/yum
+
+RUN set -x \
+    && wget https://download.schedmd.com/slurm/slurm-$SLURM_VERSION.tar.bz2 \
+    && tar -xvf slurm-$SLURM_VERSION.tar.bz2
+
+RUN set -x \
+    && cd slurm-$SLURM_VERSION \
+    && ./configure --disable-debug --prefix=/usr --sysconfdir=/etc/slurm --libdir=/usr/lib64 \
+                   --disable-x11 --disable-glibtest --disable-gtktest --without-hdf5 --without-ofed  \
+    && make install
+
+RUN set -x \
+    && rm -rf slurm \
+    && groupadd -r --gid=995 slurm \
+    && useradd -r -g slurm --uid=995 slurm \
+    && mkdir /etc/sysconfig/slurm \
+        /var/spool/slurmd \
+        /var/run/slurmd \
+        /var/run/slurmdbd \
+        /var/lib/slurmd \
+        /var/log/slurm \
+    && chown -R slurm:slurm /var/lib/slurmd/ \
+    && chown -R slurm:slurm /var/log/slurm   \
+    && chown -R slurm:slurm /var/spool/slurm*
+
+RUN set -x \
+    && /sbin/create-munge-key
+
+
+RUN pip install supervisor
+ADD cluster/supervisord.conf /etc/supervisord.conf
+
+RUN chown -R munge:munge /var/log/munge && chmod 755 /var/log/munge && chmod 755 /run/munge
+
+ADD cluster/slurm/*.conf /etc/slurm/
+ADD cluster/slurm/*.sh /
+
+RUN chmod 644 /etc/slurm/* && chmod 755 /*.sh
+
+RUN useradd -m -s /bin/bash test1 && useradd -m -s /bin/bash test2
+RUN echo 'test1:test11' | chpasswd  && echo 'test2:test22' | chpasswd
+RUN useradd -m -s /bin/bash testuser && echo 'testuser:testuser' | chpasswd
+
+ADD cluster/ssh/* /etc/ssh/
+ADD environment/keys/ca-key.pub  /etc/ssh/
+RUN chmod -R 400 /etc/ssh/  && chown -R root:root /etc/ssh/
+
+RUN /usr/libexec/mariadb-prepare-db-dir 2>/dev/null
+
+ENTRYPOINT ["/usr/bin/supervisord"]
+

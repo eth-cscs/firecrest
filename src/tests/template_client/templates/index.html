@@ -1,0 +1,76 @@
+{% extends "demo_base.html" %}
+{% block title %}FirecREST Demo{% endblock %}
+{% block content %}
+
+<style>
+
+.action-button
+{
+	position: relative;
+	padding: 10px 40px;
+  	margin: 0px 10px 10px 0px;
+	float: left;
+	border-radius: 10px;
+	font-family: 'Ubuntu', normal;
+	font-size: 15px;
+	color: #FFF;
+	text-decoration: none;	
+}
+
+.animate
+{
+	transition: all 0.1s;
+	-webkit-transition: all 0.1s;
+}
+
+.blue
+{
+	background-color: #3498DB;
+	border-bottom: 5px solid #2980B9;
+	text-shadow: 0px -2px #2980B9;
+}
+
+.grey
+{
+        background-color: #A4A4A4;
+        border-bottom: 5px solid #6E6E6E;
+        text-shadow: 0px -2px #6E6E6E;
+}
+
+.action-button:active
+{
+	transform: translate(0px,5px);
+  	-webkit-transform: translate(0px,5px);
+	border-bottom: 1px solid;
+}
+
+.action-button:hover
+{
+	text-decoration: none;
+	background-color: #6E6E6E;
+	color: #FFF;
+}
+
+</style>
+
+
+
+<div>
+<h1>
+  {% if g.user %}
+    Hello <b>{{ g.user }}</b>, welcome to the FirecREST demo
+  {% else %}
+    Hello, welcome to the FirecREST demo. Please Log In
+  {% endif %}
+</h1>
+
+<h2>
+  Choose one of the following microservices and test it:
+</h2>
+
+  {% for a, l in microservices %}
+	  <a class="action-button shadow animate grey" href="{{ url_for(l) }}">{{ a }}</a>
+  {% endfor %}
+
+</div>
+{% endblock %}

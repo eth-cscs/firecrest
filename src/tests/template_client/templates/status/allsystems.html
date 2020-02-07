@@ -1,0 +1,25 @@
+{% extends "demo_base.html" %}
+{% block title %}Status microservice{% endblock %}
+{% block content %}
+
+
+<h1>
+  Status microservice
+</h1>
+
+<h2>Status of all systems available for FirecREST</h2>
+
+<table class="table table-hover">
+  <tr><th>System</th><th>Status</th><th>Description</th></tr>
+  {% for stat in response.json()['out'] %}
+      {% if stat['status'] == "available" %}
+        <tr class="success"><td>{{ stat['system'] }}</td><td>{{ stat['status'] }}</td><td>{{ stat['description'] }}</td></tr>
+      {%  else %}
+         <tr class="danger"><td>{{ stat['system'] }}</td><td>{{ stat['status'] }}</td><td>{{ stat['description'] }}</td></tr>
+      {%  endif %}
+  {% endfor %}
+
+</table>
+
+
+{% endblock %}

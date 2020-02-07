@@ -1,0 +1,124 @@
+{% extends "demo_base.html" %}
+{% block title %}Create an Internal Transfer Job{% endblock %}
+{% block content %}
+<style>
+table {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+td, th {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
+
+tr:nth-child(even) {
+  background-color: #dddddd;
+}
+</style>
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+<script type="text/javascript">
+
+var stop_array = ["200","400"];
+
+function is_object(obj){
+
+  /*return obj == Object(obj);*/
+  /* if the length is undefined, is because it is a dictionary*/
+  return ( typeof obj.length === "undefined");
+
+}
+
+function update_progress(task_url) {
+
+      $.ajax({
+        type: 'GET',
+        url: task_url,
+        success: function(data){
+            $(".task").css("border-color","green");
+            $(".task").css("border-style","solid");
+
+            var task = document.getElementById("task");
+
+            var task_result = document.createElement("p");
+            var task_link   = document.createElement("a");
+
+            task_result.innerHTML = data["task"]["data"]["result"];
+            task_link.href = "{{ request.url_root }}compute/jobs/"+data["task"]["data"]["jobid"]+"?machine={{ machine }}";
+            task_link.innerHTML = "Job ID: "+data["task"]["data"]["jobid"];
+
+	    task.appendChild(task_result);
+	    task.appendChild(task_link);
+           
+
+
+            if(stop_array.indexOf(data["task"]["status"]) != -1)
+                clearInterval(checkProgress);
+
+       },
+
+
+        error: function(data){
+          $(".task").css("border-color","red");
+          $(".task").css("border-style","solid");
+          $( ".task" ).text("Error on submiting request\n"+data['error']);
+
+          },
+      });
+}
+
+
+</script>
+
+
+{{ wtf.quick_form(form) }}
+<br>
+<br>
+
+{% if response != None %}
+    {% if response.ok %}
+      <br>
+      You can check the details of this task <a href="{{ request.url_root }}tasks/{{ response.json()['task_id'] }}">here</a>
+      <br>
+      <br>
+      
+      <script>
+        var checkProgress = setInterval(function() {
+          update_progress("/tasks/{{ response.json()['task_id'] }}?data=1");
+        }, 2000);
+      </script>
+      <div class="task" id="task">
+      </div>
+
+    {% else %}
+      {{ response.json()['error'] }}
+    {% endif %}
+{% endif %}
+
+<script>
+
+
+	$("select").on("change",function(e){
+                var valueSelected  = this.value;
+		console.log("Value: "+valueSelected);
+
+		if (valueSelected == "rm"){
+			$("#sourcePath").val("Not required");
+			/*$("#sourcePath").attr("disabled", "disabled");*/
+		}
+		else{
+			$("#sourcePath").val("");
+			/*$("#sourcePath").removeAttr("disabled");*/
+			
+		}
+	});
+
+</script>
+
+{% endblock %}
+
+

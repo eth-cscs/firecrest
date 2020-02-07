@@ -1,0 +1,221 @@
+{% extends "demo_base.html" %}
+{% block title %}Submit a compute job{% endblock %}
+{% block content %}
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+<script type="text/javascript">
+
+var stop_array = ["200","400"];
+
+function is_object(obj){
+
+  /*return obj == Object(obj);*/
+  /* if the length is undefined, is because it is a dictionary*/
+  return ( typeof obj.length === "undefined");
+
+}
+
+function update_progress(task_url) {
+
+      $.ajax({
+        type: 'GET',
+        url: task_url,
+        success: function(data){
+            status = data["task"]["status"];
+
+            if(status == "200"){
+            	$(".task").css("border-color","green");
+            	$(".task").css("border-style","solid");
+
+            	var task = document.getElementById("task");
+
+            	var task_result = document.createElement("p");
+            	var task_link   = document.createElement("a");
+
+            	task_result.innerHTML = data["task"]["data"]["result"];
+            	task_link.href = "jobs/"+data["task"]["data"]["jobid"]+"?machine={{ machine }}";
+            	task_link.innerHTML = "Job ID: "+data["task"]["data"]["jobid"];
+
+	    	task.appendChild(task_result);
+	    	task.appendChild(task_link);
+	    }
+            else if(status == "400"){
+		$(".task").css("border-color","red");
+                $(".task").css("border-style","solid");
+
+		var task = document.getElementById("task");
+
+                var task_result = document.createElement("p");
+
+                task_result.innerHTML = data["task"]["data"];
+
+                task.appendChild(task_result);
+
+	    }
+           
+
+
+            if(stop_array.indexOf(status) != -1)
+                clearInterval(checkProgress);
+
+       },
+
+
+        error: function(data){
+          $(".task").css("border-color","red");
+          $(".task").css("border-style","solid");
+          $( ".task" ).text("Error on submiting request\n"+data['error']);
+
+          },
+      });
+}
+
+
+</script>
+
+
+{# {{ wtf.quick_form(form) }} #}
+
+<form class="form-group" method="POST" action="submit" enctype="multipart/form-data">
+
+
+    <table class="table">
+
+        <tr><td width="10%">Machine</td><td width="40%">{{ form.machine(class="form-control") }}</td></tr>
+
+        <tr><td>Choose submition option: </td>
+            <td>
+
+            {%  for field in form.fileOrForm %}
+                <label class="radio-inline>"> {{ field }} {{ field.label }} </label>
+            {%  endfor %}
+
+            </td> </tr>
+
+
+        <tr><td>File</td><td>{{ form.upload(class="form-control") }}</td></tr>
+
+        <tr><td>Partition</td><td>{{ form.partition(class="form-control") }}</td></tr>
+	<tr><td>Constraint</td><td>{{ form.constraint(class="form-control") }}</td></tr>
+        <tr><td>Job Name</td><td>{{ form.jobName(class="form-control") }}</td></tr>
+        <tr><td>Number of nodes</td><td>{{ form.nNodes(class="form-control") }}</td></tr>
+        <tr><td>Number of tasks per core</td><td>{{ form.nTasksPerCore(class="form-control") }}</td></tr>
+        <tr><td>Number of tasks per node</td><td>{{ form.nTasksPerNode(class="form-control") }}</td></tr>
+        <tr><td>Number of CPUs per task</td><td>{{ form.nCpusPerTask(class="form-control") }}</td></tr>
+        <tr><td>E-mail</td><td>{{ form.email(class="form-control") }}</td></tr>
+        <tr><td>Commands</td><td>{{ form.command(class="form-control") }}</td></tr>
+        
+
+    </table>
+
+    {{ form.submit(class="form-control") }}
+
+
+</form>
+
+<br>
+<br>
+
+{% if response != None %}
+    {% if response.ok %}
+      <br>
+      You can check the details of this task <a href="{{ request.url_root }}tasks/{{ response.json()['task_id'] }}">here</a>
+      <br>
+      <br>
+      
+      <script>
+        var checkProgress = setInterval(function() {
+          update_progress("/tasks/{{ response.json()['task_id'] }}?data=1");
+        }, 2000);
+      </script>
+      <div class="task" id="task">
+      </div>
+
+    {% else %}
+      {{ response.json()['error'] }}
+    {% endif %}
+{% endif %}
+
+<script>
+
+	var fileOrForm = document.getElementsByName("fileOrForm");
+	for(var i=0; i<fileOrForm.length; i++){
+
+		fileOrForm[i].addEventListener("change", function(e){
+
+			/*console.log(this.value);*/
+			if (this.value=="form"){
+
+				document.getElementById("upload").disabled=true;
+				document.getElementById("jobName").disabled=false;
+
+				document.getElementById("constraint").disabled=false;
+				document.getElementById("partition").disabled=false;
+				document.getElementById("nNodes").disabled=false;
+				document.getElementById("nTasksPerCore").disabled=false;
+				document.getElementById("nTasksPerNode").disabled=false;
+				document.getElementById("nCpusPerTask").disabled=false;
+				document.getElementById("email").disabled=false;
+				document.getElementById("command").disabled=false;
+
+
+			}
+			else if (this.value=="file"){
+				document.getElementById("upload").disabled=false;
+				document.getElementById("jobName").disabled=true;
+
+				document.getElementById("constraint").disabled=true;
+				document.getElementById("partition").disabled=true;
+				document.getElementById("nNodes").disabled=true;
+				document.getElementById("nTasksPerCore").disabled=true;
+				document.getElementById("nTasksPerNode").disabled=true;
+				document.getElementById("nCpusPerTask").disabled=true;
+				document.getElementById("email").disabled=true;
+				document.getElementById("command").disabled=true;
+
+			}
+			
+
+		});
+	}
+
+	var machine = document.getElementById("machine");
+	machine.addEventListener("change",function(e){
+		/*first cleaning all options*/
+		var partitions = document.getElementById("partition");
+		
+		while (partitions.options.length){
+			partitions.remove(0);
+		}
+
+		var options = {{ partitions|safe }};
+		
+		for (var key in options ){
+		
+			if(options.hasOwnProperty(key)){
+
+		
+				if (this.options[this.selectedIndex].value == key){
+
+					var partlist = options[key];
+					for (var j=0; j<partlist.length; j++){
+				
+						var opt = document.createElement("option")
+          					opt.value = partlist[j]
+                                		opt.innerHTML = partlist[j];
+						partitions.appendChild(opt);
+
+					}
+
+				}
+
+			}	
+		}
+		
+	});
+
+</script>
+
+{% endblock %}
+

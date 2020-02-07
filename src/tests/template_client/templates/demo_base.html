@@ -1,0 +1,28 @@
+{% extends "bootstrap/base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+{# {% block head %}
+	<link rel="stylesheet" href="{{ url_for("static",filename="styles.css") }}"/>
+{% endblock %} #}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='styles.css')}}" type="text/css">
+
+{% block navbar %}
+<div class="navbar navbar-inverse" role="navigation">
+    <div class="container-fluid">
+        <ul class="nav navbar-nav navbar-left">
+          <li><a href="{{ url_for('index') }}">Home</a><li>
+	  {% for name,link in microservices %}
+		  <li><a href="{{ url_for(link) }}">{{ name }}</a></li>
+	  {% endfor %}
+        </ul>
+        <ul class="nav navbar-nav navbar-right">
+          {% if g.user %}
+            <li><a href="{{ url_for('logout') }}">Log Out</a></li>
+          {% else %}
+            <li><a href="{{ url_for('login') }}">Log In</a></li>
+          {% endif %}
+        </ul>
+  </div>
+</div>
+{% endblock %}
+

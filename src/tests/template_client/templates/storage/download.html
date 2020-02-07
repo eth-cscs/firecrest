@@ -1,0 +1,104 @@
+{% extends "demo_base.html" %}
+{% block title %}External File Download{% endblock %}
+{% block content %}
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+<script type="text/javascript">
+
+
+function update_progress(task_url) {
+
+	$.ajax({
+        type: 'GET',
+        url: task_url,
+        success: function(data){
+
+          status_code = data['task']['status'];
+
+          if (status_code == "400" || status_code == "118" ){
+            $("#tempurl-error").css("display","block");
+            $("#tempurl-error").text(data['task']['description']);
+            clearInterval(checkProgress);
+          }
+
+          else if (status_code == "116" ){
+            $("#tempurl-progress").css("display","block");
+            $("#tempurl-progress").text(data['task']['description'])
+          }
+
+          else if (status_code == "117" ){
+            $("#tempurl-progress").css("display","none");
+            $("#tempurl-success").css("display","block");
+
+            $("#tempurl-success-text").text(data['task']['description']);
+
+            $("#download-link").attr("href",data['task']['data']);
+	        clearInterval(checkProgress);
+          }
+      },
+
+      error: function(data){
+        $("#tempurl-progress").css("display","none");
+        $("#tempurl-error").css("display","block");
+        $("#tempurl-error").text(data['task']['description'])
+        clearInterval(checkProgress);
+        },
+      });
+
+  }
+
+
+</script>
+
+
+  <h1>Large data transfer from CSCS</h1>
+
+  {% if response != None %}
+    {% if response.status_code == 200 %}
+      {{ response.json()['success'] }} <br>
+      This is the URL where the async task can be query: {{ response.json()['task_url'] }}
+      <script>
+        setInterval(function() {
+          checkProgress = update_progress("/tasks/{{ response.json()['task_id'] }}");
+        }, 1000);
+      </script>
+      <div class="task">
+
+        <div id="tempurl">
+
+
+
+          <div style="display: none; border-color: blue; border-style: solid;" id="tempurl-progress">
+            <h3>In progress</h3>
+          </div>
+
+          <div style="display: none; border-color: red; border-style: solid;" id="tempurl-error"></div>
+
+          <div style="display: none; border-color: green; border-style: solid;" id="tempurl-success">
+            <h2>Success!</h2>
+            <h3>URL to download file:</h3>
+            <div id="tempurl-success-text"></div>
+            <br>
+
+            <a target="_blank" id="download-link">Or use this link</a>
+
+          </div>
+
+        </div>
+
+
+
+      </div>
+    {% else %}
+      <div style="display: block; border-color: red; border-style: solid" id="error">
+	    <h3>Error</h3>
+	    <p>{{ response.json()["error"] }}</p>
+	</div>
+    {% endif %}
+  {% else %}
+    <h2>Select directory where file is stored in CSCS</h2>
+    {{ wtf.quick_form(form) }}
+  {% endif %}
+{% endblock %}
+

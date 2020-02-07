@@ -1,0 +1,20 @@
+{% extends "demo_base.html" %}
+{% block title %}External File Upload{% endblock %}
+{% block content %}
+
+
+  <h1>Large data transfer to CSCS</h1>
+
+  {% if response != None %}
+    {% if not response.ok %}
+      <div style="display: block; border-color: red; border-style: solid" id="error">
+	    <h3>Error</h3>
+	    <p>{{ response.json()["error"] }}</p>
+	    <a href="{{ request.url_root}}storage/upload">Try again</a>
+	  </div>
+    {% endif %}
+  {% else %}
+    <h2>Step 1: Select directory where to store file in CSCS and your local file</h2>
+    {{ wtf.quick_form(form) }}
+  {% endif %}
+{% endblock %}

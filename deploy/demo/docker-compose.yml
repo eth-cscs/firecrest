@@ -1,0 +1,210 @@
+version: '3.4'
+
+networks:
+  firecrest-internal:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+      - subnet: 192.168.220.0/24
+
+
+services:
+  keycloak:
+    image: "jboss/keycloak:4.8.3.Final"
+    container_name: fckeycloak
+    env_file: keycloak/keycloak.env
+    environment:
+      KEYCLOAK_IMPORT: /var/tmp/config.json
+      Dkeycloak.migration.realmName: kcrealm
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.20
+    ports:
+      - "${KEYCLOAK_PORT:-8080}:8080"
+    volumes:
+      - ./keycloak/config.json:/var/tmp/config.json:ro
+      - ./logs/keycloak:/opt/jboss/keycloak/standalone/log/:delegated
+
+  kong:
+    image: kong:latest
+    container_name: kong
+    environment:
+      - KONG_DATABASE=off
+      - KONG_DECLARATIVE_CONFIG=/kong.yml
+    volumes:
+      - ./kong/kong.yml:/kong.yml:ro
+      - ./logs/kong/:/usr/local/kong/logs/:delegated
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.21
+    ports:
+      - 8000:8000
+
+  certificator:
+    container_name: certificator
+    build:
+      context: ../../
+      dockerfile: deploy/docker/certificator/Dockerfile
+      network: host
+    env_file:
+      - ./common/common.env
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.11
+    ports:
+      - 5010:5010
+    volumes:
+      - ./logs/firecrest:/var/log:delegated
+      - ./common/keys/user-key.pub:/user-key.pub:ro
+      # 'ca-key' is added on dockerfile
+
+  compute:
+    container_name: compute
+    build:
+      context: ../../
+      dockerfile: deploy/docker/compute/Dockerfile
+      network: host
+    env_file:
+      - ./common/common.env
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.9
+    ports:
+      - 5006:5006
+    volumes:
+      - ./logs/firecrest:/var/log:delegated
+      - ./common/keys/user-key:/user-key:ro
+
+  status:
+    container_name: status
+    build:
+      context: ../../
+      dockerfile: deploy/docker/status/Dockerfile
+      network: host
+    env_file:
+      - ./common/common.env
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.4
+    ports:
+      - 5001:5001
+    volumes:
+      - ./logs/firecrest:/var/log:delegated
+      - ./common/keys/user-key:/user-key:ro
+
+  storage:
+    container_name: storage
+    build:
+      context: ../../
+      dockerfile: deploy/docker/storage/Dockerfile
+      network: host
+    env_file:
+      - ./common/common.env
+    environment:
+      S3_URL: http://192.168.220.19:9000
+      S3_ACCESS_KEY: storage_access_key
+      S3_SECRET_KEY: storage_secret_key
+      debug: "True"
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.5
+    volumes:
+      - ./logs/firecrest:/var/log:delegated
+      - ./common/keys/user-key:/user-key:ro
+
+  tasks:
+    container_name: tasks
+    build: 
+      context: ../../
+      dockerfile: deploy/docker/tasks/Dockerfile
+      network: host
+    env_file:
+      - ./common/common.env
+    environment:
+      - PERSIST_PORT=6379
+      - PERSIST_PWD=rediS2200
+    depends_on:
+      - "taskpersistence"
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.6
+    ports:
+      - 5003:5003
+    volumes:
+      - ./logs/firecrest:/var/log:delegated
+
+  taskpersistence:
+    container_name: taskpersistence
+    build: 
+      context: ./
+      dockerfile: taskpersistence/Dockerfile
+      network: host
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.13
+    volumes:
+      - ./taskpersistence-data:/data:delegated
+      - ./logs:/var/log:delegated
+
+  utilities:
+    container_name: utilities
+    build: 
+      context: ../../
+      dockerfile: deploy/docker/utilities/Dockerfile
+      network: host
+    env_file:
+      - ./common/common.env
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.7
+    ports:
+      - 5004:5004
+    volumes:
+      - ./logs/firecrest:/var/log:delegated
+      - ./common/keys/user-key:/user-key:ro
+
+
+
+  minio:
+    image: minio/minio
+    command: minio server /data
+    container_name: minio
+    environment:
+     MINIO_ACCESS_KEY: storage_access_key
+     MINIO_SECRET_KEY: storage_secret_key
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.19
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./minio:/data
+
+  cluster:
+    container_name: cluster
+    build: 
+      context: ../test-build
+      dockerfile: ./cluster/Dockerfile
+      network: host
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.12
+    hostname: cluster
+    volumes:
+      - ./logs/cluster/:/var/log/slurm/:delegated
+
+  client:
+    container_name: client
+    build:
+      context: ./demo_client
+      dockerfile: ./Dockerfile
+      network: host
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.30
+    ports:
+      - "7000:7000"
+    volumes:
+      - ./logs/client:/var/log:delegated
+      - ../../src/tests/template_client/templates/:/app/templates
