@@ -15,7 +15,7 @@ from logging.handlers import TimedRotatingFileHandler
 from cscs_api_common import check_header, get_username
 import tasks_persistence as persistence
 
-AUTH_HEADER_NAME = os.environ.get("AUTH_HEADER_NAME")
+AUTH_HEADER_NAME = 'Authorization'
 
 STATUS_IP   = os.environ.get("STATUS_IP")
 STORAGE_IP  = os.environ.get("STORAGE_IP")
@@ -72,11 +72,7 @@ def init_queue():
         t.set_status(status,data)
         tasks[t.hash_id] = t
 
-
     persistence.close_connection(r)
-
-    # set to debug = False, so stderr and stdout go to log file
-    app.run(debug=debug, host='0.0.0.0', port=TASKS_PORT)
 
 
 @app.route("/",methods=["GET"])
@@ -473,3 +469,6 @@ if __name__ == "__main__":
     logger.addHandler(logHandler)
 
     init_queue()
+
+    # set to debug = False, so stderr and stdout go to log file
+    app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=TASKS_PORT)

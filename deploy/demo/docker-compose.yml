@@ -57,7 +57,8 @@ services:
     volumes:
       - ./logs/firecrest:/var/log:delegated
       - ./common/keys/user-key.pub:/user-key.pub:ro
-      # 'ca-key' is added on dockerfile
+      # 'ca-key' is added on dockerfile, can be overridden here:
+      # ./my-ca-key:/ca-key:ro
 
   compute:
     container_name: compute
@@ -179,7 +180,7 @@ services:
     ports:
       - "9000:9000"
     volumes:
-      - ./minio:/data
+      - ./minio:/data:delegated
 
   cluster:
     container_name: cluster
@@ -197,14 +198,15 @@ services:
   client:
     container_name: client
     build:
-      context: ./demo_client
+      context: ../../src/tests/template_client
       dockerfile: ./Dockerfile
       network: host
     networks:
       firecrest-internal:
         ipv4_address: 192.168.220.30
     ports:
-      - "7000:7000"
+      - "7000:5000"
     volumes:
+      - ./demo_client/config.py:/app/config.py:ro
+      - ./demo_client/client_secrets.json:/app/client_secrets.json:ro
       - ./logs/client:/var/log:delegated
-      - ../../src/tests/template_client/templates/:/app/templates

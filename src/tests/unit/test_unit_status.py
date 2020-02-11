@@ -6,10 +6,20 @@
 #
 import pytest
 import requests
+import os
 
-STATUS_URL = "http://0.0.0.0:5001"
 
-@pytest.mark.parametrize("system",["daunt", "pollux"])
+FIRECREST_IP = os.environ.get("FIRECREST_IP")
+if FIRECREST_IP:
+	STATUS_URL = os.environ.get("FIRECREST_IP") + "/status"
+else:
+    STATUS_URL = os.environ.get("STATUS_URL")
+
+SYSTEMS = os.environ.get("SYSTEMS_PUBLIC").split(";")
+
+
+
+@pytest.mark.parametrize("system",SYSTEMS)
 def test_status_system(system, headers):
 	url = "{}/systems/{}".format(STATUS_URL, system)
 	resp = requests.get(url, headers=headers)

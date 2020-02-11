@@ -17,14 +17,11 @@
   {% if response != None %}
     {% if not response.ok %}
 
-      <div style="display: block; border-color: red; border-style: solid" id="error">
-	    <h3>Error</h3>
-	    <p>{{ response.json()["error"] }}</p>
-	    <a href="{{ request.url_root}}storage/upload-finished/{{ taskid }}">Try again</a>
-	  </div>
+	    <div class="bg-danger">Error: {{ response.json()["error"] }}</div>
+
     {% endif %}
-  {% else %}
-    {{ wtf.quick_form(form) }}
+
   {% endif %}
+    {{ wtf.quick_form(form) }}
 {% endblock %}
 

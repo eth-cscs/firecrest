@@ -211,6 +211,20 @@ tr:nth-child(even) {
 
 	}
 
+	function fullPath(dirPath,fileName){
+
+
+	    var content = dirPath+"/"+fileName;
+	    var textarea = $("<textarea>").val(content).appendTo("body").select();
+
+        document.execCommand("copy");
+
+        $(textarea).remove();
+
+        alert("Path "+content+" has been copied to clipboard");
+
+    }
+
 	function action(action,dirPath,fileName,machine){
 		/* action: copy, rename, */ 
 
@@ -309,18 +323,17 @@ tr:nth-child(even) {
 <form class="form-group" method="POST" action="utilities" enctype="multipart/form-data">
 
 
-
-
-
-
   <div>
-      <a class="btn btn-info" href="#" onclick="viewUpload(this);">Upload</a>
-        <div id="divUpload" style="display:none; float: left">
-            <input type="file" name="upload"/>
-                <a class="btn btn-default btn-sm" href="#" onclick="upload('{{ path }}','{{ machine }}','{{ request.url_root }}utilities/upload');">Submit</a>
+      <a class="btn btn-info" data-toggle="collapse" href="#collapseExample">Upload</a>
+        <div class="collapse" id="collapseExample">
+            <div class="card card-body">
+                <input type="file" name="upload"/>
+                    <a class="btn btn-default btn-sm" href="#" onclick="upload('{{ path }}','{{ machine }}','{{ request.url_root }}utilities/upload');">Submit</a>
+            </div>
         </div>
     <a class="btn btn-primary" href="#" onclick="makedir('{{ path }}','{{ machine }}');">New directory</a></td>
   </div>
+
 
  <table style="border-spacing: 15px; border-collapse: separate">
     <tr >
@@ -333,14 +346,17 @@ tr:nth-child(even) {
     <table class="table table-hover">
         <tr><th>Type</th><th>Permissions</th><th>User</th><th>Group</th><th>Size</th><th>Date</th><th>Name</th><th>Symlink</th><th>Actions</th></tr>
     {% if response.ok %}
-
-
-
-
       {% if path != "/" %}
-		{% set back_path = "/".join(path.split("/")[:-1]) %}
+      		{% set back_path = "/".join(path.split("/")[:-1]) %}
+                {% if back_path == "" %}
+                    {% set back_path = "/" %}
+                {% endif %}
 		<tr><td colspan="9"><a href="{{ request.url_root }}utilities?targetPath={{ back_path }}&machinename={{ machine }}">[up dir]</a></td></tr>
-	  {% endif %}
+		{% set extraSlash='/'  %}
+	{% else %}
+		{% set extraSlash=''  %}
+	{% endif %}
+
 
       {% for row in response.json()['output'] %}
 	    {% if row["type"] == "d" %} {# if is a directory, href to it #}
@@ -355,12 +371,11 @@ tr:nth-child(even) {
 			<td>{{ row["last_modified"] }}</td>
 
 		{% if is_dir %}
-		  	<td><a href="{{ request.url_root }}utilities?targetPath={{ path }}/{{ row['name'] }}&machinename={{ machine }}">{{ row['name'] }}</a></td>
+			<td><a href="{{ request.url_root }}utilities?targetPath={{ path }}{{ extraSlash  }}{{ row['name'] }}&machinename={{ machine }}">{{ row['name'] }}</a></td>
 		{% else %}
-		 	<td>{{ row["name"] }}</td>
-		
+			<td>{{ row["name"] }}</td>
 		{% endif %}
- 		<td>{{ row["link"] }}</td>		
+		<td>{{ row["link"] }}</td>
 		
 		<td>	<a href="#" onclick="action('copy','{{ path }}','{{ row['name'] }}','{{ machine }}');">cp</a> | 
 			<a href="#" onclick="action('rename','{{ path }}','{{ row['name'] }}','{{ machine }}');">mv</a> | 
@@ -370,7 +385,8 @@ tr:nth-child(even) {
 		{% endif %}
 			<a href="#" onclick="action('rm','{{ path }}','{{ row['name'] }}','{{ machine }}');">rm</a> | 
 			<a href="#" onclick="chown('{{ path }}','{{ row['name'] }}','{{ machine }}','{{ row['user'] }}','{{ row['group'] }}');">chown</a> | 
-			<a href="#" onclick="chmod('{{ path }}','{{ row['name'] }}','{{ machine }}', '{{ row['permissions'] }}');">chmod</a> | 
+			<a href="#" onclick="chmod('{{ path }}','{{ row['name'] }}','{{ machine }}', '{{ row['permissions'] }}');">chmod</a> |
+            <a href="#" onclick="fullPath('{{ path }}','{{ row['name'] }}');">copy path</a>
 		</tr>
       {% endfor %}
 

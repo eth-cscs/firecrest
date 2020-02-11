@@ -11,18 +11,18 @@ import stat
 
 debug = os.environ.get("DEBUG_MODE", None)
 
-AUTH_HEADER_NAME = os.environ.get("AUTH_HEADER_NAME").strip('\'"')
-if AUTH_HEADER_NAME == "Authorization":
-    realm_pubkey=os.environ.get("REALM_RSA_PUBLIC_KEY", '')
-    if realm_pubkey != '':
-        # headers are inserted here, must not be present
-        realm_pubkey = realm_pubkey.strip('\'"')   # remove '"'
-        realm_pubkey = '-----BEGIN PUBLIC KEY-----\n' + realm_pubkey + '\n-----END PUBLIC KEY-----'
-        realm_pubkey_type = os.environ.get("REALM_RSA_TYPE").strip('\'"')
+AUTH_HEADER_NAME = 'Authorization' # os.environ.get("AUTH_HEADER_NAME").strip('\'"')
+#if AUTH_HEADER_NAME == "Authorization":
+realm_pubkey=os.environ.get("REALM_RSA_PUBLIC_KEY", '')
+if realm_pubkey != '':
+    # headers are inserted here, must not be present
+    realm_pubkey = realm_pubkey.strip('\'"')   # remove '"'
+    realm_pubkey = '-----BEGIN PUBLIC KEY-----\n' + realm_pubkey + '\n-----END PUBLIC KEY-----'
+    realm_pubkey_type = os.environ.get("REALM_RSA_TYPE").strip('\'"')
 
-    AUTH_AUDIENCE = os.environ.get("AUTH_TOKEN_AUD", '').strip('\'"')
-    ALLOWED_USERS = os.environ.get("AUTH_ALLOWED_USERS", '').strip('\'"').split(";")
-    AUTH_REQUIRED_SCOPE = os.environ.get("AUTH_REQUIRED_SCOPE", '').strip('\'"')
+AUTH_AUDIENCE = os.environ.get("AUTH_TOKEN_AUD", '').strip('\'"')
+ALLOWED_USERS = os.environ.get("AUTH_ALLOWED_USERS", '').strip('\'"').split(";")
+AUTH_REQUIRED_SCOPE = os.environ.get("AUTH_REQUIRED_SCOPE", '').strip('\'"')
 
 
 CERTIFICATOR_URL = os.environ.get("CERTIFICATOR_URL")
@@ -40,6 +40,8 @@ def check_header(header):
     # header = "Bearer ey...", remove first 7 chars
     try:
         if realm_pubkey == '':
+            if not debug:
+                logging.warning("WARNING: cscs_api_common: check_header: REALM_RSA_PUBLIC_KEY is empty, JWT tokens are NOT verified, setup is not set to debug.")
             decoded = jwt.decode(header[7:], verify=False)
         else:
             if AUTH_AUDIENCE == '':

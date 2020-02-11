@@ -6,6 +6,7 @@ There're 4 images used:
 - Centos:7   base for all microservices (except Kong, QueuePersistance). Python and several pip packages are taken from them. It also uses EPEL repository
 - Redis:5    used for QueuePersistance. Doesn't depend on any specific Redis feature of this version, but python-redis used to access it may depend.
 - Kong:1.0   stable release, nothing especific. Should be possible to upgrade without issues.
+- postgres:11  used by Kong. Nothing specific, just compatible with Kong
 
 
 Microservices (except Kong, QueuePersistance) adds EPEL repository, install pip and add several packages, mainly Flask and pyjwt.

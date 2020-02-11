@@ -22,4 +22,7 @@ class DevConfig(Config):
     FIRECREST_IP='http://kong:8000'
     MACHINES=['cluster', 'cluster']
     PARTITIONS={'cluster':['part01','part02'], 'cluster':['part01','part02']}
+    # machine for internal storage jobs, must be defined in MACHINES
+    STORAGE_JOBS_MACHINE='cluster'
     HOME_DIR = '/home'
+    CLIENT_PORT = 5000

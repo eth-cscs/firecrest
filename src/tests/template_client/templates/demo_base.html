@@ -6,8 +6,16 @@
 
 <link rel="stylesheet" href="{{ url_for('static', filename='styles.css')}}" type="text/css">
 
+
+
 {% block navbar %}
-<div class="navbar navbar-inverse" role="navigation">
+
+    <table style="width: 70%; margin-left: auto; margin-right: auto;">
+        <tr> <td style="vertical-align: middle; text-align: left;"><a href="https://cscs.ch"><img style="width: 40%" src="{{url_for('static', filename='cscs_logo.jpg')}}" class="img-responsive" /></a></td>
+             <td style="vertical-align: middle; text-align: right;"><a href="https://ethz.ch/en.html"><img style="width: 60%" src="{{url_for('static', filename='ethz_logo.jpg')}}" class="img-responsive" /></a></td></tr>
+    </table>
+
+<div style="display: block; width: 70%; margin-right: auto; margin-left: auto;" class="navbar navbar-inverse" role="navigation">
     <div class="container-fluid">
         <ul class="nav navbar-nav navbar-left">
           <li><a href="{{ url_for('index') }}">Home</a><li>
@@ -24,5 +32,7 @@
         </ul>
   </div>
 </div>
+
+    <div style="display: block; width: 70%; margin-right: auto; margin-left: auto;">
 {% endblock %}
 

@@ -37,7 +37,7 @@ KONG_URL         = os.environ.get("KONG_URL")
 
 STORAGE_PORT     = os.environ.get("STORAGE_PORT", 5000)
 
-AUTH_HEADER_NAME = os.environ.get("AUTH_HEADER_NAME")
+AUTH_HEADER_NAME = 'Authorization'
 
 # Machines for Storage:
 # Filesystem DNS or IP where to download or upload files:
@@ -111,14 +111,14 @@ def download_task(auth_header,system,sourcePath,task_id):
         errno = staging.create_container(container_name)
 
         if errno == -1:
-            msg="Could not create container {container_name} in Staging Area ({staging_name})".format(container_name=container_name,staging_name=staging.get_object_storage())
+            msg="Could not create container {container_name} in Staging Area ({staging_name})".format(container_name=container_name, staging_name=staging.get_object_storage())
             update_task(task_id, auth_header, async_task.ERROR, msg)
             return
 
     # upload file to swift
     object_prefix = task_id
 
-    upload_url = staging.create_upload_form(sourcePath,container_name,object_prefix,STORAGE_TEMPURL_EXP_TIME,STORAGE_MAX_FILE_SIZE)
+    upload_url = staging.create_upload_form(sourcePath, container_name, object_prefix, STORAGE_TEMPURL_EXP_TIME, STORAGE_MAX_FILE_SIZE)
 
     # advice Tasks that upload begins:
     update_task(task_id, auth_header, async_task.ST_UPL_BEG)
@@ -135,11 +135,8 @@ def download_task(auth_header,system,sourcePath,task_id):
 
 
     # get Download Temp URL with [seconds] time expiration
-    # create temp url for file: valid for STORAGE_MAX_FILE_SIZE seconds
-    seconds = STORAGE_MAX_FILE_SIZE
-
-
-    temp_url = staging.create_temp_url(container_name,object_prefix,object_name,seconds)
+    # create temp url for file: valid for STORAGE_TEMPURL_EXP_TIME seconds
+    temp_url = staging.create_temp_url(container_name, object_prefix, object_name, STORAGE_TEMPURL_EXP_TIME)
 
     # if error raises in temp url creation:
     if temp_url == None:
@@ -180,7 +177,7 @@ def download_request():
         return data, 400
 
     # obtain new task from Tasks microservice
-    task_id = create_task(auth_header,service="storage")
+    task_id = create_task(auth_header, service="storage")
 
     # couldn't create task
     if task_id == -1:
@@ -189,7 +186,7 @@ def download_request():
 
     # asynchronous task creation
     aTask = threading.Thread(target=download_task,
-                             args=(auth_header,system,sourcePath,task_id))
+                             args=(auth_header, system, sourcePath, task_id))
 
     storage_tasks[task_id] = aTask
 
@@ -252,7 +249,7 @@ def upload_task(auth_header,system,targetPath,sourcePath,task_id):
 
         if errno == -1:
             data = uploaded_files[task_id]
-            msg="Could not create container {container_name} in Staging Area ({staging_name})".format(container_name=container_name,staging_name=staging.get_object_storage())
+            msg="Could not create container {container_name} in Staging Area ({staging_name})".format(container_name=container_name, staging_name=staging.get_object_storage())
             data["msg"] = msg
             update_task(task_id,auth_header, async_task.ERROR,data,is_json=True)
             return
@@ -421,6 +418,7 @@ def upload_finished_task(auth_header, system, targetPath, sourcePath, hash_id):
     if res["error"] != 0:
         app.logger.error("Error in download from Staging area to Server")
         app.logger.error(res["error"])
+        app.logger.error(res["msg"])
         msg = res["msg"]
         data["msg"] = msg
         update_task(hash_id,auth_header,async_task.ST_DWN_ERR, data, is_json=True)
@@ -573,7 +571,7 @@ def exec_internal_command(auth_header,command,sourcePath, targetPath, jobName, j
         return result
 
     # create xfer job
-    resp = create_xfer_job(STORAGE_JOBS_MACHINE, auth_header,td + "/sbatch-job.sh")
+    resp = create_xfer_job(STORAGE_JOBS_MACHINE, auth_header, td + "/sbatch-job.sh")
 
     # remove sbatch file and dir
     os.remove(td + "/sbatch-job.sh")
@@ -585,71 +583,28 @@ def exec_internal_command(auth_header,command,sourcePath, targetPath, jobName, j
 # Internal cp transfer via SLURM with xfer partition:
 @app.route("/xfer-internal/cp", methods=["POST"])
 def internal_cp():
-    # checks if AUTH_HEADER_NAME is set
-
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
-
-    try:
-        targetPath = request.form["targetPath"]  # path to save file in cluster
-    except:
-        app.logger.error("targetPath not specified")
-        return jsonify(error="targetPath not specified"), 400
-    try:
-        sourcePath = request.form["sourcePath"]  # path to get file in cluster
-    except:
-        app.logger.error("sourcePath not specified")
-        return jsonify(error="sourcePath not specified"), 400
-
-    try:
-        jobName = request.form["jobName"] # jobName for SLURM
-        if jobName == None or jobName == "":
-            jobName = "cp-job"
-            app.logger.info("jobName not found, setting default to: {jobName}".format(jobName=jobName))
-    except:
-        jobName = "cp-job"
-        app.logger.info("jobName not found, setting default to: {jobName}".format(jobName=jobName))
-
-
-    try:
-        jobTime = request.form["time"] # job time, default is 2:00:00 H:M:s
-        if not job_time.check_jobTime(jobTime):
-            return jsonify(error="Not supported time format"), 400
-    except:
-        jobTime = "02:00:00"
-
-
-    try:
-        stageOutJobId = request.form["stageOutJobId"]  # start after this JobId has finished
-    except:
-        stageOutJobId = None
-
-    retval = exec_internal_command(auth_header,"cp",sourcePath,targetPath,jobName,jobTime,stageOutJobId)
-
-    try:
-        error = retval["error"]
-        errmsg = retval["msg"]
-        desc = retval["desc"]
-
-        # headers values cannot contain "\n" strings
-        return jsonify(error=desc), 400, {"X-Sbatch-Error": errmsg}
-    except KeyError:
-        success = retval["success"]
-        task_id = retval["task_id"]
-
-        return jsonify(success=success, task_id=task_id), 200
-
+    return internal_operation(request, "cp")
 
 # Internal mv transfer via SLURM with xfer partition:
 @app.route("/xfer-internal/mv", methods=["POST"])
 def internal_mv():
+    return internal_operation(request, "mv")
+
+
+# Internal rsync transfer via SLURM with xfer partition:
+@app.route("/xfer-internal/rsync", methods=["POST"])
+def internal_rsync():
+    return internal_operation(request, "rsync")
+
+
+# Internal rm transfer via SLURM with xfer partition:
+@app.route("/xfer-internal/rm", methods=["POST"])
+def internal_rm():
+    return internal_operation(request, "rm")
+
+
+# common code for internal cp, mv, rsync, rm
+def internal_operation(request, command):
     # checks if AUTH_HEADER_NAME is set
     try:
         auth_header = request.headers[AUTH_HEADER_NAME]
@@ -665,19 +620,24 @@ def internal_mv():
     except:
         app.logger.error("targetPath not specified")
         return jsonify(error="targetPath not specified"), 400
-    try:
-        sourcePath = request.form["sourcePath"]  # path to get file in cluster
-    except:
-        app.logger.error("sourcePath not specified")
-        return jsonify(error="sourcePath not specified"), 400
+
+    if command in ['cp', 'mv', 'rsync']:
+        try:
+            sourcePath = request.form["sourcePath"]  # path to get file in cluster
+        except:
+            app.logger.error("sourcePath not specified")
+            return jsonify(error="sourcePath not specified"), 400
+    else:
+        # for 'rm' there's no source, set empty to call exec_internal_command(...)
+        sourcePath = ""
 
     try:
         jobName = request.form["jobName"]  # jobName for SLURM
         if jobName == None or jobName == "":
-            jobName = "mv-job"
+            jobName = command + "-job"
             app.logger.info("jobName not found, setting default to: {jobName}".format(jobName=jobName))
     except:
-        jobName = "mv-job"
+        jobName = command + "-job"
         app.logger.info("jobName not found, setting default to: {jobName}".format(jobName=jobName))
 
     try:
@@ -692,7 +652,7 @@ def internal_mv():
     except:
         stageOutJobId = None
 
-    retval = exec_internal_command(auth_header, "mv", sourcePath, targetPath, jobName, jobTime, stageOutJobId)
+    retval = exec_internal_command(auth_header, command, sourcePath, targetPath, jobName, jobTime, stageOutJobId)
 
     # returns "error" key or "success" key
     try:
@@ -704,122 +664,7 @@ def internal_mv():
     except KeyError:
         success = retval["success"]
         task_id = retval["task_id"]
-        return jsonify(success=success, task_id=task_id), 200
-
-
-# Internal rsync transfer via SLURM with xfer partition:
-@app.route("/xfer-internal/rsync", methods=["POST"])
-def internal_rsync():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
-    try:
-        targetPath = request.form["targetPath"]  # path to save file in cluster
-    except:
-        app.logger.error("targetPath not specified")
-        return jsonify(error="targetPath not specified"), 400
-    try:
-        sourcePath = request.form["sourcePath"]  # path to get file in cluster
-    except:
-        app.logger.error("sourcePath not specified")
-        return jsonify(error="sourcePath not specified"), 400
-
-    try:
-        jobName = request.form["jobName"]  # jobName for SLURM
-        if jobName == None or jobName == "":
-            jobName = "rsync-job"
-            app.logger.info("jobName not found, setting default to: {jobName}".format(jobName=jobName))
-    except:
-        jobName = "rsync-job"
-        app.logger.info("jobName not found, setting default to: {jobName}".format(jobName=jobName))
-
-    try:
-        jobTime = request.form["time"]  # job time, default is 2:00:00 H:M:s
-        if not job_time.check_jobTime(jobTime):
-            return jsonify(error="Not supported time format"), 400
-    except:
-        jobTime = "02:00:00"
-
-    try:
-        stageOutJobId = request.form["stageOutJobId"]  # start after this JobId has finished
-    except:
-        stageOutJobId = None
-
-    retval = exec_internal_command(auth_header,"rsync",sourcePath,targetPath,jobName,jobTime,stageOutJobId)
-
-    try:
-        error = retval["error"]
-        errmsg = retval["msg"]
-        desc = retval["desc"]
-        # headers values cannot contain "\n" strings
-        return jsonify(error=desc), 400, {"X-Sbatch-Error": errmsg}
-    except KeyError:
-        success = retval["success"]
-        task_id = retval["task_id"]
         return jsonify(success=success, task_id=task_id), 201
-
-
-# Internal rm transfer via SLURM with xfer partition:
-@app.route("/xfer-internal/rm", methods=["POST"])
-def internal_rm():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
-    try:
-        targetPath = request.form["targetPath"]  # path to save file in cluster
-    except:
-        app.logger.error("targetPath not specified")
-        return jsonify(error="targetPath not specified"), 400
-
-    try:
-        jobName = request.form["jobName"]  # jobName for SLURM
-        if jobName == None or jobName == "":
-            jobName = "rm-job"
-            app.logger.info("jobName not found, setting default to: {jobName}".format(jobName=jobName))
-    except:
-        jobName = "rm-job"
-        app.logger.info("jobName not found, setting default to: {jobName}".format(jobName=jobName))
-
-    try:
-        jobTime = request.form["time"]  # job time, default is 2:00:00 H:M:s
-        if not job_time.check_jobTime(jobTime):
-            return jsonify(error="Not supported time format"), 400
-    except:
-        jobTime = "02:00:00"
-
-    try:
-        stageOutJobId = request.form["stageOutJobId"]  # start after this JobId has finished
-    except:
-        stageOutJobId = None
-
-    # sourcePath is blank for function compatibility reasons
-    retval = exec_internal_command(auth_header,"rm","",targetPath,jobName,jobTime,stageOutJobId)
-
-    try:
-        error = retval["error"]
-        errmsg = retval["msg"]
-        desc = retval["desc"]
-        # headers values cannot contain "\n" strings
-        return jsonify(error=desc), 400, {"X-Sbatch-Error": errmsg}
-    except KeyError:
-        success = retval["success"]
-        task_id = retval["task_id"]
-        return jsonify(success=success, task_id=task_id), 201
-
 
 
 # function to call SBATCH in --partition=xfer
@@ -946,7 +791,7 @@ def init_storage():
 
                     update_task(task["hash_id"], "", async_task.ST_DWN_ERR, data, is_json=True)
 
-                uploaded_files[data["hash_id"]] = data
+                uploaded_files[task["hash_id"]] = data
 
                 n_tasks += 1
 
@@ -969,8 +814,6 @@ def init_storage():
         app.logger.warning("STORAGE microservice will not be fully functional")
         app.logger.error(e)
 
-    app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=STORAGE_PORT)
-
 
 if __name__ == "__main__":
     # log handler definition
@@ -991,3 +834,4 @@ if __name__ == "__main__":
     # checks QueuePersistence and retakes all tasks
     init_storage()
 
+    app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=STORAGE_PORT)

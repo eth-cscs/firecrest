@@ -10,6 +10,7 @@ RUN set -ex \
     && yum -y install epel-release \
     && yum -y install \
        bzip2 \
+       file \
        gcc \
        gcc-c++\
        make \

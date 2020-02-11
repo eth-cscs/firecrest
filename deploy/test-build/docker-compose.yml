@@ -9,7 +9,7 @@ services:
       - ./environment/common.env
     network_mode: "host"
     volumes:
-      - "./environment/keys/ca-key:/ca-key"
+      #- "./environment/keys/ca-key:/ca-key" - added in dockerfile
       - "./environment/keys/user-key.pub:/user-key.pub"
 
   taskpersistence:

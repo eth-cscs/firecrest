@@ -22,12 +22,14 @@ from wtforms.validators import InputRequired
 from flask_wtf.file import FileRequired
 from werkzeug.utils import secure_filename
 from config import DevConfig
+from flask_sslify import SSLify
 
 import logging
 from logging.handlers import TimedRotatingFileHandler
 
 app = Flask(__name__)
 app.config.from_object(DevConfig)
+sslify = SSLify(app)
 
 # to have continue, break statements in jinja
 app.jinja_env.add_extension('jinja2.ext.loopcontrols')
@@ -69,11 +71,11 @@ class JobForm(FlaskForm):
 
     upload = FileField('File', validators=[FileRequired()])
     constraint = SelectField('Constraint',choices=[("","None"),("gpu","GPU"),("mc","Multicore")],render_kw={"disabled":"disabled"})
-    # daint available options,
+
     default_machine = app.config['MACHINES'][0]
-       
+
     partition  = SelectField('Partition', choices=[(p,p) for p in app.config["PARTITIONS"][default_machine]], render_kw={"disabled":"disabled"})
-    # dom options = ["long","kepler","normal"]
+
     jobName = StringField("Job Name",render_kw={"disabled":"disabled"})
     nNodes = IntegerField("Number of nodes",validators=[validators.NumberRange(min=1,max=2400)],render_kw={"disabled":"disabled"},default=1)
     nTasksPerCore = IntegerField("Number of tasks per core",validators=[validators.NumberRange(min=1,max=2)],render_kw={"disabled":"disabled"},default=1)
@@ -84,7 +86,7 @@ class JobForm(FlaskForm):
     command = TextAreaField("Command",render_kw={"disabled":"disabled"})
 
     submit = SubmitField('Submit')
-                          
+
 class ListJobsForm(FlaskForm):
     '''A class to support uploading of files'''
     machine = SelectField('Machine',
@@ -143,9 +145,9 @@ class ApiForm(FlaskForm):
 
 class ExternalUploadForm(FlaskForm):
     '''A class to support raw api calls'''
-    targetPath = StringField('Enter the target path (directory)',
+    targetPath = StringField('Enter the target path (directory)', default="{}/".format(app.config["HOME_DIR"]),
                              validators=[InputRequired()])
-    sourcePath = StringField('Enter the source path',
+    sourcePath = FileField('Enter the source path',
                              validators=[InputRequired()])
 
     submit = SubmitField('Submit')
@@ -165,8 +167,7 @@ class StorageInternalForm(FlaskForm):
     jobName = StringField("Enter job name (optional)")
 
     submit = SubmitField('Submit')
-    
-    #machine = 'cluster'
+
 
 class ExternalDownloadForm(FlaskForm):
     '''A class to support raw api calls'''
@@ -202,7 +203,7 @@ def index():
 @app.route('/status')
 # @oidc.require_login
 def status():
-    '''View function for the status of the CSCS systems'''
+    '''View function for the status of services and systems'''
     # response = requests.get(
     #     url=f"{app.config['FIRECREST_IP']}/status/systems",
     #     headers={'Authorization': f'Bearer {oidc.get_access_token()}'})
@@ -299,7 +300,9 @@ def storage_upload():
     '''View function for uploading large files'''
     form = ExternalUploadForm()
     response = None
-    if form.validate_on_submit():
+    if request.method == "GET":
+        form.targetPath.data = "{}/{}".format(app.config["HOME_DIR"], g.user)
+    elif form.validate_on_submit() or request.method == "POST":
         target_path = form.targetPath.data
         source_path = form.sourcePath.data
         response = requests.post(
@@ -324,8 +327,13 @@ def storage_download():
     '''View function for downloading large files'''
     form = ExternalDownloadForm()
     response = None
-    if form.validate_on_submit():
+    if request.method == "GET":
+        form.sourcePath.data = "{}/{}".format(app.config["HOME_DIR"], g.user)
+    elif form.validate_on_submit() or request.method == "POST":
         source_path = form.sourcePath.data
+
+        app.logger.info("Source path: {}".format(source_path))
+
         response = requests.post(
             url=f"{app.config['FIRECREST_IP']}/storage/xfer-external/download",
             headers={'Authorization': f'Bearer {oidc.get_access_token()}'},
@@ -411,7 +419,7 @@ def internal_transfer():
     '''View function for uploading large files'''
     form = StorageInternalForm()
     response = None
-    if form.validate_on_submit():
+    if form.validate_on_submit() or request.method == "POST":
         target_path = form.targetPath.data
         source_path = form.sourcePath.data
         jobName     = form.jobName.data
@@ -442,7 +450,7 @@ def internal_transfer():
             app.logger.info("Action {} doesn't exist".format(action))
             response = make_response("Action {} doesn't exist".format(action),status_code=400)
 
-    return render_template('storage/xfer-internal.html', form=form, response=response, machine="cluster", microservices=demo_microservices)
+    return render_template('storage/xfer-internal.html', form=form, response=response, machine=app.config['STORAGE_JOBS_MACHINE'], microservices=demo_microservices)
 
 @app.route('/compute')
 def compute():
@@ -467,16 +475,17 @@ def alljobs():
     form = ListJobsForm()
     response = None
     machine = None
-    submit = False
+    # submit = False
 
     if request.method == "POST":
         machine = request.args.get("machinename")
-        if machine != None:
-            submit = True
+        if machine == None:
+            #submit = True
+            machine = form.machine.data
 
-    if form.validate_on_submit() or submit:
-        flash(f'Querying jobs on: {form.machine.data}')
-        machine = form.machine.data
+    #if form.validate_on_submit() or submit:
+        #flash(f'Querying jobs on: {form.machine.data}')
+        #machine = form.machine.data
         response = requests.get(
             url=f"{app.config['FIRECREST_IP']}/compute/jobs",
             headers={'Authorization': f'Bearer {oidc.get_access_token()}',
@@ -515,10 +524,10 @@ def acct():
     form = ListAcctForm()
     response = None
 
-    if form.validate_on_submit():
+    if form.validate_on_submit() or request.method == "POST":
         flash(f'Querying jobs on: {form.machine.data}')
         machine = form.machine.data
-        starttime = starttime = form.starttime.data
+        starttime = form.starttime.data
         endtime = form.endtime.data
         response = requests.get(
             url=f"{app.config['FIRECREST_IP']}/compute/acct?starttime={starttime}&endtime={endtime}",
@@ -638,14 +647,10 @@ def cancel(jobid):
 
     return render_template('compute/canceljob.html',response=response,form=form, machine=machine, microservices=demo_microservices)
 
-@app.route('/utilities',methods=["GET","POST"])
+@app.route('/utilities', methods=["GET", "POST"])
 @oidc.require_login
 def utilities():
-    '''View function for listing the FirecREST tasks'''
-    # response = requests.get(
-    #     url=f"{app.config['FIRECREST_IP']}/tasks/tasks",
-    #     headers={'Authorization': f'Bearer {oidc.get_access_token()}'})
-    # return render_template('tasks.html', response=response)
+    '''View function for listing directories and files'''
 
     form = PathForm()
 
@@ -657,7 +662,7 @@ def utilities():
             submit = True
             form.filepath.data = path
         else:
-            form.filepath.data = "{}/{}".format(app.config["HOME_DIR"],g.user)
+            form.filepath.data = "{}/{}".format(app.config["HOME_DIR"], g.user)
             path = form.filepath.data
 
         if machine != None:
@@ -671,17 +676,15 @@ def utilities():
     app.logger.info("Machine: {}".format(machine))
     app.logger.info("Path: {}".format(path))
 
-
-    
     response = requests.get(
             url=f"{app.config['FIRECREST_IP']}/utilities/ls",
             headers={'Authorization': f'Bearer {oidc.get_access_token()}',
                      'X-Machine-Name': machine},
             params={'targetPath': path})
 
-    return render_template('utilities.html',machine=machine,path=path,response=response,form=form, microservices=demo_microservices)
+    return render_template('utilities.html', machine=machine, path=path, response=response, form=form, microservices=demo_microservices)
 
-@app.route("/utilities/copy",methods=["POST"])
+@app.route("/utilities/copy", methods=["POST"])
 @oidc.require_login
 def copy():
 
@@ -1109,4 +1112,4 @@ if __name__ == '__main__':
 
     logger.addHandler(logHandler)
 
-    app.run(host='0.0.0.0', port=7000)
+    app.run(host='0.0.0.0', port=app.config['CLIENT_PORT'])

@@ -7,7 +7,7 @@
 
   {% if response != None %}
     {% if not response.ok %}
-      <div style="display: block; border-color: red; border-style: solid" id="error">
+      <div class="bg-danger" style="display: block; border-color: red; border-style: solid" id="error">
 	    <h3>Error</h3>
 	    <p>{{ response.json()["error"] }}</p>
 	    <a href="{{ request.url_root}}storage/upload">Try again</a>
@@ -15,6 +15,21 @@
     {% endif %}
   {% else %}
     <h2>Step 1: Select directory where to store file in CSCS and your local file</h2>
-    {{ wtf.quick_form(form) }}
+
+      {# {{ wtf.quick_form(form) }} #}
+
+      <form class="form-group" action="upload" method="post">
+
+        <table style="border-spacing: 20px;">
+
+            <tr><td style="padding-right: 20px"><b>Target path</b></td><td>{{ form.targetPath(class="form-control") }}</td></tr>
+            <tr><td style="padding-right: 20px"><b>Source file</b></td><td>{{ form.sourcePath(class="form-control") }}</td></tr>
+            <tr><td style="padding-right: 20px">{{ form.submit(class="form-control") }}</td></tr>
+
+        </table>
+
+
+      </form>
+
   {% endif %}
 {% endblock %}

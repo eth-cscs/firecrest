@@ -98,7 +98,7 @@ AcceptEnv XMODIFIERS
 Subsystem       sftp    /usr/libexec/openssh/sftp-server
 
 # Only trusted certificate from this network
-Match Address 192.168.0.0/16
+#Match Address 192.168.0.0/16
     TrustedUserCAKeys /etc/ssh/ca-key.pub
     # only accept this CA, and not regular priv/pub SSH keys
     PubkeyAcceptedKeyTypes ssh-rsa-cert-v01@openssh.com

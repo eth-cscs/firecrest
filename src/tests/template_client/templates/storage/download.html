@@ -73,11 +73,10 @@ function update_progress(task_url) {
             <h3>In progress</h3>
           </div>
 
-          <div style="display: none; border-color: red; border-style: solid;" id="tempurl-error"></div>
+          <div class="bg-danger" id="tempurl-error"></div>
 
-          <div style="display: none; border-color: green; border-style: solid;" id="tempurl-success">
-            <h2>Success!</h2>
-            <h3>URL to download file:</h3>
+          <div class="bg-success" id="tempurl-success">
+            URL to download file:
             <div id="tempurl-success-text"></div>
             <br>
 
@@ -91,14 +90,18 @@ function update_progress(task_url) {
 
       </div>
     {% else %}
-      <div style="display: block; border-color: red; border-style: solid" id="error">
-	    <h3>Error</h3>
-	    <p>{{ response.json()["error"] }}</p>
-	</div>
+      <div class="bg-danger" id="error"> Error: {{ response.json()["error"] }}</div>
     {% endif %}
   {% else %}
     <h2>Select directory where file is stored in CSCS</h2>
-    {{ wtf.quick_form(form) }}
+        {# {{ wtf.quick_form(form) }} #}
+      <form method="post" action="download" class="form-group">
+        <table>
+            <tr><td><b>File in CSCS: </b></td><td>{{ form.sourcePath(class="form-control") }}</td></tr>
+            <tr><td>{{ form.submit(class="form-control") }}</td></tr>
+        </table>
+
+      </form>
+
   {% endif %}
 {% endblock %}
-

@@ -25,8 +25,8 @@ function update_progress(task_url) {
             status = data["task"]["status"];
 
             if(status == "200"){
-            	$(".task").css("border-color","green");
-            	$(".task").css("border-style","solid");
+            	$("#task").addClass("bg-success");
+
 
             	var task = document.getElementById("task");
 
@@ -41,10 +41,10 @@ function update_progress(task_url) {
 	    	task.appendChild(task_link);
 	    }
             else if(status == "400"){
-		$(".task").css("border-color","red");
-                $(".task").css("border-style","solid");
+		        $("#task").addClass("bg-danger");
 
-		var task = document.getElementById("task");
+
+		        var task = document.getElementById("task");
 
                 var task_result = document.createElement("p");
 
@@ -63,9 +63,9 @@ function update_progress(task_url) {
 
 
         error: function(data){
-          $(".task").css("border-color","red");
-          $(".task").css("border-style","solid");
-          $( ".task" ).text("Error on submiting request\n"+data['error']);
+
+          $("#task").addClass("bg-danger")
+          $( "#task" ).text("Error on submiting request\n"+data['error']);
 
           },
       });
@@ -76,6 +76,26 @@ function update_progress(task_url) {
 
 
 {# {{ wtf.quick_form(form) }} #}
+
+{% if response != None %}
+    {% if response.ok %}
+      <div class="bg-info">
+      You can check the details of this task <a href="{{ request.url_root }}tasks/{{ response.json()['task_id'] }}">here</a>
+      </div>
+      <br>
+
+      <script>
+        var checkProgress = setInterval(function() {
+          update_progress("/tasks/{{ response.json()['task_id'] }}?data=1");
+        }, 2000);
+      </script>
+      <div class="task" id="task">
+      </div>
+
+    {% else %}
+      <div class="bg-danger">{{ response.json()['error'] }}</div>
+    {% endif %}
+{% endif %}
 
 <form class="form-group" method="POST" action="submit" enctype="multipart/form-data">
 
@@ -115,27 +135,6 @@ function update_progress(task_url) {
 </form>
 
 <br>
-<br>
-
-{% if response != None %}
-    {% if response.ok %}
-      <br>
-      You can check the details of this task <a href="{{ request.url_root }}tasks/{{ response.json()['task_id'] }}">here</a>
-      <br>
-      <br>
-      
-      <script>
-        var checkProgress = setInterval(function() {
-          update_progress("/tasks/{{ response.json()['task_id'] }}?data=1");
-        }, 2000);
-      </script>
-      <div class="task" id="task">
-      </div>
-
-    {% else %}
-      {{ response.json()['error'] }}
-    {% endif %}
-{% endif %}
 
 <script>
 

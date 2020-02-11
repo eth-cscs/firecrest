@@ -1,0 +1,7 @@
+*.swp
+__pycache__/
+.pytest_cache
+*.pyc
+*.log
+*.rdb
+**/minio/data/

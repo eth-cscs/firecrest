@@ -22,4 +22,7 @@ class DevConfig(Config):
     FIRECREST_IP = ''
     MACHINES=['system01', 'system02']
     PARTITIONS={'system01':['part01','part02'], 'system02':['part01','part02','part03']}
+    # machine for internal storage jobs, must be defined in MACHINES
+    STORAGE_JOBS_MACHINE='cluster'
     HOME_DIR = '/home'
+    CLIENT_PORT = 5000

@@ -27,10 +27,9 @@ from datetime import datetime
 
 import jwt
 
-AUTH_HEADER_NAME = os.environ.get("AUTH_HEADER_NAME")
+AUTH_HEADER_NAME = 'Authorization'
 
 CERTIFICATOR_URL= os.environ.get("CERTIFICATOR_URL")
-COMPUTE_URL     = os.environ.get("COMPUTE_URL")
 TASKS_URL       = os.environ.get("TASKS_URL")
 STATUS_IP       = os.environ.get("STATUS_IP")
 KONG_URL        = os.environ.get("KONG_URL")

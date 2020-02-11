@@ -69,7 +69,9 @@
 </h2>
 
   {% for a, l in microservices %}
-	  <a class="action-button shadow animate grey" href="{{ url_for(l) }}">{{ a }}</a>
+	  <!-- <a class="action-button shadow animate grey" href="{#  { url_for(l) }} #}">{# { a } #}</a> -->
+
+      <a class="btn btn-default btn-lg" href="{{ url_for(l) }}">{{ a }}</a>
   {% endfor %}
 
 </div>

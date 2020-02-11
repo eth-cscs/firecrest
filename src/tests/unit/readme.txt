@@ -1,0 +1,73 @@
+***** Install Pytest and dependencies *****
+
+pip3 install -r requirements.txt
+
+
+
+***** Configure Test environment *****
+
+The environment variables for your test implementation must be configured 
+in the pytest section of pytest.ini file.
+For example, for "test-build" deploy, the configuration is as follows:
+
+#-----------------------------------------------------------------------
+[pytest]
+env_override_existing_values = 1
+env_files =
+    test.env
+    ../../../deploy/test-build/environment/common.env
+    ../../../deploy/test-build/environment/storage.env
+#-----------------------------------------------------------------------
+
+Moreover, additional variables relative to testing need to be configured in test.env file:
+For "test-build" deploy we have the following:
+
+#----------------------------------------------------------------------------------------------
+TEST_USER=testuser   # existing user name: will be encoded in the authorization JWT
+FIRECREST_IP=        # It must be setted if microservices are accesed through a gateway like kong
+HOST_NETWORK = True  # This must be setted to True if microservices are in a docker host network
+#----------------------------------------------------------------------------------------------
+
+
+
+***** Configure multiple Test environments *****
+
+By default pytest will look for configurations in pytest.ini file.
+For testing multiple deployments, it's recommended to create a custom .ini file
+for each deployment. For example, for test-build you could create a "test-build.ini" file
+which will look as follows:
+
+#-----------------------------------------------------------------------
+[pytest]
+env_override_existing_values = 1
+env_files =
+    test-build.env
+    ../../../deploy/test-build/environment/common.env
+    ../../../deploy/test-build/environment/storage.env
+#-----------------------------------------------------------------------
+
+Note that testing environments variables are searched in "test-build.env" file,
+which will be exactly the same as the test.env file shown in the previous example.
+
+
+
+***** Run tests *****
+
+Run all tests:
+  $ pytest [-c custom_config.ini]
+
+Run a specific test file:
+  $ pytest [-c custom_config.ini] test_unit_jobs.py
+
+Run a specific test within a test file:
+   $ pytest [-c custom_config.ini] test_unit_jobs.py -k "test_submit_job or test_acct"
+
+
+
+***** Unit Tests Limitations *****
+
+In order to test implementations that are behind a gateway with authetication 
+you will need to disable token verification. This has to be done in your gateway configuration. 
+Also you must set to empty the REALM_RSA_PUBLIC_KEY environment variable in the common.env file of your deploy.
+Finally, you will need to specify the firecrest gateway address in FIRECREST_IP environment variable.
+

@@ -22,7 +22,7 @@ STATUS_IP        = os.environ.get("STATUS_IP")
 
 UTILITIES_PORT   = os.environ.get("UTILITIES_PORT", 5000)
 
-AUTH_HEADER_NAME = os.environ.get("AUTH_HEADER_NAME")
+AUTH_HEADER_NAME = 'Authorization'
 
 UTILITIES_TIMEOUT = int(os.environ.get("UTILITIES_TIMEOUT"))
 
@@ -61,7 +61,6 @@ def in_str(stringval,words):
 # remote_path = remote dir (cluster) in which file will be uploaded - must exists
 
 def paramiko_upload(auth_header, cluster, local_path, remote_path):
-
 
     fileName = local_path.split("/")[-1]
 
@@ -287,7 +286,7 @@ def paramiko_download(auth_header, cluster, path):
 ##  - path: Filesystem path (Str) *required
 ##  - machinename: str *required
 
-@app.route("/file",methods=["GET"])
+@app.route("/file", methods=["GET"])
 def file_type():
     # checks if AUTH_HEADER_NAME is set
     try:
@@ -322,7 +321,7 @@ def file_type():
         return jsonify(description="Error in file operation",error="'targetPath' query string missing"), 400
 
 
-    action = "timeout {timeout} file -b -- '{path}'".format(timeout=UTILITIES_TIMEOUT,path=path)
+    action = "timeout {timeout} file -b -- '{path}'".format(timeout=UTILITIES_TIMEOUT, path=path)
 
     retval = exec_remote_command(auth_header, machine, action)
 
@@ -782,7 +781,7 @@ def make_directory():
 ##  - newpath: Filesystem path of new object (Str) *required
 ##  - machinename: str *required
 
-@app.route("/rename",methods=["PUT"])
+@app.route("/rename", methods=["PUT"])
 def rename():
     # checks if AUTH_HEADER_NAME is set
     try:
@@ -871,8 +870,12 @@ def rename():
 ##  - targetpath: Filesystem path of copied object (Str) *required
 ##  - machinename: str *required
 
-@app.route("/copy",methods=["POST"])
+@app.route("/copy", methods=["POST"])
 def copy():
+    return common_operation(request, "copy", "POST")
+
+## common code for file operations: copy, rename (move)
+def common_operation(request, command, method):
     # checks if AUTH_HEADER_NAME is set
     try:
         auth_header = request.headers[AUTH_HEADER_NAME]
@@ -892,7 +895,7 @@ def copy():
     # public endpoints from Kong to users
     if machinename not in SYSTEMS_PUBLIC:
         header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
-        return jsonify(description="Error on copy operation", error="Machine does not exists"), 400, header
+        return jsonify(description="Error on " + command + " operation", error="Machine does not exists"), 400, header
 
     # iterate over systems list and find the endpoint matching same order
     for i in range(len(SYSTEMS_PUBLIC)):
@@ -903,18 +906,24 @@ def copy():
     try:
         sourcePath = request.form["sourcePath"]
     except BadRequestKeyError:
-        return jsonify(description="Error on copy operation",error="'sourcePath' query string missing"), 400
+        return jsonify(description="Error on " + command + " operation", error="'sourcePath' query string missing"), 400
 
     try:
         targetPath = request.form["targetPath"]
     except BadRequestKeyError:
-        return jsonify(description="Error on copy operation",error="target query string missing"), 400
+        return jsonify(description="Error on " + command + " operation", error="target query string missing"), 400
 
-    # action to execute
-    # -i is for interactive, when user asks for confirmation, given with "echo n"
-    # -r is for recursivelly copy files into directories
-    action = "echo n | timeout {timeout} cp -i -dR --preserve=all -- '{sourcePath}' '{targetPath}'".format(
-        timeout=UTILITIES_TIMEOUT,sourcePath=sourcePath,targetPath=targetPath)
+    
+    if command == "copy":
+        # action to execute
+        # -i is for interactive, when user asks for confirmation, given with "echo n"
+        # -r is for recursivelly copy files into directories
+        action = "echo n | timeout {timeout} cp -i -dR --preserve=all -- '{sourcePath}' '{targetPath}'".format(
+            timeout=UTILITIES_TIMEOUT, sourcePath=sourcePath, targetPath=targetPath)
+    elif command == "rename":
+        action = "echo n | timeout {timeout} mv -i -- '{sourcePath}' '{targetPath}'".format(
+            timeout=UTILITIES_TIMEOUT, sourcePath=sourcePath, targetPath=targetPath)
+
 
     retval = exec_remote_command(auth_header, machine, action)
 
@@ -923,37 +932,37 @@ def copy():
 
         if retval["error"] == 113:
             header = {"X-Machine-Not-Available":"Machine is not available"}
-            return jsonify(description="Error on copy operation"), 400, header
+            return jsonify(description="Error on " + command + " operation"), 400, header
 
         if retval["error"] == 124:
             header = {"X-Timeout": "Command has finished with timeout signal"}
-            return jsonify(description="Error on copy operation"), 400, header
+            return jsonify(description="Error on " + command + " operation"), 400, header
 
         # error no such file
         if in_str(error_str,"No such file"):
             if in_str(error_str,"cannot stat"):
                 header={"X-Not-Found":"{sourcePath} not found.".format(sourcePath=sourcePath)}
-                return jsonify(description="Error on copy operation"), 400, header
+                return jsonify(description="Error on " + command + " operation"), 400, header
 
-            if in_str(error_str,"cannot create"):
-                header = {"X-Invalid-Path": "{sourcePath} and/or {targetPath} are invalid paths.".format(sourcePath=sourcePath,targetPath=targetPath)}
-                return jsonify(description="Error on copy operation"), 400, header
+            # copy: cannot create, rename: cannot move
+            if in_str(error_str, "cannot create") or in_str(error_str,"cannot move"):
+                header = {"X-Invalid-Path": "{sourcePath} and/or {targetPath} are invalid paths.".format(sourcePath=sourcePath, targetPath=targetPath)}
+                return jsonify(description="Error on " + command + " operation"), 400, header
 
         # permission denied
         if in_str(error_str,"Permission denied"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
-            return jsonify(description="Error on copy operation"), 400, header
+            return jsonify(description="Error on " + command + " operation"), 400, header
 
         # if already exists, not overwrite (-i)
         if in_str(error_str,"overwrite"):
             header = {"X-Exists": "{targetPath} already exists".format(targetPath=targetPath)}
-            return jsonify(description="Error on copy operation"), 400, header
-
+            return jsonify(description="Error on " + command + " operation"), 400, header
 
         return jsonify(description="Error on copy operation"), 400
 
+    return jsonify(description="Success to " + command + " file or directory.", output=""), 201
 
-    return jsonify(description="Success to copy file or directory.", output=""), 201
 
 
 ## Remove file or directory
@@ -961,7 +970,7 @@ def copy():
 ## - path: path to the file or directory to be removed
 ## - X-Machine-Name: system
 
-@app.route("/rm",methods=["DELETE"])
+@app.route("/rm", methods=["DELETE"])
 def rm():
     # checks if AUTH_HEADER_NAME is set
     try:
@@ -1036,7 +1045,7 @@ def rm():
 ##  - source: absolute path to the new symlink *required
 ##  - machinename: str *required
 
-@app.route("/symlink",methods=["POST"])
+@app.route("/symlink", methods=["POST"])
 def symlink():
     # checks if AUTH_HEADER_NAME is set
     try:
@@ -1117,7 +1126,7 @@ def symlink():
 ##  - path: path to the file to download *required
 ##  - machinename: str *required
 
-@app.route("/download",methods=["GET"])
+@app.route("/download", methods=["GET"])
 def download():
     # checks if AUTH_HEADER_NAME is set
     try:
@@ -1203,7 +1212,7 @@ def request_entity_too_large(error):
     app.logger.error(error)
     return jsonify(description="Failed to upload file. The file is over {} MB".format(MAX_FILE_SIZE)), 413
 
-@app.route("/upload",methods=["POST"])
+@app.route("/upload", methods=["POST"])
 def upload():
     # checks if AUTH_HEADER_NAME is set
     try:
@@ -1284,10 +1293,10 @@ def upload():
 
     return jsonify(description="File upload successful"), 201
 
+
 # get status for status microservice
 # only used by STATUS_IP otherwise forbidden
-
-@app.route("/status",methods=["GET"])
+@app.route("/status", methods=["GET"])
 def status():
     app.logger.info("Test status of service")
 

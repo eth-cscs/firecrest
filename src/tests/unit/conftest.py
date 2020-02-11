@@ -5,12 +5,25 @@
 #  SPDX-License-Identifier: BSD-3-Clause
 #
 import pytest
+import os
+import jwt
 
-# fake JWT, only works if REALM_RSA_PUBLIC_KEY is empty
-JWT = "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6InRlc3R1c2VyIiwic2NvcGUiOiIiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJ0ZXN0dXNlciIsImlhdCI6MTUxNjIzOTAyMiwianRpIjoiZTk3YWIyMjctZDZjMC00NjBkLThkMWUtMzliODZmZWQ4M2RiIiwiZXhwIjoxNTcxMzQ3MTc3fQ.3GMrdY0TXTcHouFemtcHz-eutf7DdQtFK1AMjiDxtp8"
+# create a fake JWT, only works if REALM_RSA_PUBLIC_KEY is empty
+TEST_USER = os.environ.get("TEST_USER")
+SCOPES = os.environ.get("SCOPES")
 
+payload = {
+  "sub": "1234567890",
+  "name": "{}".format(TEST_USER),
+  "scope": "",
+  "preferred_username": "{}".format(TEST_USER),
+  "iat": "1516239022",
+  "jti": "e97ab227-d6c0-460d-8d1e-39b86fed83db",
+  "exp": "1571347177"
+}
+auth = "Bearer " + jwt.encode(payload, 'secret', algorithm='HS256').decode("utf-8") 
 
+# get request headers
 @pytest.fixture(scope='session')
 def headers():
-    return {"Authorization": JWT, "Accept" : "application/json", "X-Firecrest-Service": "storage"}
-    
+    return {"Authorization": auth, "Accept" : "application/json", "X-Firecrest-Service": "storage"}

@@ -1,23 +1,6 @@
 {% extends "demo_base.html" %}
 {% block title %}Accounting information{% endblock %}
 {% block content %}
-<style>
-table {
-  font-family: arial, sans-serif;
-  border-collapse: collapse;
-  width: 100%;
-}
-
-td, th {
-  border: 1px solid #dddddd;
-  text-align: left;
-  padding: 8px;
-}
-
-tr:nth-child(even) {
-  background-color: #dddddd;
-}
-</style>
 
 <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 
@@ -39,8 +22,8 @@ function update_progress(task_url) {
         type: 'GET',
         url: task_url,
         success: function(data){
-          $(".task").css("border-color","green");
-          $(".task").css("border-style","solid");
+
+          $("#task").addClass("bg-success");
 
           var resp = data['task']['data'];
 
@@ -49,47 +32,46 @@ function update_progress(task_url) {
           console.log(resp);
           
           if(is_object(resp)){
-		$(".task").text("You have active jobs");
+		    $("#task").text("You have active jobs");
 		
-                var row_number = 1; /*starts with 1, because 0 is table header*/
-                for (var key in resp){
-			if(resp.hasOwnProperty(key)){
+            var row_number = 1; /*starts with 1, because 0 is table header*/
+            for (var key in resp){
+			    if(resp.hasOwnProperty(key)){
 				
-				var table = document.getElementById("job_table");				
+				    var table = document.getElementById("job_table");
 
-				var row = table.insertRow(row_number);
+				    var row = table.insertRow(row_number);
 
- 				var jobid = row.insertCell(0);
-				jobid.innerHTML = resp[key]["jobid"];
- 				var name = row.insertCell(1);
-				name.innerHTML = resp[key]["name"];
+ 				    var jobid = row.insertCell(0);
+				    jobid.innerHTML = resp[key]["jobid"];
+ 				    var name = row.insertCell(1);
+				    name.innerHTML = resp[key]["name"];
 				
- 				var nodelist = row.insertCell(2);
-				nodelist.innerHTML = resp[key]["nodelist"];
- 				var nodes = row.insertCell(3);
-				nodes.innerHTML = resp[key]["nodes"];
- 				var partition = row.insertCell(4);
-				partition.innerHTML = resp[key]["partition"];
- 				var start_time = row.insertCell(5);
-				start_time.innerHTML = resp[key]["start_time"];
- 				var state = row.insertCell(6);
-				state.innerHTML = resp[key]["state"];
- 				var time = row.insertCell(7);
-				time.innerHTML = resp[key]["time"];
- 				var time_left = row.insertCell(8);
-				time_left.innerHTML = resp[key]["time_left"];
-				
-				/*var actions = row.insertCell(9);
-				actions.innerHTML = "<a href=''>View</a> <a href=''>Delete</a>";*/
+ 				    var nodelist = row.insertCell(2);
+				    nodelist.innerHTML = resp[key]["nodelist"];
+ 				    var nodes = row.insertCell(3);
+				    nodes.innerHTML = resp[key]["nodes"];
+ 				    var partition = row.insertCell(4);
+				    partition.innerHTML = resp[key]["partition"];
+ 				    var start_time = row.insertCell(5);
+                    start_time.innerHTML = resp[key]["start_time"];
+                    var state = row.insertCell(6);
+                    state.innerHTML = resp[key]["state"];
+                    var time = row.insertCell(7);
+                    time.innerHTML = resp[key]["time"];
+                    var time_left = row.insertCell(8);
+                    time_left.innerHTML = resp[key]["time_left"];
 
-				row_number+=1;
+                    /*var actions = row.insertCell(9);
+                    actions.innerHTML = "<a href=''>View</a> <a href=''>Delete</a>";*/
 
-			}
+                    row_number+=1;
 
-		}
-	   }
-           else{
-		$(".task").text("No jobs has been found for that period");
+    			}
+    		}
+	      }
+          else{
+		    $("#task").text("No jobs has been found for that period");
            }
 
 	   if(stop_array.indexOf(data["task"]["status"]) != -1)
@@ -99,9 +81,9 @@ function update_progress(task_url) {
 
 
         error: function(data){
-          $(".task").css("border-color","red");
-          $(".task").css("border-style","solid");
-          $( ".task" ).text("Error on submiting request\n"+data['error']);
+
+          $("#task").addClass("bg-danger");
+          $("#task").text("Error on submiting request\n"+data['error']);
 
           },
       });
@@ -109,31 +91,47 @@ function update_progress(task_url) {
 </script>
 
 
-{{ wtf.quick_form(form) }}
-<br>
+{# {{ wtf.quick_form(form) }} #}
+
+<form action="acct" method="post" >
+
+    <table style="border-spacing: 20px;">
+
+        <tr><td style="padding-right: 20px"><b>Machine</b></td><td>{{ form.machine(class="form-control") }}</td></tr>
+        <tr><td style="padding-right: 20px"><b>From</b></td><td>{{ form.starttime(class="form-control") }}</td></tr>
+        <tr><td style="padding-right: 20px"><b>To</b></td><td>{{ form.endtime(class="form-control") }}</td></tr>
+        <tr><td style="padding: 20px" colspan="2">{{ form.submit(class="form-control") }}</td></tr>
+
+    </table>
+
+
+</form>
+
+
 <br>
 
 {% if response != None %}
     {% if response.status_code == 200 %}
       {# {{ response.json()['success'] }} #} 
-      <br>
+      <div class="bg-info">
       You can check the details of this task <a href="{{ request.url_root }}tasks/{{ response.json()['task_id'] }}">here</a>
-      <br><br>	
+      </div>
+        <br>
 
       <script>
         var checkProgress = setInterval(function() {
           update_progress("/tasks/{{ response.json()['task_id'] }}?data=1");
         }, 2000);
       </script>
-      <div class="task"></div><br>
+      <div id="task"></div><br>
 
       <div class="job_list">
-           	<table id="job_table">
+           	<table id="job_table" class="table table-hover">
 			<tr><th>Job ID</th><th>Job Name</th><th>Node List</th><th>Nodes</th><th>Partition</th><th>Start Time</th><th>State</th><th>Time</th><th>Time Left</th></tr>
 		</table>
       </div>
     {% else %}
-      {{ response.json()['error'] }}
+      <div class="bg-danger">{{ response.json()['error'] }}</div>
     {% endif %}
 {% endif %} 
 

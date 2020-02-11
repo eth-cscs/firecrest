@@ -3,19 +3,13 @@
 {% block content %}
 <style>
 table {
-  font-family: arial, sans-serif;
   border-collapse: collapse;
-  width: 100%;
+  table-layout: fixed;
+    width: 70%;
 }
-
 td, th {
-  border: 1px solid #dddddd;
-  text-align: left;
-  padding: 8px;
-}
 
-tr:nth-child(even) {
-  background-color: #dddddd;
+  padding: 8px;
 }
 </style>
 
@@ -39,8 +33,7 @@ function update_progress(task_url) {
         type: 'GET',
         url: task_url,
         success: function(data){
-            $(".task").css("border-color","green");
-            $(".task").css("border-style","solid");
+            $(".task").addClass("bg-success");
 
             var task = document.getElementById("task");
 
@@ -51,8 +44,8 @@ function update_progress(task_url) {
             task_link.href = "{{ request.url_root }}compute/jobs/"+data["task"]["data"]["jobid"]+"?machine={{ machine }}";
             task_link.innerHTML = "Job ID: "+data["task"]["data"]["jobid"];
 
-	    task.appendChild(task_result);
-	    task.appendChild(task_link);
+	        task.appendChild(task_result);
+	        task.appendChild(task_link);
            
 
 
@@ -63,8 +56,7 @@ function update_progress(task_url) {
 
 
         error: function(data){
-          $(".task").css("border-color","red");
-          $(".task").css("border-style","solid");
+          $(".task").addClass("bg-danger");
           $( ".task" ).text("Error on submiting request\n"+data['error']);
 
           },
@@ -74,16 +66,36 @@ function update_progress(task_url) {
 
 </script>
 
+    <h1>Internal Data Mover</h1>
 
-{{ wtf.quick_form(form) }}
+{# {{ wtf.quick_form(form) }} #}
+
+    <form action="internal" method="post" class="form-group">
+
+
+    <table class="table table-hover" width="400px">
+
+        <tr><td width="100px"><b>Choose action</b></td><td width="300px">{{ form.action(class="form-control") }}</td></tr>
+        <tr><td><b>Target Path: </b></td><td>{{ form.targetPath(class="form-control") }}</td></tr>
+        <tr><td><b>Source Path: </b></td><td>{{ form.sourcePath(class="form-control") }}</td></tr>
+        <tr><td><b>Job Name (optional):</b></td><td>{{ form.jobName(class="form-control") }}</td></tr>
+        <tr><td>{{ form.submit(class="form-control") }}</td><td></td></tr>
+
+
+    </table>
+
+
+
+    </form>
+
 <br>
 <br>
 
 {% if response != None %}
     {% if response.ok %}
-      <br>
-      You can check the details of this task <a href="{{ request.url_root }}tasks/{{ response.json()['task_id'] }}">here</a>
-      <br>
+      <div class="bg-info">
+        You can check the details of this task <a href="{{ request.url_root }}tasks/{{ response.json()['task_id'] }}">here</a>
+      </div>
       <br>
       
       <script>
@@ -95,7 +107,9 @@ function update_progress(task_url) {
       </div>
 
     {% else %}
-      {{ response.json()['error'] }}
+      <div class="bg-danger">
+        {{ response.json()['error'] }}
+       </div>
     {% endif %}
 {% endif %}
 
@@ -107,11 +121,13 @@ function update_progress(task_url) {
 		console.log("Value: "+valueSelected);
 
 		if (valueSelected == "rm"){
-			$("#sourcePath").val("Not required");
+			/*$("#sourcePath").val("Not required");*/
 			/*$("#sourcePath").attr("disabled", "disabled");*/
+            document.getElementById("sourcePath").disabled=true;
 		}
 		else{
-			$("#sourcePath").val("");
+		    document.getElementById("sourcePath").disabled=false;
+			/*$("#sourcePath").val("");*/
 			/*$("#sourcePath").removeAttr("disabled");*/
 			
 		}

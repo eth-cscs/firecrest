@@ -12,7 +12,7 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 
 STATUS_IP = os.environ.get("STATUS_IP")
-AUTH_HEADER_NAME = os.environ.get("AUTH_HEADER_NAME")
+AUTH_HEADER_NAME = 'Authorization'
 
 CERTIFICATOR_PORT = os.environ.get("CERTIFICATOR_PORT", 5000)
 
@@ -102,7 +102,7 @@ if __name__ == "__main__":
     # check that CA private key has proper permissions: 400 (no user write, and no access for group and others)
     import stat
     try:
-        cas = os.stat('/ca-key').st_mode
+        cas = os.stat('ca-key').st_mode
         if oct(cas & 0o477) != '0o400':
             app.logger.error("ERROR: wrong 'ca-key' permissions, please set to 400. Exiting.")
             raise SystemExit
