@@ -2,4 +2,5 @@ flask
 flask-WTF
 flask-bootstrap
 flask-oidc
+flask_sslify
 requests
