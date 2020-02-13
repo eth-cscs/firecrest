@@ -51,7 +51,7 @@ class S3(ObjectStorage):
 
         url = "{url}/{containername}?AWSAccessKeyId={awsAccessKeyId}&Signature={signature}&Expires={expires}".format(
             url=self.url, containername=containername,
-            awsAccessKeyId=self.user, signature=sig, expires=expires)
+            awsAccessKeyId=self.user, signature=urllib.parse.quote(sig), expires=expires)
 
         logging.info("Creating bucket {}".format(containername))
 
@@ -88,7 +88,7 @@ class S3(ObjectStorage):
         sig = sig.decode('latin-1')
 
         url = "{url}/{containername}?AWSAccessKeyId={awsAccessKeyId}&Expires={expires}&Signature={signature}".format(
-            url=self.url, containername=containername, awsAccessKeyId=self.user, signature=sig, expires=expires)
+            url=self.url, containername=containername, awsAccessKeyId=self.user, signature=urllib.parse.quote(sig), expires=expires)
 
         logging.info("Checking for container {}".format(containername))
         logging.info("URL: {}".format(url))
@@ -121,7 +121,7 @@ class S3(ObjectStorage):
         sig = sig.decode('latin-1')
 
         url = "{url}?AWSAccessKeyId={awsAccessKeyId}&Expires={expires}&Signature={signature}".format(
-            url=self.url, awsAccessKeyId=self.user, signature=sig, expires=expires)
+            url=self.url, awsAccessKeyId=self.user, signature=urllib.parse.quote(sig), expires=expires)
 
         logging.info("URL: {}".format(url))
         try:
@@ -194,7 +194,7 @@ class S3(ObjectStorage):
 
         url = "{url}/{containername}/{prefix}/{objectname}?AWSAccessKeyId={awsAccessKeyId}&Signature={signature}&Expires={expires}".format(
             url=self.url, containername=containername, prefix=prefix, objectname=objectname,
-            awsAccessKeyId=self.user, signature=sig, expires=expires)
+            awsAccessKeyId=self.user, signature=urllib.parse.quote(sig), expires=expires)
 
         try:
             resp = requests.head(url)
@@ -253,13 +253,13 @@ class S3(ObjectStorage):
         data["url"] = url
         data["method"] = httpVerb
         data["AWSAccessKeyId"] = self.user
-        data["Signature"] = urllib.parse.quote(sig)
+        data["Signature"] = sig
         data["Expires"] = expires
         data["sourcepath"] = sourcepath
 
         command = "curl -i -X {httpVerb} '{url}?AWSAccessKeyId={AWSAccessKeyId}&Signature={Signature}&Expires={Expires}' -T {sourcepath}".format(
             httpVerb=httpVerb, sourcepath=sourcepath, url=url, AWSAccessKeyId=data["AWSAccessKeyId"],
-            Signature=data["Signature"], Expires=data["Expires"])
+            Signature=urllib.parse.quote(data["Signature"]), Expires=data["Expires"])
 
         data["command"] = command
 
@@ -291,7 +291,7 @@ class S3(ObjectStorage):
 
         url = "{url}/{containername}/{prefix}/{objectname}?AWSAccessKeyId={awsAccessKeyId}&Signature={signature}&Expires={expires}".format(
             url=self.url, containername=containername, prefix=prefix, objectname=objectname,
-            awsAccessKeyId=self.user, signature=sig, expires=expires)
+            awsAccessKeyId=self.user, signature=urllib.parse.quote(sig), expires=expires)
 
         return url
 

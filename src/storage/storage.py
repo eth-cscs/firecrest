@@ -127,7 +127,7 @@ def download_task(auth_header,system,sourcePath,task_id):
     res = exec_remote_command(auth_header,system,upload_url["command"])
 
     # if upload to SWIFT fails:
-    if res["error"] == 1:
+    if res["error"] > 0:
         msg = "Upload to Staging area has failed. Object: {object_name}".format(object_name=object_name)
         app.logger.error(msg)
         update_task(task_id, auth_header, async_task.ST_UPL_ERR, msg)
@@ -545,7 +545,7 @@ def exec_internal_command(auth_header,command,sourcePath, targetPath, jobName, j
 
         sbatch_file = open(td + "/sbatch-job.sh", "w")
 
-        sbatch_file.write("#! /bin/bash\n")
+        sbatch_file.write("#! /bin/bash -l\n")
         sbatch_file.write("#SBATCH --job-name={jobName}\n".format(jobName=jobName))
         sbatch_file.write("#SBATCH --time={jobTime}\n".format(jobTime=jobTime))
         sbatch_file.write("#SBATCH --error=job-%j.err\n")
