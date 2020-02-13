@@ -6,7 +6,7 @@
 #
 import subprocess, os, tempfile
 from flask import Flask, request, jsonify
-#from cscs_api_common import check_header, get_username
+from cscs_api_common import check_header, get_username
 
 import logging
 from logging.handlers import TimedRotatingFileHandler
