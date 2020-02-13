@@ -618,18 +618,21 @@ def list_directory():
 
 
     # file List is retorned as a string separated for a $ character
-    fileList = retval["msg"].split("$")[1:]
+    if len(retval["msg"].split("$")) == 1:
+        fileList = retval["msg"].split("$")
+        totalSize = 1
+    else:
+        fileList = retval["msg"].split("$")[1:]
+        totalSize = len(fileList)
 
 
     # if pageSize and number were set:
-
     pageSize = request.args.get("pageSize")
     pageNumber = request.args.get("pageNumber")
 
     # calculate the list to retrieve
     if pageSize and pageNumber:
 
-        totalSize = len(fileList)
         pageNumber = float(pageNumber)
         pageSize   = float(pageSize)
 
