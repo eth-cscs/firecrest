@@ -6,7 +6,7 @@
 #
 import subprocess, os, tempfile
 from flask import Flask, request, jsonify
-from cscs_api_common import check_header, get_username
+#from cscs_api_common import check_header, get_username
 
 import logging
 from logging.handlers import TimedRotatingFileHandler
@@ -23,6 +23,14 @@ app = Flask(__name__)
 # returns an SSH certificate, username is got from token
 @app.route("/", methods=["GET"])
 def receive():
+    """
+    Input:
+    - command (optional): generates certificate for this specific command
+    - option (optional): options for command
+    Returns:
+    - certificate (json)
+    """
+
     if debug:
         logging.getLogger().setLevel(logging.INFO)
         logging.info('debug: certificator: request.headers[AUTH_HEADER_NAME]: ' + request.headers[AUTH_HEADER_NAME])
@@ -35,13 +43,28 @@ def receive():
             return jsonify(description="No Auth Header given"), 401
 
         if not check_header(auth_header):
-            app.logger.error("bad header")
+            app.logger.error("Bad header")
             return jsonify(description="Invalid header"), 401
 
         username = get_username(auth_header)
         if username == None:
-            app.logger.error("no username")
+            app.logger.error("No username")
             return jsonify(description="Invalid user"), 401
+
+        # default expiration time for certificates
+        ssh_expire = '+5m'
+
+        # if command is provided, parse to use force-command
+        force_command = request.args.get("command", '')
+        if force_command:
+            force_opt = request.args.get("option", '')
+            if force_command == 'wget':
+                force_command = '/usr/bin/wget'
+                ssh_expire = '+10d'
+            else:
+                return jsonify(msg='Invalid command'), 404
+
+            force_command = '-O force_command=' + force_command + force_opt
 
         app.logger.info("Generating cert for user: {user}".format(user=username))
 
@@ -49,7 +72,7 @@ def receive():
         td = tempfile.mkdtemp(prefix = "cert")
         os.symlink(os.getcwd() + "/user-key.pub", td + "/user-key.pub")  # link on temp dir
 
-        command = "ssh-keygen -s ca-key -n {user} -V +5m -I ca-key {tempdir}/user-key.pub".format(user=username, tempdir=td)
+        command = "ssh-keygen -s ca-key -n {user} -V {ssh_expire} -I ca-key {tempdir}/user-key.pub {fc}".format(user=username, ssh_expire=ssh_expire, tempdir=td, fc=force_command)
 
     except Exception as e:
         logging.error(e)
