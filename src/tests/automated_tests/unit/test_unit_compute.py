@@ -1,9 +1,3 @@
-#
-#  Copyright (c) 2019-2020, ETH Zurich. All rights reserved.
-#
-#  Please, refer to the LICENSE file in the root directory.
-#  SPDX-License-Identifier: BSD-3-Clause
-#
 import pytest
 import requests
 import os
@@ -43,7 +37,7 @@ def test_submit_job(machine, expected_response_code, headers):
 # Test get all jobs from current user
 @pytest.mark.parametrize("machine, expected_response_code", DATA)
 def test_list_jobs(machine, expected_response_code, headers):
-	url = "{}/{}".format(JOBS_URL, machine)
+	url = "{}".format(JOBS_URL)
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.get(url, headers=headers)
 	print(resp.content)

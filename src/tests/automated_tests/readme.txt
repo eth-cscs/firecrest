@@ -56,15 +56,21 @@ which will be exactly the same as the test.env file shown in the previous exampl
 Run all tests:
   $ pytest [-c custom_config.ini]
 
+Run unit tests only:
+  $ pytest -c test-build.ini unit/
+
+Run integration tests only:
+  $ pytest -c test-build.ini integration/
+
 Run a specific test file:
-  $ pytest [-c custom_config.ini] test_unit_jobs.py
+  $ pytest [-c custom_config.ini] unit/test_unit_jobs.py
 
 Run a specific test within a test file:
-   $ pytest [-c custom_config.ini] test_unit_jobs.py -k "test_submit_job or test_acct"
+   $ pytest [-c custom_config.ini] unit/test_unit_jobs.py -k "test_submit_job or test_acct"
 
 
 
-***** Unit Tests Limitations *****
+***** Tests Limitations *****
 
 In order to test implementations that are behind a gateway with authetication 
 you will need to disable token verification. This has to be done in your gateway configuration. 
