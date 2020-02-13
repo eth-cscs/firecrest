@@ -24,17 +24,17 @@ RUN set -ex \
        psmisc \
        wget \
     && yum clean all \
-    && rm -rf /var/cache/yum
+    && rm -rf /var/cache/yum > /dev/null
 
 RUN set -x \
     && wget https://download.schedmd.com/slurm/slurm-$SLURM_VERSION.tar.bz2 \
-    && tar -xvf slurm-$SLURM_VERSION.tar.bz2
+    && tar -xvf slurm-$SLURM_VERSION.tar.bz2 > /dev/null
 
 RUN set -x \
     && cd slurm-$SLURM_VERSION \
     && ./configure --disable-debug --prefix=/usr --sysconfdir=/etc/slurm --libdir=/usr/lib64 \
                    --disable-x11 --disable-glibtest --disable-gtktest --without-hdf5 --without-ofed  \
-    && make install
+    && make install > /dev/null
 
 RUN set -x \
     && rm -rf slurm \

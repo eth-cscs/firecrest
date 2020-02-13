@@ -7,7 +7,7 @@
 ##
 
 while true; do
-   echo "CREATE USER slurmdb@localhost IDENTIFIED BY 'slurmdbpass';" | mysql -u root
+   echo "use mysql;" | mysql -u root
    # continue if succesful
    if [ "$?" == 0 ]; then
      break
@@ -15,7 +15,7 @@ while true; do
    sleep 1
 done
 
+echo "CREATE USER slurmdb@localhost IDENTIFIED BY 'slurmdbpass';" | mysql -u root
 echo "CREATE DATABASE slurmdb; GRANT ALL PRIVILEGES ON slurmdb.* TO slurmdb;" | mysql -u root
 
 /usr/sbin/slurmdbd -D
-
