@@ -618,15 +618,16 @@ def list_directory():
 
 
     # file List is retorned as a string separated for a $ character
+    fileList = []
     if len(retval["msg"].split("$")) == 1:
         # if only one line is returned, there are two cases:
         # 1. 'total 0': means directory was empty, so fileList is kept empty
         # 2. 'r.....   some_file.txt': means 'ls' was to only one file: 'ls /home/user/some.txt'
-        if retval["msg"][0:5] != 'total':
+        if retval["msg"][0:5]!='total':
             fileList = retval["msg"].split("$")
     else:
         fileList = retval["msg"].split("$")[1:]
-
+        
     totalSize = len(fileList)
 
     # if pageSize and number were set:
@@ -635,6 +636,7 @@ def list_directory():
 
     # calculate the list to retrieve
     if pageSize and pageNumber:
+
         pageNumber = float(pageNumber)
         pageSize   = float(pageSize)
 
@@ -642,6 +644,7 @@ def list_directory():
 
         app.logger.info("Total Size: {totalSize}".format(totalSize=totalSize))
         app.logger.info("Total Pages: {totalPages}".format(totalPages=totalPages))
+
 
         if pageNumber < 1 or pageNumber>totalPages:
             app.logger.warning("pageNumber ({pageNumber}) greater than total pages ({totalPages})".format(pageNumber=pageNumber, totalPages=totalPages))
@@ -654,6 +657,7 @@ def list_directory():
 
             fileList = fileList[beg_reg:end_reg+1]
 
+
     outLabels = ["name","type","link_target","user","group","permissions","last_modified","size"]
 
     # labels taken from list to dict with default value: ""
@@ -662,24 +666,25 @@ def list_directory():
     logging.info("Length of file list: {}".format(len(fileList)))
 
     for files in fileList:
+
         line = files.split()
+
         try:
             symlink = line[8] # because of the -> which is 7
         except IndexError:
             symlink = ""
 
         outDict = {outLabels[0]:line[6],
-                  outLabels[1]:line[0][0],
-                  outLabels[2]:symlink,
-                  outLabels[3]:line[2],
-                  outLabels[4]:line[3],
-                  outLabels[5]:line[0][1:],
-                  outLabels[6]:line[5],
-                  outLabels[7]:line[4]
-                  }
+                outLabels[1]:line[0][0],
+                outLabels[2]:symlink,
+                outLabels[3]:line[2],
+                outLabels[4]:line[3],
+                outLabels[5]:line[0][1:],
+                outLabels[6]:line[5],
+                outLabels[7]:line[4]
+                }
 
         outList.append(outDict)
-
 
     return jsonify(descr="List of contents of path",output=outList), 200
 
