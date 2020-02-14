@@ -619,12 +619,15 @@ def list_directory():
 
     # file List is retorned as a string separated for a $ character
     if len(retval["msg"].split("$")) == 1:
-        fileList = retval["msg"].split("$")
-        totalSize = 1
+        # if only one line is returned, there are two cases:
+        # 1. 'total 0': means directory was empty, so fileList is kept empty
+        # 2. 'r.....   some_file.txt': means 'ls' was to only one file: 'ls /home/user/some.txt'
+        if retval["msg"][0:5] != 'total':
+            fileList = retval["msg"].split("$")
     else:
         fileList = retval["msg"].split("$")[1:]
-        totalSize = len(fileList)
 
+    totalSize = len(fileList)
 
     # if pageSize and number were set:
     pageSize = request.args.get("pageSize")
@@ -632,7 +635,6 @@ def list_directory():
 
     # calculate the list to retrieve
     if pageSize and pageNumber:
-
         pageNumber = float(pageNumber)
         pageSize   = float(pageSize)
 
@@ -640,7 +642,6 @@ def list_directory():
 
         app.logger.info("Total Size: {totalSize}".format(totalSize=totalSize))
         app.logger.info("Total Pages: {totalPages}".format(totalPages=totalPages))
-
 
         if pageNumber < 1 or pageNumber>totalPages:
             app.logger.warning("pageNumber ({pageNumber}) greater than total pages ({totalPages})".format(pageNumber=pageNumber, totalPages=totalPages))
@@ -653,31 +654,15 @@ def list_directory():
 
             fileList = fileList[beg_reg:end_reg+1]
 
-
     outLabels = ["name","type","link_target","user","group","permissions","last_modified","size"]
 
     # labels taken from list to dict with default value: ""
     outList = []
 
-    # for _file in fileList:
-    #     outDict = dict.fromkeys(outLabels, "")
-    #     _fields = _file.split("|")
-    #
-    #     for i in range(len(outLabels)):
-    #         # fix because for some reason "name" field starts with $ char
-    #         if outLabels[i] == "name":
-    #             _fields[i] = _fields[i][1:]
-    #         outDict[outLabels[i]] = _fields[i]
-    #
-    #     outList.append(outDict)
-
     logging.info("Length of file list: {}".format(len(fileList)))
 
     for files in fileList:
-
-
         line = files.split()
-
         try:
             symlink = line[8] # because of the -> which is 7
         except IndexError:
