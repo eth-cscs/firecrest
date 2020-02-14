@@ -8,7 +8,6 @@
 {% block title %}External File Upload{% endblock %}
 {% block content %}
 
-
   <h1>Large data transfer to CSCS</h1>
 
   {% if response != None %}
@@ -22,20 +21,12 @@
   {% else %}
     <h2>Step 1: Select directory where to store file in CSCS and your local file</h2>
 
-      {# {{ wtf.quick_form(form) }} #}
-
       <form class="form-group" action="upload" method="post">
-
         <table style="border-spacing: 20px;">
-
             <tr><td style="padding-right: 20px"><b>Target path</b></td><td>{{ form.targetPath(class="form-control") }}</td></tr>
             <tr><td style="padding-right: 20px"><b>Source file</b></td><td>{{ form.sourcePath(class="form-control") }}</td></tr>
             <tr><td style="padding-right: 20px">{{ form.submit(class="form-control") }}</td></tr>
-
         </table>
-
-
       </form>
-
   {% endif %}
 {% endblock %}

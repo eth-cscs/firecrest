@@ -32,10 +32,7 @@ function update_progress(task_url) {
 
             if(status == "200"){
             	$("#task").addClass("bg-success");
-
-
             	var task = document.getElementById("task");
-
             	var task_result = document.createElement("p");
             	var task_link   = document.createElement("a");
 
@@ -47,26 +44,17 @@ function update_progress(task_url) {
 	    	task.appendChild(task_link);
 	    }
             else if(status == "400"){
-		        $("#task").addClass("bg-danger");
-
-
-		        var task = document.getElementById("task");
-
-                var task_result = document.createElement("p");
+		    $("#task").addClass("bg-danger");
+	            var task = document.getElementById("task");
+                    var task_result = document.createElement("p");
 
                 task_result.innerHTML = data["task"]["data"];
 
                 task.appendChild(task_result);
-
 	    }
-           
-
-
             if(stop_array.indexOf(status) != -1)
                 clearInterval(checkProgress);
-
        },
-
 
         error: function(data){
 
@@ -79,9 +67,6 @@ function update_progress(task_url) {
 
 
 </script>
-
-
-{# {{ wtf.quick_form(form) }} #}
 
 {% if response != None %}
     {% if response.ok %}
@@ -104,10 +89,7 @@ function update_progress(task_url) {
 {% endif %}
 
 <form class="form-group" method="POST" action="submit" enctype="multipart/form-data">
-
-
     <table class="table">
-
         <tr><td width="10%">Machine</td><td width="40%">{{ form.machine(class="form-control") }}</td></tr>
 
         <tr><td>Choose submition option: </td>
@@ -118,7 +100,6 @@ function update_progress(task_url) {
             {%  endfor %}
 
             </td> </tr>
-
 
         <tr><td>File</td><td>{{ form.upload(class="form-control") }}</td></tr>
 
@@ -131,19 +112,16 @@ function update_progress(task_url) {
         <tr><td>Number of CPUs per task</td><td>{{ form.nCpusPerTask(class="form-control") }}</td></tr>
         <tr><td>E-mail</td><td>{{ form.email(class="form-control") }}</td></tr>
         <tr><td>Commands</td><td>{{ form.command(class="form-control") }}</td></tr>
-        
 
     </table>
 
     {{ form.submit(class="form-control") }}
-
 
 </form>
 
 <br>
 
 <script>
-
 	var fileOrForm = document.getElementsByName("fileOrForm");
 	for(var i=0; i<fileOrForm.length; i++){
 
@@ -164,7 +142,6 @@ function update_progress(task_url) {
 				document.getElementById("email").disabled=false;
 				document.getElementById("command").disabled=false;
 
-
 			}
 			else if (this.value=="file"){
 				document.getElementById("upload").disabled=false;
@@ -178,10 +155,7 @@ function update_progress(task_url) {
 				document.getElementById("nCpusPerTask").disabled=true;
 				document.getElementById("email").disabled=true;
 				document.getElementById("command").disabled=true;
-
 			}
-			
-
 		});
 	}
 
@@ -197,30 +171,20 @@ function update_progress(task_url) {
 		var options = {{ partitions|safe }};
 		
 		for (var key in options ){
-		
 			if(options.hasOwnProperty(key)){
-
-		
 				if (this.options[this.selectedIndex].value == key){
-
 					var partlist = options[key];
 					for (var j=0; j<partlist.length; j++){
-				
 						var opt = document.createElement("option")
           					opt.value = partlist[j]
                                 		opt.innerHTML = partlist[j];
 						partitions.appendChild(opt);
-
 					}
-
 				}
-
-			}	
+			}
 		}
-		
 	});
 
 </script>
 
 {% endblock %}
-

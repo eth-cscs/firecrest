@@ -33,71 +33,57 @@ function update_progress(task_url) {
 
           var resp = data['task']['data'];
 
-
           console.log(resp.length);
           console.log(resp);
-          
+
           if(is_object(resp)){
 		    $("#task").text("You have active jobs");
 		
             var row_number = 1; /*starts with 1, because 0 is table header*/
             for (var key in resp){
-			    if(resp.hasOwnProperty(key)){
-				
-				    var table = document.getElementById("job_table");
+		    if(resp.hasOwnProperty(key)){
+			var table = document.getElementById("job_table");
+			var row = table.insertRow(row_number);
+ 			var jobid = row.insertCell(0);
+			jobid.innerHTML = resp[key]["jobid"];
+ 			var name = row.insertCell(1);
+			name.innerHTML = resp[key]["name"];
+			var nodelist = row.insertCell(2);
+			nodelist.innerHTML = resp[key]["nodelist"];
+ 			var nodes = row.insertCell(3);
+			nodes.innerHTML = resp[key]["nodes"];
+			var partition = row.insertCell(4);
+			partition.innerHTML = resp[key]["partition"];
+			var start_time = row.insertCell(5);
+			start_time.innerHTML = resp[key]["start_time"];
+			var state = row.insertCell(6);
+			state.innerHTML = resp[key]["state"];
+			var time = row.insertCell(7);
+                	time.innerHTML = resp[key]["time"];
+                	var time_left = row.insertCell(8);
+                	time_left.innerHTML = resp[key]["time_left"];
 
-				    var row = table.insertRow(row_number);
-
- 				    var jobid = row.insertCell(0);
-				    jobid.innerHTML = resp[key]["jobid"];
- 				    var name = row.insertCell(1);
-				    name.innerHTML = resp[key]["name"];
-				
- 				    var nodelist = row.insertCell(2);
-				    nodelist.innerHTML = resp[key]["nodelist"];
- 				    var nodes = row.insertCell(3);
-				    nodes.innerHTML = resp[key]["nodes"];
- 				    var partition = row.insertCell(4);
-				    partition.innerHTML = resp[key]["partition"];
- 				    var start_time = row.insertCell(5);
-                    start_time.innerHTML = resp[key]["start_time"];
-                    var state = row.insertCell(6);
-                    state.innerHTML = resp[key]["state"];
-                    var time = row.insertCell(7);
-                    time.innerHTML = resp[key]["time"];
-                    var time_left = row.insertCell(8);
-                    time_left.innerHTML = resp[key]["time_left"];
-
-                    /*var actions = row.insertCell(9);
-                    actions.innerHTML = "<a href=''>View</a> <a href=''>Delete</a>";*/
-
-                    row_number+=1;
-
-    			}
+                	/*var actions = row.insertCell(9);
+                	actions.innerHTML = "<a href=''>View</a> <a href=''>Delete</a>";*/
+                	row_number+=1;
+    		    }
     		}
 	      }
           else{
 		    $("#task").text("No jobs has been found for that period");
-           }
-
+          }
 	   if(stop_array.indexOf(data["task"]["status"]) != -1)
 		clearInterval(checkProgress);
-
        },
 
-
         error: function(data){
-
-          $("#task").addClass("bg-danger");
-          $("#task").text("Error on submiting request\n"+data['error']);
-
-          },
+           $("#task").addClass("bg-danger");
+           $("#task").text("Error on submiting request\n"+data['error']);
+           },
       });
 }
 </script>
 
-
-{# {{ wtf.quick_form(form) }} #}
 
 <form action="acct" method="post" >
 
@@ -110,9 +96,7 @@ function update_progress(task_url) {
 
     </table>
 
-
 </form>
-
 
 <br>
 
@@ -139,8 +123,6 @@ function update_progress(task_url) {
     {% else %}
       <div class="bg-danger">{{ response.json()['error'] }}</div>
     {% endif %}
-{% endif %} 
-
-
+{% endif %}
 
 {% endblock %}

@@ -12,21 +12,14 @@
 
 <script type="text/javascript">
 
-
-
 </script>
-
-
   <h1>Large data transfer to CSCS</h1>
 
    <h2>Step 3: Finish the upload process</h2>
   {% if response != None %}
     {% if not response.ok %}
-
-	    <div class="bg-danger">Error: {{ response.json()["error"] }}</div>
-
+       <div class="bg-danger">Error: {{ response.json()["error"] }}</div>
     {% endif %}
-
   {% endif %}
     {{ wtf.quick_form(form) }}
 {% endblock %}

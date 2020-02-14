@@ -26,22 +26,15 @@ tr:nth-child(even) {
 </style>
 
 <script>
-
 	function viewUpload(obj){
-
-
-
 		var divUpload = document.getElementById("divUpload");
 		if (divUpload.style.display == "none"){
-
 			divUpload.style.display = "inline";
 			obj.className = "btn btn-info active";
 			return;
-
 		}
 		divUpload.style.display = "none";
 		obj.className = "btn btn-info";
-
 	}
 
 	function createFormPost(url,data){ /*data is a dictionary*/
@@ -56,14 +49,12 @@ tr:nth-child(even) {
 				field.setAttribute("type","hidden");
 				field.setAttribute("name",key);
 				field.setAttribute("value",data[key]);
-
 				form.appendChild(field);
 			}
 		}
 		
 		document.body.appendChild(form);
 		form.submit();
-
 	}
 
 	function upload(dirPath,machine,action){
@@ -72,7 +63,6 @@ tr:nth-child(even) {
                 console.log(action);
 		
 		var upload_form = document.forms[0];
-
 		upload_form.action=action;
                 upload_form.method = "POST";
 
@@ -88,13 +78,8 @@ tr:nth-child(even) {
 		
 		upload_form.appendChild(targetPath);
 		upload_form.appendChild(machinename);
-		
 
 		upload_form.submit();
-
-		
-		
-
 	}
 
 
@@ -109,7 +94,6 @@ tr:nth-child(even) {
 			return;
 
 		var res = owner.split(":");
-		
 		var newgroup = res[1];
 		var newowner = res[0];
 
@@ -122,13 +106,9 @@ tr:nth-child(even) {
 				"group": newgroup,
 				"path": dirPath,
 				"machine": machine
-
 		};
 
 		createFormPost(url,data);
-			
-		
-
 	}
 
 	function to_octal(mode){
@@ -139,14 +119,12 @@ tr:nth-child(even) {
 		}
 		if (mode[1] == "w"){
 			sum += 2;
-		}			
+		}
 		if (mode[2] == "x"){
 			sum += 1;
-		}		
+		}
 		
-		return sum.toString();	
-		 
-
+		return sum.toString();
 	}
 
 	function permissions_to_octal(mode){
@@ -157,15 +135,11 @@ tr:nth-child(even) {
 		var newmode = to_octal(user_p) + to_octal(group_p) + to_octal(all_p);
 
 		return newmode;
-
-
 	}
 
 	function makedir(dirPath,machine){
 		console.log(dirPath);
 		console.log(machine);
-		
-	
 
 		var newdir = prompt("Insert name for the new directory in "+dirPath,"new-dir");
 		if (newdir == null || newdir == "")
@@ -178,13 +152,9 @@ tr:nth-child(even) {
 		var data = { 	"targetPath": dirPath+"/"+newdir,
 				"path": dirPath,
 				"machine": machine
-
 		};
 
 		createFormPost(url,data);
-			
-		
-
 	}
 
 	function chmod(dirPath,fileName,machine,mode){
@@ -194,7 +164,6 @@ tr:nth-child(even) {
 		console.log(mode);
 		
 		var octal_mode = permissions_to_octal(mode);
-		
 
 		var newmode = prompt("Insert new permissions in octal notation",octal_mode);
 		if (newmode == null || newmode == "")
@@ -208,28 +177,19 @@ tr:nth-child(even) {
 				"mode": newmode,
 				"path": dirPath,
 				"machine": machine
-
 		};
 
 		createFormPost(url,data);
-			
-		
-
 	}
 
 	function fullPath(dirPath,fileName){
-
-
 	    var content = dirPath+"/"+fileName;
 	    var textarea = $("<textarea>").val(content).appendTo("body").select();
 
-        document.execCommand("copy");
-
-        $(textarea).remove();
-
-        alert("Path "+content+" has been copied to clipboard");
-
-    }
+	    document.execCommand("copy");
+	    $(textarea).remove();
+	    alert("Path "+content+" has been copied to clipboard");
+	}
 
 	function action(action,dirPath,fileName,machine){
 		/* action: copy, rename, */ 
@@ -245,53 +205,38 @@ tr:nth-child(even) {
 			if (targetPath == null || targetPath == "")
 				return;
 		
-			var url = "{{ request.url_root }}utilities/"+action;		
+			var url = "{{ request.url_root }}utilities/"+action;
 			console.log(url);
-			var data = { 
-				"machine":machine, 
+			var data = {
+				"machine":machine,
 				"path":dirPath,
 				"sourcePath": dirPath+"/"+fileName,
 				"targetPath": targetPath  };
-						
-		}		
+		}
 		else if (action == "rm"){
-		
-			var targetPath = dirPath+"/"+fileName;	
+			var targetPath = dirPath+"/"+fileName;
 			if (confirm("Do you really want to delete "+targetPath+"?")){
-
-				var url = "{{ request.url_root }}utilities/"+action;		
-				var data = { 
-					"machine":machine, 
+				var url = "{{ request.url_root }}utilities/"+action;
+				var data = {
+					"machine":machine,
 					"path":dirPath,
 					"targetPath": targetPath  };
-				
-
-			}else return;
-
+			}
+			else return;
 		}
 		else if (action == "download"){
-
 			var sourcePath = dirPath+"/"+fileName;
 			if (confirm("Dowload the file "+sourcePath+"?")){
-
-				var url = "{{ request.url_root }}utilities/"+action;		
-				var data = { 
-					"machine":machine, 
+				var url = "{{ request.url_root }}utilities/"+action;
+				var data = {
+					"machine":machine,
 					"path":dirPath,
 					"sourcePath": sourcePath  };
-				
-
-			}else return;
-			
-
+			}
+			else return;
 		}
 
-
-
-		
 		createFormPost(url,data);
-		
-
 	}
 
 </script>
@@ -310,8 +255,7 @@ tr:nth-child(even) {
 
 
 {% if not response.ok %}
-        {% set error_headers = ["X-Machine-Does-Not-Exist","X-Machine-Not-Available","X-Permission-Denied","X-Invalid-Path","X-Timeout","X-Exists"] %}
-
+    {% set error_headers = ["X-Machine-Does-Not-Exist","X-Machine-Not-Available","X-Permission-Denied","X-Invalid-Path","X-Timeout","X-Exists"] %}
 
     <div class="bg-danger"><b>Error:</b> Description: {{ response.json()["description"] }}:
 
@@ -322,13 +266,10 @@ tr:nth-child(even) {
                 {% endif %}
               {% endfor %}
          </div>
-
 {%  endif %}
 
 
 <form class="form-group" method="POST" action="utilities" enctype="multipart/form-data">
-
-
   <div>
       <a class="btn btn-info" data-toggle="collapse" href="#collapseExample">Upload</a>
         <div class="collapse" id="collapseExample">
@@ -340,7 +281,6 @@ tr:nth-child(even) {
     <a class="btn btn-primary" href="#" onclick="makedir('{{ path }}','{{ machine }}');">New directory</a></td>
   </div>
 
-
  <table style="border-spacing: 15px; border-collapse: separate">
     <tr >
         <td><b>System</b></td> <td> {{ form.machine(class="form-control")  }}</td>
@@ -348,12 +288,11 @@ tr:nth-child(even) {
         <td><input class="btn btn-default" type="submit" value="List"/></td>
  </table>
 
-
-    <table class="table table-hover">
-        <tr><th>Type</th><th>Permissions</th><th>User</th><th>Group</th><th>Size</th><th>Date</th><th>Name</th><th>Symlink</th><th>Actions</th></tr>
+ <table class="table table-hover">
+    <tr><th>Type</th><th>Permissions</th><th>User</th><th>Group</th><th>Size</th><th>Date</th><th>Name</th><th>Symlink</th><th>Actions</th></tr>
     {% if response.ok %}
       {% if path != "/" %}
-      		{% set back_path = "/".join(path.split("/")[:-1]) %}
+		{% set back_path = "/".join(path.split("/")[:-1]) %}
                 {% if back_path == "" %}
                     {% set back_path = "/" %}
                 {% endif %}
@@ -367,7 +306,7 @@ tr:nth-child(even) {
       {% for row in response.json()['output'] %}
 	    {% if row["type"] == "d" %} {# if is a directory, href to it #}
 	    	{% set is_dir = True %}
-		{% endif %}
+	    {% endif %}
         <tr>
 			<td>{{ row["type"] }}</td>
 			<td>{{ row["permissions"] }}</td>
@@ -398,11 +337,7 @@ tr:nth-child(even) {
 
     {% endif %}
 
-
   </table>
-
 </form>
 
-
 {% endblock %}
-

@@ -64,17 +64,12 @@ function cancel_job(jobid, machinename, cancel_url){
             /*redirectPost('jobs', {'machinename':'{{ machine }}'});*/
             var cookie = getCookie("oidc_id_token");
 	    console.log(cookie);
-            
-
-	    
         },
 
         error: function(data){
 
             alert(data['description']+"\n"+data['error']);
         },
-
-
      });
 }
 
@@ -89,17 +84,15 @@ function update_progress(task_url) {
 
           var resp = data['task']['data'];
 
-
           /*console.log(resp.length);
           console.log(resp);*/
-          
+
           if(is_object(resp)){
 		    $("#task").text("You have active jobs");
 		
             var row_number = 1; /*starts with 1, because 0 is table header*/
             for (var key in resp){
-			    if(resp.hasOwnProperty(key)){
-				
+	        if(resp.hasOwnProperty(key)){
                     var table = document.getElementById("job_table");
 
                     var row = table.insertRow(row_number);
@@ -123,32 +116,24 @@ function update_progress(task_url) {
                     time.innerHTML = resp[key]["time"];
                     var time_left = row.insertCell(8);
                     time_left.innerHTML = resp[key]["time_left"];
-                                    var _jobid = resp[key]["jobid"];
+                    var _jobid = resp[key]["jobid"];
 
                     var actions = row.insertCell(9);
                     actions.innerHTML = "<a href='jobs/"+resp[key]["jobid"]+"?machine={{ machine }}'>View</a> | "+
                             "<a href='cancel/"+resp[key]["jobid"]+"?machine={{ machine }}'>Cancel</a>";
 
                     row_number+=1;
-
-				
-				
-			}
-
-		}                
+		}
+	    }
 	   }
        else{
             $("#task").addClass("bg-success");
             $("#task").text("You don't have active jobs");
-
        }
 
 	   if(stop_array.indexOf(data["task"]["status"]) != -1)
 		clearInterval(checkProgress);
-
-
        },
-
 
         error: function(data){
           /*$(".task").css("border-color","red");*/
@@ -166,8 +151,6 @@ function update_progress(task_url) {
             <tr><td style="padding: 20px"><b>Machine:</b></td><td style="padding: 20px">{{ form.machine(class="form-control") }}</td><td style="padding: 20px">{{ form.submit(class="form-control") }}</td></tr>
         </table>
     </form>
-
-{# {{ wtf.quick_form(form) }} #}
 <br>
 <br>
 
@@ -189,14 +172,12 @@ function update_progress(task_url) {
 
       <div class="job_list">
            	<table id="job_table" class="table table-hover">
-			    <tr><th>Job ID</th><th>Job Name</th><th>Node List</th><th>Nodes</th><th>Partition</th><th>Start Time</th><th>State</th><th>Time</th><th>Time Left</th><th>Options</th></tr>
-		    </table>
+		    <tr><th>Job ID</th><th>Job Name</th><th>Node List</th><th>Nodes</th><th>Partition</th><th>Start Time</th><th>State</th><th>Time</th><th>Time Left</th><th>Options</th></tr>
+		</table>
       </div>
     {% else %}
         <div class="bg-danger">{{ response.json()['error'] }}</div>
     {% endif %}
-{% endif %} 
-
-
+{% endif %}
 
 {% endblock %}

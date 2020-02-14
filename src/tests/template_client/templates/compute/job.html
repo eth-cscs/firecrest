@@ -60,8 +60,7 @@ function update_progress(task_url) {
                 var row_number = 1; /*starts with 1, because 0 is table header*/
                 for (var key in resp){
 			if(resp.hasOwnProperty(key)){
-				
-				var table = document.getElementById("job_table");				
+				var table = document.getElementById("job_table");
 
 				var row = table.insertRow(row_number);
 
@@ -89,24 +88,17 @@ function update_progress(task_url) {
 				actions.innerHTML = "<a href='{{ request.url_root }}compute/cancel/"+resp[key]["jobid"]+"?machine={{ request.args.get("machine") }}'>Cancel</a>";			
 
 				row_number+=1;
-
-				
-				
 			}
-
-		}                
+		}
 	   }
            else{
 		$(".task").text(resp);
-
            }
 
 	   if(stop_array.indexOf(data["task"]["status"]) != -1)
 		clearInterval(checkProgress);
 
-
        },
-
 
         error: function(data){
           $(".task").css("border-color","red");
@@ -147,8 +139,6 @@ function update_progress(task_url) {
     {% else %}
       {{ response.json()['error'] }}
     {% endif %}
-{% endif %} 
-
-
+{% endif %}
 
 {% endblock %}

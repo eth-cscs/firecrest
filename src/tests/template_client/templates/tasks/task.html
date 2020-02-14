@@ -8,7 +8,6 @@
 {% block title %}FirecREST Tasks{% endblock %}
 {% block content %}
 
-
 <script>
 
 var stop_array = ["200","400","111","114","115","117","118"];
@@ -16,18 +15,16 @@ var stop_array = ["200","400","111","114","115","117","118"];
 
 function copyToClipboard(textarea_id){
 
-    console.log("clicked");
+  console.log("clicked");
 
   var textarea = document.getElementById(textarea_id);
   textarea.focus();
   textarea.setSelectionRange(0,textarea.value.length);
 
   document.execCommand("copy");
-
 }
 
 function refresh(task_url){
-
     $.ajax({
         type: 'GET',
         url: task_url,
@@ -58,37 +55,27 @@ function refresh(task_url){
                $("<br>").appendTo($("#data"));
                $("<div id='copy_button'></div>").appendTo($("#data"));
                $("#copy_button").wrapInner("<input class=\"btn-primary\" type=\"button\" onclick=\"copyToClipboard('upload_command');\" value=\"Copy to clipboard\"/>");
-               
 
                $("<div id='curl_command'></div>").appendTo($("#data"));
                $("#curl_command").wrapInner("<textarea style='width: 100%; height:100%;' id='upload_command'>"+data['task']['data']['msg']['command']+"</textarea>");
-   	       $("<div id='to-upload-finish'></div>").appendTo($("#data"));
+	       $("<div id='to-upload-finish'></div>").appendTo($("#data"));
                $("<p>If upload to staging area has finished, start the process to transfer the file to CSCS:</p>").appendTo($("#to-upload-finish"));
                $("#to-upload-finish").wrapInner("<a href='../storage/upload-finished/"+data['task']['hash_id']+"'>Finish the upload process</a>");
-
-               
-                              
             }
 
           } else { /*service == "compute"*/
             $("#data").text(data['task']['data']);
           }
 
-
           if (stop_array.indexOf(data['task']['status']) != -1){
             /* if status is not updated anymore */
             clearInterval(refreshTask);
-
           }
 
          },
 
         error: function(data){return;},
     });
-
-
-
-
 }
 </script>
 
@@ -128,7 +115,6 @@ function refresh(task_url){
         </div>
       {% elif response.json()['task']['status'] == "111"  %} {# received temp url for upload #}
 
-
       <div id="status-111">
         <p>Use this command to upload your file to staging area</p>
         <input class="btn-primary" type="button" onclick="copyToClipboard('upload_command');" value="Copy to clipboard"/>
@@ -142,9 +128,7 @@ function refresh(task_url){
         </div>
       {% endif %} {# end storage #}
     {% elif response.json()['task']['service'] == "compute"  %} {# if is compute #}
-
         {{ response.json()['task']['data'] }}
-
     {% endif %} {# END if service #}
   {% endif %}
   </td></tr>
