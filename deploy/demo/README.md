@@ -10,6 +10,11 @@ First, build components:
 
 The "cluster" container first time build may take some minutes because it compiles Slurm from source.
 
+SSH private keys (`ca-key` and `user-key`) must be readable only by its owner on host machine. These keys are shared with the test setup. Please make sure private keys permissions are '400' before starting containers:
+
+`chmod 400 ../test-build/environment/keys/ca-key  ../test-build/environment/keys/user-key`
+
+
 To start containers:
 
 `docker-compose up`

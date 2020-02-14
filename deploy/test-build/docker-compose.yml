@@ -1,6 +1,6 @@
 version: '3'
-services:
 
+services:
   certificator:
     build: 
       context: ../../
@@ -9,46 +9,8 @@ services:
       - ./environment/common.env
     network_mode: "host"
     volumes:
-      #- "./environment/keys/ca-key:/ca-key" - added in dockerfile
-      - "./environment/keys/user-key.pub:/user-key.pub"
-
-  taskpersistence:
-    build: 
-      context: ../../
-      dockerfile: deploy/test-build/taskpersistence/Dockerfile
-    network_mode: "host"
-
-  status:
-    build:
-      context: ../../
-      dockerfile: deploy/docker/status/Dockerfile
-    env_file:
-      - ./environment/common.env
-    network_mode: "host"
-
-  utilities:
-    build: 
-      context: ../../
-      dockerfile: deploy/docker/utilities/Dockerfile
-    env_file:
-      - ./environment/common.env
-    network_mode: "host"
-    volumes:
-      - "./environment/keys/user-key:/user-key"
-
-  tasks:
-    build: 
-      context: ../../
-      dockerfile: deploy/docker/tasks/Dockerfile
-    env_file:
-      - ./environment/common.env
-    environment:
-      - PERSIST_PORT=6379 
-      - PERSIST_PWD=rediS2200
-      - DEBUG_MODE=True
-    depends_on:
-      - "taskpersistence"
-    network_mode: "host"
+      - "./environment/keys/ca-key:/ca-key:ro"
+      - "./environment/keys/user-key.pub:/user-key.pub:ro"
 
   compute:
     build:
@@ -58,15 +20,15 @@ services:
       - ./environment/common.env
     network_mode: "host"
     volumes:
-      - "./environment/keys/user-key:/user-key"
+      - "./environment/keys/user-key:/user-key:ro"
 
-  cluster:
-    build: 
-      context: ./
-      dockerfile: ./cluster/Dockerfile
-    ports:
-      - "2223:22"
-    hostname: cluster
+  status:
+    build:
+      context: ../../
+      dockerfile: deploy/docker/status/Dockerfile
+    env_file:
+      - ./environment/common.env
+    network_mode: "host"
 
   storage:
     build:
@@ -80,15 +42,55 @@ services:
       - "tasks"
       - "minio"
     volumes:
-      - "./environment/keys/user-key:/user-key"
+      - "./environment/keys/user-key:/user-key:ro"
+
+  tasks:
+    build: 
+      context: ../../
+      dockerfile: deploy/docker/tasks/Dockerfile
+    env_file:
+      - ./environment/common.env
+    environment:
+      - PERSIST_PORT=6379
+      - PERSIST_PWD=rediS2200
+      - DEBUG_MODE=True
+    depends_on:
+      - "taskpersistence"
+    network_mode: "host"
+
+  utilities:
+    build: 
+      context: ../../
+      dockerfile: deploy/docker/utilities/Dockerfile
+    env_file:
+      - ./environment/common.env
+    network_mode: "host"
+    volumes:
+      - "./environment/keys/user-key:/user-key:ro"
+
+  # auxiliary containers
+  cluster:
+    # runs on private network to avoid conflict with a local SSH server
+    build: 
+      context: ./
+      dockerfile: ./cluster/Dockerfile
+    hostname: cluster
+    ports:
+      - "2223:22"
 
   minio:
     image: minio/minio
     command: minio server /data
-    volumes:
-      - ./minio/data:/data
-    ports:
-      - "9000:9000"
+    #ports:
+    #  - "9000:9000"
     environment:
-     MINIO_ACCESS_KEY: storage_access_key
-     MINIO_SECRET_KEY: storage_secret_key
+      MINIO_ACCESS_KEY: storage_access_key
+      MINIO_SECRET_KEY: storage_secret_key
+    network_mode: "host"
+
+  taskpersistence:
+    image: redis:latest
+    command: redis-server /redis.conf
+    network_mode: "host"
+    volumes:
+      - ./taskpersistence/redis.conf:/redis.conf:ro

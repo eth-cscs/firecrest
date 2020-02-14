@@ -18,9 +18,6 @@ RUN pip3 install Flask cryptography pyjwt
 ADD src/certificator/certificator.py certificator.py
 ADD src/common/cscs_api_common.py cscs_api_common.py
 
-ADD deploy/test-build/environment/keys/ca-key /ca-key
-RUN chmod 400 /ca-key && chown root:root /ca-key
-
 ENTRYPOINT ["python3"]
 CMD ["certificator.py"]
 
