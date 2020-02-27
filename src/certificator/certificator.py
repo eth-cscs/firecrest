@@ -6,7 +6,8 @@
 #
 import subprocess, os, tempfile
 from flask import Flask, request, jsonify
-from cscs_api_common import check_header, get_username
+# from cscs_api_common import check_header, get_username
+import jwt
 
 import logging
 from logging.handlers import TimedRotatingFileHandler
@@ -14,11 +15,96 @@ from logging.handlers import TimedRotatingFileHandler
 STATUS_IP = os.environ.get("STATUS_IP")
 AUTH_HEADER_NAME = 'Authorization'
 
+AUTH_AUDIENCE = os.environ.get("AUTH_TOKEN_AUD", '').strip('\'"')
+ALLOWED_USERS = os.environ.get("AUTH_ALLOWED_USERS", '').strip('\'"').split(";")
+AUTH_REQUIRED_SCOPE = os.environ.get("AUTH_REQUIRED_SCOPE", '').strip('\'"')
+
 CERTIFICATOR_PORT = os.environ.get("CERTIFICATOR_PORT", 5000)
+
+realm_pubkey=os.environ.get("REALM_RSA_PUBLIC_KEY", '')
+if realm_pubkey != '':
+    # headers are inserted here, must not be present
+    realm_pubkey = realm_pubkey.strip('\'"')   # remove '"'
+    realm_pubkey = '-----BEGIN PUBLIC KEY-----\n' + realm_pubkey + '\n-----END PUBLIC KEY-----'
+    realm_pubkey_type = os.environ.get("REALM_RSA_TYPE").strip('\'"')
 
 debug = os.environ.get("DEBUG_MODE", False)
 
 app = Flask(__name__)
+
+# checks JWT from Keycloak, optionally validates signature. It only receives the content of header's auth pair (not key:content)
+def check_header(header):
+    if debug:
+        logging.info('debug: cscs_api_common: check_header: ' + header)
+
+    # header = "Bearer ey...", remove first 7 chars
+    try:
+        if realm_pubkey == '':
+            if not debug:
+                logging.warning("WARNING: cscs_api_common: check_header: REALM_RSA_PUBLIC_KEY is empty, JWT tokens are NOT verified, setup is not set to debug.")
+            decoded = jwt.decode(header[7:], verify=False)
+        else:
+            if AUTH_AUDIENCE == '':
+                decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, options={'verify_aud': False})
+            else:
+                decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, audience=AUTH_AUDIENCE)
+
+        if AUTH_REQUIRED_SCOPE != '':
+            if not (AUTH_REQUIRED_SCOPE in decoded['realm_access']['roles']):
+                return False
+
+        #if not (decoded['preferred_username'] in ALLOWED_USERS):
+        #    return False
+
+        return True
+
+    except jwt.exceptions.InvalidSignatureError:
+        logging.error("JWT invalid signature", exc_info=True)
+    except jwt.ExpiredSignatureError:
+        logging.error("JWT token has expired", exc_info=True)
+    except jwt.InvalidAudienceError:
+        logging.error("JWT token invalid audience", exc_info=True)
+    except jwt.exceptions.InvalidAlgorithmError:
+        logging.error("JWT invalid signature algorithm", exc_info=True)
+    except Exception:
+        logging.error("Bad header or JWT, general exception raised", exc_info=True)
+
+    return False
+
+# receive the header, and extract the username from the token
+def get_username(header):
+    if debug:
+        logging.info('debug: cscs_api_common: get_username: ' + header)
+    # header = "Bearer ey...", remove first 7 chars
+    try:
+        if realm_pubkey == '':
+            decoded = jwt.decode(header[7:], verify=False)
+        else:
+#            if AUTH_AUDIENCE == '':
+            decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, options={'verify_aud': False})
+#            else:
+#                decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, audience=AUTH_AUDIENCE)
+
+#        if ALLOWED_USERS != '':
+#            if not (decoded['preferred_username'] in ALLOWED_USERS):
+#                return None
+
+        return decoded['preferred_username']
+
+    except jwt.exceptions.InvalidSignatureError:
+        logging.error("JWT invalid signature", exc_info=True)
+    except jwt.ExpiredSignatureError:
+        logging.error("JWT token has expired", exc_info=True)
+    except jwt.InvalidAudienceError:
+        logging.error("JWT token invalid audience", exc_info=True)
+    except jwt.exceptions.InvalidAlgorithmError:
+        logging.error("JWT invalid signature algorithm", exc_info=True)
+    except Exception:
+        logging.error("Bad header or JWT, general exception raised", exc_info=True)
+
+    return None
+
+
 
 # returns an SSH certificate, username is got from token
 @app.route("/", methods=["GET"])
