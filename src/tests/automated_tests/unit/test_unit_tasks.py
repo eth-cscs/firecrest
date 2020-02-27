@@ -48,7 +48,7 @@ STATUS_CODES = [(QUEUED, "queued", 200), (PROGRESS, "progress", 200), (SUCCESS, 
 def create_task(headers):
 	url = "{}".format(TASKS_URL)
 	resp = requests.post(url, headers=headers)
-	print(resp.json())
+	print(resp.content)
 	print(url)
 	return resp
 
@@ -57,7 +57,7 @@ def create_task(headers):
 def test_list_tasks(headers):
 	url = "{}/".format(TASKS_URL)
 	resp = requests.get(url, headers=headers)
-	print(resp.json())
+	print(resp.content)
 	print(url)
 	assert resp.status_code == 200
 	
@@ -76,7 +76,7 @@ def test_get_task(headers):
 	hash_id = resp.json()["hash_id"]
 	url = "{}/{}".format(TASKS_URL, hash_id)
 	resp = requests.get(url, headers=headers)
-	print(resp.json())
+	print(resp.content)
 	assert resp.status_code == 200
 
 
@@ -85,7 +85,7 @@ def test_get_task_not_exists(headers):
 	hash_id = "IDONTEXIST"
 	url = "{}/{}".format(TASKS_URL, hash_id)
 	resp = requests.get(url, headers=headers)
-	print(resp.json())
+	print(resp.content)
 	assert resp.status_code == 404
 
 

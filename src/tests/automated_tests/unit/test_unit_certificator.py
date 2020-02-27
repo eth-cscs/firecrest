@@ -17,7 +17,7 @@ else:
 def test_receive(headers):
 	url = "{}/".format(CERTIFICATOR_URL)
 	resp = requests.get(url, headers=headers)
-	print(resp.json())
+	print(resp.content)
 	assert resp.status_code == 200  
 
 
@@ -26,7 +26,7 @@ def test_receive(headers):
 def test_status(headers):
 	url = "{}/status".format(CERTIFICATOR_URL)
 	resp = requests.get(url, headers=headers)
-	print(resp.json())
+	print(resp.content)
 	assert resp.status_code == 200
 
 

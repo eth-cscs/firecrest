@@ -10,11 +10,21 @@ if FIRECREST_IP:
 else:
     UTILITIES_URL = os.environ.get("UTILITIES_URL")
 
-
 SERVER_UTILITIES = os.environ.get("SYSTEMS_PUBLIC").split(";")[0]
 
-DATA = [ (SERVER_UTILITIES, 200) , ("someservernotavailable", 400)]  #ls, rename, chmod,chown, file, download,upload
-DATA_201 = [ (SERVER_UTILITIES, 201) , ("someservernotavailable", 400)] #mkdir, symlink, 
+
+# test data for rename, chmod,chown, file, download,upload
+DATA = [ (SERVER_UTILITIES, 200) , ("someservernotavailable", 400)]  
+
+# test data for #mkdir, symlink
+DATA_201 = [ (SERVER_UTILITIES, 201) , ("someservernotavailable", 400)]  
+
+# test data for ls command
+DATA_LS = [ (SERVER_UTILITIES, "/home/testuser/testsbatch.sh", 200), 
+(SERVER_UTILITIES, "/home/testuser/dontexist/", 400),
+(SERVER_UTILITIES, "/etc/binfmt.d/", 200), # empty folder
+(SERVER_UTILITIES, "/home/testuser/", 200),
+("someservernotavailable", "/home/testuser/" ,400)]  
 
 
 
@@ -26,7 +36,7 @@ def test_upload(machine, expected_response_code, headers):
 	url = "{}/upload".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.post(url, headers=headers, data=data, files=files)
-	print(resp.json())
+	print(resp.content)
 	assert resp.status_code == expected_response_code 
 
 
@@ -37,7 +47,7 @@ def test_file_type(machine, expected_response_code, headers):
 	params = {"targetPath": ".bashrc"}
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.get(url, headers=headers, params=params)
-	print(resp.json())
+	print(resp.content)
 	assert resp.status_code == expected_response_code  
 	 
 
@@ -54,7 +64,7 @@ def exec_chmod(machine, headers, data):
 def test_chmod_valid_args(machine, expected_response_code, headers):
 	data = {"targetPath": "testsbatch.sh", "mode" : "777"}
 	resp = exec_chmod(machine, headers, data)
-	#print(resp.json())
+	print(resp.content)
 	assert resp.status_code == expected_response_code  
 
 
@@ -63,7 +73,7 @@ def test_chmod_valid_args(machine, expected_response_code, headers):
 def test_chmod_invalid_args(machine, expected_response_code, headers):
 	data = {"targetPath": "testsbatch.sh", "mode" : "999"}
 	resp = exec_chmod(machine, headers, data)
-	print(resp.json())
+	print(resp.content)
 	assert resp.status_code != 200
 
 
@@ -75,17 +85,17 @@ def test_chown(machine, expected_response_code, headers):
 	url = "{}/chown".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.put(url, headers=headers, data=data)
-	print(resp.json())
+	print(resp.content)
 	assert resp.status_code == expected_response_code  
 
 # Test ls command
-@pytest.mark.parametrize("machine, expected_response_code", DATA)
-def test_list_directory(machine, expected_response_code, headers):
-	params = {"targetPath": "/home/testuser/", "showhidden" : "true"}
+@pytest.mark.parametrize("machine, targetPath, expected_response_code", DATA_LS)
+def test_list_directory(machine, targetPath, expected_response_code, headers):
+	params = {"targetPath": targetPath, "showhidden" : "true"}
 	url = "{}/ls".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.get(url, headers=headers, params=params)
-	print(resp.json())
+	print(resp.content)
 	assert resp.status_code == expected_response_code
 
 
@@ -96,7 +106,7 @@ def test_make_directory(machine, expected_response_code, headers):
 	url = "{}/mkdir".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.post(url, headers=headers, data=data)
-	print(resp.json())
+	print(resp.content)
 	assert resp.status_code == expected_response_code  
 
 
@@ -107,7 +117,7 @@ def test_rename(machine, expected_response_code, headers):
 	url = "{}/rename".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.put(url, headers=headers, data=data)
-	print(resp.json())
+	print(resp.content)
 	assert resp.status_code == expected_response_code  
 
 
@@ -119,7 +129,7 @@ def test_copy(machine, expected_response_code, headers):
 	url = "{}/copy".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.post(url, headers=headers, data=data)
-	print(resp.json())
+	print(resp.content)
 	assert resp.status_code == expected_response_code  
 
 
@@ -130,7 +140,7 @@ def test_symlink(machine, expected_response_code, headers):
 	url = "{}/symlink".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.post(url, headers=headers, data=data)
-	print(resp.json())
+	print(resp.content)
 	print(machine)
 	assert resp.status_code == expected_response_code
 
@@ -143,7 +153,7 @@ def test_rm(machine, expected_response_code, headers):
 	url = "{}/rm".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.delete(url, headers=headers, data=data)
-	#print(resp.json())
+	print(resp.content)
 	assert resp.status_code == expected_response_code 
 
 

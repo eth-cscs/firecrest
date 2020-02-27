@@ -17,14 +17,14 @@ SYSTEMS = os.environ.get("SYSTEMS_PUBLIC").split(";")
 def test_status_system(system, headers):
 	url = "{}/systems/{}".format(STATUS_URL, system)
 	resp = requests.get(url, headers=headers)
-	print(resp.json())
+	print(resp.content)
 	assert 'description' in resp.json()
 	 
 
 def test_status_systems(headers):
 	url = "{}/systems".format(STATUS_URL)
 	resp = requests.get(url, headers=headers)
-	print(resp.json())
+	print(resp.content)
 	assert 'description' in resp.json()
 
 
@@ -32,21 +32,21 @@ def test_status_systems(headers):
 def test_status_service(service, headers):
 	url = "{}/services/{}".format(STATUS_URL, service)
 	resp = requests.get(url, headers=headers)
-	print(resp.json())
+	print(resp.content)
 	assert 'description' in resp.json()
 
 
 def test_status_services(headers):
 	url = "{}/services".format(STATUS_URL)
 	resp = requests.get(url, headers=headers)
-	print(resp.json())
+	print(resp.content)
 	assert 'description' in resp.json()
 
 
 def test_parameters(headers):
 	url = "{}/parameters".format(STATUS_URL)
 	resp = requests.get(url, headers=headers)
-	print(resp.json())
+	print(resp.content)
 	assert resp.status_code == 200
 
 
