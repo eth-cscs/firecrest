@@ -104,6 +104,14 @@ def get_username(header):
 
     return None
 
+# function to check if pattern is in string
+def in_str(stringval,words):
+    try:
+        stringval.index(words)
+        return True
+    except ValueError:
+        return False
+
 
 # SSH certificates creation
 # returns pub key certificate name
@@ -225,18 +233,16 @@ def exec_remote_command(auth_header, system, action):
 
         outlines = get_squeue_buffer_lines(stdout)
 
-        if outlines:
-            logging.info("sdterr: ({errno}) --> {stdout}".format(errno=stderr_errno, stdout=outlines))
-            logging.info("stdout: ({errno}) --> {stdout}".format(errno=stdout_errno, stdout=outlines))
-        if stdout_errda or stdout_errno != 0:
-            logging.error("(stdout: {errno}) --> {stderr}".format(errno=stdout_errno, stderr=stdout_errda))
-        if stderr_errda or stderr_errno != 0:
-            logging.error("(stderr: {errno}) --> {stderr}".format(errno=stderr_errno, stderr=stderr_errda))
-
+        logging.info("sdterr: ({errno}) --> {stderr}".format(errno=stderr_errno, stderr=stderr_errda))
+        logging.info("stdout: ({errno}) --> {stderr}".format(errno=stdout_errno, stderr=stdout_errda))
+        logging.info("sdtout: ({errno}) --> {stdout}".format(errno=stdout_errno, stdout=outlines))
+        
         # TODO: change precedence of error, because in /xfer-external/download this gives error and it s not an error
         if stderr_errno == 0:
-            if stderr_errda:
+            if stderr_errda and not in_str(stderr_errda,"Could not chdir to home directory"):
                 result = {"error": 0, "msg": stderr_errda}
+            elif outlines:
+                result = {"error": 0, "msg": outlines}
             else:
                 result = {"error": 0, "msg": outlines}
         elif stderr_errno > 0:

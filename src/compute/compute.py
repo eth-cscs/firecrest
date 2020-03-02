@@ -10,7 +10,7 @@ from logging.handlers import TimedRotatingFileHandler
 import threading
 import async_task
 from cscs_api_common import check_header, get_username, get_buffer_lines, get_squeue_buffer_lines, \
-    create_certificates, exec_remote_command, create_task, update_task, expire_task, clean_err_output
+    create_certificates, exec_remote_command, create_task, update_task, expire_task, clean_err_output, in_str
 
 from job_time import check_sacctTime
 
@@ -89,12 +89,12 @@ def extract_jobid(outline):
 
 
 # function to check if pattern is in string
-def in_str(stringval,words):
-    try:
-        stringval.index(words)
-        return True
-    except ValueError:
-        return False
+# def in_str(stringval,words):
+#     try:
+#         stringval.index(words)
+#         return True
+#     except ValueError:
+#         return False
 
 
 # copies file and submits with sbatch
