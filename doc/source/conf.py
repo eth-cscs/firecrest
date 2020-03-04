@@ -21,6 +21,9 @@ project = 'FirecREST'
 copyright = '2018-2020, ETH Zurich'
 author = 'CSCS'
 
+# The master toctree document.
+master_doc = 'index'
+
 
 # -- General configuration ---------------------------------------------------
 
