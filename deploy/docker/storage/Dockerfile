@@ -17,7 +17,8 @@ RUN pip3 install Flask paramiko lxml cryptography pyjwt keystoneauth1 python-key
 ADD src/storage/storage.py storage.py
 ADD src/storage/keystone.py keystone.py
 ADD src/storage/objectstorage.py objectstorage.py
-ADD src/storage/s3OS.py s3OS.py
+ADD src/storage/s3v2OS.py s3v2OS.py
+ADD src/storage/s3v4OS.py s3v4OS.py
 ADD src/storage/swiftOS.py swiftOS.py
 
 ADD src/common/async_task.py async_task.py
