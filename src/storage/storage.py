@@ -181,7 +181,7 @@ def download_request():
 
     # couldn't create task
     if task_id == -1:
-        data = jsonify(error="Coludn't create task")
+        data = jsonify(error="Couldn't create task")
         return data, 400
 
     # asynchronous task creation
@@ -730,16 +730,27 @@ def create_staging():
 
         staging = Swift(url=url, user=SWIFT_USER, passwd=SWIFT_PASS, secret=SECRET_KEY)
 
-    elif OBJECT_STORAGE == "s3":
-        app.logger.info("Into s3")
-        from s3OS import S3
+    elif OBJECT_STORAGE == "s3v2":
+        app.logger.info("Into s3v2")
+        from s3v2OS import S3v2
 
         # For S#:
         S3_URL = os.environ.get("S3_URL")
         S3_ACCESS_KEY = os.environ.get("S3_ACCESS_KEY")
         S3_SECRET_KEY = os.environ.get("S3_SECRET_KEY")
 
-        staging = S3(url=S3_URL, user=S3_ACCESS_KEY, passwd=S3_SECRET_KEY)
+        staging = S3v2(url=S3_URL, user=S3_ACCESS_KEY, passwd=S3_SECRET_KEY)
+
+    elif OBJECT_STORAGE == "s3v4":
+        app.logger.info("Into s3v4")
+        from s3v4OS import S3v4
+
+        # For S#:
+        S3_URL = os.environ.get("S3_URL")
+        S3_ACCESS_KEY = os.environ.get("S3_ACCESS_KEY")
+        S3_SECRET_KEY = os.environ.get("S3_SECRET_KEY")
+
+        staging = S3v4(url=S3_URL, user=S3_ACCESS_KEY, passwd=S3_SECRET_KEY)
 
     else:
         app.logger.warning("No Object Storage for staging area was set.")

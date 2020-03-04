@@ -17,7 +17,7 @@ import hmac
 import hashlib
 
 
-class S3(ObjectStorage):
+class S3v2(ObjectStorage):
 
     def __init__(self, url, user, passwd):
         self.user = user
@@ -25,7 +25,7 @@ class S3(ObjectStorage):
         self.url = url
 
     def get_object_storage(self):
-        return "Amazon S3"
+        return "Amazon S3 - Signature V2"
 
     def create_container(self, containername):
         # by default just 120 secs, since is
@@ -297,31 +297,6 @@ class S3(ObjectStorage):
 
     def delete_object_after(self,containername,prefix,objectname,ttl):
 
-        expires = ttl + int(time.time())
-        httpVerb = "GET"
-        contentMD5 = ""
-        contentType = ""
-        canonicalizedAmzHeaders = ""
-        canonicalizedResource = "/{containername}?lifecycle".format(
-            containername=containername)
-
-        string_to_sign = httpVerb + "\n" + contentMD5 + "\n" + contentType + "\n" + \
-                         str(expires) + "\n" + canonicalizedAmzHeaders + canonicalizedResource
-
-        # sig = base64.b64encode(hmac.new(self.passwd, string_to_sign, hashlib.sha1).digest())
-
-        # to be used in hmac.new(key,msg,digestmode), the strings key (passwd) and msg (strin_to_sign) need to be byte type
-        string_to_sign = string_to_sign.encode('latin-1')
-        _passwd = bytes(self.passwd, 'latin1')
-
-        sig = base64.b64encode(hmac.new(_passwd, string_to_sign, hashlib.sha1).digest())
-
-        # signature will be Bytes type in Pytho3, so it needs to be decoded to str again
-        sig = sig.decode('latin-1')
-
-        url = "{url}/{containername}?lifecycle&AWSAccessKeyId={awsAccessKeyId}&Signature={signature}&Expires={expires}".format(
-            url=self.url, containername=containername, awsAccessKeyId=self.user, signature=sig, expires=expires)
-
         # TODO: find a way to implement for s3
 
         return -1
@@ -349,15 +324,15 @@ class S3(ObjectStorage):
 
         sig = base64.b64encode(hmac.new(_passwd, string_to_sign, hashlib.sha1).digest())
 
-        # signature will be Bytes type in Pytho3, so it needs to be decoded to str again
+        # signature will be Bytes type in Python3, so it needs to be decoded to str again
         sig = sig.decode('latin-1')
 
         url = "{url}/{containername}/{prefix}/{objectname}&AWSAccessKeyId={awsAccessKeyId}&Signature={signature}&Expires={expires}".format(
             url=self.url, containername=containername, prefix=prefix,objectname=objectname,
             awsAccessKeyId=self.user, signature=sig, expires=expires)
 
-        logging.info("Deleting {}/{}/{}".format(containername,prefix,objectname))
-        logging.info("URL: {}".format(url))
+        print("Deleting {}/{}/{}".format(containername,prefix,objectname))
+        print("URL: {}".format(url))
 
         try:
             resp = requests.delete(url)
@@ -368,11 +343,11 @@ class S3(ObjectStorage):
 
                 return 0
             # TODO: not working for some reason
-            logging.error("Object couldn't be deleted")
+            logging.error("Object couldn't be deleted "+url)
             return -1
         except Exception as e:
             logging.info(e)
-            logging.error("Object couldn't be deleted")
+            logging.error("Object couldn't be deleted "+url)
             return -1
 
 
