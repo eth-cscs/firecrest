@@ -168,8 +168,8 @@ def download_request():
     if not check_header(auth_header):
         return jsonify(description="Invalid header"), 401
 
-    # TODO: change for dom; the first IP is for daint, the second for dom.
-    system = SYSTEMS_INTERNAL_STORAGE.split(";")[0]
+    
+    system = EXT_TRANSFER_MACHINE_INTERNAL
     sourcePath = request.form["sourcePath"]  # path file in cluster
 
     if sourcePath == None:
@@ -301,10 +301,7 @@ def upload_request():
             app.logger.info("Not a upload finished request")
 
 
-    # TODO: change for dom; the first IP is for daint, the second for dom.
-    # system       = SYSTEMS_INTERNAL_STORAGE.split(";")[0]
-
-    app.logger.info(EXT_TRANSFER_MACHINE_INTERNAL)
+    # app.logger.info(EXT_TRANSFER_MACHINE_INTERNAL)
     system = EXT_TRANSFER_MACHINE_INTERNAL
 
 
