@@ -51,12 +51,10 @@ def init_queue():
     if r == None:
         app.logger.error("Persistence Database is not functional")
         app.logger.error("Tasks microservice cannot be started")
-        persistence.close_connection(r)
         return
 
     # dictionary: [task_id] = {hash_id,status_code,user,data}
     task_list = persistence.get_all_tasks(r)
-    # last_task_id = persistence.get_last_task_id(r)
 
     # key = task_id ; values = {status_code,user,data}
     for id, value in task_list.items():
@@ -71,8 +69,6 @@ def init_queue():
         t = async_task.AsyncTask(task_id,user)
         t.set_status(status,data)
         tasks[t.hash_id] = t
-
-    persistence.close_connection(r)
 
 
 @app.route("/",methods=["GET"])
@@ -125,8 +121,6 @@ def create_task():
         return jsonify(description="No service informed"), 403
 
 
-
-
     auth_header = request.headers[AUTH_HEADER_NAME]
     if not check_header(auth_header):
         return jsonify(description="Invalid header"), 401
@@ -134,22 +128,14 @@ def create_task():
     # getting username from auth_header
     username=get_username(auth_header)
 
-    # if "last_task_id" key isn't in persistence server
-    # creates it
-
     # QueuePersistence connection
     global r
-
-    if not persistence.create_last_task_id(r):
-        persistence.close_connection(r)
-        return jsonify(description="Couldn't create task"), 400
 
     # incremente the last_task_id in 1 unit
     task_id = persistence.incr_last_task_id(r)
 
     # if there was a problem getting new task_id from persistence
     if task_id == None:
-        persistence.close_connection(r)
         return jsonify(description="Couldn't create task"), 400
 
     # create task with service included
@@ -157,7 +143,6 @@ def create_task():
     tasks[t.hash_id] = t
 
     persistence.save_task(r,id=task_id,task=t.get_status())
-    persistence.close_connection(r)
 
     # {"id":task_id,
     #               "status":async_task.QUEUED,
@@ -293,12 +278,10 @@ def update_task(id):
     global r
     #update task in persistence server
     if not persistence.save_task(r, id=tasks[hash_id].task_id, task=tasks[hash_id].get_status()):
-        persistence.close_connection(r)
         app.logger.error("Error saving task")
         app.logger.error(tasks[hash_id].get_status())
         return jsonify(description="Couldn't update task"), 400
 
-    persistence.close_connection(r)
     app.logger.info("New status for task {hash_id}: {status}".format(hash_id=hash_id,status=status))
 
     data = jsonify(success="task updated")
@@ -343,10 +326,8 @@ def delete_task(id):
         global r
 
         if not persistence.del_task(r,id=tasks[hash_id].task_id):
-            persistence.close_connection(r)
             return jsonify(error="Failed to delete task on persistence server"), 400
 
-        persistence.close_connection(r)
         data = jsonify(success="task deleted")
         tasks[hash_id].set_status(status=async_task.DELETED, data="")
         return data, 204
@@ -394,10 +375,8 @@ def expire_task(id):
 
         app.logger.info("id: {id}".format(id=tasks[hash_id].task_id))
         if not persistence.set_expire_task(r,id=tasks[hash_id].task_id,secs=TASK_EXP_TIME):
-            persistence.close_connection(r)
             return jsonify(error="Failed to set expiration time on task in persistence server"), 400
 
-        persistence.close_connection(r)
         data = jsonify(success="Task expiration time set to {exp_time} secs.".format(exp_time=TASK_EXP_TIME))
         # tasks[hash_id].set_status(status=async_task.EXPIRED)
 
@@ -442,7 +421,6 @@ def tasklist():
 
 
     storage_tasks = persistence.get_service_tasks(r, "storage")
-    persistence.close_connection(r)
 
     # app.logger.info(storage_tasks)
     if storage_tasks == None:
