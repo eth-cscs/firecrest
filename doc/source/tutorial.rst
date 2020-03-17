@@ -38,7 +38,7 @@ Test the credentials with a simple call
 
 **Example response**:
 
-.. sourcecode::
+.. code-block::
 
     {
         "description": "List of services with status and description.",
@@ -92,7 +92,7 @@ List the contents of a directory
 
 **Example response**:
 
-.. sourcecode::
+.. code-block::
 
     {
         "descr": "List of contents of path",
