@@ -38,7 +38,7 @@ Test the credentials with a simple call
 
 **Example response**:
 
-.. code-block::
+.. code-block:: json
 
     {
         "description": "List of services with status and description.",
@@ -92,7 +92,7 @@ List the contents of a directory
 
 **Example response**:
 
-.. code-block::
+.. code-block:: json
 
     {
         "descr": "List of contents of path",
@@ -149,7 +149,7 @@ Upload batch script
 
 **Example response**:
 
-.. sourcecode::
+.. code-block:: json
 
     {
         "description": "File upload successful"
@@ -176,7 +176,7 @@ Submit job
 
 **Example response**:
 
-.. sourcecode::
+.. code-block:: json
 
     {
         "success": "Task created",
@@ -200,7 +200,7 @@ And then you can get the job id from this job with this call.
 
 **Example response**:
 
-.. sourcecode::
+.. code-block:: json
 
     {
         "task": {
@@ -235,7 +235,7 @@ You can get the current status of job with these two calls:
         wip
 
 
-.. sourcecode::
+.. code-block:: json
 
     {
         "success": "Task created",
@@ -257,7 +257,7 @@ Use the task_id you got from the previous call or even the task url that is prov
 
 While running the call will be successful
 
-.. sourcecode::
+.. code-block:: json
 
     {
         "task": {
@@ -287,7 +287,7 @@ While running the call will be successful
 
 But after the job has finished for some time you will get something like this:
 
-.. sourcecode::
+.. code-block:: json
 
     {
         "task": {
@@ -319,7 +319,7 @@ Persistent accounting information
 
         wip
 
-.. sourcecode::
+.. code-block:: json
 
     {
         "task": {
@@ -388,7 +388,7 @@ First upload the file to storage. targetPath is local, sourcePath is on the mach
 
         wip
 
-.. sourcecode::
+.. code-block:: json
 
     {
         "success": "Task created",
@@ -406,7 +406,7 @@ First upload the file to storage. targetPath is local, sourcePath is on the mach
 
         wip
 
-.. sourcecode::
+.. code-block:: json
 
     {
         "task": {
@@ -450,7 +450,7 @@ Then the file should be uploaded with the command from the previous request:
 
         wip
 
-.. sourcecode::
+.. code-block:: bash
 
     HTTP/1.1 100 Continue
 
@@ -477,7 +477,7 @@ Finish the upload
 
         wip
 
-.. sourcecode::
+.. code-block:: json
 
     {
         "success": "Starting download to File System"
@@ -495,7 +495,7 @@ You can check again the task and when you get something like this it will be fin
 
         wip
 
-.. sourcecode::
+.. code-block:: json
 
     {
         "task": {
@@ -537,7 +537,7 @@ First you have to start the uploading from the machine's filesystem to object st
 
         wip
 
-.. sourcecode::
+.. code-block:: json
 
     {
         "success":"Task created",
@@ -557,7 +557,7 @@ First you have to start the uploading from the machine's filesystem to object st
 
 After it finishes you should get a response like this.
 
-.. sourcecode::
+.. code-block:: json
 
     {
         "task": {
@@ -578,7 +578,7 @@ And you can download the file from the link in the "data" field.
 Troubleshooting
 ===============
 
-.. sourcecode::
+.. code-block:: json
 
     {
         "exp": "token expired"
