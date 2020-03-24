@@ -2,10 +2,37 @@
 Tutorial
 ========
 
+In this section, we will learn how to interact with the FirecREST's API through HTTP GET/POST/PUT/DELETE calls.
+The examples will be provided both in the form of a curl command and python code.
+The curl command will give you a more direct understanding of the parameters of each call and hopefully make it easier to try yourself, while the python code could be the base for a simple client, like the one that is developed `here <https://github.com/eth-cscs/firecrest/tree/master/deploy/demo>`_.
+
 Obtain credentials
 ==================
 
-After obtaining the credentials set these variables:
+All the requests in the FirecREST API require authorization.
+The access token allows you to make requests on behalf of the authenticated user.
+The token is provided by `Keycloak <https://www.keycloak.org//>`_ and it has to be included in the header of all the API calls.
+You should also keep in mind that validation tokens usually have an expiration date and are short-lived.
+
+FirecREST API will return helpful messages in case the access token is invalid or has expired.
+
+**Invalid token**:
+
+.. code-block:: json
+
+    {
+        "message": "Bad token; invalid JSON"
+    }
+
+**Expired token**:
+
+.. code-block:: json
+
+    {
+        "exp": "token expired"
+    }
+
+After obtaining the credentials you have to set these variables:
 
 .. tabs::
 
@@ -24,6 +51,10 @@ After obtaining the credentials set these variables:
 Test the credentials with a simple call
 =======================================
 
+To test the credentials we can use a simple call from the `Status microservice <overview.html#status>`__.
+We can call the `firecrest/status/services <reference.html#get--status-services>`__ endpoint with a *GET* operation to get the status of all the services.
+The access token has to be included in the header.
+
 .. tabs::
 
     .. code-tab:: bash
@@ -36,7 +67,7 @@ Test the credentials with a simple call
         headers = {'Authorization': f'Bearer {TOKEN}'}
         response = requests.get(url=url, headers=headers)
 
-**Example response**:
+The response to this call will look something like:
 
 .. code-block:: json
 
@@ -75,6 +106,16 @@ Test the credentials with a simple call
 List the contents of a directory
 ================================
 
+Another simple but useful call of the API is the listing of the contents of a directory.
+As before we have to include the authorization token in the header but we also have to specify the machine name's filesystem and the directory we want to list.
+In our example the machine is *cluster* and we want to list our home directory, */home/test1*.
+As we can see in the reference section of `utilities/ls <reference.html#get--utilities-ls>`__, the machine name is also part of the header but the target path is a query parameter.
+
+.. note::
+    Query parameters are passed in a different argument in python but are part of the URL in the curl command.
+
+Finally the call looks like this:
+
 .. tabs::
 
     .. code-tab:: bash
@@ -90,7 +131,7 @@ List the contents of a directory
         params = {'targetPath': f'{path}'}
         response = requests.get(url=url, headers=headers, params=params)
 
-**Example response**:
+And the response should look something like:
 
 .. code-block:: json
 
@@ -119,6 +160,49 @@ List the contents of a directory
             }
         ]
     }
+
+When the call is successful the body of the response is enough but in case we get an error the response header can give us more information about the error.
+
+.. note::
+    To get the response header in the curl command add `-i` in the call.
+
+In case we ask to list a directory in which the user doesn't have the right permissions we will get `X-Permission-Denied: User does not have permissions to access machine or path`.
+
+.. code-block:: bash
+
+    HTTP/1.1 400 BAD REQUEST
+    Content-Type: application/json
+    Content-Length: 49
+    Connection: keep-alive
+    X-Permission-Denied: User does not have permissions to access machine or path
+    Server: Werkzeug/1.0.0 Python/3.6.8Date: Tue, 24 Mar 2020 09:21:03 GMT
+    X-Kong-Upstream-Latency: 168
+    X-Kong-Proxy-Latency: 2
+    Via: kong/2.0.2
+
+    {
+        "description": "Error listing contents of path"
+    }
+
+But when we try to list a directory that doesn't exist the error would be different in the header.
+
+.. code-block:: bash
+
+    HTTP/1.1 400 BAD REQUEST
+    Content-Type: application/json
+    Content-Length: 49
+    Connection: keep-alive
+    X-Invalid-Path: /home/test23 is an invalid path
+    Server: Werkzeug/1.0.0 Python/3.6.8Date: Tue, 24 Mar 2020 09:27:44 GMTX-Kong-Upstream-Latency: 172
+    X-Kong-Proxy-Latency: 2
+    Via: kong/2.0.2
+
+    {
+        "description": "Error listing contents of path"
+    }
+
+In the reference section of `utilities/ls <reference.html#get--utilities-ls>`__ you can see more error types you can get in the response header.
+
 
 Upload with blocking call a small file
 ======================================
