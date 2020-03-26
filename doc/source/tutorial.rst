@@ -233,6 +233,10 @@ The `demo client <https://github.com/eth-cscs/firecrest/tree/master/src/tests/te
 
 .. figure:: ../_static/img/utilities.png
 
+.. literalinclude:: ../../src/tests/template_client/firecrest_demo.py
+  :lines: 652-687
+..   :dedent: 4
+
 Upload a small file with the blocking call
 ==========================================
 
@@ -319,7 +323,7 @@ The response should like like this:
 .. note::
     You have to keep in mind the `task_id` is **not** Slurm's `job ID` but an ID for the task that was created with FirecREST and we will use that to keep track of the job submitted request.
 
-So to get the status of the job that we submitted we have to make a `GET` call in the `/tasks/{taskid} <reference.html#post--tasks-taskid>`__  endpoint.
+So to get the status of the job that we submitted we have to make a `GET` call in the `/tasks/{taskid} <reference.html#get--tasks-taskid>`__  endpoint.
 
 .. tabs::
 
@@ -351,6 +355,7 @@ The response should look like this if the job submission was successful:
         }
     }
 
+In the data field we can see
 
 Check for job status
 ^^^^^^^^^^^^^^^^^^^^
