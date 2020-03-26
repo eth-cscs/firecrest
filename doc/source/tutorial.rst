@@ -6,6 +6,17 @@ In this section, we will learn how to interact with the FirecREST's API through 
 The examples will be provided both in the form of a curl command and python code.
 The curl command will give you a more direct understanding of the parameters of each call and hopefully make it easier to try yourself, while the python code could be the base for a simple client, like the one that is developed `here <https://github.com/eth-cscs/firecrest/tree/master/deploy/demo>`_.
 
+The tutorial follows the following workflow:
+
+- Obtaining the necessary credentials
+- Checking for the available systems
+- Uploading the input data to the machine's filesystem
+- Run a simulation
+- Upload a bigger file
+- Run again the simulation
+- Download the results
+- Verify results
+
 Obtain credentials
 ==================
 
@@ -112,7 +123,7 @@ In our example the machine is *cluster* and we want to list our home directory, 
 As we can see in the reference section of `utilities/ls <reference.html#get--utilities-ls>`__, the machine name is also part of the header but the target path is a query parameter.
 
 .. note::
-    Query parameters are passed in a different argument in python but are part of the URL in the curl command.
+    Query parameters are passed in the `params` argument in python but are part of the URL in the curl command.
 
 Finally the call looks like this:
 
@@ -125,11 +136,13 @@ Finally the call looks like this:
     .. code-tab:: python
 
         path = '/home/test1
-        url = f'{FIRECREST_IP}/utilities/ls'
-        headers = {'Authorization': f'Bearer {TOKEN}',
-                   'X-Machine-Name': 'cluster'}
-        params = {'targetPath': f'{path}'}
-        response = requests.get(url=url, headers=headers, params=params)
+        machine = 'cluster'
+        response = requests.get(
+            url=f'{FIRECREST_IP}/utilities/ls',
+            headers={'Authorization': f'Bearer {TOKEN}',
+                     'X-Machine-Name': machine},
+            params={'targetPath': f'{path}'}
+        )
 
 And the response should look something like:
 
@@ -140,7 +153,17 @@ And the response should look something like:
         "output": [
             {
                 "group": "test1",
-                "last_modified": "2020-03-13T13:15:48",
+                "last_modified": "2020-03-17T09:41:42",
+                "link_target": "",
+                "name": "firecrest",
+                "permissions": "rwxrwxr-x",
+                "size": "4096",
+                "type": "d",
+                "user": "test1"
+            },
+            {
+                "group": "test1",
+                "last_modified": "2020-03-17T14:04:51",
                 "link_target": "",
                 "name": "new-dir",
                 "permissions": "rwxrwxr-x",
@@ -150,32 +173,33 @@ And the response should look something like:
             },
             {
                 "group": "test1",
-                "last_modified": "2020-03-13T12:52:44",
+                "last_modified": "2020-03-25T17:35:24",
                 "link_target": "",
                 "name": "test_file.txt",
                 "permissions": "rw-rw-r--",
-                "size": "247",
+                "size": "222",
                 "type": "-",
                 "user": "test1"
             }
         ]
     }
 
-When the call is successful the body of the response is enough but in case we get an error the response header can give us more information about the error.
+When the call is successful the body of the response is enough, but in case we get an error the response header can give us more information about the error.
 
 .. note::
     To get the response header in the curl command add `-i` in the call.
 
 In case we ask to list a directory in which the user doesn't have the right permissions we will get `X-Permission-Denied: User does not have permissions to access machine or path`.
 
-.. code-block:: bash
+.. code-block:: none
 
     HTTP/1.1 400 BAD REQUEST
     Content-Type: application/json
     Content-Length: 49
     Connection: keep-alive
     X-Permission-Denied: User does not have permissions to access machine or path
-    Server: Werkzeug/1.0.0 Python/3.6.8Date: Tue, 24 Mar 2020 09:21:03 GMT
+    Server: Werkzeug/1.0.0 Python/3.6.8
+    Date: Tue, 24 Mar 2020 09:21:03 GMT
     X-Kong-Upstream-Latency: 168
     X-Kong-Proxy-Latency: 2
     Via: kong/2.0.2
@@ -186,14 +210,16 @@ In case we ask to list a directory in which the user doesn't have the right perm
 
 But when we try to list a directory that doesn't exist the error would be different in the header.
 
-.. code-block:: bash
+.. code-block:: none
 
     HTTP/1.1 400 BAD REQUEST
     Content-Type: application/json
     Content-Length: 49
     Connection: keep-alive
     X-Invalid-Path: /home/test23 is an invalid path
-    Server: Werkzeug/1.0.0 Python/3.6.8Date: Tue, 24 Mar 2020 09:27:44 GMTX-Kong-Upstream-Latency: 172
+    Server: Werkzeug/1.0.0 Python/3.6.8
+    Date: Tue, 24 Mar 2020 09:27:44 GMT
+    X-Kong-Upstream-Latency: 172
     X-Kong-Proxy-Latency: 2
     Via: kong/2.0.2
 
@@ -203,35 +229,41 @@ But when we try to list a directory that doesn't exist the error would be differ
 
 In the reference section of `utilities/ls <reference.html#get--utilities-ls>`__ you can see more error types you can get in the response header.
 
+The `demo client <https://github.com/eth-cscs/firecrest/tree/master/src/tests/template_client>`__ uses the json response and displays the contents of a directory in a more user friendly way, as shown in the next figure.
 
-Upload with blocking call a small file
-======================================
+.. figure:: ../_static/img/utilities.png
 
-Upload batch script
-^^^^^^^^^^^^^^^^^^^
+Upload a small file with the blocking call
+==========================================
+
+The first step of our workflow is to upload the necessary files to one of the machines' filesystems.
+Many times the input can be a small file and for these cases the non blocking call `utilities/upload <reference.html#post--utilities-upload>`__ should be enough.
+As before, we need to specify the machine and the authorization token in the header of the call, as well as some the location of the file we want to upload and the location in the machine.
+The path to the file corresponds to a local path, while targetPath is in the machine.
+
+.. note::
+    Notice that `targetPath` is not a query parameter like in `utilities/ls`, but form data. In the curl command we have to use `-F "targetPath=/home/test1"` and in python it is part of the `data` dictionary.
 
 .. tabs::
 
     .. code-tab:: bash
 
-        $ curl -X POST "${FIRECREST_IP}/utilities/upload" -F "targetPath=/home/test1" -H "Authorization: Bearer $TOKEN" -H "X-Machine-Name: cluster" -F "file=@/path/to/script.sh"
+        $ curl -X POST "${FIRECREST_IP}/utilities/upload" -F "targetPath=/home/test1" -H "Authorization: Bearer $TOKEN" -H "X-Machine-Name: cluster" -F "file=@/path/to/input_file"
 
     .. code-tab:: python
 
         targetPath = '/home/test1'
-        url = f'{FIRECREST_IP}/utilities/upload'
-        headers={'Authorization': f'Bearer {TOKEN}',
-                 'X-Machine-Name': 'cluster'}
-        data={'targetPath': targetPath}
-        files={'file': open(local_path,"rb")}
+        machine = 'cluster'
+        local_path = '/path/to/input_file'
         response = requests.post(
-                url=url,
-                headers=headers,
-                data=data,
-                files=files
-            )
+            url=f"{app.config['FIRECREST_IP']}/utilities/upload",
+            headers={'Authorization': f'Bearer {oidc.get_access_token()}',
+                     'X-Machine-Name': machine},
+            data={'targetPath': targetPath},
+            files={'file': open(local_path,"rb")}
+        )
 
-**Example response**:
+As we already mentioned this call is blocking, so it will finish when the uploading completes or if it fails. For a successful uploading the body of the response will look like this:
 
 .. code-block:: json
 
@@ -239,8 +271,15 @@ Upload batch script
         "description": "File upload successful"
     }
 
-Upload small input
-^^^^^^^^^^^^^^^^^^
+In case the `targetPath` is wrong or the user doesn't have the right permissions for the target location the response will look like this:
+
+.. code-block:: none
+
+    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+    <title>500 Internal Server Error</title>
+    <h1>Internal Server Error</h1>
+    <p>The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.</p>
+
 
 Run a small simulation
 ======================
@@ -248,17 +287,26 @@ Run a small simulation
 Submit job
 ^^^^^^^^^^
 
+Before submiting our first job it is important to distinguish between two IDs, slurm's `job ID` and FirecREST's `task ID`.
+On a job scheduler like Slurm, every job has a unique `job ID`, which is created when a job is submitted and can be used to track the state of the job.
+With calls like `squeue` and `sacct` the user can see the state of the job (`RUNNING`, `COMPLETED` etc) as well as get information for the job.
+Similarly, for every task FirecREST will assign a `task ID` with which the user can track the state of the request and get information about it.
+
+The first step to submit a job is to make a `POST` request in the `compute/jobs <reference.html#post--compute-jobs>`__  endpoint.
+Again, we have to pass the authorization token and the machine in the header.
+The file this time will be the script we want to run with slurm.
+
 .. tabs::
 
     .. code-tab:: bash
 
-        $ curl -X POST "${FIRECREST_IP}/compute/jobs" -F "targetPath=/home/test1" -H "Authorization: Bearer $TOKEN" -H "X-Machine-Name: cluster" -F "file=@/path/to/script.sh"
+        $ curl -X POST "${FIRECREST_IP}/compute/jobs" -H "Authorization: Bearer $TOKEN" -H "X-Machine-Name: cluster" -F "file=@/path/to/script.sh"
 
     .. code-tab:: python
 
         wip
 
-**Example response**:
+The response should like like this:
 
 .. code-block:: json
 
@@ -268,21 +316,22 @@ Submit job
         "task_url": "http://192.168.220.10:8000/tasks/9d9c69b640cfd1cccffb76e1b7297a98"
     }
 
+.. note::
+    You have to keep in mind the `task_id` is **not** Slurm's `job ID` but an ID for the task that was created with FirecREST and we will use that to keep track of the job submitted request.
 
-And then you can get the job id from this job with this call.
-
+So to get the status of the job that we submitted we have to make a `GET` call in the `/tasks/{taskid} <reference.html#post--tasks-taskid>`__  endpoint.
 
 .. tabs::
 
     .. code-tab:: bash
 
-        $ curl -X GET "${FIRECREST_IP}/tasks/9d9c69b640cfd1cccffb76e1b7297a98" -H "Authorization: Bearer $TOKEN" -H "X-Machine-Name: cluster"
+        $ curl -X GET "${FIRECREST_IP}/tasks/9d9c69b640cfd1cccffb76e1b7297a98" -H "Authorization: Bearer $TOKEN"
 
     .. code-tab:: python
 
         wip
 
-**Example response**:
+The response should look like this if the job submission was successful:
 
 .. code-block:: json
 
