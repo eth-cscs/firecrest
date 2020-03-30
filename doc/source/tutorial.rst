@@ -2,28 +2,43 @@
 Tutorial
 ========
 
-In this section, we will learn how to interact with the FirecREST's API through HTTP GET/POST/PUT/DELETE calls.
+In this section, we will learn how to interact with the FirecREST's API through a typical workflow.
+We assume you already have a user that has access to the machines and we want to run a simple simulation on one of the machines.
 The examples will be provided both in the form of a curl command and python code.
 The curl command will give you a more direct understanding of the parameters of each call and hopefully make it easier to try yourself, while the python code could be the base for a simple client, like the one that is developed `here <https://github.com/eth-cscs/firecrest/tree/master/deploy/demo>`_.
 
-The tutorial follows the following workflow:
+We will cover the following workflow:
 
-- Obtaining the necessary credentials
-- Checking for the available systems
-- Uploading the input data to the machine's filesystem
-- Run a simulation
-- Upload a bigger file
-- Run again the simulation
-- Download the results
-- Verify results
+1. `Obtaining the necessary credentials to access the machines <#obtain-credentials>`_
+2. `Checking the available systems to the user <#test-the-credentials-with-a-simple-call>`_
+3. `Uploading the input data to the machine's filesystem <#upload-a-small-file-with-the-blocking-call>`_
+4. `Run the simulation <#run-a-small-simulation>`_
+5. `Upload a bigger input and rerun the simulation <#upload-with-non-blocking-call-something-bigger>`_
+6. `Download and verify the results <#download-the-output>`_
+
+This way you can use the most common calls of the API but most importantly get an idea of how to use the reference and expand your client, according to your needs.
+FirecREST API is based on REST principles: data resources are accessed via standard HTTP requests to an API endpoint.
+
+Every request is made of the endpoint, the method, the headers and the body.
+The endpoint is the URL you request for, the method will be one of `GET`, `POST`, `PUT` and `DELETE` depending on the appropriate action and finally the header and the body include the necessary parameters of the call.
+
+You can find all the available API calls of FirecREST in the `reference section <reference.html>`_ and here is a quick overview of the methods:
+
+========== ===============================================
+**Method** **Description**
+---------- -----------------------------------------------
+GET        Used for retrieving resources.
+POST       Used for creating resources.
+PUT        Used for manipulating resources or collections.
+DELETE     Used for deleting resources.
+========== ===============================================
 
 Obtain credentials
 ==================
 
-All the requests in the FirecREST API require authorization.
-The access token allows you to make requests on behalf of the authenticated user.
-The token is provided by `Keycloak <https://www.keycloak.org//>`_ and it has to be included in the header of all the API calls.
-You should also keep in mind that validation tokens usually have an expiration date and are short-lived.
+All the requests in the FirecREST API require authorization, in the form of an access token.
+This token allows you to make requests on behalf of the authenticated user and is provided by `Keycloak <https://www.keycloak.org//>`__.
+It has to be included in the header of all the API calls, but you should keep in mind that validation tokens usually have an expiration date and are short-lived.
 
 FirecREST API will return helpful messages in case the access token is invalid or has expired.
 
@@ -63,7 +78,7 @@ Test the credentials with a simple call
 =======================================
 
 To test the credentials we can use a simple call from the `Status microservice <overview.html#status>`__.
-We can call the `firecrest/status/services <reference.html#get--status-services>`__ endpoint with a *GET* operation to get the status of all the services.
+We can call the `status/services <reference.html#get--status-services>`__ endpoint with a *GET* operation to get the status of all the services.
 The access token has to be included in the header.
 
 .. tabs::
@@ -192,6 +207,7 @@ When the call is successful the body of the response is enough, but in case we g
 In case we ask to list a directory in which the user doesn't have the right permissions we will get `X-Permission-Denied: User does not have permissions to access machine or path`.
 
 .. code-block:: none
+    :emphasize-lines: 5
 
     HTTP/1.1 400 BAD REQUEST
     Content-Type: application/json
@@ -211,6 +227,7 @@ In case we ask to list a directory in which the user doesn't have the right perm
 But when we try to list a directory that doesn't exist the error would be different in the header.
 
 .. code-block:: none
+    :emphasize-lines: 5
 
     HTTP/1.1 400 BAD REQUEST
     Content-Type: application/json
@@ -235,6 +252,7 @@ The `demo client <https://github.com/eth-cscs/firecrest/tree/master/src/tests/te
 
 .. literalinclude:: ../../src/tests/template_client/firecrest_demo.py
   :lines: 652-687
+  :caption: just an example of code
 ..   :dedent: 4
 
 Upload a small file with the blocking call
@@ -252,7 +270,7 @@ The path to the file corresponds to a local path, while targetPath is in the mac
 
     .. code-tab:: bash
 
-        $ curl -X POST "${FIRECREST_IP}/utilities/upload" -F "targetPath=/home/test1" -H "Authorization: Bearer $TOKEN" -H "X-Machine-Name: cluster" -F "file=@/path/to/input_file"
+        $ curl -X POST "${FIRECREST_IP}/utilities/upload" -F "targetPath=/home/test1" -H "Authorization: Bearer ${TOKEN}" -H "X-Machine-Name: cluster" -F "file=@/path/to/input_file"
 
     .. code-tab:: python
 
@@ -260,8 +278,8 @@ The path to the file corresponds to a local path, while targetPath is in the mac
         machine = 'cluster'
         local_path = '/path/to/input_file'
         response = requests.post(
-            url=f"{app.config['FIRECREST_IP']}/utilities/upload",
-            headers={'Authorization': f'Bearer {oidc.get_access_token()}',
+            url=f'{FIRECREST_IP}/utilities/upload',
+            headers={'Authorization': f'Bearer {TOKEN}',
                      'X-Machine-Name': machine},
             data={'targetPath': targetPath},
             files={'file': open(local_path,"rb")}
@@ -288,27 +306,34 @@ In case the `targetPath` is wrong or the user doesn't have the right permissions
 Run a small simulation
 ======================
 
-Submit job
-^^^^^^^^^^
+Submit a job
+^^^^^^^^^^^^
 
-Before submiting our first job it is important to distinguish between two IDs, slurm's `job ID` and FirecREST's `task ID`.
+Before submiting our first job it is important to distinguish between two IDs, slurm's **job ID** and FirecREST's **task ID**.
 On a job scheduler like Slurm, every job has a unique `job ID`, which is created when a job is submitted and can be used to track the state of the job.
 With calls like `squeue` and `sacct` the user can see the state of the job (`RUNNING`, `COMPLETED` etc) as well as get information for the job.
 Similarly, for every task FirecREST will assign a `task ID` with which the user can track the state of the request and get information about it.
 
 The first step to submit a job is to make a `POST` request in the `compute/jobs <reference.html#post--compute-jobs>`__  endpoint.
 Again, we have to pass the authorization token and the machine in the header.
-The file this time will be the script we want to run with slurm.
+The file this time will be the script we want to run with slurm and the location of the file is in our local filesystem.
 
 .. tabs::
 
     .. code-tab:: bash
 
-        $ curl -X POST "${FIRECREST_IP}/compute/jobs" -H "Authorization: Bearer $TOKEN" -H "X-Machine-Name: cluster" -F "file=@/path/to/script.sh"
+        $ curl -X POST "${FIRECREST_IP}/compute/jobs" -H "Authorization: Bearer ${TOKEN}" -H "X-Machine-Name: cluster" -F "file=@/path/to/script.sh"
 
     .. code-tab:: python
 
-        wip
+        machine = 'cluster'
+        local_path = '/path/to/input_file'
+        response = requests.post(
+                url=f'{FIRECREST_IP}/compute/jobs',
+                headers={'Authorization': f'Bearer {TOKEN}',
+                         'X-Machine-Name': machine},
+                files={'file': open(filename, 'rb')
+        )
 
 The response should like like this:
 
@@ -321,19 +346,25 @@ The response should like like this:
     }
 
 .. note::
-    You have to keep in mind the `task_id` is **not** Slurm's `job ID` but an ID for the task that was created with FirecREST and we will use that to keep track of the job submitted request.
+    You have to keep in mind the `task_id` is **not** Slurm's `job ID` but an ID for the task that was created with FirecREST and we will use that to keep track of the job submission request.
 
-So to get the status of the job that we submitted we have to make a `GET` call in the `/tasks/{taskid} <reference.html#get--tasks-taskid>`__  endpoint.
+In order to get the status of the job that we submitted we have to make a `GET` call in the `/tasks/{taskid} <reference.html#get--tasks-taskid>`__  endpoint.
+The `task ID` is a path parameter and should be included in the URL.
+The response from the last call has the `task ID` in a field, as well as the completed URL.
 
 .. tabs::
 
     .. code-tab:: bash
 
-        $ curl -X GET "${FIRECREST_IP}/tasks/9d9c69b640cfd1cccffb76e1b7297a98" -H "Authorization: Bearer $TOKEN"
+        $ curl -X GET "${FIRECREST_IP}/tasks/9d9c69b640cfd1cccffb76e1b7297a98" -H "Authorization: Bearer ${TOKEN}"
 
     .. code-tab:: python
 
-        wip
+        taskid = 9d9c69b640cfd1cccffb76e1b7297a98
+        response = requests.get(
+            url=f'{FIRECREST_IP}/tasks/{taskid}',
+            headers={'Authorization': f'Bearer {TOKEN}'}
+        )
 
 The response should look like this if the job submission was successful:
 
@@ -355,23 +386,37 @@ The response should look like this if the job submission was successful:
         }
     }
 
-In the data field we can see
+In the data field we can see the information about the slurm job.
+You can get Slurm's `job id` as well as the status of the submission, in this case it was successful.
+The rest of the fields are about the FirecREST task.
+
+.. tip::
+    If you want information for all the past FirecREST tasks you can repeat the last call but without the task id, in the `/tasks <reference.html#get--tasks>`__  endpoint.
 
 Check for job status
 ^^^^^^^^^^^^^^^^^^^^
 
-You can get the current status of job with these two calls:
+Now that we know the job's slurm ID we can use it to get more information on the progress of that job.
+The `/compute/jobs/{jobid} <reference.html#get--compute-jobs-jobid>`__  endpoint is going to start a FirecREST task for that purpose.
+The job ID is a path parameter, so part of the endpoint URL, and the authorization token and machine name are part of the header.
 
 .. tabs::
 
     .. code-tab:: bash
 
-        curl -X GET "${FIRECREST_IP}/compute/jobs/3" -F "targetPath=/home/test1" -H "Authorization: Bearer $TOKEN" -H "X-Machine-Name: cluster"
+        curl -X GET "${FIRECREST_IP}/compute/jobs/3" -H "Authorization: Bearer ${TOKEN}" -H "X-Machine-Name: cluster"
 
     .. code-tab:: python
 
-        wip
+        jobid = 3
+        machine = 'cluster'
+        response = requests.get(
+            url=f'{FIRECREST_IP}/compute/jobs/{jobid}',
+            headers={'Authorization': f'Bearer {TOKEN}',
+                     'X-Machine-Name': machine}
+        )
 
+And the response should look like that:
 
 .. code-block:: json
 
@@ -381,19 +426,27 @@ You can get the current status of job with these two calls:
         "task_url": "http://192.168.220.10:8000/tasks/babda2e02fc654f4e2513595525e4fb4"
     }
 
-Use the task_id you got from the previous call or even the task url that is provided.
+.. attention::
+    The response will inform us that the task was created but not give any information from slurm.
+    It will only provide a task ID, which we have to check with a new call.
+
+So using the task ID from the response we have to make a new `/tasks/{taskid} <reference.html#get--tasks-taskid>`__ call.
 
 .. tabs::
 
     .. code-tab:: bash
 
-        curl -X GET "${FIRECREST_IP}/tasks/babda2e02fc654f4e2513595525e4fb4" -H "Authorization: Bearer $TOKEN" -H "X-Machine-Name: cluster"
+        curl -X GET "${FIRECREST_IP}/tasks/babda2e02fc654f4e2513595525e4fb4" -H "Authorization: Bearer ${TOKEN}"
 
     .. code-tab:: python
 
-        wip
+        taskid = babda2e02fc654f4e2513595525e4fb4
+        response = requests.get(
+            url=f'{FIRECREST_IP}/tasks/{taskid}',
+            headers={'Authorization': f'Bearer {TOKEN}'}
+        )
 
-While running the call will be successful
+While the job is active the call will be successful and the output will look something like that:
 
 .. code-block:: json
 
@@ -401,37 +454,40 @@ While running the call will be successful
         "task": {
             "data": {
                 "0": {
-                    "jobid": "5",
-                    "name":"script.sh",
-                    "nodelist":"cluster",
-                    "nodes":"1",
-                    "partition":"part01",
-                    "start_time":"4:14",
-                    "state":"RUNNING",
-                    "time":"2020-03-17T09:08:01",
-                    "time_left":"25:46",
-                    "user":"test1"
+                    "jobid": "3",
+                    "name": "script.sh",
+                    "nodelist": "cluster",
+                    "nodes": "1",
+                    "partition": "part01",
+                    "start_time": "4:14",
+                    "state": "RUNNING",
+                    "time": "2020-03-17T09:08:01",
+                    "time_left": "25:46",
+                    "user": "test1"
                 }
             },
-            "description":"Finished successfully",
-            "hash_id":"49827d8d914e07c303eb40d55ede552a",
-            "last_modify":"2020-03-17T09:12:15",
-            "service":"compute",
-            "status":"200",
-            "task_url":"http://192.168.220.10:8000/tasks/49827d8d914e07c303eb40d55ede552a",
-            "user":"test1"
+            "description": "Finished successfully",
+            "hash_id": "babda2e02fc654f4e2513595525e4fb4",
+            "last_modify": "2020-03-17T09:12:15",
+            "service": "compute",
+            "status": "200",
+            "task_url": "http://192.168.220.10:8000/tasks/49827d8d914e07c303eb40d55ede552a",
+            "user": "test1"
         }
     }
 
-But after the job has finished for some time you will get something like this:
+The slurm information are in the "data" field of the response.
+
+If you ask for information for a slurm job had finished for some time you will get something like this:
 
 .. code-block:: json
+    :emphasize-lines: 3
 
     {
         "task": {
             "data": "slurm_load_jobs error: Invalid job id specified",
             "description": "Finished with errors",
-            "hash_id": "2a3a5e35008b6da1df8b27cb0089aaed",
+            "hash_id": "babda2e02fc654f4e2513595525e4fb4",
             "last_modify": "2020-03-15T18:05:54",
             "service": "compute",
             "status": "400",
@@ -440,22 +496,34 @@ But after the job has finished for some time you will get something like this:
         }
     }
 
-This call uses squeue so it doesn't have information for old jobs.
+.. note::
+    The `/compute/jobs/{jobid} <reference.html#get--compute-jobs-jobid>`__ call uses squeue so it doesn't have information for old jobs.
+    It will return an error for old job IDs.
 
+.. tip::
+    If you want information for all the current jobs on a machine you can repeat the last call at the `/compute/jobs <reference.html#get--compute-jobs>`__ endpoint, but without the task id.
 
 **Sacct call**
 
-Persistent accounting information
+If you want accounting information for older jobs you can use the `/compute/acct <reference.html#get--compute-acct>`__, which is using the `/sacct <https://slurm.schedmd.com/sacct.html>`__ slurm command.
+It will display accounting data for all jobs and job steps in the Slurm job accounting log or Slurm database.
+
+Here is an example of how to use it:
 
 .. tabs::
 
     .. code-tab:: bash
 
-        curl -X GET "${FIRECREST_IP}/compute/acct" -H "Authorization: Bearer $TOKEN" -H "X-Machine-Name: cluster"
+        curl -X GET "${FIRECREST_IP}/compute/acct" -H "Authorization: Bearer ${TOKEN}" -H "X-Machine-Name: cluster"
 
     .. code-tab:: python
 
-        wip
+        machine = 'cluster'
+        response = requests.get(
+            url=f'{FIRECREST_IP}/compute/acct',
+            headers={'Authorization': f'Bearer {TOKEN}',
+                     'X-Machine-Name': machine}
+        )
 
 .. code-block:: json
 
@@ -509,22 +577,40 @@ Persistent accounting information
         }
     }
 
-You can also get accounting information for a specific period of time or job id.
+You can optionally specify the time period for this call's results.
 
 Upload with non blocking call something bigger
 ==============================================
 
-First upload the file to storage. targetPath is local, sourcePath is on the machine.
+For uploading small files the blocking call that we used in a previous section is enough.
+When the file we want to upload to a machine's filesystem is bigger than 5MB, we need to use the `Storage microservice <overview.html#storage>`__.
+This task will be split in more more steps but it will correspond to one FirecREST task, so we have to keep track of one `task ID`.
+
+The first step is to upload the file to a staging area.
+As soon as this finishes, we have to make a call to FirecREST in order for it to move the file from the staging area to the location in one of the eligible machines's filesystem.
+
+So the first step is to send a request to FirecREST, to the `/storage/xfer-external/upload <reference.html#post--storage-xfer-external-upload>`__ endpoint.
+Besides the authorization token, we have to include the local path of the file we are going to upload (`sourcePath`) and the target location of the transfer (`targetPath`).
+Both `sourcePath` and `targetPath` are form data parameters.
 
 .. tabs::
 
     .. code-tab:: bash
 
-        curl -X POST "${FIRECREST_IP}/storage/xfer-external/upload" -H "Authorization: Bearer $TOKEN" -H "X-Machine-Name: cluster" -F "sourcePath=/path/to/script.sh" -F "targetPath=/home/test1/new-dir"
+        curl -X POST "${FIRECREST_IP}/storage/xfer-external/upload" -H "Authorization: Bearer ${TOKEN}" -F "sourcePath=/path/to/file" -F "targetPath=/home/test1/new-dir"
 
     .. code-tab:: python
 
-        wip
+        targetPath = '/home/test1/new-dir'
+        sourcePath = 'path/to/file'
+        response = requests.post(
+            url=f'{FIRECREST_IP}/storage/xfer-external/upload',
+            headers={'Authorization': f'Bearer {TOKEN}'},
+            data={'targetPath': targetPath,
+                  'sourcePath': sourcePath}
+        )
+
+It FirecREST task was created succesfully we should get something like this:
 
 .. code-block:: json
 
@@ -534,25 +620,34 @@ First upload the file to storage. targetPath is local, sourcePath is on the mach
         "task_url": "http://192.168.220.10:8000/tasks/a78c226e2e17ea05ef1d72a812648145"
     }
 
+Afterwards, we have to check on the task with the `/tasks/{taskid} <reference.html#get--tasks-taskid>`__ call that we have already seen.
+
 .. tabs::
 
     .. code-tab:: bash
 
-        curl -X GET "${FIRECREST_IP}/tasks/a78c226e2e17ea05ef1d72a812648145" -H "Authorization: Bearer $TOKEN" -H "X-Machine-Name: cluster"
+        curl -X GET "${FIRECREST_IP}/tasks/a78c226e2e17ea05ef1d72a812648145" -H "Authorization: Bearer ${TOKEN}"
 
     .. code-tab:: python
 
-        wip
+        taskid = a78c226e2e17ea05ef1d72a812648145
+        response = requests.get(
+            url=f'{FIRECREST_IP}/tasks/{taskid}',
+            headers={'Authorization': f'Bearer {TOKEN}'}
+        )
+
+And the task's status description now should be "Form URL from Object Storage received" and look like that:
 
 .. code-block:: json
+    :emphasize-lines: 6
 
     {
         "task": {
             "data": {
                 "hash_id": "a78c226e2e17ea05ef1d72a812648145",
                 "msg": {
-                    "command": "curl -i -X POST http://192.168.220.19:9000/test1 -F 'key=a78c226e2e17ea05ef1d72a812648145/script.sh' -F 'x-amz-algorithm=AWS4-HMAC-SHA256' -F 'x-amz-credential=storage_access_key/20200317/us-east-1/s3/aws4_request' -F 'x-amz-date=20200317T140011Z' -F 'policy=eyJleHBpcmF0aW9uIjogIjIwMjAtMDMtMjRUMTQ6MDA6MTFaIiwgImNvbmRpdGlvbnMiOiBbeyJidWNrZXQiOiAidGVzdDEifSwgeyJrZXkiOiAiYTc4YzIyNmUyZTE3ZWEwNWVmMWQ3MmE4MTI2NDgxNDUvc2NyaXB0LnNoIn0sIHsieC1hbXotYWxnb3JpdGhtIjogIkFXUzQtSE1BQy1TSEEyNTYifSwgeyJ4LWFtei1jcmVkZW50aWFsIjogInN0b3JhZ2VfYWNjZXNzX2tleS8yMDIwMDMxNy91cy1lYXN0LTEvczMvYXdzNF9yZXF1ZXN0In0sIHsieC1hbXotZGF0ZSI6ICIyMDIwMDMxN1QxNDAwMTFaIn1dfQ==' -F 'x-amz-signature=955f64c020ebc4b797fac7d4338ee695c5c9605dc9962a135df57a23c4423aab' -F file=@/path/to/script.sh",
-                    "key": "a78c226e2e17ea05ef1d72a812648145/script.sh",
+                    "command": "curl -i -X POST http://192.168.220.19:9000/test1 -F 'key=a78c226e2e17ea05ef1d72a812648145/file' -F 'x-amz-algorithm=AWS4-HMAC-SHA256' -F 'x-amz-credential=storage_access_key/20200317/us-east-1/s3/aws4_request' -F 'x-amz-date=20200317T140011Z' -F 'policy=eyJleHBpcmF0aW9uIjogIjIwMjAtMDMtMjRUMTQ6MDA6MTFaIiwgImNvbmRpdGlvbnMiOiBbeyJidWNrZXQiOiAidGVzdDEifSwgeyJrZXkiOiAiYTc4YzIyNmUyZTE3ZWEwNWVmMWQ3MmE4MTI2NDgxNDUvc2NyaXB0LnNoIn0sIHsieC1hbXotYWxnb3JpdGhtIjogIkFXUzQtSE1BQy1TSEEyNTYifSwgeyJ4LWFtei1jcmVkZW50aWFsIjogInN0b3JhZ2VfYWNjZXNzX2tleS8yMDIwMDMxNy91cy1lYXN0LTEvczMvYXdzNF9yZXF1ZXN0In0sIHsieC1hbXotZGF0ZSI6ICIyMDIwMDMxN1QxNDAwMTFaIn1dfQ==' -F 'x-amz-signature=955f64c020ebc4b797fac7d4338ee695c5c9605dc9962a135df57a23c4423aab' -F file=@/path/to/file",
+                    "key": "a78c226e2e17ea05ef1d72a812648145/file",
                     "method": "POST",
                     "policy": "eyJleHBpcmF0aW9uIjogIjIwMjAtMDMtMjRUMTQ6MDA6MTFaIiwgImNvbmRpdGlvbnMiOiBbeyJidWNrZXQiOiAidGVzdDEifSwgeyJrZXkiOiAiYTc4YzIyNmUyZTE3ZWEwNWVmMWQ3MmE4MTI2NDgxNDUvc2NyaXB0LnNoIn0sIHsieC1hbXotYWxnb3JpdGhtIjogIkFXUzQtSE1BQy1TSEEyNTYifSwgeyJ4LWFtei1jcmVkZW50aWFsIjogInN0b3JhZ2VfYWNjZXNzX2tleS8yMDIwMDMxNy91cy1lYXN0LTEvczMvYXdzNF9yZXF1ZXN0In0sIHsieC1hbXotZGF0ZSI6ICIyMDIwMDMxN1QxNDAwMTFaIn1dfQ==",
                     "url": "http://192.168.220.19:9000/test1",
@@ -561,7 +656,7 @@ First upload the file to storage. targetPath is local, sourcePath is on the mach
                     "x-amz-date": "20200317T140011Z",
                     "x-amz-signature": "955f64c020ebc4b797fac7d4338ee695c5c9605dc9962a135df57a23c4423aab"
                 },
-                "source": "script.sh",
+                "source": "file",
                 "system": "192.168.220.12:22",
                 "target": "/home/test1/new-dir",
                 "user": "test1"
@@ -576,19 +671,22 @@ First upload the file to storage. targetPath is local, sourcePath is on the mach
         }
     }
 
-Then the file should be uploaded with the command from the previous request:
+In the next step we have to make call outside of the FirecREST API, we have to upload the file to the staging area.
+We can use the command that is provided by the previous response.
+
+.. note::
+    This action does **not** require the users' credentials.
+    It is done directly by the user or by the client, and not from FirecREST on behalf of the user.
 
 .. tabs::
 
     .. code-tab:: bash
 
-        curl -i -X POST "${STORAGE_IP}/test1" -F 'key=a78c226e2e17ea05ef1d72a812648145/script.sh' -F 'x-amz-algorithm=AWS4-HMAC-SHA256' -F 'x-amz-credential=storage_access_key/20200317/us-east-1/s3/aws4_request' -F 'x-amz-date=20200317T140011Z' -F 'policy=eyJleHBpcmF0aW9uIjogIjIwMjAtMDMtMjRUMTQ6MDA6MTFaIiwgImNvbmRpdGlvbnMiOiBbeyJidWNrZXQiOiAidGVzdDEifSwgeyJrZXkiOiAiYTc4YzIyNmUyZTE3ZWEwNWVmMWQ3MmE4MTI2NDgxNDUvc2NyaXB0LnNoIn0sIHsieC1hbXotYWxnb3JpdGhtIjogIkFXUzQtSE1BQy1TSEEyNTYifSwgeyJ4LWFtei1jcmVkZW50aWFsIjogInN0b3JhZ2VfYWNjZXNzX2tleS8yMDIwMDMxNy91cy1lYXN0LTEvczMvYXdzNF9yZXF1ZXN0In0sIHsieC1hbXotZGF0ZSI6ICIyMDIwMDMxN1QxNDAwMTFaIn1dfQ==' -F 'x-amz-signature=955f64c020ebc4b797fac7d4338ee695c5c9605dc9962a135df57a23c4423aab' -F file=@/path/to/script.sh
+        $ curl -i -X POST "${STORAGE_IP}/test1" -F 'key=a78c226e2e17ea05ef1d72a812648145/file' -F 'x-amz-algorithm=AWS4-HMAC-SHA256' -F 'x-amz-credential=storage_access_key/20200317/us-east-1/s3/aws4_request' -F 'x-amz-date=20200317T140011Z' -F 'policy=eyJleHBpcmF0aW9uIjogIjIwMjAtMDMtMjRUMTQ6MDA6MTFaIiwgImNvbmRpdGlvbnMiOiBbeyJidWNrZXQiOiAidGVzdDEifSwgeyJrZXkiOiAiYTc4YzIyNmUyZTE3ZWEwNWVmMWQ3MmE4MTI2NDgxNDUvc2NyaXB0LnNoIn0sIHsieC1hbXotYWxnb3JpdGhtIjogIkFXUzQtSE1BQy1TSEEyNTYifSwgeyJ4LWFtei1jcmVkZW50aWFsIjogInN0b3JhZ2VfYWNjZXNzX2tleS8yMDIwMDMxNy91cy1lYXN0LTEvczMvYXdzNF9yZXF1ZXN0In0sIHsieC1hbXotZGF0ZSI6ICIyMDIwMDMxN1QxNDAwMTFaIn1dfQ==' -F 'x-amz-signature=955f64c020ebc4b797fac7d4338ee695c5c9605dc9962a135df57a23c4423aab' -F file=@/path/to/file
 
-    .. code-tab:: python
+And a successful upload would look like this:
 
-        wip
-
-.. code-block:: bash
+.. code-block:: none
 
     HTTP/1.1 100 Continue
 
@@ -596,24 +694,33 @@ Then the file should be uploaded with the command from the previous request:
     Accept-Ranges: bytes
     Content-Security-Policy: block-all-mixed-content
     ETag: "b7461b9179ab9119848121d810ba2ff2-1"
-    Location: http://localhost:9000/test1/a78c226e2e17ea05ef1d72a812648145/script.sh
+    Location: http://localhost:9000/test1/a78c226e2e17ea05ef1d72a812648145/file
     Server: MinIO/RELEASE.2020-03-09T18-26-53Z
     Vary: Origin
     X-Amz-Request-Id: 15FD1C504742F8A8
     X-Xss-Protection: 1; mode=block
     Date: Tue, 17 Mar 2020 14:02:55 GMT
 
-Finish the upload
+The last step of this task is to finish the transfer, from the staging area to the filesystem.
+We have to make a `PUT` request to the `/storage/xfer-external/upload <reference.html#put--storage-xfer-external-upload>`__ endpoint.
+In this call we only have to include two arguments in the header, the authorization token and the FirecREST `task ID`.
 
 .. tabs::
 
     .. code-tab:: bash
 
-        curl -X PUT "${FIRECREST_IP}/storage/xfer-external/upload" -H "Authorization: Bearer $TOKEN" -H "X-Machine-Name: cluster" -H "X-Task-ID: a78c226e2e17ea05ef1d72a812648145"
+        $ curl -X PUT "${FIRECREST_IP}/storage/xfer-external/upload" -H "Authorization: Bearer ${TOKEN}" -H "X-Task-ID: a78c226e2e17ea05ef1d72a812648145"
 
     .. code-tab:: python
 
-        wip
+        taskid = a78c226e2e17ea05ef1d72a812648145
+        response = requests.put(
+            url=f'{FIRECREST_IP}/storage/xfer-external/upload',
+            headers={'Authorization': f'Bearer {TOKEN}',
+                     'X-Task-ID': taskid}
+        )
+
+And the response should look like that:
 
 .. code-block:: json
 
@@ -621,26 +728,34 @@ Finish the upload
         "success": "Starting download to File System"
     }
 
-You can check again the task and when you get something like this it will be finished
+If everything went okay the next step is optional, but useful.
+You can check the status of the FirecREST task; the `task id` remains the same.
 
 .. tabs::
 
     .. code-tab:: bash
 
-        curl -X GET "${FIRECREST_IP}/tasks/a78c226e2e17ea05ef1d72a812648145" -H "Authorization: Bearer $TOKEN" -H "X-Machine-Name: cluster"
+        curl -X GET "${FIRECREST_IP}/tasks/a78c226e2e17ea05ef1d72a812648145" -H "Authorization: Bearer ${TOKEN}"
 
     .. code-tab:: python
 
-        wip
+        taskid = a78c226e2e17ea05ef1d72a812648145
+        response = requests.get(
+            url=f'{FIRECREST_IP}/tasks/{taskid}',
+            headers={'Authorization': f'Bearer {TOKEN}'}
+        )
+
+When the transfer from Object Storage has finished, you should get a response like this:
 
 .. code-block:: json
+    :emphasize-lines: 11
 
     {
         "task": {
             "data": {
                 "hash_id": "a78c226e2e17ea05ef1d72a812648145",
                 "msg": "Starting async task for download to filesystem",
-                "source": "script.sh",
+                "source": "file",
                 "system": "192.168.220.12:22",
                 "target": "/home/test1/new-dir",
                 "user": "test1"
@@ -663,35 +778,52 @@ Same as the other submission, to be filled when we have a use case
 Download the output
 ===================
 
-First you have to start the uploading from the machine's filesystem to object storage
+Now let's download the output from the last simulation.
+It follows a similar workflow, as the non blocking uploading of a file.
+First we have to ask FirecREST to transfer the file from the machine's filesystem to the staging area.
+As soon as the transfer is complete we have to FirecREST for the link from where we can download the file.
+
+The first step is a call to the `/storage/xfer-external/download <reference.html#put--storage-xfer-external-download>`__ endpoint.
+We only pass the authorization token and the location of the file to the call.
 
 .. tabs::
 
     .. code-tab:: bash
 
-        curl -X POST "${FIRECREST_IP}/storage/xfer-external/download" -H "Authorization: Bearer $TOKEN" -H "X-Machine-Name: cluster" -F "sourcePath=/home/test1/new-dir/script.sh"
+        curl -X POST "${FIRECREST_IP}/storage/xfer-external/download" -H "Authorization: Bearer ${TOKEN}" -F "sourcePath=/home/test1/new-dir/file"
 
     .. code-tab:: python
 
-        wip
+        sourcePath = /home/test1/new-dir/file
+        response = requests.post(
+            url=f'{FIRECREST_IP}/storage/xfer-external/download',
+            headers={'Authorization': f'Bearer {TOKEN}'},
+            data={'sourcePath': sourcePath}
+        )
+
+And the response will only give us the `task ID` of the task we just created.
 
 .. code-block:: json
 
     {
-        "success":"Task created",
-        "task_id":"c958b5901cb7229ef15d9ae0e93e6d8b",
-        "task_url":"http://192.168.220.10:8000/tasks/c958b5901cb7229ef15d9ae0e93e6d8b"
+        "success": "Task created",
+        "task_id": "c958b5901cb7229ef15d9ae0e93e6d8b",
+        "task_url": "http://192.168.220.10:8000/tasks/c958b5901cb7229ef15d9ae0e93e6d8b"
     }
 
 .. tabs::
 
     .. code-tab:: bash
 
-        curl -X GET "${FIRECREST_IP}/tasks/c958b5901cb7229ef15d9ae0e93e6d8b" -H "Authorization: Bearer $TOKEN" -H "X-Machine-Name: cluster"
+        curl -X GET "${FIRECREST_IP}/tasks/c958b5901cb7229ef15d9ae0e93e6d8b" -H "Authorization: Bearer ${TOKEN}"
 
     .. code-tab:: python
 
-        wip
+        taskid = c958b5901cb7229ef15d9ae0e93e6d8b
+        response = requests.get(
+            url=f'{FIRECREST_IP}/tasks/{taskid}',
+            headers={'Authorization': f'Bearer {TOKEN}'}
+        )
 
 After it finishes you should get a response like this.
 
@@ -711,13 +843,8 @@ After it finishes you should get a response like this.
     }
 
 And you can download the file from the link in the "data" field.
+When you download the file from the 
 
+Common errors
+=============
 
-Troubleshooting
-===============
-
-.. code-block:: json
-
-    {
-        "exp": "token expired"
-    }
