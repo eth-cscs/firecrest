@@ -20,7 +20,7 @@ This way you can use the most common calls of the API but most importantly get a
 FirecREST API is based on REST principles: data resources are accessed via standard HTTP requests to an API endpoint.
 
 Every request is made of the endpoint, the method, the headers and the body.
-The endpoint is the URL you request for, the method will be one of `GET`, `POST`, `PUT` and `DELETE` depending on the appropriate action and finally the header and the body include the necessary parameters of the call.
+The endpoint is the URL you request for, the method will be one of `GET`, `POST`, `PUT` and `DELETE` depending on the appropriate action and finally, the header and the body include the necessary parameters of the call.
 
 You can find all the available API calls of FirecREST in the `reference section <reference.html>`_ and here is a quick overview of the methods:
 
@@ -140,7 +140,7 @@ As we can see in the reference section of `utilities/ls <reference.html#get--uti
 .. note::
     Query parameters are passed in the `params` argument in python but are part of the URL in the curl command.
 
-Finally the call looks like this:
+Finally, the call looks like this:
 
 .. tabs::
 
@@ -246,7 +246,7 @@ But when we try to list a directory that doesn't exist the error would be differ
 
 In the reference section of `utilities/ls <reference.html#get--utilities-ls>`__ you can see more error types you can get in the response header.
 
-The `demo client <https://github.com/eth-cscs/firecrest/tree/master/src/tests/template_client>`__ uses the json response and displays the contents of a directory in a more user friendly way, as shown in the next figure.
+The `demo client <https://github.com/eth-cscs/firecrest/tree/master/src/tests/template_client>`__ uses the json response and displays the contents of a directory in a more user-friendly way, as shown in the next figure.
 
 .. figure:: ../_static/img/utilities.png
 
@@ -259,7 +259,7 @@ Upload a small file with the blocking call
 ==========================================
 
 The first step of our workflow is to upload the necessary files to one of the machines' filesystems.
-Many times the input can be a small file and for these cases the non blocking call `utilities/upload <reference.html#post--utilities-upload>`__ should be enough.
+Many times the input can be a small file and for these cases the non-blocking call `utilities/upload <reference.html#post--utilities-upload>`__ should be enough.
 As before, we need to specify the machine and the authorization token in the header of the call, as well as some the location of the file we want to upload and the location in the machine.
 The path to the file corresponds to a local path, while targetPath is in the machine.
 
@@ -309,9 +309,9 @@ Run a small simulation
 Submit a job
 ^^^^^^^^^^^^
 
-Before submiting our first job it is important to distinguish between two IDs, slurm's **job ID** and FirecREST's **task ID**.
+Before submitting our first job it is important to distinguish between two IDs, slurm's **job ID** and FirecREST's **task ID**.
 On a job scheduler like Slurm, every job has a unique `job ID`, which is created when a job is submitted and can be used to track the state of the job.
-With calls like `squeue` and `sacct` the user can see the state of the job (`RUNNING`, `COMPLETED` etc) as well as get information for the job.
+With calls like `squeue` and `sacct` the user can see the state of the job (`RUNNING`, `COMPLETED`, etc.) as well as get information for the job.
 Similarly, for every task FirecREST will assign a `task ID` with which the user can track the state of the request and get information about it.
 
 The first step to submit a job is to make a `POST` request in the `compute/jobs <reference.html#post--compute-jobs>`__  endpoint.
@@ -335,7 +335,7 @@ The file this time will be the script we want to run with slurm and the location
                 files={'file': open(filename, 'rb')
         )
 
-The response should like like this:
+The expected response should resemble the following:
 
 .. code-block:: json
 
@@ -386,8 +386,8 @@ The response should look like this if the job submission was successful:
         }
     }
 
-In the data field we can see the information about the slurm job.
-You can get Slurm's `job id` as well as the status of the submission, in this case it was successful.
+In the field labeled *data*, we can see the information about the slurm job.
+You can get Slurm's `job id` as well as the status of the submission, which in this case was successful.
 The rest of the fields are about the FirecREST task.
 
 .. tip::
@@ -476,7 +476,7 @@ While the job is active the call will be successful and the output will look som
         }
     }
 
-The slurm information are in the "data" field of the response.
+The slurm information is in the "data" field of the response.
 
 If you ask for information for a slurm job had finished for some time you will get something like this:
 
@@ -579,12 +579,12 @@ Here is an example of how to use it:
 
 You can optionally specify the time period for this call's results.
 
-Upload with non blocking call something bigger
+Upload with non-blocking call something bigger
 ==============================================
 
 For uploading small files the blocking call that we used in a previous section is enough.
 When the file we want to upload to a machine's filesystem is bigger than 5MB, we need to use the `Storage microservice <overview.html#storage>`__.
-This task will be split in more more steps but it will correspond to one FirecREST task, so we have to keep track of one `task ID`.
+This task will be split into more steps but it will correspond to one FirecREST task, so we have to keep track of one `task ID`.
 
 The first step is to upload the file to a staging area.
 As soon as this finishes, we have to make a call to FirecREST in order for it to move the file from the staging area to the location in one of the eligible machines's filesystem.
@@ -620,7 +620,7 @@ It FirecREST task was created succesfully we should get something like this:
         "task_url": "http://192.168.220.10:8000/tasks/a78c226e2e17ea05ef1d72a812648145"
     }
 
-Afterwards, we have to check on the task with the `/tasks/{taskid} <reference.html#get--tasks-taskid>`__ call that we have already seen.
+Afterward, we have to check on the task with the `/tasks/{taskid} <reference.html#get--tasks-taskid>`__ call that we have already seen.
 
 .. tabs::
 
@@ -671,7 +671,7 @@ And the task's status description now should be "Form URL from Object Storage re
         }
     }
 
-In the next step we have to make call outside of the FirecREST API, we have to upload the file to the staging area.
+In the next step, we have to make a call outside of the FirecREST API, we have to upload the file to the staging area.
 We can use the command that is provided by the previous response.
 
 .. note::
@@ -703,7 +703,7 @@ And a successful upload would look like this:
 
 The last step of this task is to finish the transfer, from the staging area to the filesystem.
 We have to make a `PUT` request to the `/storage/xfer-external/upload <reference.html#put--storage-xfer-external-upload>`__ endpoint.
-In this call we only have to include two arguments in the header, the authorization token and the FirecREST `task ID`.
+In this call, we only have to include two arguments in the header, the authorization token and the FirecREST `task ID`.
 
 .. tabs::
 
@@ -779,8 +779,8 @@ Download the output
 ===================
 
 Now let's download the output from the last simulation.
-It follows a similar workflow, as the non blocking uploading of a file.
-First we have to ask FirecREST to transfer the file from the machine's filesystem to the staging area.
+It follows a similar workflow, as the non-blocking uploading of a file.
+First, we have to ask FirecREST to transfer the file from the machine's filesystem to the staging area.
 As soon as the transfer is complete we have to FirecREST for the link from where we can download the file.
 
 The first step is a call to the `/storage/xfer-external/download <reference.html#put--storage-xfer-external-download>`__ endpoint.
