@@ -79,14 +79,15 @@ services:
       - "2223:22"
 
   minio:
+    # runs on private network so "cluster" can reach it
+    container_name: minio_test_build
     image: minio/minio
     command: minio server /data
-    #ports:
-    #  - "9000:9000"
     environment:
       MINIO_ACCESS_KEY: storage_access_key
       MINIO_SECRET_KEY: storage_secret_key
-    network_mode: "host"
+    ports:
+      - "9000:9000"
 
   taskpersistence:
     image: redis:latest
