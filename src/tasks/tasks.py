@@ -55,7 +55,7 @@ def init_queue():
 
     # dictionary: [task_id] = {hash_id,status_code,user,data}
     task_list = persistence.get_all_tasks(r)
-
+    
     # key = task_id ; values = {status_code,user,data}
     for id, value in task_list.items():
         # task_list has id with format task_id, ie: task_2
@@ -70,7 +70,7 @@ def init_queue():
         t.set_status(status,data)
         tasks[t.hash_id] = t
 
-
+    
 @app.route("/",methods=["GET"])
 def list_tasks():
     # checks if AUTH_HEADER_NAME is set
@@ -225,13 +225,15 @@ def update_task(id):
 
         status = request.form["status"]
 
-
-    # if status is not download from SWIFT failed (ST_DWN_ERR) or finished (ST_DWN_END)
-    # or if upload from filesystem to SWIFT failed (ST_UPL_ERR) or finished (ST_UPL_END)
-    # then check of header is needed. ***
+    # All tasks that doesn't need direct user intervention such as:
+    # if status is download from Object Storage (OS) failed (ST_DWN_ERR) or finished (ST_DWN_END)
+    # or if upload from filesystem to OS failed (ST_UPL_ERR) or finished (ST_UPL_END)
+    # or if upload to OS is finished (ST_UPL_CFM) and download to filesystem started (ST_DWN_BEG)
+    # then check of header is NOT needed. ***
     # owner_needed is True if is not ***
     owner_needed = False
-    if status not in [async_task.ST_DWN_END , async_task.ST_DWN_ERR, async_task.ST_UPL_ERR, async_task.ST_UPL_END] :
+    if status not in [async_task.ST_DWN_END , async_task.ST_DWN_ERR, async_task.ST_UPL_ERR, async_task.ST_UPL_END, 
+                        async_task.ST_UPL_CFM, async_task.ST_DWN_BEG,async_task.ST_DWN_END] :
 
 
         #introduced in order to download from SWIFT to

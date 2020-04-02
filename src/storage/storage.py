@@ -8,6 +8,7 @@ from flask import Flask, request, jsonify
 
 import keystone
 import json, tempfile, os
+import urllib
 
 import async_task
 import threading
@@ -16,7 +17,8 @@ from logging.handlers import TimedRotatingFileHandler
 # common functions
 from cscs_api_common import check_header, get_username
 from cscs_api_common import create_task, update_task, get_task_status
-from cscs_api_common import exec_remote_command
+from cscs_api_common import exec_remote_command, exec_remote_command_cert
+from cscs_api_common import create_certificates
 
 # job_time_checker for correct SLURM job time in /xfer-internal tasks
 import job_time
@@ -26,6 +28,10 @@ import logging
 
 import requests
 from hashlib import md5
+
+import stat
+from cryptography.fernet import Fernet
+import time
 
 ## READING vars environment vars
 
@@ -69,6 +75,9 @@ SECRET_KEY              = os.environ.get("SECRET_KEY")
 STORAGE_TEMPURL_EXP_TIME = int(os.environ.get("STORAGE_TEMPURL_EXP_TIME", "2592000").strip('\'"'))
 STORAGE_MAX_FILE_SIZE = int(os.environ.get("STORAGE_MAX_FILE_SIZE", "5368709120").strip('\'"'))
 
+STORAGE_POLLING_INTERVAL = int(os.environ.get("STORAGE_POLLING_INTERVAL", "5368709120").strip('\'"'))
+CERT_CIPHER_KEY = os.environ.get("CERT_CIPHER_KEY", "").strip('\'"').encode('utf-8')
+
 
 # aynchronous tasks: upload & download --> http://TASKS_URL
 # {task_id : AsyncTask}
@@ -76,7 +85,7 @@ STORAGE_MAX_FILE_SIZE = int(os.environ.get("STORAGE_MAX_FILE_SIZE", "5368709120"
 storage_tasks = {}
 
 # relationship between upload task and filesystem
-# {hash_id : {'user':user,'system':system,'target':path,'source':fileName,'hash_id':task_id}}
+# {hash_id : {'user':user,'system':system,'target':path,'source':fileName,'status':status_code, hash_id':task_id}}
 uploaded_files = {}
 
 # debug on console
@@ -84,6 +93,162 @@ debug = os.environ.get("DEBUG_MODE", None)
 
 
 app = Flask(__name__)
+
+def file_to_str(fileName):
+
+    str_file = ""
+    try:
+        fileObj = open(fileName,"r")
+
+        str_file = fileObj.read()
+
+        fileObj.close()
+
+
+        return str_file
+
+    except IOError as e:
+        app.logger.error(e)
+        return ""
+
+
+def str_to_file(str_file,dir_name,file_name):
+    try:
+        if not os.path.exists(dir_name):
+            app.logger.info(f"Created temp directory for certs in {dir_name}")
+            os.makedirs(dir_name)
+        
+        file_str = open(f"{dir_name}/{file_name}","w")
+        file_str.write(str_file)
+        file_str.close()
+        app.logger.info(f"File written in {dir_name}/{file_name}")
+    except IOError as e:
+        app.logger.error("Couldn't write file {dir_name}/{file_name}")
+        app.logger.error(e)
+
+
+
+def os_to_fs(task_id):
+    upl_file = uploaded_files[task_id]
+    system = upl_file["system"]
+    username = upl_file["user"]
+    objectname = upl_file["source"]
+    
+    try:
+        action = upl_file["msg"]["action"]
+        # certificate is encrypted with CERT_CIPHER_KEY key
+        # here is decrypted
+        cert = upl_file["msg"]["cert"]
+        cipher = Fernet(CERT_CIPHER_KEY)
+        # the decryption process produces a byte type
+        # remember that is stored as str not as byte in the JSON
+        pub_cert = cipher.decrypt(cert[0].encode('utf-8')).decode('utf-8')
+
+
+        # cert_pub in 0 /user-key-cert.pub
+        # temp-dir in 1
+        # get tmp directory
+        td = cert[1]
+
+        app.logger.info(f"Temp dir: {td}")
+
+        if not os.path.exists(td):
+            # retrieve public certificate and store in temp dir location
+            str_to_file(pub_cert,td,"user-key-cert.pub")
+
+            # user public and private key should be in Storage / path, symlinking in order to not use the same key at the same time
+            os.symlink(os.getcwd() + "/user-key.pub", td + "/user-key.pub")  # link on temp dir
+            os.symlink(os.getcwd() + "/user-key", td + "/user-key")  # link on temp dir
+        
+            # stat.S_IRUSR -> owner has read permission
+            os.chmod(td + "/user-key-cert.pub", stat.S_IRUSR)
+
+        cert_list = [f"{td}/user-key-cert.pub", f"{td}/user-key.pub", f"{td}/user-key", td]
+
+        # start download from OS to FS
+        update_task(task_id,None,async_task.ST_DWN_BEG)
+        
+        # execute download
+        result = exec_remote_command_cert(system, username, "", cert_list)
+
+        
+
+        # if no error, then download is complete
+        if result["error"] == 0:
+            update_task(task_id, None, async_task.ST_DWN_END)
+            # delete upload request
+            del uploaded_files[task_id]
+
+            # delete temp object from SWIFT
+            # delete_object(username,sourcePath,hash_id)
+            staging.delete_object(containername=username,prefix=task_id,objectname=objectname)
+
+                        
+        # if error, should be prepared for try again
+        else:
+            app.logger.info(result["msg"])
+            upl_file["status"] = async_task.ST_DWN_ERR
+            uploaded_files[task_id] = upl_file
+            update_task(task_id,None,async_task.ST_DWN_ERR,result["msg"])
+
+        
+        # if not os.path.exists(cert):
+        #     app.logger.info(f"{cert} doesn't exist")
+    except Exception as e:
+        app.logger.error("Not download_url field")
+        app.logger.error(e)
+
+
+# asynchronous check of upload_files to declare which is downloadable to FS
+def check_upload_files():
+
+    
+
+    global staging
+
+    while True:
+        timestamp = time.asctime( time.localtime(time.time()) )
+        
+        app.logger.info(f"Check files in Object Storage {timestamp}")
+        app.logger.info(f"Pendings uploads: {len(uploaded_files)}")
+
+        
+        # create STATIC auxiliary upload list in order to avoid "RuntimeError: dictionary changed size during iteration"
+        # (this occurs since upload_files dictionary is shared between threads and since Python3 dict.items() trigger that error)
+        upl_list= [(task_id, upload) for task_id,upload in uploaded_files.items()]
+
+        for task_id,upload in upl_list:
+            #checks if file is ready or not for download to FileSystem
+            try:
+
+                task_status = async_task.status_codes[upload['status']]
+
+                app.logger.info(f"Status of {task_id}: {task_status}")
+                
+                #if upload["status"] in [async_task.ST_URL_REC,async_task.ST_DWN_ERR] :
+                if upload["status"] == async_task.ST_URL_REC:
+                    app.logger.info(f"Task {task_id} -> File ready to upload or already downloaded")
+
+                    upl = uploaded_files[task_id]
+                    containername = upl["user"]
+                    prefix = task_id
+                    objectname = upl["source"]
+                    
+                    if not staging.is_object_created(containername,prefix,objectname):
+                        app.logger.info(f"{containername}/{prefix}/{objectname} isn't created in staging area, continue polling")
+                        continue
+
+                    # confirms that file is in OS (auth_header is not needed)
+                    update_task(task_id, None, async_task.ST_UPL_CFM)
+                    upload["status"] = async_task.ST_UPL_CFM
+                    uploaded_files["task_id"] = upload
+                    os_to_fs_task = threading.Thread(target=os_to_fs,args=(task_id,))
+                    os_to_fs_task.start()
+            except Exception as e:
+                #app.logger.info("Not ready to upload file")
+                continue
+            
+        time.sleep(STORAGE_POLLING_INTERVAL)
 
 
 
@@ -223,6 +388,7 @@ def upload_task(auth_header,system,targetPath,sourcePath,task_id):
                                "system": system,
                                "target": targetPath,
                                "source": fileName,
+                               "status": async_task.ST_URL_ASK,
                                "hash_id": task_id}
 
     data = uploaded_files[task_id]
@@ -239,6 +405,7 @@ def upload_task(auth_header,system,targetPath,sourcePath,task_id):
             data = uploaded_files[task_id]
             msg = "Staging Area auth error, try again later"
             data["msg"] = msg
+            data["status"] = async_task.ERROR
             update_task(task_id, auth_header, async_task.ERROR, data, is_json=True)
             return
 
@@ -251,6 +418,7 @@ def upload_task(auth_header,system,targetPath,sourcePath,task_id):
             data = uploaded_files[task_id]
             msg="Could not create container {container_name} in Staging Area ({staging_name})".format(container_name=container_name, staging_name=staging.get_object_storage())
             data["msg"] = msg
+            data["status"] = async_task.ERROR
             update_task(task_id,auth_header, async_task.ERROR,data,is_json=True)
             return
 
@@ -260,7 +428,56 @@ def upload_task(auth_header,system,targetPath,sourcePath,task_id):
     resp = staging.create_upload_form(sourcePath, container_name, object_prefix, STORAGE_TEMPURL_EXP_TIME, STORAGE_MAX_FILE_SIZE)
     data = uploaded_files[task_id]
 
+    # data["msg"] = resp
+
+
+    # create download URL for later download from Object Storage to filesystem
+    app.logger.info("Creating URL for later download")
+    download_url = staging.create_temp_url(container_name, object_prefix, fileName, STORAGE_TEMPURL_EXP_TIME)
+   
+   
+
+    # create certificate for later download from OS to filesystem
+    app.logger.info("Creating certificate for later download") 
+    options = f"-q -O {targetPath}/{fileName} '{download_url}'"
+    certs = create_certificates(auth_header,system,command="wget",options=urllib.parse.quote(options))
+    # certs = create_certificates(auth_header,system,command="wget",options=urllib.parse.quote(options),exp_time=STORAGE_TEMPURL_EXP_TIME)
+
+    if not certs[0]:
+        data = uploaded_files[task_id]
+        msg="Could not create credentials for download from Staging Area to filesystem"
+        app.logger.error(msg)
+        data["msg"] = msg
+        data["status"] = async_task.ERROR
+        update_task(task_id,auth_header,async_task.ERROR,data,is_json=True)
+        return
+
+    # converts file to string to store in Tasks
+    cert_pub = file_to_str(fileName=certs[0])
+    # key_pub  = file_to_str(fileName=certs[1])
+    # key_priv = file_to_str(fileName=certs[2])
+    temp_dir = certs[3]
+
+    # encrypt certificate with CERT_CIPHER_KEY key     
+    cipher = Fernet(CERT_CIPHER_KEY)
+    # data to be encrypted should be encoded to bytes
+    # in order to save it as json, the cert encrypted should be decoded to string
+    cert_pub_enc = cipher.encrypt(cert_pub.encode('utf-8')).decode('utf-8')
+
+    
+
+
+
+    resp["download_url"]= download_url 
+    resp["action"] = f"wget -q -O {targetPath}/{fileName} '{download_url}'"
+    resp["cert"] =  [cert_pub_enc, temp_dir]
+
     data["msg"] = resp
+    data["status"] = async_task.ST_URL_REC
+    
+    app.logger.info("Cert and url created correctly")
+    # app.logger.info(download_url)
+    # app.logger.info(certs)
 
     update_task(task_id,auth_header,async_task.ST_URL_REC,data,is_json=True)
 
@@ -816,7 +1033,7 @@ def init_storage():
 
         app.logger.info("Tasks saved: {n}".format(n=n_tasks))
 
-
+        
     except Exception as e:
         app.logger.warning("TASKS microservice is down")
         app.logger.warning("STORAGE microservice will not be fully functional")
@@ -841,5 +1058,10 @@ if __name__ == "__main__":
 
     # checks QueuePersistence and retakes all tasks
     init_storage()
+
+    # aynchronously checks uploaded_files for complete download to FS
+    upload_check = threading.Thread(target=check_upload_files)
+    upload_check.start()
+
 
     app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=STORAGE_PORT)

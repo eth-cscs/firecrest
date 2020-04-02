@@ -89,13 +89,17 @@ def test_post_upload_request(headers):
     print(resp.content)
     assert resp.status_code == 200 or resp.status_code == 204 #TODO: check 204 is right
 
-    # inform upload finished
-    headers.update({"X-Task-ID": task_id})
-    r = requests.put(STORAGE_URL + "/xfer-external/upload", headers=headers)
-    print(r.content)
-    
-    assert r.status_code == 200
+    # download from OS to FS is automatic
+    download_ok = False
+    for i in range(10):
+        r = requests.get(TASK_URL +"/"+task_id, headers=headers)
+        assert r.status_code == 200
+        if r.json()["msg"]["status"] == 114: # import async_tasks -> async_tasks.ST_DWN_END
+	    download_ok = True
+            break
+        sleep(10)
 
+    assert download_ok
 
 
 
