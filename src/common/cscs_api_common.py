@@ -48,7 +48,6 @@ def check_header(header):
         else:
             if AUTH_AUDIENCE == '':
                 decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, options={'verify_aud': False})
-                logging.info(decoded)
             else:
                 decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, audience=AUTH_AUDIENCE)
 
@@ -169,8 +168,6 @@ def create_certificates(auth_header, cluster, command=None, options=None, exp_ti
     try:
         #jcert = json.loads(urlopen(req).read())
         resp = requests.get(reqURL,headers={AUTH_HEADER_NAME: auth_header})
-        
-        logging.info(resp.text)
         
         jcert = resp.json()
 
