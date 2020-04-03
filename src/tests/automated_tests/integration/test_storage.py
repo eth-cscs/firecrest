@@ -94,8 +94,10 @@ def test_post_upload_request(headers):
     for i in range(20):
         r = requests.get(TASKS_URL +"/"+task_id, headers=headers)
         assert r.status_code == 200
-        if r.json()["task"]["status"] == 114: # import async_tasks -> async_tasks.ST_DWN_END
+        if r.json()["task"]["status"] == "114": # import async_tasks -> async_tasks.ST_DWN_END
             download_ok = True
+            break
+        if r.json()["task"]["status"] == "115": # async_task.ST_DWN_ERR
             break
         time.sleep(10)
     print(r)
