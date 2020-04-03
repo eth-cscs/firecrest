@@ -43,6 +43,8 @@ services:
       - "minio"
     volumes:
       - "./environment/keys/user-key:/user-key:ro"
+      # custom host file
+      - "./environment/hosts:/etc/hosts:ro"
 
   tasks:
     build: 

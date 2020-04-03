@@ -181,7 +181,9 @@ def os_to_fs(task_id):
 
             # delete temp object from SWIFT
             # delete_object(username,sourcePath,hash_id)
-            staging.delete_object(containername=username,prefix=task_id,objectname=objectname)
+            
+            # must be deleted after object is moved to storage
+            # staging.delete_object(containername=username,prefix=task_id,objectname=objectname)
 
                         
         # if error, should be prepared for try again
