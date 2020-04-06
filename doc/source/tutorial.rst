@@ -33,6 +33,11 @@ PUT        Used for manipulating resources or collections.
 DELETE     Used for deleting resources.
 ========== ===============================================
 
+Testbuild
+=========
+
+For the tutorial we are not going to connect to the FirecREST
+
 Obtain credentials
 ==================
 
