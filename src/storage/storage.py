@@ -75,7 +75,7 @@ SECRET_KEY              = os.environ.get("SECRET_KEY")
 STORAGE_TEMPURL_EXP_TIME = int(os.environ.get("STORAGE_TEMPURL_EXP_TIME", "2592000").strip('\'"'))
 STORAGE_MAX_FILE_SIZE = int(os.environ.get("STORAGE_MAX_FILE_SIZE", "5368709120").strip('\'"'))
 
-STORAGE_POLLING_INTERVAL = int(os.environ.get("STORAGE_POLLING_INTERVAL", "5368709120").strip('\'"'))
+STORAGE_POLLING_INTERVAL = int(os.environ.get("STORAGE_POLLING_INTERVAL", "60").strip('\'"'))
 CERT_CIPHER_KEY = os.environ.get("CERT_CIPHER_KEY", "").strip('\'"').encode('utf-8')
 
 
@@ -179,16 +179,13 @@ def os_to_fs(task_id):
             # delete upload request
             del uploaded_files[task_id]
 
-            # delete temp object from SWIFT
-            # delete_object(username,sourcePath,hash_id)
-            
             # must be deleted after object is moved to storage
-            # staging.delete_object(containername=username,prefix=task_id,objectname=objectname)
+            staging.delete_object(containername=username,prefix=task_id,objectname=objectname)
 
                         
         # if error, should be prepared for try again
         else:
-            app.logger.info(result["msg"])
+            app.logger.error(result["msg"])
             upl_file["status"] = async_task.ST_DWN_ERR
             uploaded_files[task_id] = upl_file
             update_task(task_id,None,async_task.ST_DWN_ERR,result["msg"])
@@ -197,7 +194,6 @@ def os_to_fs(task_id):
         # if not os.path.exists(cert):
         #     app.logger.info(f"{cert} doesn't exist")
     except Exception as e:
-        app.logger.error("Not download_url field")
         app.logger.error(e)
 
 
