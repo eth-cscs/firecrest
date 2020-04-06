@@ -17,7 +17,7 @@ else:
 
 # same server used for utilities and external upload storage
 SERVER_UTILITIES_STORAGE = os.environ.get("SYSTEMS_PUBLIC").split(";")[0] 
-
+OBJECT_STORAGE = os.environ.get("OBJECT_STORAGE")
 
 def get_task(task_id, headers):
 	url = "{}/{}".format(TASKS_URL, task_id)
@@ -40,43 +40,68 @@ def test_post_upload_request(headers):
     # request upload form
     data = { "sourcePath": "testsbatch.sh", "targetPath": "/home/testuser" }
     resp = requests.post(STORAGE_URL + "/xfer-external/upload", headers=headers, data=data)
-    print(resp.content)
     assert resp.status_code == 200
 
     task_id = resp.json()["task_id"]
 
     # wait to make sure upload form is ready
-    time.sleep(2)
+    time.sleep(5)
 
     # get upload form from checking task status
     resp = get_task(task_id, headers)
-    print(resp.content)
     assert int(resp.json()["task"]["status"]) == 111 # if form upload ready
 
     # upload file to storage server
     msg = resp.json()["task"]["data"]["msg"]
     url = msg["url"]
-    params = [('AWSAccessKeyId', msg["AWSAccessKeyId"]), ('Signature', msg["Signature"]), ('Expires', msg["Expires"])]
 
-    # this way doesn't work
-    #files = {'file': ("testsbatch.sh", open(data["sourcePath"], 'rb'))}
-    #resp = requests.put(url=url, files=files)
 
-    # this is the only way signature doesn't break!
+    url = url.replace("minio_test_build", "127.0.0.1")
+
     resp = None
-    with open(data["sourcePath"], 'rb') as data:
-        resp= requests.put(url, data=data, params=params)
+    
+    if (OBJECT_STORAGE == "s3v2"):
+        params = [('AWSAccessKeyId', msg["AWSAccessKeyId"]), ('Signature', msg["Signature"]), ('Expires', msg["Expires"])]
+        
+        # this way doesn't work
+        # files = {'file': ("testsbatch.sh", open(data["sourcePath"], 'rb'))}
+        # resp = requests.put(url=url, files=files, params)
+        
+        # this is the only way signature doesn't break!
+        with open(data["sourcePath"], 'rb') as data:
+            resp= requests.put(url, data=data, params=params)
 
-    print(resp.content)
-    assert resp.status_code == 200
+    elif (OBJECT_STORAGE == "s3v4"):
+        post_data =  [('key', msg["key"]), ('policy', msg["policy"]), ('x-amz-algorithm', msg["x-amz-algorithm"])
+        , ('x-amz-credential', msg["x-amz-credential"]), ('x-amz-date', msg["x-amz-date"]),
+        ('x-amz-signature', msg["x-amz-signature"])]
 
-    # inform upload finished
-    headers.update({"X-Task-ID": task_id})
-    r = requests.put(STORAGE_URL + "/xfer-external/upload", headers=headers)
-    print(r.content)
-    assert r.status_code == 200
+        files = {'file': open(data["sourcePath"],'rb')}
+        resp = requests.post(url, data=post_data, files=files)
 
+    else:
+        # swift post request
+        params = [('max_file_size', msg["max_file_size"]), ('max_file_count', msg["max_file_count"]), ('expires', msg["expires"]),
+        ('signature', msg["signature"]), ('redirect', msg["redirect"])]
+        
+        with open(data["sourcePath"], 'rb') as data:
+            resp= requests.put(url, data=data, params=params)
+     
+    assert resp.status_code == 200 or resp.status_code == 204 #TODO: check 204 is right
 
+    # download from OS to FS is automatic
+    download_ok = False
+    for i in range(20):
+        r = requests.get(TASKS_URL +"/"+task_id, headers=headers)
+        assert r.status_code == 200
+        if r.json()["task"]["status"] == "114": # import async_tasks -> async_tasks.ST_DWN_END
+            download_ok = True
+            break
+        if r.json()["task"]["status"] == "115": # async_task.ST_DWN_ERR
+            break
+        time.sleep(10)
+    print(r)
+    assert download_ok
 
 
 

@@ -19,6 +19,8 @@ AUTH_AUDIENCE = os.environ.get("AUTH_TOKEN_AUD", '').strip('\'"')
 ALLOWED_USERS = os.environ.get("AUTH_ALLOWED_USERS", '').strip('\'"').split(";")
 AUTH_REQUIRED_SCOPE = os.environ.get("AUTH_REQUIRED_SCOPE", '').strip('\'"')
 
+AUTH_ROLE = os.environ.get("AUTH_ROLE", '').strip('\'"')
+
 CERTIFICATOR_PORT = os.environ.get("CERTIFICATOR_PORT", 5000)
 
 realm_pubkey=os.environ.get("REALM_RSA_PUBLIC_KEY", '')
@@ -72,6 +74,7 @@ def check_header(header):
     return False
 
 # receive the header, and extract the username from the token
+# returns username
 def get_username(header):
     if debug:
         logging.info('debug: cscs_api_common: get_username: ' + header)
@@ -88,8 +91,16 @@ def get_username(header):
 #        if ALLOWED_USERS != '':
 #            if not (decoded['preferred_username'] in ALLOWED_USERS):
 #                return None
+        # check if it's a service account token
+        try:
+            if AUTH_ROLE in decoded["realm_access"]["roles"]: # firecrest-sa
 
-        return decoded['preferred_username']
+                clientId = decoded["clientId"]
+                username = decoded["resource_access"][clientId]["roles"][0]
+                return username
+            return decoded['preferred_username']
+        except Exception:
+            return decoded['preferred_username']
 
     except jwt.exceptions.InvalidSignatureError:
         logging.error("JWT invalid signature", exc_info=True)
@@ -113,6 +124,7 @@ def receive():
     Input:
     - command (optional): generates certificate for this specific command
     - option (optional): options for command
+    - exptime (optional): expiration time given to the certificate in seconds (default +5m)
     Returns:
     - certificate (json)
     """
@@ -146,11 +158,16 @@ def receive():
             force_opt = request.args.get("option", '')
             if force_command == 'wget':
                 force_command = '/usr/bin/wget'
-                ssh_expire = '+10d'
+                ssh_expire = "+30m" #change to '+7d'
+                exp_time = request.args.get("exptime",'')
+                if exp_time:
+                    ssh_expire = f"+{exp_time}s"
+                
+                
             else:
-                return jsonify(msg='Invalid command'), 404
+                return jsonify(msg='Invalid specific command'), 404
 
-            force_command = '-O force_command=' + force_command + force_opt
+            force_command = f"-O force-command=\"{force_command} {force_opt}\""
 
         app.logger.info("Generating cert for user: {user}".format(user=username))
 
@@ -158,11 +175,13 @@ def receive():
         td = tempfile.mkdtemp(prefix = "cert")
         os.symlink(os.getcwd() + "/user-key.pub", td + "/user-key.pub")  # link on temp dir
 
-        command = "ssh-keygen -s ca-key -n {user} -V {ssh_expire} -I ca-key {tempdir}/user-key.pub {fc}".format(user=username, ssh_expire=ssh_expire, tempdir=td, fc=force_command)
+        command = "ssh-keygen -s ca-key -n {user} -V {ssh_expire} -I ca-key {fc} {tempdir}/user-key.pub ".\
+            format(user=username, ssh_expire=ssh_expire, tempdir=td, fc=force_command)
+        app.logger.info(f"SSH keygen command: {command}".format(command))
 
     except Exception as e:
         logging.error(e)
-        return jsonify(msg='cert error'), 404
+        return jsonify(description=f"Error creating certificate. {e}", error=-1), 404
 
     try:
         result = subprocess.check_output([command], shell=True)
@@ -177,6 +196,8 @@ def receive():
         return jsonify(certificate=cert), 200
     except subprocess.CalledProcessError as e:
         return jsonify(description=e.output, error=e.returncode), 404
+    except Exception as e:
+        return jsonify(description=f"Error creating certificate. {e}", error=-1), 404
 
 
 # get status for status microservice
@@ -185,9 +206,9 @@ def receive():
 def status():
     app.logger.info("Test status of service")
 
-    if request.remote_addr != STATUS_IP:
-        app.logger.warning("Invalid remote address: {addr}".format(addr=request.remote_addr))
-        return jsonify(error="Invalid access"), 403
+    # if request.remote_addr != STATUS_IP:
+    #     app.logger.warning("Invalid remote address: {addr}".format(addr=request.remote_addr))
+    #     return jsonify(error="Invalid access"), 403
 
     return jsonify(success="ack"), 200
 
