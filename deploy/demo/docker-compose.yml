@@ -74,6 +74,8 @@ services:
       S3_URL: http://192.168.220.19:9000
       S3_ACCESS_KEY: storage_access_key
       S3_SECRET_KEY: storage_secret_key
+      STORAGE_POLLING_INTERVAL: 60 
+      CERT_CIPHER_KEY: 'Df6UZuoPoJ2u5yRwxNfFQ46Nwy8eW1OGTcuhlqn4ONo='
       #debug: "True"
     networks:
       firecrest-internal:

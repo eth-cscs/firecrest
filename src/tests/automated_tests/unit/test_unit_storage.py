@@ -11,17 +11,11 @@ else:
 
 
 
-# test upload request: ask for an upload task (must throw 200 OK), and then
-# inform upload complete (must throw 400 since upload has not been done)
+# test upload request: ask for an upload task (must throw 200 OK)
 def test_post_upload_request(headers):
     data = { "sourcePath": "testsbatch.sh", "targetPath": "/home/testuser" }
     resp = requests.post(STORAGE_URL + "/xfer-external/upload", headers=headers, data=data)
     assert resp.status_code == 200
-
-    task_id = resp.json()["task_id"]
-    headers.update({"X-Task-ID": task_id})
-    r = requests.put(STORAGE_URL + "/xfer-external/upload", headers=headers)
-    assert r.status_code == 400
 
 
 # Test an invalid upload task
@@ -36,13 +30,6 @@ def test_download(headers):
     data = { "sourcePath": "testsbatch.sh" }
     resp = requests.post(STORAGE_URL + "/xfer-external/download", headers=headers, data=data)
     assert resp.status_code == 200
-
-
-#def test_exec_upload_finish(headers):
-#    task_id = "0889d6f4f276249312e786e0f9327b83"
-#    headers.update({"X-Task-ID": task_id})
-#    r = requests.put(STORAGE_URL + "/xfer-external/upload", headers=headers)
-#    assert r.status_code == 200
 
 
 def test_internal_cp(headers):

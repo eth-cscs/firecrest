@@ -40,22 +40,23 @@ def test_post_upload_request(headers):
     # request upload form
     data = { "sourcePath": "testsbatch.sh", "targetPath": "/home/testuser" }
     resp = requests.post(STORAGE_URL + "/xfer-external/upload", headers=headers, data=data)
-    print(resp.content)
     assert resp.status_code == 200
 
     task_id = resp.json()["task_id"]
 
     # wait to make sure upload form is ready
-    time.sleep(2)
+    time.sleep(5)
 
     # get upload form from checking task status
     resp = get_task(task_id, headers)
-    print(resp.content)
     assert int(resp.json()["task"]["status"]) == 111 # if form upload ready
 
     # upload file to storage server
     msg = resp.json()["task"]["data"]["msg"]
     url = msg["url"]
+
+
+    url = url.replace("minio_test_build", "127.0.0.1")
 
     resp = None
     
@@ -85,18 +86,22 @@ def test_post_upload_request(headers):
         
         with open(data["sourcePath"], 'rb') as data:
             resp= requests.put(url, data=data, params=params)
-            
-    print(resp.content)
+     
     assert resp.status_code == 200 or resp.status_code == 204 #TODO: check 204 is right
 
-    # inform upload finished
-    headers.update({"X-Task-ID": task_id})
-    r = requests.put(STORAGE_URL + "/xfer-external/upload", headers=headers)
-    print(r.content)
-    
-    assert r.status_code == 200
-
-
+    # download from OS to FS is automatic
+    download_ok = False
+    for i in range(20):
+        r = requests.get(TASKS_URL +"/"+task_id, headers=headers)
+        assert r.status_code == 200
+        if r.json()["task"]["status"] == "114": # import async_tasks -> async_tasks.ST_DWN_END
+            download_ok = True
+            break
+        if r.json()["task"]["status"] == "115": # async_task.ST_DWN_ERR
+            break
+        time.sleep(10)
+    print(r)
+    assert download_ok
 
 
 
