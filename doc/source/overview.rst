@@ -20,10 +20,10 @@ Gateway
 The API gateway provides an interface to publish, maintain, monitor, and secure all the FirecREST API endpoints.
 The gateway is hosted on a machine within CSCS that is facing the internet.
 All interactions with the FirecREST API are first passed and validated before being redirected to any other FirecREST microservice.
-In  this  way,  every  request  made  to  the  FirecREST  API arrives  first  at  the  gateway,  which  will  proxy  the  request towards the requested microservice endpoint.
-However, before the request is passed on to the microservice, the gateway will enforce that the request is correctly authenticated and authorized  by  requiring  and  validating  the  Access  Token that  must  accompany  each  API  request.
-The  current  implementation  of  the  gateway  service  is based on the Kong API gateway.
-Kong is a widely used opensource microservice API gateway that implements functionalities such as a variety of authentication and authorization mechanisms,  support  for  OIDC,  IP  filtering,  access  control lists,  analytics, rate limiting, among many others that have allowed us to configure the gateway to our requirements.
+In this way, every request made to the FirecREST API arrives first at the gateway, which will proxy the request towards the requested microservice endpoint.
+However, before the request is passed on to the microservice, the gateway will enforce that the request is correctly authenticated and authorized by requiring and validating the Access Token that must accompany each API request.
+The current implementation of the gateway service is based on the Kong API gateway.
+Kong is a widely used opensource microservice API gateway that implements functionalities such as a variety of authentication and authorization mechanisms, support for OIDC, IP filtering, access control lists, analytics, rate limiting, among many others that have allowed us to configure the gateway to our requirements.
 
 Status microservice
 -------------------

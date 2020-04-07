@@ -36,7 +36,18 @@ DELETE     Used for deleting resources.
 Testbuild
 =========
 
-For the tutorial we are not going to connect to the FirecREST
+For the tutorial we are not going to connect to the FirecREST, but a test-build.
+The test-build is a set of containers that simulate the FirecREST API and it is composed of the following containers:
+
+- The Compute, Status, Storage, Tasks, Utilities and Delegation microservices as well as the API Gateway as they were described in the `Overview section <overview.html>`__.
+- A `cluster` container, which is the machine that we will connect to instead of the CSCS machines (Piz Daint etc).
+  The container has at this point only two users; `test1` and `test2`.
+  For the job management of the cluster it uses the `Slurm <https://slurm.schedmd.com/quickstart.html>`__ job scheduler with version 19.05.4.
+- A `minio <https://docs.min.io/docs/minio-quickstart-guide.html>`__ container that will be used for the data transfers that are performed through the `Storage` microservice.
+  The `minio` Object Storage is a cloud storage server compatible with Amazon S3, released under Apache License v2.
+  It is different than the `CSCS Object Storage <https://user.cscs.ch/storage/object_storage/>`__ service, which is based on OpenStack Swift, so some of the output of the calls might be slightly different.
+  Nevertheless, this should not affect how your client handles the responses.
+- A `taskpersistent` container that is responsible for keeping a persistent record of the FirecREST's tasks.
 
 Obtain credentials
 ==================
@@ -69,66 +80,55 @@ After obtaining the credentials you have to set these variables:
 
     .. code-tab:: bash
 
-        $ export TOKEN=<token>
-        $ export FIRECREST_IP="localhost:8000"
-        $ export STORAGE_IP="localhost:9000"
+        $ export TOKEN=<token
+        $ export FIRECREST_IP="http://localhost:8000"
+        $ export STORAGE_IP="http://localhost:9000"
 
     .. code-tab:: python
 
-        TOKEN = <token>
-        FIRECREST_IP = 'localhost:8000'
-        STORAGE_IP = 'localhost:9000'
+        import requests
+        import json
+
+        TOKEN = '<token>'
+        FIRECREST_IP = 'http://localhost:8000'
+        STORAGE_IP = 'http://localhost:9000'
 
 Test the credentials with a simple call
 =======================================
 
 To test the credentials we can use a simple call from the `Status microservice <overview.html#status>`__.
-We can call the `status/services <reference.html#get--status-services>`__ endpoint with a *GET* operation to get the status of all the services.
+We can call the `status/systems <reference.html#get--status-systems>`__ endpoint with a *GET* operation to get more information about the systems in which the user has access.
 The access token has to be included in the header.
 
 .. tabs::
 
     .. code-tab:: bash
 
-        $ curl -X GET ${FIRECREST_IP}/status/services -H "Authorization: Bearer ${TOKEN}"
+        $ curl -X GET ${FIRECREST_IP}/status/systems -H "Authorization: Bearer ${TOKEN}"
 
     .. code-tab:: python
 
-        url = f'{FIRECREST_IP}/status/services'
+        url = f'{FIRECREST_IP}/status/systems'
         headers = {'Authorization': f'Bearer {TOKEN}'}
         response = requests.get(url=url, headers=headers)
+        print(json.dumps(response.json(), indent=4))
 
 The response to this call will look something like:
 
 .. code-block:: json
 
     {
-        "description": "List of services with status and description.",
+        "description": "List of systems with status and description.",
         "out": [
             {
-                "description": "server up & flask running",
-                "service": "certificator",
-                "status": "available"
+                "description": "System ready",
+                "status": "available",
+                "system": "cluster"
             },
             {
-                "description": "server up & flask running",
-                "service": "utilities",
-                "status": "available"
-            },
-            {
-                "description": "server up & flask running",
-                "service": "tasks",
-                "status": "available"
-            },
-            {
-                "description": "server up & flask running",
-                "service": "compute",
-                "status": "available"
-            },
-            {
-                "description": "server up & flask running",
-                "service": "storage",
-                "status": "available"
+                "description": "System ready",
+                "status": "available",
+                "system": "cluster"
             }
         ]
     }
@@ -155,14 +155,15 @@ Finally, the call looks like this:
 
     .. code-tab:: python
 
-        path = '/home/test1
+        path = '/home/test1'
         machine = 'cluster'
         response = requests.get(
             url=f'{FIRECREST_IP}/utilities/ls',
             headers={'Authorization': f'Bearer {TOKEN}',
-                     'X-Machine-Name': machine},
+                        'X-Machine-Name': machine},
             params={'targetPath': f'{path}'}
         )
+        print(json.dumps(response.json(), indent=4))
 
 And the response should look something like:
 
@@ -207,7 +208,7 @@ And the response should look something like:
 When the call is successful the body of the response is enough, but in case we get an error the response header can give us more information about the error.
 
 .. note::
-    To get the response header in the curl command add `-i` in the call.
+    To get the response header in the curl command add `-i` in the call. In python you have direct access to the response headers with `response.headers`.
 
 In case we ask to list a directory in which the user doesn't have the right permissions we will get `X-Permission-Denied: User does not have permissions to access machine or path`.
 
@@ -255,17 +256,13 @@ The `demo client <https://github.com/eth-cscs/firecrest/tree/master/src/tests/te
 
 .. figure:: ../_static/img/utilities.png
 
-.. literalinclude:: ../../src/tests/template_client/firecrest_demo.py
-  :lines: 652-687
-  :caption: just an example of code
-..   :dedent: 4
 
 Upload a small file with the blocking call
 ==========================================
 
-The first step of our workflow is to upload the necessary files to one of the machines' filesystems.
+Now we that you are familiar with the basic format of the calls we can move to something that is necessary in a typical workflow, uploading the input files to the machine.
 Many times the input can be a small file and for these cases the non-blocking call `utilities/upload <reference.html#post--utilities-upload>`__ should be enough.
-As before, we need to specify the machine and the authorization token in the header of the call, as well as some the location of the file we want to upload and the location in the machine.
+As before, we need to specify the machine and the authorization token in the header of the call, as well as the location of the file we want to upload and the location in the machine.
 The path to the file corresponds to a local path, while targetPath is in the machine.
 
 .. note::
@@ -289,6 +286,7 @@ The path to the file corresponds to a local path, while targetPath is in the mac
             data={'targetPath': targetPath},
             files={'file': open(local_path,"rb")}
         )
+        print(json.dumps(response.json(), indent=4))
 
 As we already mentioned this call is blocking, so it will finish when the uploading completes or if it fails. For a successful uploading the body of the response will look like this:
 
@@ -311,6 +309,21 @@ In case the `targetPath` is wrong or the user doesn't have the right permissions
 Run a small simulation
 ======================
 
+Our simulation is going to be a simple `SHA-1 <https://en.wikipedia.org/wiki/SHA-1>`__ calculation of the file we uploaded in the last call.
+You can use this script for the job submission:
+
+.. code-block:: bash
+
+    #!/bin/bash
+    #
+    #SBATCH --job-name=test
+    #SBATCH --output=res.txt
+    #
+    #SBATCH --ntasks=1
+    #SBATCH --time=10:00
+
+    sha1sum input.txt
+
 Submit a job
 ^^^^^^^^^^^^
 
@@ -332,13 +345,14 @@ The file this time will be the script we want to run with slurm and the location
     .. code-tab:: python
 
         machine = 'cluster'
-        local_path = '/path/to/input_file'
+        local_path = '/path/to/script.sh'
         response = requests.post(
                 url=f'{FIRECREST_IP}/compute/jobs',
                 headers={'Authorization': f'Bearer {TOKEN}',
                          'X-Machine-Name': machine},
-                files={'file': open(filename, 'rb')
+                files={'file': open(local_path, 'rb')}
         )
+        print(json.dumps(response.json(), indent=4))
 
 The expected response should resemble the following:
 
@@ -365,11 +379,12 @@ The response from the last call has the `task ID` in a field, as well as the com
 
     .. code-tab:: python
 
-        taskid = 9d9c69b640cfd1cccffb76e1b7297a98
+        taskid = '9d9c69b640cfd1cccffb76e1b7297a98'
         response = requests.get(
             url=f'{FIRECREST_IP}/tasks/{taskid}',
             headers={'Authorization': f'Bearer {TOKEN}'}
         )
+        print(json.dumps(response.json(), indent=4))
 
 The response should look like this if the job submission was successful:
 
@@ -420,6 +435,7 @@ The job ID is a path parameter, so part of the endpoint URL, and the authorizati
             headers={'Authorization': f'Bearer {TOKEN}',
                      'X-Machine-Name': machine}
         )
+        print(json.dumps(response.json(), indent=4))
 
 And the response should look like that:
 
@@ -445,11 +461,12 @@ So using the task ID from the response we have to make a new `/tasks/{taskid} <r
 
     .. code-tab:: python
 
-        taskid = babda2e02fc654f4e2513595525e4fb4
+        taskid = 'babda2e02fc654f4e2513595525e4fb4'
         response = requests.get(
             url=f'{FIRECREST_IP}/tasks/{taskid}',
             headers={'Authorization': f'Bearer {TOKEN}'}
         )
+        print(json.dumps(response.json(), indent=4))
 
 While the job is active the call will be successful and the output will look something like that:
 
@@ -527,8 +544,36 @@ Here is an example of how to use it:
         response = requests.get(
             url=f'{FIRECREST_IP}/compute/acct',
             headers={'Authorization': f'Bearer {TOKEN}',
-                     'X-Machine-Name': machine}
+                        'X-Machine-Name': machine}
         )
+        print(json.dumps(response.json(), indent=4))
+
+From the response you can get the task ID, as before:
+
+.. code-block:: json
+
+    {
+        "success": "Task created",
+        "task_id": "cd6192b6cfbc6ca6c38f565a67ef028e",
+        "task_url": "http://192.168.220.10:8000/tasks/cd6192b6cfbc6ca6c38f565a67ef028e"
+    }
+
+.. tabs::
+
+    .. code-tab:: bash
+
+        curl -X GET "${FIRECREST_IP}/tasks/cd6192b6cfbc6ca6c38f565a67ef028e" -H "Authorization: Bearer ${TOKEN}"
+
+    .. code-tab:: python
+
+        taskid = 'cd6192b6cfbc6ca6c38f565a67ef028e'
+        response = requests.get(
+            url=f'{FIRECREST_IP}/tasks/{taskid}',
+            headers={'Authorization': f'Bearer {TOKEN}'}
+        )
+        print(json.dumps(response.json(), indent=4))
+
+The final response of should look like this:
 
 .. code-block:: json
 
@@ -536,53 +581,74 @@ Here is an example of how to use it:
         "task": {
             "data": [
                 {
-                    "jobid":"4",
-                    "name":"script.sh",
-                    "nodelist":"cluster",
-                    "nodes":"1",
-                    "partition":"part01",
-                    "start_time":"2020-03-17T08:44:58",
-                    "state":"COMPLETED",
-                    "time":"00:02:00",
-                    "time_left":"2020-03-17T08:45:58",
-                    "user":"test1"
+                    "jobid": "2",
+                    "name": "test",
+                    "nodelist": "cluster",
+                    "nodes": "1",
+                    "partition": "part01",
+                    "start_time": "2020-04-07T09:12:55",
+                    "state": "FAILED",
+                    "time": "00:00:00",
+                    "time_left": "2020-04-07T09:12:55",
+                    "user": "test1"
                 },
                 {
-                    "jobid":"5",
-                    "name":"script_long.sh",
-                    "nodelist":"cluster",
-                    "nodes":"1",
-                    "partition":"part01",
-                    "start_time":"2020-03-17T09:08:01",
-                    "state":"COMPLETED",
-                    "time":"00:10:00",
-                    "time_left":"2020-03-17T09:13:01",
-                    "user":"test1"
+                    "jobid": "3",
+                    "name": "test",
+                    "nodelist": "cluster",
+                    "nodes": "1",
+                    "partition": "part01",
+                    "start_time": "2020-04-07T09:30:34",
+                    "state": "FAILED",
+                    "time": "00:00:00",
+                    "time_left": "2020-04-07T09:30:34",
+                    "user": "test1"
                 },
                 {
-                    "jobid":"6",
-                    "name":"script_long.sh",
-                    "nodelist":"cluster",
-                    "nodes":"1",
-                    "partition":"part01",
-                    "start_time":"2020-03-17T09:41:42",
-                    "state":"COMPLETED",
-                    "time":"00:10:00",
-                    "time_left":"2020-03-17T09:46:42",
-                    "user":"test1"
+                    "jobid": "4",
+                    "name": "test",
+                    "nodelist": "cluster",
+                    "nodes": "1",
+                    "partition": "part01",
+                    "start_time": "2020-04-07T11:03:25",
+                    "state": "FAILED",
+                    "time": "00:00:00",
+                    "time_left": "2020-04-07T11:03:25",
+                    "user": "test1"
+                },
+                {
+                    "jobid": "5",
+                    "name": "test",
+                    "nodelist": "cluster",
+                    "nodes": "1",
+                    "partition": "part01",
+                    "start_time": "2020-04-07T11:05:36",
+                    "state": "COMPLETED",
+                    "time": "00:00:00",
+                    "time_left": "2020-04-07T11:05:36",
+                    "user": "test1"
                 }
             ],
-            "description":"Finished successfully",
-            "hash_id":"8e793227fdf57789d2b43bddca65d3a2",
-            "last_modify":"2020-03-17T10:00:26",
-            "service":"compute",
-            "status":"200",
-            "task_url":"http://192.168.220.10:8000/tasks/8e793227fdf57789d2b43bddca65d3a2",
+            "description": "Finished successfully",
+            "hash_id": "cd6192b6cfbc6ca6c38f565a67ef028e",
+            "last_modify": "2020-04-07T11:15:40",
+            "service": "compute",
+            "status": "200",
+            "task_url": "http://192.168.220.10:8000/tasks/cd6192b6cfbc6ca6c38f565a67ef028e",
             "user": "test1"
         }
     }
 
 You can optionally specify the time period for this call's results.
+
+**Job output**
+
+When FirecREST submits a job on behalf of the user a directory, named `firecrest`, will be created in the `$HOME` directory of the user.
+The subdirectories of this will be named after the task ID of the job submission and the user can see there the job script that was used for the submission as well as the output file(s) if their location is not specified.
+
+.. important::
+    The directory of FirecREST will be on `$SCRATCH` instead of `$HOME`.
+    You can find more information about what $SCRATCH is and the different filesystems of CSCS `here <https://user.cscs.ch/storage/file_systems/>`__.
 
 Upload with non-blocking call something bigger
 ==============================================
@@ -614,6 +680,7 @@ Both `sourcePath` and `targetPath` are form data parameters.
             data={'targetPath': targetPath,
                   'sourcePath': sourcePath}
         )
+        print(json.dumps(response.json(), indent=4))
 
 It FirecREST task was created succesfully we should get something like this:
 
@@ -635,11 +702,12 @@ Afterward, we have to check on the task with the `/tasks/{taskid} <reference.htm
 
     .. code-tab:: python
 
-        taskid = a78c226e2e17ea05ef1d72a812648145
+        taskid = 'a78c226e2e17ea05ef1d72a812648145'
         response = requests.get(
             url=f'{FIRECREST_IP}/tasks/{taskid}',
             headers={'Authorization': f'Bearer {TOKEN}'}
         )
+        print(json.dumps(response.json(), indent=4))
 
 And the task's status description now should be "Form URL from Object Storage received" and look like that:
 
@@ -706,6 +774,12 @@ And a successful upload would look like this:
     X-Xss-Protection: 1; mode=block
     Date: Tue, 17 Mar 2020 14:02:55 GMT
 
+
+.. note::
+    The testbuild is using a `minio` Object Storage, which is different than `Swift`.
+    When you are using FirecREST the command provided by the framework might be different, but the steps the user has to follow are the same.
+
+**The last step is no longer necessary, will update soon**
 The last step of this task is to finish the transfer, from the staging area to the filesystem.
 We have to make a `PUT` request to the `/storage/xfer-external/upload <reference.html#put--storage-xfer-external-upload>`__ endpoint.
 In this call, we only have to include two arguments in the header, the authorization token and the FirecREST `task ID`.
@@ -718,12 +792,13 @@ In this call, we only have to include two arguments in the header, the authoriza
 
     .. code-tab:: python
 
-        taskid = a78c226e2e17ea05ef1d72a812648145
+        taskid = 'a78c226e2e17ea05ef1d72a812648145'
         response = requests.put(
             url=f'{FIRECREST_IP}/storage/xfer-external/upload',
             headers={'Authorization': f'Bearer {TOKEN}',
                      'X-Task-ID': taskid}
         )
+        print(json.dumps(response.json(), indent=4))
 
 And the response should look like that:
 
@@ -744,11 +819,12 @@ You can check the status of the FirecREST task; the `task id` remains the same.
 
     .. code-tab:: python
 
-        taskid = a78c226e2e17ea05ef1d72a812648145
+        taskid = 'a78c226e2e17ea05ef1d72a812648145'
         response = requests.get(
             url=f'{FIRECREST_IP}/tasks/{taskid}',
             headers={'Authorization': f'Bearer {TOKEN}'}
         )
+        print(json.dumps(response.json(), indent=4))
 
 When the transfer from Object Storage has finished, you should get a response like this:
 
@@ -775,36 +851,44 @@ When the transfer from Object Storage has finished, you should get a response li
         }
     }
 
+While the transfer from Object Storage to the filesystem is still ongoing the status will be "113".
+
 Run again the simulation with a bigger file
 ===========================================
 
-Same as the other submission, to be filled when we have a use case
+If you want, you can follow the same steps as before to get the SHA-1 of the file you just uploaded.
 
 Download the output
 ===================
 
-Now let's download the output from the last simulation.
+After succesfully running our jobs we should verify that the output is what we expect.
+In our case we can download the output, check the result of the `sha1sum` command against the result we get from the file in our local machine.
+
+The output is so small it would make sense to download it with the blocking call `utilities/download <reference.html#get--utilities-download>`__, but we will do a non-blocking through the `Storage microservice` just so we can see the workflow in that case.
 It follows a similar workflow, as the non-blocking uploading of a file.
 First, we have to ask FirecREST to transfer the file from the machine's filesystem to the staging area.
 As soon as the transfer is complete we have to FirecREST for the link from where we can download the file.
 
 The first step is a call to the `/storage/xfer-external/download <reference.html#put--storage-xfer-external-download>`__ endpoint.
 We only pass the authorization token and the location of the file to the call.
+Remember that the output of the job is inside the `firecrest` directory in our case.
 
 .. tabs::
 
     .. code-tab:: bash
 
-        curl -X POST "${FIRECREST_IP}/storage/xfer-external/download" -H "Authorization: Bearer ${TOKEN}" -F "sourcePath=/home/test1/new-dir/file"
+        curl -X POST "${FIRECREST_IP}/storage/xfer-external/download" -H "Authorization: Bearer ${TOKEN}" -F "sourcePath=/home/test1/firecrest/d3c285d93ea408750f020a51791192d5/res.txt"
 
     .. code-tab:: python
 
-        sourcePath = /home/test1/new-dir/file
+
+        sourcePath = `/home/test1/firecrest/d3c285d93ea408750f020a51791192d5/res.txt`
         response = requests.post(
             url=f'{FIRECREST_IP}/storage/xfer-external/download',
             headers={'Authorization': f'Bearer {TOKEN}'},
             data={'sourcePath': sourcePath}
         )
+        print(json.dumps(response.json(), indent=4))
 
 And the response will only give us the `task ID` of the task we just created.
 
@@ -824,19 +908,20 @@ And the response will only give us the `task ID` of the task we just created.
 
     .. code-tab:: python
 
-        taskid = c958b5901cb7229ef15d9ae0e93e6d8b
+        taskid = 'c958b5901cb7229ef15d9ae0e93e6d8b'
         response = requests.get(
             url=f'{FIRECREST_IP}/tasks/{taskid}',
             headers={'Authorization': f'Bearer {TOKEN}'}
         )
+        print(json.dumps(response.json(), indent=4))
 
-After it finishes you should get a response like this.
+After it finishes you should get a response like this:
 
 .. code-block:: json
 
     {
         "task": {
-            "data": "http://192.168.220.19:9000/test1/c958b5901cb7229ef15d9ae0e93e6d8b/script.sh?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=storage_access_key%2F20200317%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20200317T141948Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=c951b0a4d8a2bcaff5b1eb443f83f37f0718da36e8e59d7b1fa19a1b3a5f3cbf",
+            "data": "http://192.168.220.19:9000/test1/c958b5901cb7229ef15d9ae0e93e6d8b/res.txt?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=storage_access_key%2F20200317%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20200317T141948Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=c951b0a4d8a2bcaff5b1eb443f83f37f0718da36e8e59d7b1fa19a1b3a5f3cbf",
             "description": "Upload from filesystem to Object Storage has finished succesfully",
             "hash_id": "c958b5901cb7229ef15d9ae0e93e6d8b",
             "last_modify": "2020-03-17T14:19:48",
@@ -847,9 +932,4 @@ After it finishes you should get a response like this.
         }
     }
 
-And you can download the file from the link in the "data" field.
-When you download the file from the 
-
-Common errors
-=============
-
+And you can download the file from the link in the "data" field and compare to the result you get locally.
