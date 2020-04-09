@@ -4,9 +4,9 @@ import os
 from markers import host_environment_test
 
 
-FIRECREST_IP = os.environ.get("FIRECREST_IP")
-if FIRECREST_IP:
-	COMPUTE_URL = os.environ.get("FIRECREST_IP") + "/compute"
+FIRECREST_URL = os.environ.get("FIRECREST_URL")
+if FIRECREST_URL:
+	COMPUTE_URL = os.environ.get("FIRECREST_URL") + "/compute"
 else:
     COMPUTE_URL = os.environ.get("COMPUTE_URL")	
 

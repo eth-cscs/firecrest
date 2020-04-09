@@ -4,10 +4,10 @@ import os
 import time
 
 
-FIRECREST_IP = os.environ.get("FIRECREST_IP")
-if FIRECREST_IP:
-	TASKS_URL = os.environ.get("FIRECREST_IP") + "/tasks"
-	COMPUTE_URL = os.environ.get("FIRECREST_IP") + "/compute"
+FIRECREST_URL = os.environ.get("FIRECREST_URL")
+if FIRECREST_URL:
+	TASKS_URL = os.environ.get("FIRECREST_URL") + "/tasks"
+	COMPUTE_URL = os.environ.get("FIRECREST_URL") + "/compute"
 else:
 	TASKS_URL = os.environ.get("TASKS_URL")
 	COMPUTE_URL = os.environ.get("COMPUTE_URL")
