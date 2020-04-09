@@ -2,14 +2,14 @@ import pytest
 import requests
 import os
 import time
-
+from test_globals import *
 import urllib.request, urllib.parse, urllib.error
 
-FIRECREST_IP = os.environ.get("FIRECREST_IP")
-if FIRECREST_IP:
-    TASKS_URL = os.environ.get("FIRECREST_IP") + "/tasks"
-    STORAGE_URL = os.environ.get("FIRECREST_IP") + "/storage"
-    UTILITIES_URL = os.environ.get("FIRECREST_IP") + "/utilities"
+FIRECREST_URL = os.environ.get("FIRECREST_URL")
+if FIRECREST_URL:
+    TASKS_URL = os.environ.get("FIRECREST_URL") + "/tasks"
+    STORAGE_URL = os.environ.get("FIRECREST_URL") + "/storage"
+    UTILITIES_URL = os.environ.get("FIRECREST_URL") + "/utilities"
 else:
     TASKS_URL = os.environ.get("TASKS_URL")
     STORAGE_URL = os.environ.get("STORAGE_URL")
@@ -18,6 +18,8 @@ else:
 # same server used for utilities and external upload storage
 SERVER_UTILITIES_STORAGE = os.environ.get("SYSTEMS_PUBLIC").split(";")[0] 
 OBJECT_STORAGE = os.environ.get("OBJECT_STORAGE")
+
+
 
 def get_task(task_id, headers):
 	url = "{}/{}".format(TASKS_URL, task_id)
@@ -38,7 +40,7 @@ def check_task_status(task_id, headers, final_expected_status = 200): # could be
 def test_post_upload_request(headers):
 
     # request upload form
-    data = { "sourcePath": "testsbatch.sh", "targetPath": "/home/testuser" }
+    data = { "sourcePath": "testsbatch.sh", "targetPath": USER_HOME }
     resp = requests.post(STORAGE_URL + "/xfer-external/upload", headers=headers, data=data)
     assert resp.status_code == 200
 
@@ -110,7 +112,7 @@ def test_post_upload_request(headers):
 @pytest.mark.parametrize("machine", [SERVER_UTILITIES_STORAGE])
 def test_internal_cp(machine, headers):
     # jobName, time, stageOutJobId
-    data = {"sourcePath":"/home/testuser/testsbatch.sh", "targetPath":"/home/testuser/testsbatch2.sh"}
+    data = {"sourcePath": USER_HOME + "/testsbatch.sh", "targetPath": USER_HOME + "/testsbatch2.sh"}
     url = "{}/xfer-internal/cp".format(STORAGE_URL)
     resp = requests.post(url, headers=headers,data=data)
     assert resp.status_code == 201
@@ -122,7 +124,7 @@ def test_internal_cp(machine, headers):
     time.sleep(5)
 
     # ls /home/testuser/testsbatch2.sh
-    params = {"targetPath": "/home/testuser/testsbatch.sh", "showhidden" : "true"}
+    params = {"targetPath": USER_HOME + "/testsbatch.sh", "showhidden" : "true"}
     url = "{}/ls".format(UTILITIES_URL)
     headers.update({"X-Machine-Name": machine})
     resp = requests.get(url, headers=headers, params=params)

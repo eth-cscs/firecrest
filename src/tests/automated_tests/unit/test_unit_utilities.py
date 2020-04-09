@@ -1,12 +1,13 @@
 import pytest
 import requests
 import os
+from test_globals import *
 from markers import host_environment_test
 
 
-FIRECREST_IP = os.environ.get("FIRECREST_IP")
-if FIRECREST_IP:
-	UTILITIES_URL = os.environ.get("FIRECREST_IP") + "/utilities"
+FIRECREST_URL = os.environ.get("FIRECREST_URL")
+if FIRECREST_URL:
+	UTILITIES_URL = os.environ.get("FIRECREST_URL") + "/utilities"
 else:
     UTILITIES_URL = os.environ.get("UTILITIES_URL")
 
@@ -20,18 +21,18 @@ DATA = [ (SERVER_UTILITIES, 200) , ("someservernotavailable", 400)]
 DATA_201 = [ (SERVER_UTILITIES, 201) , ("someservernotavailable", 400)]  
 
 # test data for ls command
-DATA_LS = [ (SERVER_UTILITIES, "/home/testuser/testsbatch.sh", 200), 
-(SERVER_UTILITIES, "/home/testuser/dontexist/", 400),
+DATA_LS = [ (SERVER_UTILITIES, USER_HOME + "/testsbatch.sh", 200), 
+(SERVER_UTILITIES, USER_HOME + "/dontexist/", 400),
 (SERVER_UTILITIES, "/etc/binfmt.d/", 200), # empty folder
-(SERVER_UTILITIES, "/home/testuser/", 200),
-("someservernotavailable", "/home/testuser/" ,400)]  
+(SERVER_UTILITIES, USER_HOME + "/", 200),
+("someservernotavailable", USER_HOME + "/" ,400)]  
 
 
 
 # Test upload command
 @pytest.mark.parametrize("machine, expected_response_code", DATA_201)
 def test_upload(machine, expected_response_code, headers):
-	data = {"targetPath": "/home/testuser/"}
+	data = {"targetPath": USER_HOME + "/"}
 	files = {'file': ('testsbatch.sh', open('testsbatch.sh', 'rb'))}
 	url = "{}/upload".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
@@ -81,7 +82,7 @@ def test_chmod_invalid_args(machine, expected_response_code, headers):
 # Test chown method 
 @pytest.mark.parametrize("machine, expected_response_code", DATA)
 def test_chown(machine, expected_response_code, headers):
-	data = {"targetPath": "/home/testuser/testsbatch.sh", "owner" : "testuser" , "group": "testuser"}
+	data = {"targetPath": USER_HOME + "/testsbatch.sh", "owner" : CURRENT_USER , "group": CURRENT_USER}
 	url = "{}/chown".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.put(url, headers=headers, data=data)
@@ -102,7 +103,7 @@ def test_list_directory(machine, targetPath, expected_response_code, headers):
 # Test mkdir command
 @pytest.mark.parametrize("machine, expected_response_code", DATA_201)
 def test_make_directory(machine, expected_response_code, headers):
-	data = {"targetPath": "/home/testuser/samplefolder/samplesubfolder", "p" : "true"}
+	data = {"targetPath": USER_HOME + "/samplefolder/samplesubfolder", "p" : "true"}
 	url = "{}/mkdir".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.post(url, headers=headers, data=data)
@@ -113,7 +114,7 @@ def test_make_directory(machine, expected_response_code, headers):
 # Test rename command
 @pytest.mark.parametrize("machine, expected_response_code", DATA)
 def test_rename(machine, expected_response_code, headers):
-	data = {"sourcePath": "/home/testuser/samplefolder/", "targetPath" : "/home/testuser/sampleFolder/"}
+	data = {"sourcePath": USER_HOME + "/samplefolder/", "targetPath" : USER_HOME + "/sampleFolder/"}
 	url = "{}/rename".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.put(url, headers=headers, data=data)
@@ -125,7 +126,7 @@ def test_rename(machine, expected_response_code, headers):
 # Test cp command
 @pytest.mark.parametrize("machine, expected_response_code", DATA_201)
 def test_copy(machine, expected_response_code, headers):
-	data = {"sourcePath": "/home/testuser/sampleFolder", "targetPath" : "/home/testuser/sampleFoldercopy"}
+	data = {"sourcePath": USER_HOME + "/sampleFolder", "targetPath" : USER_HOME + "/sampleFoldercopy"}
 	url = "{}/copy".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.post(url, headers=headers, data=data)
@@ -136,7 +137,7 @@ def test_copy(machine, expected_response_code, headers):
 # Test symlink command
 @pytest.mark.parametrize("machine, expected_response_code", DATA_201)
 def test_symlink(machine, expected_response_code, headers):
-	data = {"targetPath": "/home/testuser/testsbatch.sh", "linkPath" : "/home/testuser/sampleFolder/testlink"}
+	data = {"targetPath": USER_HOME + "/testsbatch.sh", "linkPath" : USER_HOME + "/sampleFolder/testlink"}
 	url = "{}/symlink".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.post(url, headers=headers, data=data)
@@ -149,7 +150,7 @@ def test_symlink(machine, expected_response_code, headers):
 # TODO: test file which doesn't exist (must return 400)
 @pytest.mark.parametrize("machine, expected_response_code", [ (SERVER_UTILITIES, 204) , ("someservernotavailable", 400)])
 def test_rm(machine, expected_response_code, headers):
-	data = {"targetPath": "/home/testuser/sampleFolder/"}
+	data = {"targetPath": USER_HOME + "/sampleFolder/"}
 	url = "{}/rm".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.delete(url, headers=headers, data=data)
@@ -160,7 +161,7 @@ def test_rm(machine, expected_response_code, headers):
 # Test download command
 @pytest.mark.parametrize("machine, expected_response_code", DATA)
 def test_download(machine, expected_response_code, headers):
-	params = {"sourcePath": "/home/testuser/testsbatch.sh"}
+	params = {"sourcePath": USER_HOME + "/testsbatch.sh"}
 	url = "{}/download".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.get(url, headers=headers, params=params)

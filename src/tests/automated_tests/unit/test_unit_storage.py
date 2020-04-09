@@ -2,18 +2,18 @@ import pytest
 import requests
 import os
 from markers import host_environment_test
+from test_globals import *
 
-FIRECREST_IP = os.environ.get("FIRECREST_IP")
-if FIRECREST_IP:
-	STORAGE_URL = os.environ.get("FIRECREST_IP") + "/storage"
+FIRECREST_URL = os.environ.get("FIRECREST_URL")
+if FIRECREST_URL:
+	STORAGE_URL = os.environ.get("FIRECREST_URL") + "/storage"
 else:
     STORAGE_URL = os.environ.get("STORAGE_URL")
 
 
-
 # test upload request: ask for an upload task (must throw 200 OK)
 def test_post_upload_request(headers):
-    data = { "sourcePath": "testsbatch.sh", "targetPath": "/home/testuser" }
+    data = { "sourcePath": "testsbatch.sh", "targetPath": USER_HOME }
     resp = requests.post(STORAGE_URL + "/xfer-external/upload", headers=headers, data=data)
     assert resp.status_code == 200
 
@@ -34,7 +34,7 @@ def test_download(headers):
 
 def test_internal_cp(headers):
     # jobName, time, stageOutJobId
-    data = {"sourcePath":"/home/testuser/testsbatch.sh", "targetPath":"/home/testuser/testsbatch2.sh"}
+    data = {"sourcePath": USER_HOME + "/testsbatch.sh", "targetPath": USER_HOME + "/testsbatch2.sh"}
     url = "{}/xfer-internal/cp".format(STORAGE_URL)
     resp = requests.post(url, headers=headers,data=data)
     assert resp.status_code == 201
@@ -42,7 +42,7 @@ def test_internal_cp(headers):
 
 def test_internal_mv(headers):
     # jobName, time, stageOutJobId
-    data = {"sourcePath":"/home/testuser/testsbatch2.sh", "targetPath":"/home/testuser/testsbatch3.sh"}
+    data = {"sourcePath": USER_HOME + "/testsbatch2.sh", "targetPath": USER_HOME + "/testsbatch3.sh"}
     url = "{}/xfer-internal/mv".format(STORAGE_URL)
     resp = requests.post(url, headers=headers,data=data)
     assert resp.status_code == 201
@@ -50,7 +50,7 @@ def test_internal_mv(headers):
 
 def test_internal_rsync(headers):
     # jobName, time, stageOutJobId
-    data = {"sourcePath":"/home/testuser/", "targetPath":"/home/testuser/"}
+    data = {"sourcePath": USER_HOME + "/", "targetPath": USER_HOME + "/"}
     url = "{}/xfer-internal/rsync".format(STORAGE_URL)
     resp = requests.post(url, headers=headers,data=data)
     assert resp.status_code == 201   
@@ -58,7 +58,7 @@ def test_internal_rsync(headers):
 
 def test_internal_rm(headers):
     # jobName, time, stageOutJobId
-    data = {"targetPath":"/home/testuser/testsbatch3.sh"}
+    data = {"targetPath": USER_HOME + "/testsbatch3.sh"}
     url = "{}/xfer-internal/rm".format(STORAGE_URL)
     resp = requests.post(url, headers=headers,data=data)
     assert resp.status_code == 201   

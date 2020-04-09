@@ -3,9 +3,9 @@ import requests
 import os
 
 
-FIRECREST_IP = os.environ.get("FIRECREST_IP")
-if FIRECREST_IP:
-	STATUS_URL = os.environ.get("FIRECREST_IP") + "/status"
+FIRECREST_URL = os.environ.get("FIRECREST_URL")
+if FIRECREST_URL:
+	STATUS_URL = os.environ.get("FIRECREST_URL") + "/status"
 else:
     STATUS_URL = os.environ.get("STATUS_URL")
 

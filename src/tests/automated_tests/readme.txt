@@ -24,7 +24,7 @@ For "test-build" deploy we have the following:
 
 #----------------------------------------------------------------------------------------------
 TEST_USER=testuser   # existing user name: will be encoded in the authorization JWT
-FIRECREST_IP=        # It must be setted if microservices are accesed through a gateway like kong
+FIRECREST_URL=        # It must be setted if microservices are accesed through a gateway like kong
 HOST_NETWORK = True  # This must be setted to True if microservices are in a docker host network
 #----------------------------------------------------------------------------------------------
 
@@ -75,5 +75,32 @@ Run a specific test within a test file:
 In order to test implementations that are behind a gateway with authetication 
 you will need to disable token verification. This has to be done in your gateway configuration. 
 Also you must set to empty the REALM_RSA_PUBLIC_KEY environment variable in the common.env file of your deploy.
-Finally, you will need to specify the firecrest gateway address in FIRECREST_IP environment variable.
+Finally, you will need to specify the firecrest gateway address in FIRECREST_URL environment variable.
+
+
+UPDATE - 04/20/2020
+
+It's possible to test implementations behind a gateway using service account logins.
+You need to setup the following environment variables:
+
+# The gateway url
+FIRECREST_URL = http://myapigateway
+
+# enable login with sa account
+SA_LOGIN      = True 
+
+# Openid service url
+SA_TOKEN_URI  = http://myopenidservice/auth/realms/kcrealm/protocol/openid-connect/token
+
+# The credentials for sa account. 
+# NOTE: the client must have enabled Service Accounts feature
+SA_SECRET_KEY = mysecret
+SA_CLIENT_ID  = mysaaccount
+
+The "demo" implementation has been configured to be tested using service account authentication.
+Open demo.env file to check the configuration values that have been setted.
+As previously shown, run the tests on "demo" implementation by executing the following command:
+
+    pytest -c demo.ini 
+
 

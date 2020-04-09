@@ -67,6 +67,7 @@ RUN chmod 644 /etc/slurm/* && chmod 755 /*.sh
 RUN useradd -m -s /bin/bash test1 && useradd -m -s /bin/bash test2
 RUN echo 'test1:test11' | chpasswd  && echo 'test2:test22' | chpasswd
 RUN useradd -m -s /bin/bash testuser && echo 'testuser:testuser' | chpasswd
+RUN useradd -m -s /bin/bash service-account-firecrest-sample && echo 'service-account-firecrest-sample:service-account-firecrest-sample' | chpasswd
 
 ADD cluster/ssh/* /etc/ssh/
 ADD environment/keys/ca-key.pub  /etc/ssh/
