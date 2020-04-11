@@ -19,12 +19,6 @@ def create_connection(host,port,passwd="",db=0):
     try:
         r = redis.StrictRedis(host=host,port=port,db=db,password=passwd)
         # r = Redis(host=host, port=port, db=db, password=passwd)
-
-        # if last_task_id isn't set (and doesn't exist on disk), then
-        # is created
-        if not r.exists("last_task_id"):
-            r.set("last_task_id",0)
-
         return r
     except redis_exceptions.ResponseError as e:
         logging.error("Error on create_connection")
@@ -44,54 +38,14 @@ def create_connection(host,port,passwd="",db=0):
         return None
 
 
-#close connection from client
-def close_connection(r):
-    try:
-        addr = r.client_list()[0]["addr"]
-        return r.client_kill(addr)
-    except Exception as e:
-        logging.error("Error on close_connection")
-        logging.error(e)
-        return False
-
-
-#returns last task id
-def get_last_task_id(r):
-
-    try:
-        # returns None if not exists
-        last_task_id=r.get("last_task_id")
-
-        # included .decode('latin-1') because in Python3 redis stores data as bytes not as string.
-        return last_task_id.decode('latin-1')
-    except Exception as e:
-        logging.error("Error on get_last_task_id")
-        logging.error(e)
-        return None
-
 # incrementes task id by 1
 def incr_last_task_id(r):
     try:
-        r.incr("last_task_id",1)
-        return get_last_task_id(r)
+        return r.incr("last_task_id",1)
     except Exception as e:
         logging.error("Error on incr_last_task_id")
         logging.error(e)
         return None
-
-# creates last_task_id in redis:
-def create_last_task_id(r):
-    try:
-        logging.info("Try to create 'last_task_id'")
-        if get_last_task_id(r) == None:
-            logging.info("'last_task_id' not created")
-            r.set("last_task_id",1)
-        return True
-    except Exception as e:
-        logging.error("Error on create_last_task_id")
-        logging.error(e)
-        return False
-
 
 # save task status in redis server
 # if success, returns True, otherwise, False
@@ -105,11 +59,8 @@ def save_task(r,id,task):
 
     try:
         # serialize json from task:
-
         jtask = json.dumps(task)
-
         r.set(task_id,jtask)
-
         return True
     except Exception as e:
         logging.error(e)
