@@ -81,17 +81,20 @@ After obtaining the credentials you have to set these variables:
     .. code-tab:: bash
 
         $ export TOKEN=<token
-        $ export FIRECREST_IP="http://localhost:8000"
-        $ export STORAGE_IP="http://localhost:9000"
+        $ export FIRECREST_IP="http://148.187.98.88:8000"
+        $ export STORAGE_IP="http://148.187.98.88:9000"
 
     .. code-tab:: python
 
-        import requests
         import json
+        import requests
 
         TOKEN = '<token>'
-        FIRECREST_IP = 'http://localhost:8000'
-        STORAGE_IP = 'http://localhost:9000'
+        FIRECREST_IP = 'http://148.187.98.88:8000'
+        STORAGE_IP = 'http://148.187.98.88:9000'
+
+.. important::
+    python >= 3.6
 
 Test the credentials with a simple call
 =======================================
@@ -104,13 +107,16 @@ The access token has to be included in the header.
 
     .. code-tab:: bash
 
-        $ curl -X GET ${FIRECREST_IP}/status/systems -H "Authorization: Bearer ${TOKEN}"
+        $ curl -X GET ${FIRECREST_IP}/status/systems \
+               -H "Authorization: Bearer ${TOKEN}"
 
     .. code-tab:: python
 
-        url = f'{FIRECREST_IP}/status/systems'
-        headers = {'Authorization': f'Bearer {TOKEN}'}
-        response = requests.get(url=url, headers=headers)
+        response = requests.get(
+            url=f'{FIRECREST_IP}/status/systems',
+            headers={'Authorization': f'Bearer {TOKEN}'}
+        )
+
         print(json.dumps(response.json(), indent=4))
 
 The response to this call will look something like:
@@ -139,7 +145,7 @@ List the contents of a directory
 
 Another simple but useful call of the API is the listing of the contents of a directory.
 As before we have to include the authorization token in the header but we also have to specify the machine name's filesystem and the directory we want to list.
-In our example the machine is *cluster* and we want to list our home directory, */home/test1*.
+In our example the machine is *cluster* and we want to list our home directory, */home/test4*.
 As we can see in the reference section of `utilities/ls <reference.html#get--utilities-ls>`__, the machine name is also part of the header but the target path is a query parameter.
 
 .. note::
@@ -151,18 +157,22 @@ Finally, the call looks like this:
 
     .. code-tab:: bash
 
-        $ curl -X GET "${FIRECREST_IP}/utilities/ls?targetPath=/home/test1" -H "Authorization: Bearer ${TOKEN}" -H "X-Machine-Name: cluster"
+        $ curl -X GET "${FIRECREST_IP}/utilities/ls?targetPath=/home/test4" \
+               -H "Authorization: Bearer ${TOKEN}" \
+               -H "X-Machine-Name: cluster"
 
     .. code-tab:: python
 
-        path = '/home/test1'
+        targetPath = '/home/test4'
         machine = 'cluster'
+
         response = requests.get(
             url=f'{FIRECREST_IP}/utilities/ls',
             headers={'Authorization': f'Bearer {TOKEN}',
-                        'X-Machine-Name': machine},
-            params={'targetPath': f'{path}'}
+                     'X-Machine-Name': machine},
+            params={'targetPath': f'{targetPath}'}
         )
+
         print(json.dumps(response.json(), indent=4))
 
 And the response should look something like:
@@ -173,34 +183,24 @@ And the response should look something like:
         "descr": "List of contents of path",
         "output": [
             {
-                "group": "test1",
-                "last_modified": "2020-03-17T09:41:42",
+                "group": "test4",
+                "last_modified": "2020-04-11T14:53:11",
                 "link_target": "",
-                "name": "firecrest",
+                "name": "test_directory",
                 "permissions": "rwxrwxr-x",
                 "size": "4096",
                 "type": "d",
-                "user": "test1"
+                "user": "test4"
             },
             {
-                "group": "test1",
-                "last_modified": "2020-03-17T14:04:51",
-                "link_target": "",
-                "name": "new-dir",
-                "permissions": "rwxrwxr-x",
-                "size": "4096",
-                "type": "d",
-                "user": "test1"
-            },
-            {
-                "group": "test1",
-                "last_modified": "2020-03-25T17:35:24",
+                "group": "test4",
+                "last_modified": "2020-04-11T14:14:23",
                 "link_target": "",
                 "name": "test_file.txt",
                 "permissions": "rw-rw-r--",
-                "size": "222",
+                "size": "10",
                 "type": "-",
-                "user": "test1"
+                "user": "test4"
             }
         ]
     }
@@ -272,20 +272,26 @@ The path to the file corresponds to a local path, while targetPath is in the mac
 
     .. code-tab:: bash
 
-        $ curl -X POST "${FIRECREST_IP}/utilities/upload" -F "targetPath=/home/test1" -H "Authorization: Bearer ${TOKEN}" -H "X-Machine-Name: cluster" -F "file=@/path/to/input_file"
+        $ curl -X POST "${FIRECREST_IP}/utilities/upload" \
+               -F "targetPath=/home/test4" \
+               -H "Authorization: Bearer ${TOKEN}" \
+               -H "X-Machine-Name: cluster" \
+               -F "file=@/path/to/input_file"
 
     .. code-tab:: python
 
-        targetPath = '/home/test1'
+        targetPath = '/home/test4'
         machine = 'cluster'
-        local_path = '/path/to/input_file'
+        localPath = '/path/to/input_file'
+
         response = requests.post(
             url=f'{FIRECREST_IP}/utilities/upload',
             headers={'Authorization': f'Bearer {TOKEN}',
                      'X-Machine-Name': machine},
             data={'targetPath': targetPath},
-            files={'file': open(local_path,"rb")}
+            files={'file': open(localPath, "rb")}
         )
+
         print(json.dumps(response.json(), indent=4))
 
 As we already mentioned this call is blocking, so it will finish when the uploading completes or if it fails. For a successful uploading the body of the response will look like this:
@@ -322,7 +328,7 @@ You can use this script for the job submission:
     #SBATCH --ntasks=1
     #SBATCH --time=10:00
 
-    sha1sum input.txt
+    sha1sum /home/test4/input_file
 
 Submit a job
 ^^^^^^^^^^^^
@@ -340,18 +346,23 @@ The file this time will be the script we want to run with slurm and the location
 
     .. code-tab:: bash
 
-        $ curl -X POST "${FIRECREST_IP}/compute/jobs" -H "Authorization: Bearer ${TOKEN}" -H "X-Machine-Name: cluster" -F "file=@/path/to/script.sh"
+        $ curl -X POST "${FIRECREST_IP}/compute/jobs" \
+               -H "Authorization: Bearer ${TOKEN}" \
+               -H "X-Machine-Name: cluster" \
+               -F "file=@/path/to/script.sh"
 
     .. code-tab:: python
 
         machine = 'cluster'
-        local_path = '/path/to/script.sh'
+        localPath = '/path/to/script.sh'
+
         response = requests.post(
-                url=f'{FIRECREST_IP}/compute/jobs',
-                headers={'Authorization': f'Bearer {TOKEN}',
-                         'X-Machine-Name': machine},
-                files={'file': open(local_path, 'rb')}
+            url=f'{FIRECREST_IP}/compute/jobs',
+            headers={'Authorization': f'Bearer {TOKEN}',
+                     'X-Machine-Name': machine},
+            files={'file': open(localPath, 'rb')}
         )
+
         print(json.dumps(response.json(), indent=4))
 
 The expected response should resemble the following:
@@ -360,8 +371,8 @@ The expected response should resemble the following:
 
     {
         "success": "Task created",
-        "task_id": "9d9c69b640cfd1cccffb76e1b7297a98",
-        "task_url": "http://192.168.220.10:8000/tasks/9d9c69b640cfd1cccffb76e1b7297a98"
+        "task_id": "af516f55496faf473d3bcaa042c52431",
+        "task_url": "http://148.187.98.88:8000/tasks/af516f55496faf473d3bcaa042c52431"
     }
 
 .. note::
@@ -375,15 +386,18 @@ The response from the last call has the `task ID` in a field, as well as the com
 
     .. code-tab:: bash
 
-        $ curl -X GET "${FIRECREST_IP}/tasks/9d9c69b640cfd1cccffb76e1b7297a98" -H "Authorization: Bearer ${TOKEN}"
+        $ curl -X GET "${FIRECREST_IP}/tasks/af516f55496faf473d3bcaa042c52431" \
+               -H "Authorization: Bearer ${TOKEN}"
 
     .. code-tab:: python
 
-        taskid = '9d9c69b640cfd1cccffb76e1b7297a98'
+        taskid = 'af516f55496faf473d3bcaa042c52431'
+
         response = requests.get(
             url=f'{FIRECREST_IP}/tasks/{taskid}',
             headers={'Authorization': f'Bearer {TOKEN}'}
         )
+
         print(json.dumps(response.json(), indent=4))
 
 The response should look like this if the job submission was successful:
@@ -393,16 +407,16 @@ The response should look like this if the job submission was successful:
     {
         "task": {
             "data": {
-                "jobid": 3,
+                "jobid": 2,
                 "result": "Job submitted"
             },
             "description": "Finished successfully",
-            "hash_id": "39c2ed7cdb4067948b6da516b8d3249a",
-            "last_modify": "2020-03-15T17:59:43",
+            "hash_id": "af516f55496faf473d3bcaa042c52431",
+            "last_modify": "2020-04-11T15:37:04",
             "service": "compute",
             "status": "200",
-            "task_url": "http://192.168.220.10:8000/tasks/39c2ed7cdb4067948b6da516b8d3249a",
-            "user": "test1"
+            "task_url": "http://148.187.98.88:8000/tasks/af516f55496faf473d3bcaa042c52431",
+            "user": "test4"
         }
     }
 
@@ -424,17 +438,21 @@ The job ID is a path parameter, so part of the endpoint URL, and the authorizati
 
     .. code-tab:: bash
 
-        curl -X GET "${FIRECREST_IP}/compute/jobs/3" -H "Authorization: Bearer ${TOKEN}" -H "X-Machine-Name: cluster"
+        $ curl -X GET "${FIRECREST_IP}/compute/jobs/2" \
+               -H "Authorization: Bearer ${TOKEN}" \
+               -H "X-Machine-Name: cluster"
 
     .. code-tab:: python
 
-        jobid = 3
+        jobid = 2
         machine = 'cluster'
+
         response = requests.get(
             url=f'{FIRECREST_IP}/compute/jobs/{jobid}',
             headers={'Authorization': f'Bearer {TOKEN}',
                      'X-Machine-Name': machine}
         )
+
         print(json.dumps(response.json(), indent=4))
 
 And the response should look like that:
@@ -443,8 +461,8 @@ And the response should look like that:
 
     {
         "success": "Task created",
-        "task_id": "babda2e02fc654f4e2513595525e4fb4",
-        "task_url": "http://192.168.220.10:8000/tasks/babda2e02fc654f4e2513595525e4fb4"
+        "task_id": "00d1b7f1d8c37078371423de9108fd8e",
+        "task_url": "http://148.187.98.88:8000/tasks/00d1b7f1d8c37078371423de9108fd8e"
     }
 
 .. attention::
@@ -457,15 +475,18 @@ So using the task ID from the response we have to make a new `/tasks/{taskid} <r
 
     .. code-tab:: bash
 
-        curl -X GET "${FIRECREST_IP}/tasks/babda2e02fc654f4e2513595525e4fb4" -H "Authorization: Bearer ${TOKEN}"
+        $ curl -X GET "${FIRECREST_IP}/tasks/00d1b7f1d8c37078371423de9108fd8e" \
+               -H "Authorization: Bearer ${TOKEN}"
 
     .. code-tab:: python
 
-        taskid = 'babda2e02fc654f4e2513595525e4fb4'
+        taskid = '00d1b7f1d8c37078371423de9108fd8e'
+
         response = requests.get(
             url=f'{FIRECREST_IP}/tasks/{taskid}',
             headers={'Authorization': f'Bearer {TOKEN}'}
         )
+
         print(json.dumps(response.json(), indent=4))
 
 While the job is active the call will be successful and the output will look something like that:
@@ -476,7 +497,7 @@ While the job is active the call will be successful and the output will look som
         "task": {
             "data": {
                 "0": {
-                    "jobid": "3",
+                    "jobid": "2",
                     "name": "script.sh",
                     "nodelist": "cluster",
                     "nodes": "1",
@@ -485,16 +506,16 @@ While the job is active the call will be successful and the output will look som
                     "state": "RUNNING",
                     "time": "2020-03-17T09:08:01",
                     "time_left": "25:46",
-                    "user": "test1"
+                    "user": "test4"
                 }
             },
             "description": "Finished successfully",
-            "hash_id": "babda2e02fc654f4e2513595525e4fb4",
+            "hash_id": "00d1b7f1d8c37078371423de9108fd8e",
             "last_modify": "2020-03-17T09:12:15",
             "service": "compute",
             "status": "200",
-            "task_url": "http://192.168.220.10:8000/tasks/49827d8d914e07c303eb40d55ede552a",
-            "user": "test1"
+            "task_url": "http://148.187.98.88:8000/tasks/00d1b7f1d8c37078371423de9108fd8e",
+            "user": "test4"
         }
     }
 
@@ -509,12 +530,12 @@ If you ask for information for a slurm job had finished for some time you will g
         "task": {
             "data": "slurm_load_jobs error: Invalid job id specified",
             "description": "Finished with errors",
-            "hash_id": "babda2e02fc654f4e2513595525e4fb4",
-            "last_modify": "2020-03-15T18:05:54",
+            "hash_id": "00d1b7f1d8c37078371423de9108fd8e",
+            "last_modify": "2020-04-11T15:42:28",
             "service": "compute",
             "status": "400",
-            "task_url": "http://192.168.220.10:8000/tasks/2a3a5e35008b6da1df8b27cb0089aaed",
-            "user":"test1"
+            "task_url": "http://148.187.98.88:8000/tasks/00d1b7f1d8c37078371423de9108fd8e",
+            "user": "test4"
         }
     }
 
@@ -536,16 +557,20 @@ Here is an example of how to use it:
 
     .. code-tab:: bash
 
-        curl -X GET "${FIRECREST_IP}/compute/acct" -H "Authorization: Bearer ${TOKEN}" -H "X-Machine-Name: cluster"
+        $ curl -X GET "${FIRECREST_IP}/compute/acct" \
+               -H "Authorization: Bearer ${TOKEN}" \
+               -H "X-Machine-Name: cluster"
 
     .. code-tab:: python
 
         machine = 'cluster'
+
         response = requests.get(
             url=f'{FIRECREST_IP}/compute/acct',
             headers={'Authorization': f'Bearer {TOKEN}',
-                        'X-Machine-Name': machine}
+                     'X-Machine-Name': machine}
         )
+
         print(json.dumps(response.json(), indent=4))
 
 From the response you can get the task ID, as before:
@@ -554,23 +579,26 @@ From the response you can get the task ID, as before:
 
     {
         "success": "Task created",
-        "task_id": "cd6192b6cfbc6ca6c38f565a67ef028e",
-        "task_url": "http://192.168.220.10:8000/tasks/cd6192b6cfbc6ca6c38f565a67ef028e"
+        "task_id": "8c1ebced0d813f601b11744f0e16c40e",
+        "task_url": "http://148.187.98.88:8000/tasks/8c1ebced0d813f601b11744f0e16c40e"
     }
 
 .. tabs::
 
     .. code-tab:: bash
 
-        curl -X GET "${FIRECREST_IP}/tasks/cd6192b6cfbc6ca6c38f565a67ef028e" -H "Authorization: Bearer ${TOKEN}"
+        curl -X GET "${FIRECREST_IP}/tasks/8c1ebced0d813f601b11744f0e16c40e" \
+             -H "Authorization: Bearer ${TOKEN}"
 
     .. code-tab:: python
 
-        taskid = 'cd6192b6cfbc6ca6c38f565a67ef028e'
+        taskid = '8c1ebced0d813f601b11744f0e16c40e'
+
         response = requests.get(
             url=f'{FIRECREST_IP}/tasks/{taskid}',
             headers={'Authorization': f'Bearer {TOKEN}'}
         )
+
         print(json.dumps(response.json(), indent=4))
 
 The final response of should look like this:
@@ -586,56 +614,20 @@ The final response of should look like this:
                     "nodelist": "cluster",
                     "nodes": "1",
                     "partition": "part01",
-                    "start_time": "2020-04-07T09:12:55",
-                    "state": "FAILED",
-                    "time": "00:00:00",
-                    "time_left": "2020-04-07T09:12:55",
-                    "user": "test1"
-                },
-                {
-                    "jobid": "3",
-                    "name": "test",
-                    "nodelist": "cluster",
-                    "nodes": "1",
-                    "partition": "part01",
-                    "start_time": "2020-04-07T09:30:34",
-                    "state": "FAILED",
-                    "time": "00:00:00",
-                    "time_left": "2020-04-07T09:30:34",
-                    "user": "test1"
-                },
-                {
-                    "jobid": "4",
-                    "name": "test",
-                    "nodelist": "cluster",
-                    "nodes": "1",
-                    "partition": "part01",
-                    "start_time": "2020-04-07T11:03:25",
-                    "state": "FAILED",
-                    "time": "00:00:00",
-                    "time_left": "2020-04-07T11:03:25",
-                    "user": "test1"
-                },
-                {
-                    "jobid": "5",
-                    "name": "test",
-                    "nodelist": "cluster",
-                    "nodes": "1",
-                    "partition": "part01",
-                    "start_time": "2020-04-07T11:05:36",
+                    "start_time": "2020-04-11T15:37:04",
                     "state": "COMPLETED",
                     "time": "00:00:00",
-                    "time_left": "2020-04-07T11:05:36",
-                    "user": "test1"
+                    "time_left": "2020-04-11T15:37:04",
+                    "user": "test4"
                 }
             ],
             "description": "Finished successfully",
-            "hash_id": "cd6192b6cfbc6ca6c38f565a67ef028e",
-            "last_modify": "2020-04-07T11:15:40",
+            "hash_id": "8c1ebced0d813f601b11744f0e16c40e",
+            "last_modify": "2020-04-11T15:51:15",
             "service": "compute",
             "status": "200",
-            "task_url": "http://192.168.220.10:8000/tasks/cd6192b6cfbc6ca6c38f565a67ef028e",
-            "user": "test1"
+            "task_url": "http://148.187.98.88:8000/tasks/8c1ebced0d813f601b11744f0e16c40e",
+            "user": "test4"
         }
     }
 
@@ -647,7 +639,7 @@ When FirecREST submits a job on behalf of the user a directory, named `firecrest
 The subdirectories of this will be named after the task ID of the job submission and the user can see there the job script that was used for the submission as well as the output file(s) if their location is not specified.
 
 .. important::
-    The directory of FirecREST will be on `$SCRATCH` instead of `$HOME`.
+    When using the FirecREST on the CSCS machines, this directory will be on `$SCRATCH` instead of `$HOME`.
     You can find more information about what $SCRATCH is and the different filesystems of CSCS `here <https://user.cscs.ch/storage/file_systems/>`__.
 
 Upload with non-blocking call something bigger
@@ -668,18 +660,23 @@ Both `sourcePath` and `targetPath` are form data parameters.
 
     .. code-tab:: bash
 
-        curl -X POST "${FIRECREST_IP}/storage/xfer-external/upload" -H "Authorization: Bearer ${TOKEN}" -F "sourcePath=/path/to/file" -F "targetPath=/home/test1/new-dir"
+        $ curl -X POST "${FIRECREST_IP}/storage/xfer-external/upload" \
+               -H "Authorization: Bearer ${TOKEN}" \
+               -F "targetPath=/home/test4" \
+               -F "sourcePath=/path/to/file"
 
     .. code-tab:: python
 
-        targetPath = '/home/test1/new-dir'
+        targetPath = '/home/test4'
         sourcePath = 'path/to/file'
+
         response = requests.post(
             url=f'{FIRECREST_IP}/storage/xfer-external/upload',
             headers={'Authorization': f'Bearer {TOKEN}'},
             data={'targetPath': targetPath,
                   'sourcePath': sourcePath}
         )
+
         print(json.dumps(response.json(), indent=4))
 
 It FirecREST task was created succesfully we should get something like this:
@@ -688,8 +685,8 @@ It FirecREST task was created succesfully we should get something like this:
 
     {
         "success": "Task created",
-        "task_id": "a78c226e2e17ea05ef1d72a812648145",
-        "task_url": "http://192.168.220.10:8000/tasks/a78c226e2e17ea05ef1d72a812648145"
+        "task_id": "455c7c5f4910939fb502194a45d6914d",
+        "task_url": "http://148.187.98.88:8000/tasks/455c7c5f4910939fb502194a45d6914d"
     }
 
 Afterward, we have to check on the task with the `/tasks/{taskid} <reference.html#get--tasks-taskid>`__ call that we have already seen.
@@ -698,49 +695,62 @@ Afterward, we have to check on the task with the `/tasks/{taskid} <reference.htm
 
     .. code-tab:: bash
 
-        curl -X GET "${FIRECREST_IP}/tasks/a78c226e2e17ea05ef1d72a812648145" -H "Authorization: Bearer ${TOKEN}"
+        curl -X GET "${FIRECREST_IP}/tasks/455c7c5f4910939fb502194a45d6914d" \
+             -H "Authorization: Bearer ${TOKEN}"
 
     .. code-tab:: python
 
-        taskid = 'a78c226e2e17ea05ef1d72a812648145'
+        taskid = '455c7c5f4910939fb502194a45d6914d'
+
         response = requests.get(
             url=f'{FIRECREST_IP}/tasks/{taskid}',
             headers={'Authorization': f'Bearer {TOKEN}'}
         )
+
         print(json.dumps(response.json(), indent=4))
+
+        # You can isolate the "command" field, that holds the useful information
+        print(response.json()['task']['data']['msg']['command'])
 
 And the task's status description now should be "Form URL from Object Storage received" and look like that:
 
 .. code-block:: json
-    :emphasize-lines: 6
+    :emphasize-lines: 11, 28
 
     {
         "task": {
             "data": {
-                "hash_id": "a78c226e2e17ea05ef1d72a812648145",
+                "hash_id": "455c7c5f4910939fb502194a45d6914d",
                 "msg": {
-                    "command": "curl -i -X POST http://192.168.220.19:9000/test1 -F 'key=a78c226e2e17ea05ef1d72a812648145/file' -F 'x-amz-algorithm=AWS4-HMAC-SHA256' -F 'x-amz-credential=storage_access_key/20200317/us-east-1/s3/aws4_request' -F 'x-amz-date=20200317T140011Z' -F 'policy=eyJleHBpcmF0aW9uIjogIjIwMjAtMDMtMjRUMTQ6MDA6MTFaIiwgImNvbmRpdGlvbnMiOiBbeyJidWNrZXQiOiAidGVzdDEifSwgeyJrZXkiOiAiYTc4YzIyNmUyZTE3ZWEwNWVmMWQ3MmE4MTI2NDgxNDUvc2NyaXB0LnNoIn0sIHsieC1hbXotYWxnb3JpdGhtIjogIkFXUzQtSE1BQy1TSEEyNTYifSwgeyJ4LWFtei1jcmVkZW50aWFsIjogInN0b3JhZ2VfYWNjZXNzX2tleS8yMDIwMDMxNy91cy1lYXN0LTEvczMvYXdzNF9yZXF1ZXN0In0sIHsieC1hbXotZGF0ZSI6ICIyMDIwMDMxN1QxNDAwMTFaIn1dfQ==' -F 'x-amz-signature=955f64c020ebc4b797fac7d4338ee695c5c9605dc9962a135df57a23c4423aab' -F file=@/path/to/file",
-                    "key": "a78c226e2e17ea05ef1d72a812648145/file",
+                    "action": "wget -q -O /home/test4/input_file 'http://148.187.98.88:9000/test4/455c7c5f4910939fb502194a45d6914d/input_file?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=storage_access_key%2F20200411%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20200411T163746Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=fe2c2a08208a3685ac7f07807b744c06fb60eafb0e79717045f49a547672f11e'",
+                    "cert": [
+                        "gAAAAABekfJamesW2QEhF-s2nvCnPIolMJyfe4hRasZALAj8ldevpHdEhx6h4nIG9iO3gA46hJndpfTC6YlF1QxDHdg1cRQmx2HaIWtHHrvsN_hrFmQOznXJUAzDSRFsN-9Aw2MfTlDRUwD7p1mxbyx4PozIY2W7rSq8YFM_8FZL-P5rMV_fOWaJxS6lEFxOoTWxQuKGEF2Q6GP_Bv3QSYy0F7LsdhlKwMlCFCTKeHD-RjP4M_Z5YOBfIHqbxi7FsYPZ1WJz4mmaBU3ukQps_vDdZzVm8BB-dEyoRRBv3ynK3gFWZv8Ew6iPYTp1SnnzeX2Y1EoglGjqQmPE_cjn6K-BbQ4-c8rUEUle0bPm6OHOsRIX707SbfZB78p0OPyppG_B8XLQhJiMgzvrT11Rhn2ntUiFKOIZBWyihHbNCkk4jIsAEzAqyG0zLLqXBlqrSCX4DoKQQmV5YvFAi2A3tjfp_4qwdCKWiDImia81mdz9451qUr_oFtjB2OpZQiqBCChchisBDVRLUI7Moi3I4ZhwjXsxywUKs-Y3I7FrZfQSahuUlHwzc-QQIt5od8jeJ2mCd7OMVbjIvcngpIpxssLp9vKBUluAn8IV8CAHlmwO0OHoTDnN7xYIlyyHOxhRDzJeJgniNKxuGDCKTwYEezByRFSd5khNIxjn_coAyN--y6scHbICV_8s6pZ6EP5hrvYHup5nZaWFl7HIGpnHZdJV0V7qKog1Pb97HCU16gypcb_m2DMd0z98h5T8s3wmu6o4lh3YtvliHk1yG6TZYyad5W1ueqOo_phshthFHkcQVYU3IOM1TLC2lvYIVMS9XQLrD6cBU8Kam7rlTyH_0Zl538G_v34SzW3rXM-zJ4BCw0hMn6YzqxqeMUwf5alicu1iEvQqB453XHfYQoJWU3t-50Y8KxlLAMrjDFeo2jYr-bQpw8jlRIzfFJxG77vhGq4c_uLg4z68md1JEgIn-EgrkgJGAOA5sZbTkhZU1v4UCmJRX9zQdm54KRU00ScE5mIPRzQzbWIyxEcIVtAT3WuF0m6-wNColg8CYZyicoB4VtRriQlIVUNLJx6acT80I-I3kNKbQycC79_BmQyOM8_J3atbv4uPTtDXo7dgCb4fZoJ7eassGbF3-iZduWfnZAClQH78W-o7lWhblh4hFZDJN6QLwVMdujZsgjMfIrh7mDp_h3wt22_Ha2w64AFEXUDyB4t4dhQMA13HFlAn5rOH1Qu1Eti1Fcwo7tzxcUmgNq9_SUczhZMe3cbM515I_LjJPgJHqQQXo9Fty8Rz4Ex-o4bZRPX3FzaJWmRAaLIub_dtSmJBDDCMX__YA_Ddcb9afKB-v3nFrueP2QBpqa2a_JbVKXOch7nZU6UOYBZBl9-ZvLWUcO3ClEKxyM3Edz_sMc2mBUsWS9y1Pff0iIQK-t2MHeCOfm70Mj3lykij5FEpB8eRdxOFAytf0raCYegteodrmVbBkQQg_NQtTN3BncNWkKzKjB_1bRvZCEfgenMNdEy_AIu-vdKU7cyX6R50ui4f2s799utj0fS4H5rpxX3P5MzlkoPt96d5R7tidq7VibBMPiNZdRrcM1lV9Bu9JqQVP7cfNPIfywsp8YC1_QfXhM8aXQsQHIxZbxXTqH_AuB1GqllDn4kf5EWHbOp84tPptOKfoGiNUWjMM1FtBJkquRqMJ2O9ezoQmuwYh-ku5mcvEFE0jd9YKbHWd4VQEyPmKdJuLKYcycF0hWMns7hZJGWEBeZq_fJx7PtZaVjM9oMJqwKsaUBYfQ-3lYdKg1sWGFziMY_Tmx9AHkWyZOeKmZWaqL4EZjas33_Aj243zlVUPg3UWQY17GB98pJwefCYcze8WmIuXLyHeHcAFCM2la9rDbf58a1m_4ohuOBOdzg6EyDF3p5hg_a_Pt89sCHrUx1PsMgcTG4Pqdxyc7pUohPQiADhh0s8_BgGlBbk3u_NZ9q3O8bmW74_jvkt2NV2ReMucxnZhkxboNZ5eqwRsuqqjXtSbcSWsaAxiB9B1QmzG2jJVebjPTxp7TVvryqYgFmeTmnwyT5PghFqOQBs2jLeNSddRR2ysyu3Ozd6QXoBoDP7M7htOmEJVD-nSTlDVMvRctNGs4VZ5JGvSh3yKToJt2zdBwR-3XSYNHdGJWD04SFvVl35XEjiD_Ceb8Rdr4fFiwCB-VAaXynydfiacJsz2N4Gq5NgN0aCvgLuyl1E7qej_Ar9i6B0BzuiRZlTM3lag0bK10YGw-R0MP-EULXPjky75vzEvBTNRm6TN9XUqjZpm2kQMABVzQonGGToG-rphe3pLtJ8iu8wDMgK0A0y9NhO0rXOT5zU-ZNJFy3Ja7FPb33Sox2H9jgEVPpmGv1bZ_3HMRMb43MTNMX7wfNv7McDe6LMoAJlRaJYDlmDAHx7oNg0dRw7WeK97s4ghStga--9-RENAQQ6mMsYQMwzVkvzkUuEf3lWsol12hKXOexAv4hhjv62NyuZjOsCihWIcOpGla1ADMKJlx91Nzj-9wKWrGKnaBssv3vtUVq88vUoSkx9svKAER9MMz11fOq8LQKSXKBxTgMkagKqbtyZyC00dYLFRNWElTHEVSW-RvuNR8ZG1Ge6-yHXR6JZ2XLZclDJVQg8Q1ldzxoctRwJorFOUxxMzRBymiLNblCt2z3NRJ14re9BVcDtC1sYZDzdfcTaCnBCB9NeI1Ol9Kd_lq_assSX0d7CJWXuXvHuzDBphfhb3vhAwYdk4rQseATR5Gn2n7fUzcamL-vg-XnSEBm3a9CRjU9fnC-mfQOb3YVSS4LF2-POs_2OQxuRgONztj_dBtrTGtQrbcMiDqn4hiJ6Cp8qFyG1Z7qtxjTVQo_mm99Pc_4sT5I610Fn-kp_eVKQ8DEhym7PbCDZ0CCByJT4vv-tlu4o0FOKsEU2B5Jay8m3s2bIyzvp0NmDPxrSGtW2hkSpaXRH9OfuAJhqB5RdwfXm5YwBO9jeewPnvQjUTJwXXFJNcdA-R6PRsa5m403woX4rxQeL47xtzOKmUUoCLyd0sxA2YFAmZe0C-2BB3RcCY7Ekxc7Pp2q5dnXUTqvk6fIOgbda2EAJLoaDx1HNyhexgs-owJHN31UXKI8Wl_TeTw8cyRszmCCKjWUquThNvIicvw-q-ILTa0pZzYqALeYgGaxHCqGlKRrctyk38g6zUsAE5UXq98Tgu1zwQnElpe5rIYvTwn863zs7Zfp7ochsDOooaDrKuUxL8wKsRsA3ubO6M31qr7YIGMATmfxv0MqeTcFLj4hHaIuQzIGXoBBGRAE_yS7pi1rX8fF9I9G5ln_0cwcHBmhMrezKl13kAUarx4SqeuNB2HFdQ874ikVkYKgL3KIbYIdLphOH4fmGAS0ygldnvfvqZ5tZwThht4iRoGjOeKgDRW9R8pqB-8vlG6-dJv29ePiJXW--DJ1-ff8ftohlZloNbfXgWIBcNHPuG3qMDg-XpulKBHiuZITUbH8nwskRVlcfl3MtjquyyqPQZO42dGvTRIEVloE2vz9N6gHE8s809eSFEbhLTcmr-izsU0WRdM8xR-XZdbq24WIvsVFchGT3yuqbGt1DGfm6kyfrGgq4hXj5EKYVJbElMR3wRQV7TwBOpYLXa90ld2uW8isOAfsX1MboZ4mF3rLltD6tLaC1pxovg1hun095tGAC6BJ9CKngIw9USWcr6ChhrGVJpmLMHrsF",
+                        "/tmp/dummyrkg42tyy"
+                    ],
+                    "command": "curl -i -X POST http://148.187.98.88:9000/test4 -F 'key=455c7c5f4910939fb502194a45d6914d/input_file' -F 'x-amz-algorithm=AWS4-HMAC-SHA256' -F 'x-amz-credential=storage_access_key/20200411/us-east-1/s3/aws4_request' -F 'x-amz-date=20200411T163746Z' -F 'policy=eyJleHBpcmF0aW9uIjogIjIwMjAtMDQtMThUMTY6Mzc6NDZaIiwgImNvbmRpdGlvbnMiOiBbeyJidWNrZXQiOiAidGVzdDQifSwgeyJrZXkiOiAiNDU1YzdjNWY0OTEwOTM5ZmI1MDIxOTRhNDVkNjkxNGQvaW5wdXRfZmlsZSJ9LCB7IngtYW16LWFsZ29yaXRobSI6ICJBV1M0LUhNQUMtU0hBMjU2In0sIHsieC1hbXotY3JlZGVudGlhbCI6ICJzdG9yYWdlX2FjY2Vzc19rZXkvMjAyMDA0MTEvdXMtZWFzdC0xL3MzL2F3czRfcmVxdWVzdCJ9LCB7IngtYW16LWRhdGUiOiAiMjAyMDA0MTFUMTYzNzQ2WiJ9XX0=' -F 'x-amz-signature=59c50f7900e136d7d7e5cf7fcf22983627bcb50b01d70c014d2b36ab3ec7a6f6' -F file=@input_file",
+                    "download_url": "http://148.187.98.88:9000/test4/455c7c5f4910939fb502194a45d6914d/input_file?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=storage_access_key%2F20200411%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20200411T163746Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=fe2c2a08208a3685ac7f07807b744c06fb60eafb0e79717045f49a547672f11e",
+                    "key": "455c7c5f4910939fb502194a45d6914d/input_file",
                     "method": "POST",
-                    "policy": "eyJleHBpcmF0aW9uIjogIjIwMjAtMDMtMjRUMTQ6MDA6MTFaIiwgImNvbmRpdGlvbnMiOiBbeyJidWNrZXQiOiAidGVzdDEifSwgeyJrZXkiOiAiYTc4YzIyNmUyZTE3ZWEwNWVmMWQ3MmE4MTI2NDgxNDUvc2NyaXB0LnNoIn0sIHsieC1hbXotYWxnb3JpdGhtIjogIkFXUzQtSE1BQy1TSEEyNTYifSwgeyJ4LWFtei1jcmVkZW50aWFsIjogInN0b3JhZ2VfYWNjZXNzX2tleS8yMDIwMDMxNy91cy1lYXN0LTEvczMvYXdzNF9yZXF1ZXN0In0sIHsieC1hbXotZGF0ZSI6ICIyMDIwMDMxN1QxNDAwMTFaIn1dfQ==",
-                    "url": "http://192.168.220.19:9000/test1",
+                    "policy": "eyJleHBpcmF0aW9uIjogIjIwMjAtMDQtMThUMTY6Mzc6NDZaIiwgImNvbmRpdGlvbnMiOiBbeyJidWNrZXQiOiAidGVzdDQifSwgeyJrZXkiOiAiNDU1YzdjNWY0OTEwOTM5ZmI1MDIxOTRhNDVkNjkxNGQvaW5wdXRfZmlsZSJ9LCB7IngtYW16LWFsZ29yaXRobSI6ICJBV1M0LUhNQUMtU0hBMjU2In0sIHsieC1hbXotY3JlZGVudGlhbCI6ICJzdG9yYWdlX2FjY2Vzc19rZXkvMjAyMDA0MTEvdXMtZWFzdC0xL3MzL2F3czRfcmVxdWVzdCJ9LCB7IngtYW16LWRhdGUiOiAiMjAyMDA0MTFUMTYzNzQ2WiJ9XX0=",
+                    "url": "http://148.187.98.88:9000/test4",
                     "x-amz-algorithm": "AWS4-HMAC-SHA256",
-                    "x-amz-credential": "storage_access_key/20200317/us-east-1/s3/aws4_request",
-                    "x-amz-date": "20200317T140011Z",
-                    "x-amz-signature": "955f64c020ebc4b797fac7d4338ee695c5c9605dc9962a135df57a23c4423aab"
+                    "x-amz-credential": "storage_access_key/20200411/us-east-1/s3/aws4_request",
+                    "x-amz-date": "20200411T163746Z",
+                    "x-amz-signature": "59c50f7900e136d7d7e5cf7fcf22983627bcb50b01d70c014d2b36ab3ec7a6f6"
                 },
-                "source": "file",
+                "source": "input_file",
+                "status": "111",
                 "system": "192.168.220.12:22",
-                "target": "/home/test1/new-dir",
-                "user": "test1"
+                "target": "/home/test4",
+                "user": "test4"
             },
             "description": "Form URL from Object Storage received",
-            "hash_id": "a78c226e2e17ea05ef1d72a812648145",
-            "last_modify": "2020-03-17T14:00:11",
+            "hash_id": "455c7c5f4910939fb502194a45d6914d",
+            "last_modify": "2020-04-11T16:37:46",
             "service": "storage",
             "status": "111",
-            "task_url": "http://192.168.220.10:8000/tasks/a78c226e2e17ea05ef1d72a812648145",
-            "user": "test1"
+            "task_url": "http://148.187.98.88:8000/tasks/455c7c5f4910939fb502194a45d6914d",
+            "user": "test4"
         }
     }
 
@@ -755,7 +765,15 @@ We can use the command that is provided by the previous response.
 
     .. code-tab:: bash
 
-        $ curl -i -X POST "${STORAGE_IP}/test1" -F 'key=a78c226e2e17ea05ef1d72a812648145/file' -F 'x-amz-algorithm=AWS4-HMAC-SHA256' -F 'x-amz-credential=storage_access_key/20200317/us-east-1/s3/aws4_request' -F 'x-amz-date=20200317T140011Z' -F 'policy=eyJleHBpcmF0aW9uIjogIjIwMjAtMDMtMjRUMTQ6MDA6MTFaIiwgImNvbmRpdGlvbnMiOiBbeyJidWNrZXQiOiAidGVzdDEifSwgeyJrZXkiOiAiYTc4YzIyNmUyZTE3ZWEwNWVmMWQ3MmE4MTI2NDgxNDUvc2NyaXB0LnNoIn0sIHsieC1hbXotYWxnb3JpdGhtIjogIkFXUzQtSE1BQy1TSEEyNTYifSwgeyJ4LWFtei1jcmVkZW50aWFsIjogInN0b3JhZ2VfYWNjZXNzX2tleS8yMDIwMDMxNy91cy1lYXN0LTEvczMvYXdzNF9yZXF1ZXN0In0sIHsieC1hbXotZGF0ZSI6ICIyMDIwMDMxN1QxNDAwMTFaIn1dfQ==' -F 'x-amz-signature=955f64c020ebc4b797fac7d4338ee695c5c9605dc9962a135df57a23c4423aab' -F file=@/path/to/file
+        $ curl -i \
+               -X POST http://148.187.98.88:9000/test4 \
+               -F 'key=455c7c5f4910939fb502194a45d6914d/input_file' \
+               -F 'x-amz-algorithm=AWS4-HMAC-SHA256' \
+               -F 'x-amz-credential=storage_access_key/20200411/us-east-1/s3/aws4_request' \
+               -F 'x-amz-date=20200411T163746Z' \
+               -F 'policy=eyJleHBpcmF0aW9uIjogIjIwMjAtMDQtMThUMTY6Mzc6NDZaIiwgImNvbmRpdGlvbnMiOiBbeyJidWNrZXQiOiAidGVzdDQifSwgeyJrZXkiOiAiNDU1YzdjNWY0OTEwOTM5ZmI1MDIxOTRhNDVkNjkxNGQvaW5wdXRfZmlsZSJ9LCB7IngtYW16LWFsZ29yaXRobSI6ICJBV1M0LUhNQUMtU0hBMjU2In0sIHsieC1hbXotY3JlZGVudGlhbCI6ICJzdG9yYWdlX2FjY2Vzc19rZXkvMjAyMDA0MTEvdXMtZWFzdC0xL3MzL2F3czRfcmVxdWVzdCJ9LCB7IngtYW16LWRhdGUiOiAiMjAyMDA0MTFUMTYzNzQ2WiJ9XX0=' \
+               -F 'x-amz-signature=59c50f7900e136d7d7e5cf7fcf22983627bcb50b01d70c014d2b36ab3ec7a6f6' \
+               -F file=@/path/to/file
 
 And a successful upload would look like this:
 
@@ -766,47 +784,55 @@ And a successful upload would look like this:
     HTTP/1.1 204 No Content
     Accept-Ranges: bytes
     Content-Security-Policy: block-all-mixed-content
-    ETag: "b7461b9179ab9119848121d810ba2ff2-1"
-    Location: http://localhost:9000/test1/a78c226e2e17ea05ef1d72a812648145/file
-    Server: MinIO/RELEASE.2020-03-09T18-26-53Z
+    ETag: "4ad3fea0051df7b32ded6bfbdb0ced5e-1"
+    Location: http://148.187.98.88:9000/test4/455c7c5f4910939fb502194a45d6914d/input_file
+    Server: MinIO/RELEASE.2020-04-04T05-39-31Z
     Vary: Origin
-    X-Amz-Request-Id: 15FD1C504742F8A8
+    X-Amz-Request-Id: 1604D24BCE29D583
     X-Xss-Protection: 1; mode=block
-    Date: Tue, 17 Mar 2020 14:02:55 GMT
-
+    Date: Sat, 11 Apr 2020 16:56:31 GMT
 
 .. note::
     The testbuild is using a `minio` Object Storage, which is different than `Swift`.
     When you are using FirecREST the command provided by the framework might be different, but the steps the user has to follow are the same.
 
-**The last step is no longer necessary, will update soon**
-The last step of this task is to finish the transfer, from the staging area to the filesystem.
-We have to make a `PUT` request to the `/storage/xfer-external/upload <reference.html#put--storage-xfer-external-upload>`__ endpoint.
-In this call, we only have to include two arguments in the header, the authorization token and the FirecREST `task ID`.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. tabs::
+    **The last step is no longer necessary**
+    The last step of this task is to finish the transfer, from the staging area to the filesystem.
+    We have to make a `PUT` request to the `/storage/xfer-external/upload <reference.html#put--storage-xfer-external-upload>`__ endpoint.
+    In this call, we only have to include two arguments in the header, the authorization token and the FirecREST `task ID`.
 
-    .. code-tab:: bash
+    .. tabs::
 
-        $ curl -X PUT "${FIRECREST_IP}/storage/xfer-external/upload" -H "Authorization: Bearer ${TOKEN}" -H "X-Task-ID: a78c226e2e17ea05ef1d72a812648145"
+        .. code-tab:: bash
 
-    .. code-tab:: python
+            $ curl -X PUT "${FIRECREST_IP}/storage/xfer-external/upload" \
+                   -H "Authorization: Bearer ${TOKEN}" \
+                   -H "X-Task-ID: 455c7c5f4910939fb502194a45d6914d"
 
-        taskid = 'a78c226e2e17ea05ef1d72a812648145'
-        response = requests.put(
-            url=f'{FIRECREST_IP}/storage/xfer-external/upload',
-            headers={'Authorization': f'Bearer {TOKEN}',
-                     'X-Task-ID': taskid}
-        )
-        print(json.dumps(response.json(), indent=4))
+        .. code-tab:: python
 
-And the response should look like that:
+            taskid = '455c7c5f4910939fb502194a45d6914d'
 
-.. code-block:: json
+            response = requests.put(
+                url=f'{FIRECREST_IP}/storage/xfer-external/upload',
+                headers={'Authorization': f'Bearer {TOKEN}',
+                         'X-Task-ID': taskid}
+            )
 
-    {
-        "success": "Starting download to File System"
-    }
+            print(json.dumps(response.json(), indent=4))
+
+    And the response should look like that:
+
+    .. code-block:: json
+
+        {
+            "success": "Starting download to File System"
+        }
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If everything went okay the next step is optional, but useful.
 You can check the status of the FirecREST task; the `task id` remains the same.
@@ -815,39 +841,35 @@ You can check the status of the FirecREST task; the `task id` remains the same.
 
     .. code-tab:: bash
 
-        curl -X GET "${FIRECREST_IP}/tasks/a78c226e2e17ea05ef1d72a812648145" -H "Authorization: Bearer ${TOKEN}"
+        $ curl -X GET "${FIRECREST_IP}/tasks/455c7c5f4910939fb502194a45d6914d" \
+               -H "Authorization: Bearer ${TOKEN}"
 
     .. code-tab:: python
 
-        taskid = 'a78c226e2e17ea05ef1d72a812648145'
+        taskid = '455c7c5f4910939fb502194a45d6914d'
+
         response = requests.get(
             url=f'{FIRECREST_IP}/tasks/{taskid}',
             headers={'Authorization': f'Bearer {TOKEN}'}
         )
+
         print(json.dumps(response.json(), indent=4))
 
 When the transfer from Object Storage has finished, you should get a response like this:
 
 .. code-block:: json
-    :emphasize-lines: 11
+    :emphasize-lines: 4
 
     {
         "task": {
-            "data": {
-                "hash_id": "a78c226e2e17ea05ef1d72a812648145",
-                "msg": "Starting async task for download to filesystem",
-                "source": "file",
-                "system": "192.168.220.12:22",
-                "target": "/home/test1/new-dir",
-                "user": "test1"
-            },
+            "data": "Download from Object Storage to server has finished",
             "description": "Download from Object Storage to server has finished",
-            "hash_id": "a78c226e2e17ea05ef1d72a812648145",
-            "last_modify": "2020-03-17T14:04:52",
+            "hash_id": "455c7c5f4910939fb502194a45d6914d",
+            "last_modify": "2020-04-11T16:58:45",
             "service": "storage",
             "status": "114",
-            "task_url": "http://192.168.220.10:8000/tasks/a78c226e2e17ea05ef1d72a812648145",
-            "user": "test1"
+            "task_url": "http://148.187.98.88:8000/tasks/455c7c5f4910939fb502194a45d6914d",
+            "user": "test4"
         }
     }
 
@@ -867,7 +889,7 @@ In our case we can download the output, check the result of the `sha1sum` comman
 The output is so small it would make sense to download it with the blocking call `utilities/download <reference.html#get--utilities-download>`__, but we will do a non-blocking through the `Storage microservice` just so we can see the workflow in that case.
 It follows a similar workflow, as the non-blocking uploading of a file.
 First, we have to ask FirecREST to transfer the file from the machine's filesystem to the staging area.
-As soon as the transfer is complete we have to FirecREST for the link from where we can download the file.
+As soon as the transfer is complete we have to ask FirecREST for the link from where we can download the file.
 
 The first step is a call to the `/storage/xfer-external/download <reference.html#put--storage-xfer-external-download>`__ endpoint.
 We only pass the authorization token and the location of the file to the call.
@@ -877,17 +899,20 @@ Remember that the output of the job is inside the `firecrest` directory in our c
 
     .. code-tab:: bash
 
-        curl -X POST "${FIRECREST_IP}/storage/xfer-external/download" -H "Authorization: Bearer ${TOKEN}" -F "sourcePath=/home/test1/firecrest/d3c285d93ea408750f020a51791192d5/res.txt"
+        $ curl -X POST "${FIRECREST_IP}/storage/xfer-external/download" \
+               -H "Authorization: Bearer ${TOKEN}" \
+               -F "sourcePath=/home/test4/firecrest/af516f55496faf473d3bcaa042c52431/res.txt"
 
     .. code-tab:: python
 
+        sourcePath = '/home/test4/firecrest/af516f55496faf473d3bcaa042c52431/res.txt'
 
-        sourcePath = `/home/test1/firecrest/d3c285d93ea408750f020a51791192d5/res.txt`
         response = requests.post(
             url=f'{FIRECREST_IP}/storage/xfer-external/download',
             headers={'Authorization': f'Bearer {TOKEN}'},
             data={'sourcePath': sourcePath}
         )
+
         print(json.dumps(response.json(), indent=4))
 
 And the response will only give us the `task ID` of the task we just created.
@@ -896,39 +921,43 @@ And the response will only give us the `task ID` of the task we just created.
 
     {
         "success": "Task created",
-        "task_id": "c958b5901cb7229ef15d9ae0e93e6d8b",
-        "task_url": "http://192.168.220.10:8000/tasks/c958b5901cb7229ef15d9ae0e93e6d8b"
+        "task_id": "20372784765d7fa4f6b9090f82d3af86",
+        "task_url": "http://148.187.98.88:8000/tasks/20372784765d7fa4f6b9090f82d3af86"
     }
 
 .. tabs::
 
     .. code-tab:: bash
 
-        curl -X GET "${FIRECREST_IP}/tasks/c958b5901cb7229ef15d9ae0e93e6d8b" -H "Authorization: Bearer ${TOKEN}"
+        $ curl -X GET "${FIRECREST_IP}/tasks/20372784765d7fa4f6b9090f82d3af86" \
+               -H "Authorization: Bearer ${TOKEN}"
 
     .. code-tab:: python
 
-        taskid = 'c958b5901cb7229ef15d9ae0e93e6d8b'
+        taskid = '20372784765d7fa4f6b9090f82d3af86'
+
         response = requests.get(
             url=f'{FIRECREST_IP}/tasks/{taskid}',
             headers={'Authorization': f'Bearer {TOKEN}'}
         )
+
         print(json.dumps(response.json(), indent=4))
 
 After it finishes you should get a response like this:
 
 .. code-block:: json
+    :emphasize-lines: 3, 4
 
     {
         "task": {
-            "data": "http://192.168.220.19:9000/test1/c958b5901cb7229ef15d9ae0e93e6d8b/res.txt?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=storage_access_key%2F20200317%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20200317T141948Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=c951b0a4d8a2bcaff5b1eb443f83f37f0718da36e8e59d7b1fa19a1b3a5f3cbf",
+            "data": "http://148.187.98.88:9000/test4/20372784765d7fa4f6b9090f82d3af86/res.txt?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=storage_access_key%2F20200411%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20200411T172209Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=07d4b7b00915077567029354829794ce0a54efec9ee42bbfed486560e2cd4661",
             "description": "Upload from filesystem to Object Storage has finished succesfully",
-            "hash_id": "c958b5901cb7229ef15d9ae0e93e6d8b",
-            "last_modify": "2020-03-17T14:19:48",
+            "hash_id": "20372784765d7fa4f6b9090f82d3af86",
+            "last_modify": "2020-04-11T17:22:09",
             "service": "storage",
             "status": "117",
-            "task_url": "http://192.168.220.10:8000/tasks/c958b5901cb7229ef15d9ae0e93e6d8b",
-            "user": "test1"
+            "task_url": "http://148.187.98.88:8000/tasks/20372784765d7fa4f6b9090f82d3af86",
+            "user": "test4"
         }
     }
 
