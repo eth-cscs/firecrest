@@ -71,9 +71,11 @@ def test_cancel_job(machine, expected_response_code, headers):
 # Test get account information with sacct command
 @pytest.mark.parametrize("machine, expected_response_code", DATA)
 def test_acct(machine, expected_response_code, headers):
+	jobid = "2,3"
 	url = "{}/acct".format(COMPUTE_URL)
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.get(url, headers=headers)
+	params = {"jobs":jobid}
+	resp = requests.get(url, headers=headers, params=params)
 	print(resp.content)
 	assert resp.status_code == expected_response_code
 
