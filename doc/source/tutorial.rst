@@ -7,6 +7,9 @@ We assume you already have a user that has access to the machines and we want to
 The examples will be provided both in the form of a curl command and python code.
 The curl command will give you a more direct understanding of the parameters of each call and hopefully make it easier to try yourself, while the python code could be the base for a simple client, like the one that is developed `here <https://github.com/eth-cscs/firecrest/tree/master/deploy/demo>`_.
 
+.. important::
+    For the python parts of this tutorial you will need python-3.6 or later.
+
 We will cover the following workflow:
 
 1. `Obtaining the necessary credentials to access the machines <#obtain-credentials>`_
@@ -17,21 +20,52 @@ We will cover the following workflow:
 6. `Download and verify the results <#download-the-output>`_
 
 This way you can use the most common calls of the API but most importantly get an idea of how to use the reference and expand your client, according to your needs.
+
+HTTP requests
+=============
+
 FirecREST API is based on REST principles: data resources are accessed via standard HTTP requests to an API endpoint.
 
-Every request is made of the endpoint, the method, the headers and the body.
-The endpoint is the URL you request for, the method will be one of `GET`, `POST`, `PUT` and `DELETE` depending on the appropriate action and finally, the header and the body include the necessary parameters of the call.
+Every request is made of:
 
+1. the endpoint or requested URL
+2. the method (one of `GET`, `POST`, `PUT` and `DELETE` depending on the appropriate action)
+3. the headers (metadata necessary for the request)
+4. the body (form data, files to be uploaded, etc)
+
+The necessary information for every call is passed through query parameters, the headers and the body of the request.
 You can find all the available API calls of FirecREST in the `reference section <reference.html>`_ and here is a quick overview of the methods:
 
 ========== ===============================================
 **Method** **Description**
 ---------- -----------------------------------------------
 GET        Used for retrieving resources.
-POST       Used for creating resources.
-PUT        Used for manipulating resources or collections.
+POST       Used for creating/updating resources.
+PUT        Used for creating/updating resources.*
 DELETE     Used for deleting resources.
 ========== ===============================================
+
+\* **The difference between POST and PUT is that PUT requests are idempotent.
+That is, calling the same PUT request multiple times will always produce the same result.
+In contrast, calling a POST request repeatedly have side effects of creating the same resource multiple times.**
+
+Similar to the requests, the response of FirecREST will consist of:
+
+1. a status code
+2. the headers
+3. the body in json form
+
+Here is a quick overview of the status codes and their meaning.
+
+====  =============  =========================================
+#     **Category**   **Description**
+----  -------------  -----------------------------------------
+1xx   Informational  Communicates transfer protocol-level information.
+2xx   Success        Indicates that the client’s request was accepted successfully.
+3xx   Redirection    Indicates that the client must take some additional action in order to complete their request.
+4xx   Client Error   This category of error status codes points the finger at clients.
+5xx   Server Error   The server takes responsibility for these error status codes.
+====  =============  =========================================
 
 Testbuild
 =========
@@ -74,15 +108,19 @@ FirecREST API will return helpful messages in case the access token is invalid o
         "exp": "token expired"
     }
 
-After obtaining the credentials you have to set these variables:
+To test the credentials we can use a simple call to the `Status microservice <overview.html#status>`__.
+We can call the `status/systems <reference.html#get--status-systems>`__ endpoint with a *GET* operation to get more information about the systems in which the user has access.
+The access token has to be included in the header.
 
 .. tabs::
 
     .. code-tab:: bash
 
-        $ export TOKEN=<token
+        $ export TOKEN=<token>
         $ export FIRECREST_IP="http://148.187.98.88:8000"
-        $ export STORAGE_IP="http://148.187.98.88:9000"
+
+        $ curl -X GET ${FIRECREST_IP}/status/systems \
+               -H "Authorization: Bearer ${TOKEN}"
 
     .. code-tab:: python
 
@@ -91,26 +129,6 @@ After obtaining the credentials you have to set these variables:
 
         TOKEN = '<token>'
         FIRECREST_IP = 'http://148.187.98.88:8000'
-        STORAGE_IP = 'http://148.187.98.88:9000'
-
-.. important::
-    python >= 3.6
-
-Test the credentials with a simple call
-=======================================
-
-To test the credentials we can use a simple call from the `Status microservice <overview.html#status>`__.
-We can call the `status/systems <reference.html#get--status-systems>`__ endpoint with a *GET* operation to get more information about the systems in which the user has access.
-The access token has to be included in the header.
-
-.. tabs::
-
-    .. code-tab:: bash
-
-        $ curl -X GET ${FIRECREST_IP}/status/systems \
-               -H "Authorization: Bearer ${TOKEN}"
-
-    .. code-tab:: python
 
         response = requests.get(
             url=f'{FIRECREST_IP}/status/systems',
@@ -321,10 +339,9 @@ You can use this script for the job submission:
 .. code-block:: bash
 
     #!/bin/bash
-    #
+
     #SBATCH --job-name=test
-    #SBATCH --output=res.txt
-    #
+    #SBATCH --output=/home/test4/res.txt
     #SBATCH --ntasks=1
     #SBATCH --time=10:00
 
@@ -962,3 +979,8 @@ After it finishes you should get a response like this:
     }
 
 And you can download the file from the link in the "data" field and compare to the result you get locally.
+
+How to handle errors
+====================
+
+
