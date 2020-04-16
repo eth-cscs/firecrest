@@ -248,8 +248,10 @@ paths:
               properties:
                 targetPath:
                   type: string
+                  description: Filesystem path
                 p:
                   type: string
+                  description: No error if existing, make parent directories as needed
               required: 
                 - targetPath
               example:
