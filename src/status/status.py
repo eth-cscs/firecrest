@@ -24,7 +24,7 @@ SYSTEMS_PUBLIC  = os.environ.get("SYSTEMS_PUBLIC").strip('\'"').split(";")
 # ; separated for system (related with SYSTEMS_PUBLIC length, and for each filesystem mounted inside each system, separated with ":")
 # example: let's suppose SYSTEMS_PUBLIC="cluster1;cluster2", cluster1 has "/fs-c1-1" and "/fs-c1-2", and cluster2 has mounted "/fs-c2-1":
 # FILESYSTEMS = "/fs-c1-1,/fs-c1-2;fs-c2-1"
-FILESYSTEMS = os.environ.get("FILESYSTEMS").split(";")
+FILESYSTEMS = os.environ.get("FILESYSTEMS").strip('\'"').split(";")
 
 SERVICES = os.environ.get("STATUS_SERVICES").strip('\'"').split(";") # ; separated service names
 SYSTEMS  = os.environ.get("STATUS_SYSTEMS").strip('\'"').split(";")  # ; separated systems names
