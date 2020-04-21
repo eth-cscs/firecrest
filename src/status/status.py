@@ -21,6 +21,10 @@ import os
 AUTH_HEADER_NAME = 'Authorization'
 
 SYSTEMS_PUBLIC  = os.environ.get("SYSTEMS_PUBLIC").strip('\'"').split(";")
+# ; separated for system (related with SYSTEMS_PUBLIC length, and for each filesystem mounted inside each system, separated with ":")
+# example: let's suppose SYSTEMS_PUBLIC="cluster1;cluster2", cluster1 has "/fs-c1-1" and "/fs-c1-2", and cluster2 has mounted "/fs-c2-1":
+# FILESYSTEMS = "/fs-c1-1,/fs-c1-2;fs-c2-1"
+FILESYSTEMS = os.environ.get("FILESYSTEMS").strip('\'"').split(";")
 
 SERVICES = os.environ.get("STATUS_SERVICES").strip('\'"').split(";") # ; separated service names
 SYSTEMS  = os.environ.get("STATUS_SYSTEMS").strip('\'"').split(";")  # ; separated systems names
@@ -369,6 +373,18 @@ def parameters():
 
     # { <microservice>: [ "name": <parameter>,  "value": <value>, "unit": <unit> } , ... ] }
 
+
+    systems = SYSTEMS_PUBLIC # list of systems
+    filesystems = FILESYSTEMS # list of filesystems, position related with SYSTEMS_PUBLIC
+
+    fs_list = []
+
+    for i in range(len(systems)):
+        mounted = filesystems[i].split(",")
+        fs_list.append({"system": systems[i], "mounted": mounted})
+
+    
+
     parameters_list = { "utilities": [
                                         {"name": "UTILITIES_MAX_FILE_SIZE", "value": UTILITIES_MAX_FILE_SIZE, "unit": "MB" },
                                         {"name" :  "UTILITIES_TIMEOUT",      "value": UTILITIES_TIMEOUT, "unit": "seconds"}
@@ -376,7 +392,12 @@ def parameters():
                         "storage": [
                                         {"name":"OBJECT_STORAGE" ,"value":OBJECT_STORAGE, "unit": ""},
                                         {"name":"STORAGE_TEMPURL_EXP_TIME", "value":STORAGE_TEMPURL_EXP_TIME, "unit": "seconds"},
-                                        {"name":"STORAGE_MAX_FILE_SIZE", "value":STORAGE_MAX_FILE_SIZE, "unit": "bytes"}
+                                        {"name":"STORAGE_MAX_FILE_SIZE", "value":STORAGE_MAX_FILE_SIZE, "unit": "bytes"},
+                                        {"name":"FILESYSTEMS", "value":fs_list, "unit": ""}
+                                        
+                                        
+                                        
+                                        
                                 ]
                         }
 
