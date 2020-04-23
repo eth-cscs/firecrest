@@ -87,6 +87,9 @@ services:
     hostname: cluster
     ports:
       - "2223:22"
+    volumes:
+      - ./logs/cluster/:/var/log/slurm/:delegated
+
 
   minio:
     # runs on private network so "cluster" can reach it
