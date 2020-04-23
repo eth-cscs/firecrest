@@ -1613,6 +1613,14 @@ paths:
               description: targetPath is an invalid path.
               schema:
                 type: integer
+            X-Not-A-Directory: 
+              description: targetPath is not a directory
+              schema:
+                type: string
+            X-Error: 
+              description: Error
+              schema:
+                type: string
     put:
       tags: 
         - Storage
@@ -1724,15 +1732,24 @@ paths:
             X-Permission-Denied:
               description: User does not have permissions to access path
               schema:
-                type: integer
+                type: string
             X-Not-Found:
               description: targetPath not found
               schema:
-                type: integer
+                type: string
             X-Invalid-Path:
               description: targetPath is an invalid path.
               schema:
-                type: integer
+                type: string
+            X-A-Directory: 
+              description: targetPath is a directory, can't download directories
+              schema:
+                type: string
+            X-Error: 
+              description: Error
+              schema:
+                type: string
+              
   '/tasks':
     get:
       summary: returns all tasks

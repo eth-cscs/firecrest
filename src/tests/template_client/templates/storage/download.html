@@ -96,9 +96,22 @@ function update_progress(task_url) {
 
       </div>
     {% else %}
-      <div class="bg-danger" id="error"> Error: {{ response.json()["error"] }}</div>
-    {% endif %}
-  {% else %}
+
+    
+      {% set error_headers = ["X-Machine-Does-Not-Exist","X-Machine-Not-Available","X-Permission-Denied","X-Invalid-Path","X-Error","X-A-Directory"] %}
+
+      <div class="bg-danger"><b>Error:</b> Description: {{ response.json()["description"] }}:
+
+              {% for header,value in response.headers.items() %}
+                {% if header in error_headers %}
+                  Reason: {{ header }}: {{ value }}
+                   {%  break %}
+                {% endif %}
+              {% endfor %}
+         </div>
+    {%  endif %}
+  {%  endif %}
+  
     <h2>Select directory where file is stored in CSCS</h2>
         {# {{ wtf.quick_form(form) }} #}
       <form method="post" action="download" class="form-group">
@@ -109,5 +122,5 @@ function update_progress(task_url) {
 
       </form>
 
-  {% endif %}
+  
 {% endblock %}

@@ -80,25 +80,25 @@ Finally, you will need to specify the firecrest gateway address in FIRECREST_URL
 
 UPDATE - 04/20/2020
 
-It's possible to test implementations behind a gateway using service account logins.
+It's possible to test implementations behind a gateway using service account(SA) logins.
 You need to setup the following environment variables:
 
 # The gateway url
 FIRECREST_URL = http://myapigateway
 
-# enable login with sa account
+# enable login with SA
 SA_LOGIN      = True 
 
 # Openid service url
 SA_TOKEN_URI  = http://myopenidservice/auth/realms/kcrealm/protocol/openid-connect/token
 
-# The credentials for sa account. 
+# The credentials for SA
 # NOTE: the client must have enabled Service Accounts feature
 SA_SECRET_KEY = mysecret
-SA_CLIENT_ID  = mysaaccount
+SA_CLIENT_ID  = myserviceaccount
 
 The "demo" implementation has been configured to be tested using service account authentication.
-Open demo.env file to check the configuration values that have been setted.
+Open demo.env file to check the configuration values that have been set.
 As previously shown, run the tests on "demo" implementation by executing the following command:
 
     pytest -c demo.ini 
