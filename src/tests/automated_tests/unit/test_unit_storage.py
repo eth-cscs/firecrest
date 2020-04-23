@@ -28,7 +28,8 @@ def test_put_upload_request(headers):
 
 def test_download(headers):
     data = { "sourcePath": "testsbatch.sh" }
-    resp = requests.post(STORAGE_URL + "/xfer-external/download", headers=headers, data=data)
+    resp = requests.post(STORAGE_URL + "/xfer-external/download", headers=headers, data=data) 
+    print(resp.json())  
     assert resp.status_code == 200
 
 
