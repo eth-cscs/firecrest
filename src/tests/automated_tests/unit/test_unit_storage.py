@@ -27,7 +27,7 @@ def test_put_upload_request(headers):
 
 
 def test_download(headers):
-    data = { "sourcePath": "testsbatch.sh" }
+    data = { "sourcePath": "./testsbatch.sh" }
     resp = requests.post(STORAGE_URL + "/xfer-external/download", headers=headers, data=data) 
     print(resp.json())  
     print(resp.headers)
