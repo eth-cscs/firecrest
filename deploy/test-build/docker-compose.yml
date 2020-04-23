@@ -11,6 +11,7 @@ services:
     volumes:
       - "./environment/keys/ca-key:/ca-key:ro"
       - "./environment/keys/user-key.pub:/user-key.pub:ro"
+      - ./logs/firecrest:/var/log:delegated
 
   compute:
     build:
@@ -21,6 +22,7 @@ services:
     network_mode: "host"
     volumes:
       - "./environment/keys/user-key:/user-key:ro"
+      - ./logs/firecrest:/var/log:delegated
 
   status:
     build:
@@ -29,6 +31,8 @@ services:
     env_file:
       - ./environment/common.env
     network_mode: "host"
+    volumes:
+      - ./logs/firecrest:/var/log:delegated
 
   storage:
     build:
@@ -45,6 +49,7 @@ services:
       - "./environment/keys/user-key:/user-key:ro"
       # custom host file
       - "./environment/hosts:/etc/hosts:ro"
+      - ./logs/firecrest:/var/log:delegated
 
   tasks:
     build: 
@@ -59,6 +64,8 @@ services:
     depends_on:
       - "taskpersistence"
     network_mode: "host"
+    volumes:
+      - ./logs/firecrest:/var/log:delegated
 
   utilities:
     build: 
@@ -69,6 +76,7 @@ services:
     network_mode: "host"
     volumes:
       - "./environment/keys/user-key:/user-key:ro"
+      - ./logs/firecrest:/var/log:delegated
 
   # auxiliary containers
   cluster:
@@ -97,3 +105,4 @@ services:
     network_mode: "host"
     volumes:
       - ./taskpersistence/redis.conf:/redis.conf:ro
+      - ./logs/firecrest:/var/log:delegated
