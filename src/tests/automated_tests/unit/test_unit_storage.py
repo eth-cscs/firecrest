@@ -26,12 +26,19 @@ def test_put_upload_request(headers):
     assert r.status_code == 404
 
 
-def test_download(headers):
-    data = { "sourcePath": "./testsbatch.sh" }
+def test_download_file_not_exist(headers):
+    data = { "sourcePath": "no-existing-file" }
     resp = requests.post(STORAGE_URL + "/xfer-external/download", headers=headers, data=data) 
     print(resp.json())  
     print(resp.headers)
-    assert resp.status_code == 200
+    assert resp.status_code == 400
+
+def test_download_file_not_allowed(headers):
+    data = { "sourcePath": "/etc/hosts" }
+    resp = requests.post(STORAGE_URL + "/xfer-external/download", headers=headers, data=data) 
+    print(resp.json())  
+    print(resp.headers)
+    assert resp.status_code == 400
 
 
 def test_internal_cp(headers):
