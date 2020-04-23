@@ -30,6 +30,7 @@ def test_download(headers):
     data = { "sourcePath": "testsbatch.sh" }
     resp = requests.post(STORAGE_URL + "/xfer-external/download", headers=headers, data=data) 
     print(resp.json())  
+    print(resp.headers)
     assert resp.status_code == 200
 
 
