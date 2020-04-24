@@ -7,6 +7,7 @@
 from hashlib import md5
 import time
 import json
+import logging
 
 
 # common status codes
@@ -99,11 +100,27 @@ class AsyncTask():
     # return status for public info, so task_id is discarded
     def get_status(self):
 
+        # hide users certificate and action details
+        # ["msg"]["certs"] & ["msg"]["action"]
+
+        _data = self.data
+
+        if len(_data) != 0:
+
+            try:
+                if _data["msg"]["cert"] != None:
+                    del _data["msg"]["cert"]
+                    del _data["msg"]["action"]
+                    del _data["msg"]["download_url"]
+            except KeyError as e:
+                logging.warning(e.args)
+            except Exception as e:
+                logging.warning(e.args)
+
         return {"hash_id":self.hash_id,
                 "user": self.user,
                 "status":self.status_code,
-                "description":self.status_desc,
-                # "data":json.loads(self.data),
-                "data": self.data,
+                "description":self.status_desc,                
+                "data": _data,
                 "service":self.service,
                 "last_modify":self.timestamp}

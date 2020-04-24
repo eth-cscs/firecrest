@@ -3,9 +3,9 @@ import requests
 import os
 from markers import host_environment_test
 
-FIRECREST_IP = os.environ.get("FIRECREST_IP")
-if FIRECREST_IP:
-	CERTIFICATOR_URL = os.environ.get("FIRECREST_IP") + "/certificator"
+FIRECREST_URL = os.environ.get("FIRECREST_URL")
+if FIRECREST_URL:
+	CERTIFICATOR_URL = os.environ.get("FIRECREST_URL") + "/certificator"
 else:
     CERTIFICATOR_URL = os.environ.get("CERTIFICATOR_URL")	
 

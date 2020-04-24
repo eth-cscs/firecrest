@@ -4,9 +4,9 @@ import json
 import os
 from markers import host_environment_test
 
-FIRECREST_IP = os.environ.get("FIRECREST_IP")
-if FIRECREST_IP:
-	TASKS_URL = os.environ.get("FIRECREST_IP") + "/tasks"
+FIRECREST_URL = os.environ.get("FIRECREST_URL")
+if FIRECREST_URL:
+	TASKS_URL = os.environ.get("FIRECREST_URL") + "/tasks"
 else:
     TASKS_URL = os.environ.get("TASKS_URL")
 

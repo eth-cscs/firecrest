@@ -12,13 +12,21 @@
 
   {% if response != None %}
     {% if not response.ok %}
-      <div class="bg-danger" style="display: block; border-color: red; border-style: solid" id="error">
-	    <h3>Error</h3>
-	    <p>{{ response.json()["error"] }}</p>
-	    <a href="{{ request.url_root}}storage/upload">Try again</a>
-	  </div>
+      
+      {% set error_headers = ["X-Machine-Does-Not-Exist","X-Machine-Not-Available","X-Permission-Denied","X-Invalid-Path","X-Not-A-Directory","X-Error"] %}
+
+      <div class="bg-danger"><b>Error:</b> Description: {{ response.json()["description"] }}:
+
+              {% for header,value in response.headers.items() %}
+                {% if header in error_headers %}
+                  Reason: {{ header }}: {{ value }}
+                  {%  break %}
+                {% endif %}
+              {% endfor %}
+      </div>
     {% endif %}
-  {% else %}
+  {% endif %}
+  
     <h2>Step 1: Select directory where to store file in CSCS and your local file</h2>
 
       <form class="form-group" action="upload" method="post">
@@ -28,5 +36,6 @@
             <tr><td style="padding-right: 20px">{{ form.submit(class="form-control") }}</td></tr>
         </table>
       </form>
-  {% endif %}
+
+  
 {% endblock %}
