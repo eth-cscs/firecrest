@@ -4,10 +4,10 @@ import os
 import time
 
 
-FIRECREST_IP = os.environ.get("FIRECREST_IP")
-if FIRECREST_IP:
-	TASKS_URL = os.environ.get("FIRECREST_IP") + "/tasks"
-	COMPUTE_URL = os.environ.get("FIRECREST_IP") + "/compute"
+FIRECREST_URL = os.environ.get("FIRECREST_URL")
+if FIRECREST_URL:
+	TASKS_URL = os.environ.get("FIRECREST_URL") + "/tasks"
+	COMPUTE_URL = os.environ.get("FIRECREST_URL") + "/compute"
 else:
 	TASKS_URL = os.environ.get("TASKS_URL")
 	COMPUTE_URL = os.environ.get("COMPUTE_URL")
@@ -83,13 +83,35 @@ def test_cancel_job(machine, headers):
 	resp = submit_job(machine, headers)
 	task_id = resp.json()["task_id"]
 
-	time.sleep(10) # wait until task is runnig
+	time.sleep(10) # wait until task is running
 	job_id = get_job_id(task_id, headers)
 
 	# cancel job
 	url = "{}/{}".format(JOBS_URL, job_id)
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.delete(url, headers=headers)
+	print(resp.content)
+	assert resp.status_code == 200
+
+	# check scancel status
+	task_id = resp.json()["task_id"]
+	check_task_status(resp.json()["task_id"],headers)
+
+# Test account information
+@pytest.mark.parametrize("machine", [SERVER_COMPUTE])
+def test_acct_job(machine, headers):
+
+	resp = submit_job(machine, headers)
+	task_id = resp.json()["task_id"]
+
+	time.sleep(10) # wait until task is running
+	job_id = get_job_id(task_id, headers)
+
+	# cancel job
+	url = "{}/acct".format(COMPUTE_URL)
+	params = {"jobs": job_id}
+	headers.update({"X-Machine-Name": machine})
+	resp = requests.get(url, headers=headers,params=params)
 	print(resp.content)
 	assert resp.status_code == 200
 

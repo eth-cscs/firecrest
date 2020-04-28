@@ -815,19 +815,28 @@ def acct():
         data = jsonify(description="Failed to retrieve account information", error=e)
         return data, 400
 
+    
+    # check optional parameter jobs=jobidA,jobidB,jobidC
+    jobs_opt = ""
+
+    jobs = request.args.get("jobs","")
+
+    if jobs != "":
+        jobs_opt = " --jobs={jobs} ".format(jobs=jobs)
 
     # sacct
     # -X so no step information is shown (ie: just jobname, not jobname.batch or jobname.0, etc)
     # --starttime={start_time_opt} starts accounting info
     # --endtime={start_time_opt} end accounting info
+    # --jobs={job1,job2,job3} list of jobs to be reported
     # format: 0 - jobid  1-partition 2-jobname 3-user 4-job sTate,
     #         5 - start time, 6-elapsed time , 7-end time
     #          8 - nodes allocated and 9 - resources
     # --parsable2 = limits with | character not ending with it
 
-    action = "sacct -X {starttime} {endtime} " \
+    action = "sacct -X {starttime} {endtime} {jobs_opt} " \
              "--format='jobid,partition,jobname,user,state,start,cputime,end,NNodes,NodeList' " \
-              "--noheader --parsable2".format(starttime=start_time_opt,endtime=end_time_opt)
+              "--noheader --parsable2".format(starttime=start_time_opt,endtime=end_time_opt, jobs_opt=jobs_opt)
 
     try:
         # obtain new task from Tasks microservice

@@ -107,19 +107,55 @@ def paramiko_upload(auth_header, cluster, local_path, remote_path):
             local_file.close()
 
         remote_path_file = "{remote_path}/{filename}".format(remote_path=remote_path, filename=fileName)
-        try:
-            remote_file = ftp_client.file(remote_path_file, "w")
-            remote_file.write(local_data)
-        except Exception as e:
-            app.logger.error(e.message)
-            result = {"error": 1, "msg": e.message}
-        finally:
-            remote_file.close()
 
-        ftp_client.close()
-        client.close()
 
+        remote_file = ftp_client.file(remote_path_file, "w")
+        remote_file.write(local_data)
         result = {"error": 0, "msg": remote_path_file}
+        remote_file.close()
+
+
+        # try:
+        #     remote_file = ftp_client.file(remote_path_file, "w")
+        #     remote_file.write(local_data)
+        #     result = {"error": 0, "msg": remote_path_file}
+        # except PermissionError as pe:
+        #     app.logger.error("Permission error {strerr}".format(strerr=pe.errno))
+        #     app.logger.error("Errno {errno}".format(errno=pe.strerror))
+        #     result = {"error": pe.errno, "msg": pe.strerror}
+        # except Exception as e:
+        #     app.logger.error(type(e))
+        #     app.logger.error(e)
+        #     result = {"error": 1, "msg": e}
+        # finally:
+        #     remote_file.close()
+        #     # closing client
+        #     app.logger.info("Closing clients")
+        #     ftp_client.close()
+        #     client.close()
+
+        #     app.logger.info("Removing temp certs")
+        #     # removing temporary keys, certs and dirs
+        #     os.remove(pub_cert)
+        #     os.remove(pub_key)
+        #     os.remove(priv_key)
+        #     os.rmdir(temp_dir)
+
+        #     app.logger.info("Returned: {result}".format(result=result))
+
+        #     return result
+
+        
+
+    except PermissionError as pe:
+        app.logger.error("Permission error {strerr}".format(strerr=pe.errno))
+        app.logger.error("Errno {errno}".format(errno=pe.strerror))
+        result = {"error": pe.errno, "msg": pe.strerror}
+
+    except FileNotFoundError as fnfe:
+        app.logger.error("File Not Found error {strerr}".format(strerr=fnfe.strerror))
+        app.logger.error("Errno {errno}".format(errno=fnfe.errno))
+        result = {"error": fnfe.errno, "msg": fnfe.strerror}
 
     except paramiko.ssh_exception.NoValidConnectionsError as e:
         app.logger.error(type(e))
@@ -135,23 +171,32 @@ def paramiko_upload(auth_header, cluster, local_path, remote_path):
         # timeout has not errno
         app.logger.error(e)
         result = {"error": 1, "msg": e}
+
     except IOError as e:
         app.logger.error("IOError")
-        app.logger.error(e.message)
-        app.logger.error(e.filename)
-        app.logger.error(e.errno)
         app.logger.error(e.strerror)
+        app.logger.error(e.filename)
+        app.logger.error(e.errno)        
         result = {"error": e.errno, "msg": "IOError"}
 
     except Exception as e:
         app.logger.error(e)
         result = {"error": 1, "msg": e}
+    finally:
+        # closing client
+        app.logger.info("Closing clients")
+       
+        ftp_client.close()
+        client.close()
 
-    # removing temporary keys, certs and dirs
-    os.remove(pub_cert)
-    os.remove(pub_key)
-    os.remove(priv_key)
-    os.rmdir(temp_dir)
+        app.logger.info("Removing temp certs")
+        # removing temporary keys, certs and dirs
+        os.remove(pub_cert)
+        os.remove(pub_key)
+        os.remove(priv_key)
+        os.rmdir(temp_dir)
+
+    app.logger.info("Returned: {result}".format(result=result))
 
     return result
 

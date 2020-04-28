@@ -239,20 +239,24 @@ paths:
       description: 'Create a directory at the specified path on the {X-Machine-Name} filesystem'
       tags:
         - Utilities
-      parameters:
-        - name: targetPath
-          in: query
-          description: Filesystem path
-          required: true
-          schema:
-            type: string
-          allowReserved: true
-        - name: p
-          in: query
-          description: 'No error if existing, make parent directories as needed'
-          allowEmptyValue: true
-          schema:
-            type: string
+      requestBody:
+        required: true
+        content:
+          'text/plain':
+            schema:
+              type: object
+              properties:
+                targetPath:
+                  type: string
+                  description: Filesystem path
+                p:
+                  type: string
+                  description: No error if existing, make parent directories as needed
+              required: 
+                - targetPath
+              example:
+                targetPath: /home/user/newdir
+                p:
       responses:
         '201':
           description: Directory created
@@ -309,20 +313,25 @@ paths:
           required: true
           schema:
             type: string
-        - name: sourcePath
-          in: query
-          description: Absolute path to source
-          required: true
-          schema:
-            type: string
-          allowReserved: true
-        - name: targetPath
-          in: query
-          description: Absolute path to destination
-          required: true
-          schema:
-            type: string
-          allowReserved: true
+      requestBody:
+        required: true
+        content:
+          'text/plain':
+            schema:
+              type: object
+              properties:
+                sourcePath:
+                  type: string
+                  description: Absolute path to source
+                targetPath:
+                  type: string
+                  description: Absolute path to destination
+              required: 
+                - sourcePath
+                - targetPath
+              example:
+                sourcePath: /home/user/file
+                targetPath: /home/user/file-renamed
       responses:
         '200':
           description: Success to rename file or directory
@@ -380,22 +389,25 @@ paths:
       description: Change the file mod bits of a given file according to the specified mode
       tags:
         - Utilities
-      parameters:
-        - name: targetPath
-          in: query
-          description: Absolute filesystem path to file
-          required: true
-          allowEmptyValue: false
-          schema:
-            type: string
-          allowReserved: true
-        - name: mode
-          in: query
-          description: Same as numeric mode of linux chmod tool
-          required: true
-          allowEmptyValue: false
-          schema:
-            type: string
+      requestBody:
+        required: true
+        content:
+          'text/plain':
+            schema:
+              type: object
+              properties:
+                targetPath:
+                  type: string
+                  description: Absolute path to target
+                mode:
+                  type: string
+                  description: Same as numeric mode of linux chmod tool
+              required: 
+                - targetPath
+                - mode
+              example:
+                targetPath: /home/user/file
+                mode: "700"
       responses:
         '200':
           description: Operation completed
@@ -455,27 +467,28 @@ paths:
         or group information is passed, only that information will be updated.
       tags:
         - Utilities
-      parameters:
-        - name: targetPath
-          in: query
-          description: Absolute filesystem path to file
-          required: true
-          allowEmptyValue: false
-          schema:
-            type: string
-          allowReserved: true
-        - name: owner
-          in: query
-          required: false
-          allowEmptyValue: false
-          schema:
-            type: string
-        - name: group
-          in: query
-          required: false
-          allowEmptyValue: false
-          schema:
-            type: string
+      requestBody:
+        required: true
+        content:
+          'text/plain':
+            schema:
+              type: object
+              properties:
+                targetPath:
+                  type: string
+                  description: Absolute path to target
+                owner:
+                  type: string
+                  description: Owner username for target
+                group:
+                  type: string
+                  description: group username for target  
+              required: 
+                - targetPath
+              example:
+                targetPath: /home/user/file
+                owner: newOwner
+                group: newGroup
       responses:
         '200':
           description: Operation completed
@@ -538,22 +551,25 @@ paths:
         Copies file from {sorucePath} to {targetpath}.
       tags:
         - Utilities
-      parameters:
-        - name: sourcePath
-          in: query
-          description: Absolute filesystem path to file to be copied
-          required: true
-          allowEmptyValue: false
-          schema:
-            type: string
-          allowReserved: true
-        - name: targetPath
-          in: query
-          description: Absolute filesystem path where the {source} is copied
-          required: true
-          allowEmptyValue: false
-          schema:
-            type: string
+      requestBody:
+        required: true
+        content:
+          'text/plain':
+            schema:
+              type: object
+              properties:
+                sourcePath:
+                  type: string
+                  description: Absolute filesystem path to file to be copied
+                targetPath:
+                  type: string
+                  description: Absolute filesystem path where the {sourcePath} is copied
+              required: 
+                - sourcePath
+                - targetPath
+              example:
+                sourcePath: /home/user/file
+                targetPath: /home/user/file-copied
       responses:
         '201':
           description: Object copy succesful
@@ -683,21 +699,26 @@ paths:
       description: Create a symbolic link (symlink) on a machine filesystem
       tags:
         - Utilities
-      parameters:
-        - name: targetPath
-          in: query
-          description: path to target that the symlink will point to
-          required: true
-          schema:
-            type: string
-          allowReserved: true
-        - name: linkPath
-          in: query
-          description: absolute path to the new symlink
-          required: true
-          schema:
-            type: string
-          allowReserved: true
+      requestBody:
+        required: true
+        content:
+          'text/plain':
+            schema:
+              type: object
+              properties:
+                linkPath:
+                  type: string
+                  description: Absolute path to the new symlink
+                targetPath:
+                  type: string
+                  description: Absolute filesystem path to target that the symlink will point to
+              required: 
+                - linkPath
+                - targetPath
+              example:
+                targetPath: /home/user/file
+                linkPath: /home/user/file-linked
+                
       responses:
         '201':
           description: Success create the symlink
@@ -811,16 +832,6 @@ paths:
       description: 'Uploads a file to the specified path on the {X-Machine-Name} filesystem.'
       tags:
         - Utilities
-      parameters:
-        - name: targetPath
-          in: query
-          description: >-
-            target path to the location where file will be uploaded to on the
-            {X-Machine-Name} filesystem
-          required: true
-          schema:
-            type: string
-          allowReserved: true
       requestBody:
         description: File to be uploaded
         required: true
@@ -832,6 +843,14 @@ paths:
                 file:
                   type: string
                   format: binary
+                targetPath:
+                  type: string
+              required:
+                - file
+                - targetPath
+              example:
+                file: "@/home/local/file"
+                targetPath: /home/user/remotefile
       responses:
         '201':
           description: File upload successful
@@ -877,17 +896,19 @@ paths:
       description: 'Delete a file to the specified path on the {X-Machine-Name} filesystem.'
       tags:
         - Utilities
-      parameters:
-        - name: targetPath
-          in: query
-          description: >-
-            target path to the location of the file that will be deleted on
-            {X-Machine-Name} filesystem
-          required: true
-          schema:
-            type: string
-          allowReserved: true
-      
+      requestBody:
+        required: true
+        content:
+          'text/plain':
+            schema:
+              type: object
+              properties:
+                targetPath:
+                  type: string
+              required:
+                - targetPath
+              example:
+                targetPath: /home/user/remotefile
       responses:
         '204':
           description: File deletion successful
@@ -1094,11 +1115,6 @@ paths:
           required: true
           schema:
             type: string
-        - name: jobs
-          in: query
-          description: Job id to delete.
-          schema:
-            type: string
       responses:
         '204':
           description: Job deleted
@@ -1218,41 +1234,45 @@ paths:
           required: true
           schema:
             type: string
-        - name: sourcePath
-          in: query
-          description: source path to the location filesystem
-          required: true
-          schema:
-            type: string
-          allowReserved: true
-        - name: targetPath
-          in: query
-          description: target path to the location filesystem
-          required: true
-          schema:
-            type: string
-          allowReserved: true
-        - name: jobName
-          in: query
-          description: job name the rsync operation
-          schema:
-            type: string
-        - name: time
-          in: query
-          description: >-
-            'Limit on the total run time of the rsync. Acceptable time formats 
-            \'minutes\',   \'minutes:seconds\',   \'hours:minutes:seconds\',
-            \'days-hours\', \'days-hours:minutes\' and
-            \'days-hours:minutes:seconds\'. Note: for stage-in queue a slurm
-            xfer job.'
-          schema:
-            type: string
-            default: '02:00:00'
-        - name: stageOutJobId
-          in: query
-          description: Move data after job with id 'stageOutJobId' is completed
-          schema:
-            type: string
+      requestBody:
+        required: true
+        content:
+          'text/plain':
+            schema:
+              type: object
+              properties:
+                sourcePath:
+                  type: string
+                  description: source path to the location filesystem
+                targetPath:
+                  type: string
+                  description: target path to the location filesystem
+                jobName:
+                  type: string
+                  description: job name the rsync operation
+                  default: rsync-job
+                time:
+                  type: string
+                  description: >-
+                    'Limit on the total run time of the rsync. Acceptable time formats 
+                    \'minutes\',   \'minutes:seconds\',   \'hours:minutes:seconds\',
+                    \'days-hours\', \'days-hours:minutes\' and
+                    \'days-hours:minutes:seconds\'. Note: for stage-in queue a slurm
+                    xfer job.'
+                  default: '02:00:00'
+                stageOutJobId:
+                  type: string
+                  description: Move data after job with id {stageOutJobId} is completed
+                  default: null
+              required: 
+                - sourcePath
+                - targetPath
+              example: 
+                sourcePath: /home/user/origin
+                targetPath: /home/user/destination
+                jobName: rsync-firecrest-job
+                stageOutJobId: "123456"
+                time: "2-03:00:00"
       responses:
         '201':
           description: operation queued. Task Id returned.
@@ -1301,41 +1321,45 @@ paths:
           required: true
           schema:
             type: string
-        - name: sourcePath
-          in: query
-          description: source path to the location filesystem
-          required: true
-          schema:
-            type: string
-          allowReserved: true
-        - name: targetPath
-          in: query
-          description: target path to the location filesystem
-          required: true
-          schema:
-            type: string
-          allowReserved: true
-        - name: jobName
-          in: query
-          description: job name the operation
-          schema:
-            type: string
-        - name: time
-          in: query
-          description: >-
-            'Limit on the total run time of the rsync. Acceptable time formats 
-            \'minutes\',   \'minutes:seconds\',   \'hours:minutes:seconds\',
-            \'days-hours\', \'days-hours:minutes\' and
-            \'days-hours:minutes:seconds\'. Note: for stage-in queue a slurm
-            xfer job.'
-          schema:
-            type: string
-            default: '02:00:00'
-        - name: stageOutJobId
-          in: query
-          description: Perform operation after job with id 'stageOutJobId' is completed
-          schema:
-            type: string
+      requestBody:
+        required: true
+        content:
+          'text/plain':
+            schema:
+              type: object
+              properties:
+                sourcePath:
+                  type: string
+                  description: source path to the location filesystem
+                targetPath:
+                  type: string
+                  description: target path to the location filesystem
+                jobName:
+                  type: string
+                  description: job name the rename operation
+                  default: mv-job
+                time:
+                  type: string
+                  description: >-
+                    'Limit on the total run time of the rename. Acceptable time formats 
+                    \'minutes\',   \'minutes:seconds\',   \'hours:minutes:seconds\',
+                    \'days-hours\', \'days-hours:minutes\' and
+                    \'days-hours:minutes:seconds\'. Note: for stage-in queue a slurm
+                    xfer job.'
+                  default: '02:00:00'
+                stageOutJobId:
+                  type: string
+                  description: Move data after job with id {stageOutJobId} is completed
+                  default: null
+              required: 
+                - sourcePath
+                - targetPath
+              example: 
+                sourcePath: /home/user/origin
+                targetPath: /home/user/destination
+                jobName: mv-firecrest-job
+                stageOutJobId: "123456"
+                time: "2-03:00:00"
       responses:
         '201':
           description: operation queued. Task Id returned.
@@ -1377,48 +1401,45 @@ paths:
         https://user.cscs.ch/storage/data_transfer/internal_transfer/'
       tags:
         - Storage
-      parameters:
-        - name: Authorization
-          in: header
-          description: authorization token
-          required: true
-          schema:
-            type: string
-        - name: sourcePath
-          in: query
-          description: source path to the filesystem
-          required: true
-          schema:
-            type: string
-          allowReserved: true
-        - name: targetPath
-          in: query
-          description: target path to the filesystem
-          required: true
-          schema:
-            type: string
-          allowReserved: true
-        - name: jobName
-          in: query
-          description: job name the operation
-          schema:
-            type: string
-        - name: time
-          in: query
-          description: >-
-            'Limit on the total run time of the rsync. Acceptable time formats 
-            \'minutes\',   \'minutes:seconds\',   \'hours:minutes:seconds\',
-            \'days-hours\', \'days-hours:minutes\' and
-            \'days-hours:minutes:seconds\'. Note: for stage-in queue a slurm
-            xfer job.'
-          schema:
-            type: string
-            default: '02:00:00'
-        - name: stageOutJobId
-          in: query
-          description: Perform operation after job with id 'stageOutJobId' is completed
-          schema:
-            type: string
+      requestBody:
+        required: true
+        content:
+          'text/plain':
+            schema:
+              type: object
+              properties:
+                sourcePath:
+                  type: string
+                  description: source path to the location filesystem
+                targetPath:
+                  type: string
+                  description: target path to the location filesystem
+                jobName:
+                  type: string
+                  description: job name the copy operation
+                  default: cp-job
+                time:
+                  type: string
+                  description: >-
+                    'Limit on the total run time of the copy. Acceptable time formats 
+                    \'minutes\',   \'minutes:seconds\',   \'hours:minutes:seconds\',
+                    \'days-hours\', \'days-hours:minutes\' and
+                    \'days-hours:minutes:seconds\'. Note: for stage-in queue a slurm
+                    xfer job.'
+                  default: '02:00:00'
+                stageOutJobId:
+                  type: string
+                  description: Copy data after job with id {stageOutJobId} is completed
+                  default: null
+              required: 
+                - sourcePath
+                - targetPath
+              example: 
+                sourcePath: /home/user/origin
+                targetPath: /home/user/destination
+                jobName: cp-firecrest-job
+                stageOutJobId: "123456"
+                time: "2-03:00:00"
       responses:
         '201':
           description: operation queued. Task Id returned.
@@ -1467,34 +1488,40 @@ paths:
           required: true
           schema:
             type: string
-        - name: targetPath
-          in: query
-          description: target path to the filesystem
-          required: true
-          schema:
-            type: string
-          allowReserved: true
-        - name: jobName
-          in: query
-          description: job name the operation
-          schema:
-            type: string
-        - name: time
-          in: query
-          description: >-
-            'Limit on the total run time of the rsync. Acceptable time formats 
-            \'minutes\',   \'minutes:seconds\',   \'hours:minutes:seconds\',
-            \'days-hours\', \'days-hours:minutes\' and
-            \'days-hours:minutes:seconds\'. Note: for stage-in queue a slurm
-            xfer job.'
-          schema:
-            type: string
-            default: '02:00:00'
-        - name: stageOutJobId
-          in: query
-          description: Perform operation after job with id 'stageOutJobId' is completed
-          schema:
-            type: string
+      requestBody:
+        required: true
+        content:
+          'text/plain':
+            schema:
+              type: object
+              properties:
+                targetPath:
+                  type: string
+                  description: target path to the location filesystem
+                jobName:
+                  type: string
+                  description: job name the remove operation
+                  default: rm-job
+                time:
+                  type: string
+                  description: >-
+                    'Limit on the total run time of the rm. Acceptable time formats 
+                    \'minutes\',   \'minutes:seconds\',   \'hours:minutes:seconds\',
+                    \'days-hours\', \'days-hours:minutes\' and
+                    \'days-hours:minutes:seconds\'. Note: for stage-in queue a slurm
+                    xfer job.'
+                  default: '02:00:00'
+                stageOutJobId:
+                  type: string
+                  description: Delete data after job with id {stageOutJobId} is completed
+                  default: null
+              required: 
+                - targetPath
+              example: 
+                targetPath: /home/user/file-to-delete
+                jobName: rm-firecrest-job
+                stageOutJobId: "123456"
+                time: "2-03:00:00"
       responses:
         '201':
           description: operation queued. Task Id returned.
@@ -1530,7 +1557,7 @@ paths:
         task that will provide a persisten URL at which the target file can be
         uploaded to, the persistent URL is encoded with a random hash and is
         available for an extended period of time (it does not depend on the
-        lifetime of the OIDC token). Once the file has been uploaded to the file server, user must call /upload-finished with task id provided by Task microservice.
+        lifetime of the OIDC token). 
         
       tags:
         - Storage
@@ -1541,20 +1568,25 @@ paths:
           required: true
           schema:
             type: string
-        - name: sourcePath
-          in: query
-          description: source path of the file in local machine
-          required: true
-          schema:
-            type: string
-          allowReserved: true
-        - name: targetPath
-          in: query
-          description: target path to the filesystem
-          required: true
-          schema:
-            type: string
-          allowReserved: true
+      requestBody:
+        required: true
+        content:
+          'text/plain':
+            schema:
+              type: object
+              properties:
+                sourcePath:
+                  type: string
+                  description: source path to the file in local machine
+                targetPath:
+                  type: string
+                  description: target path to the filesystem
+              required: 
+                - sourcePath
+                - targetPath
+              example: 
+                sourcePath: /home/local_user/origin
+                targetPath: /home/user/destination
       responses:
         '201':
           description: operation queued. Task Id returned.
@@ -1581,6 +1613,14 @@ paths:
               description: targetPath is an invalid path.
               schema:
                 type: integer
+            X-Not-A-Directory: 
+              description: targetPath is not a directory
+              schema:
+                type: string
+            X-Error: 
+              description: Error
+              schema:
+                type: string
     put:
       tags: 
         - Storage
@@ -1661,13 +1701,20 @@ paths:
           required: true
           schema:
             type: string
-        - name: sourcePath
-          in: query
-          description: source path to the filesystem
-          required: true
-          schema:
-            type: string
-          allowReserved: true
+      requestBody:
+        required: true
+        content:
+          'text/plain':
+            schema:
+              type: object
+              properties:
+                sourcePath:
+                  type: string
+                  description: source path to the file in remote filesystem
+              required: 
+                - sourcePath
+              example: 
+                sourcePath: /home/user/file
       responses:
         '201':
           description: operation queued. Task Id returned.
@@ -1685,15 +1732,24 @@ paths:
             X-Permission-Denied:
               description: User does not have permissions to access path
               schema:
-                type: integer
+                type: string
             X-Not-Found:
               description: targetPath not found
               schema:
-                type: integer
+                type: string
             X-Invalid-Path:
               description: targetPath is an invalid path.
               schema:
-                type: integer
+                type: string
+            X-A-Directory: 
+              description: targetPath is a directory, can't download directories
+              schema:
+                type: string
+            X-Error: 
+              description: Error
+              schema:
+                type: string
+              
   '/tasks':
     get:
       summary: returns all tasks

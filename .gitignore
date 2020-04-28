@@ -5,4 +5,5 @@ __pycache__/
 *.log
 *.rdb
 **/minio/data/
+**/deploy/demo/minio/
 doc/build/
