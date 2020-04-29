@@ -12,25 +12,25 @@ import jwt
 import logging
 from logging.handlers import TimedRotatingFileHandler
 
-STATUS_IP = os.environ.get("STATUS_IP")
+STATUS_IP = os.environ.get("F7T_STATUS_IP")
 AUTH_HEADER_NAME = 'Authorization'
 
-AUTH_AUDIENCE = os.environ.get("AUTH_TOKEN_AUD", '').strip('\'"')
-ALLOWED_USERS = os.environ.get("AUTH_ALLOWED_USERS", '').strip('\'"').split(";")
-AUTH_REQUIRED_SCOPE = os.environ.get("AUTH_REQUIRED_SCOPE", '').strip('\'"')
+AUTH_AUDIENCE = os.environ.get("F7T_AUTH_TOKEN_AUD", '').strip('\'"')
+ALLOWED_USERS = os.environ.get("F7T_AUTH_ALLOWED_USERS", '').strip('\'"').split(";")
+AUTH_REQUIRED_SCOPE = os.environ.get("F7T_AUTH_REQUIRED_SCOPE", '').strip('\'"')
 
-AUTH_ROLE = os.environ.get("AUTH_ROLE", '').strip('\'"')
+AUTH_ROLE = os.environ.get("F7T_AUTH_ROLE", '').strip('\'"')
 
-CERTIFICATOR_PORT = os.environ.get("CERTIFICATOR_PORT", 5000)
+CERTIFICATOR_PORT = os.environ.get("F7T_CERTIFICATOR_PORT", 5000)
 
-realm_pubkey=os.environ.get("REALM_RSA_PUBLIC_KEY", '')
+realm_pubkey=os.environ.get("F7T_REALM_RSA_PUBLIC_KEY", '')
 if realm_pubkey != '':
     # headers are inserted here, must not be present
     realm_pubkey = realm_pubkey.strip('\'"')   # remove '"'
     realm_pubkey = '-----BEGIN PUBLIC KEY-----\n' + realm_pubkey + '\n-----END PUBLIC KEY-----'
-    realm_pubkey_type = os.environ.get("REALM_RSA_TYPE").strip('\'"')
+    realm_pubkey_type = os.environ.get("F7T_REALM_RSA_TYPE").strip('\'"')
 
-debug = os.environ.get("DEBUG_MODE", False)
+debug = os.environ.get("F7T_DEBUG_MODE", False)
 
 app = Flask(__name__)
 

@@ -11,13 +11,13 @@ if FIRECREST_URL:
     STORAGE_URL = os.environ.get("FIRECREST_URL") + "/storage"
     UTILITIES_URL = os.environ.get("FIRECREST_URL") + "/utilities"
 else:
-    TASKS_URL = os.environ.get("TASKS_URL")
-    STORAGE_URL = os.environ.get("STORAGE_URL")
-    UTILITIES_URL = os.environ.get("UTILITIES_URL")
+    TASKS_URL = os.environ.get("F7T_TASKS_URL")
+    STORAGE_URL = os.environ.get("F7T_STORAGE_URL")
+    UTILITIES_URL = os.environ.get("F7T_UTILITIES_URL")
 
 # same server used for utilities and external upload storage
-SERVER_UTILITIES_STORAGE = os.environ.get("SYSTEMS_PUBLIC").split(";")[0] 
-OBJECT_STORAGE = os.environ.get("OBJECT_STORAGE")
+SERVER_UTILITIES_STORAGE = os.environ.get("F7T_SYSTEMS_PUBLIC").split(";")[0] 
+OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE")
 
 
 

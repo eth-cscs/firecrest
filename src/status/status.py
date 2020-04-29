@@ -20,35 +20,39 @@ import os
 
 AUTH_HEADER_NAME = 'Authorization'
 
-SYSTEMS_PUBLIC  = os.environ.get("SYSTEMS_PUBLIC").strip('\'"').split(";")
+SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
 # ; separated for system (related with SYSTEMS_PUBLIC length, and for each filesystem mounted inside each system, separated with ":")
 # example: let's suppose SYSTEMS_PUBLIC="cluster1;cluster2", cluster1 has "/fs-c1-1" and "/fs-c1-2", and cluster2 has mounted "/fs-c2-1":
 # FILESYSTEMS = "/fs-c1-1,/fs-c1-2;fs-c2-1"
-FILESYSTEMS = os.environ.get("FILESYSTEMS").strip('\'"').split(";")
+FILESYSTEMS = os.environ.get("F7T_FILESYSTEMS").strip('\'"').split(";")
 
-SERVICES = os.environ.get("STATUS_SERVICES").strip('\'"').split(";") # ; separated service names
-SYSTEMS  = os.environ.get("STATUS_SYSTEMS").strip('\'"').split(";")  # ; separated systems names
+SERVICES = os.environ.get("F7T_STATUS_SERVICES").strip('\'"').split(";") # ; separated service names
+SYSTEMS  = os.environ.get("F7T_STATUS_SYSTEMS").strip('\'"').split(";")  # ; separated systems names
 
-STATUS_PORT = os.environ.get("STATUS_PORT", 5000)
+STATUS_PORT = os.environ.get("F7T_STATUS_PORT", 5000)
 
 SERVICES_DICT = {}
 
 ### parameters
-UTILITIES_MAX_FILE_SIZE = os.environ.get("UTILITIES_MAX_FILE_SIZE")
-UTILITIES_TIMEOUT = os.environ.get("UTILITIES_TIMEOUT")
-STORAGE_TEMPURL_EXP_TIME = os.environ.get("STORAGE_TEMPURL_EXP_TIME")
-STORAGE_MAX_FILE_SIZE = os.environ.get("STORAGE_MAX_FILE_SIZE")
-OBJECT_STORAGE=os.environ.get("OBJECT_STORAGE")
+UTILITIES_MAX_FILE_SIZE = os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE")
+UTILITIES_TIMEOUT = os.environ.get("F7T_UTILITIES_TIMEOUT")
+STORAGE_TEMPURL_EXP_TIME = os.environ.get("F7T_STORAGE_TEMPURL_EXP_TIME")
+STORAGE_MAX_FILE_SIZE = os.environ.get("F7T_STORAGE_MAX_FILE_SIZE")
+OBJECT_STORAGE=os.environ.get("F7T_OBJECT_STORAGE")
 
 # debug on console
-debug = os.environ.get("DEBUG_MODE", None)
+debug = os.environ.get("F7T_DEBUG_MODE", None)
 
 
 app = Flask(__name__)
 
 def set_services():
     for servicename in SERVICES:
-        serviceurl = os.environ.get(servicename.upper()+"_URL")
+
+        URL_ENV_VAR = f"F7T_{servicename.upper()}_URL"
+
+
+        serviceurl = os.environ.get(URL_ENV_VAR)
         if serviceurl:
             SERVICES_DICT[servicename] = serviceurl
 

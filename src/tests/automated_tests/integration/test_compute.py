@@ -9,11 +9,11 @@ if FIRECREST_URL:
 	TASKS_URL = os.environ.get("FIRECREST_URL") + "/tasks"
 	COMPUTE_URL = os.environ.get("FIRECREST_URL") + "/compute"
 else:
-	TASKS_URL = os.environ.get("TASKS_URL")
-	COMPUTE_URL = os.environ.get("COMPUTE_URL")
+	TASKS_URL = os.environ.get("F7T_TASKS_URL")
+	COMPUTE_URL = os.environ.get("F7T_COMPUTE_URL")
 
 JOBS_URL = COMPUTE_URL + "/jobs"
-SERVER_COMPUTE = os.environ.get("SYSTEMS_PUBLIC").split(";")[0]
+SERVER_COMPUTE = os.environ.get("F7T_SYSTEMS_PUBLIC").split(";")[0]
 
 
 
