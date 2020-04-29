@@ -72,9 +72,8 @@ def test_create_task(headers):
 # Test query task status
 @host_environment_test
 def test_get_task(headers):
-	# resp = create_task(headers)
-	# hash_id = resp.json()["hash_id"]
-	hash_id = 'a6ba80bc27e9d1beb3faf76ae9433a75'
+	resp = create_task(headers)
+	hash_id = resp.json()["hash_id"]	
 	url = "{}/{}".format(TASKS_URL, hash_id)
 	resp = requests.get(url, headers=headers)
 	print(json.dumps(resp.json(),indent=2))
