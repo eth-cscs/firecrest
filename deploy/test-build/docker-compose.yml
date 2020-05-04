@@ -11,6 +11,7 @@ services:
     volumes:
       - "./environment/keys/ca-key:/ca-key:ro"
       - "./environment/keys/user-key.pub:/user-key.pub:ro"
+      - ./logs/firecrest:/var/log:delegated
 
   compute:
     build:
