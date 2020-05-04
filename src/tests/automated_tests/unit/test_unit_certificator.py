@@ -7,7 +7,7 @@ FIRECREST_URL = os.environ.get("FIRECREST_URL")
 if FIRECREST_URL:
 	CERTIFICATOR_URL = os.environ.get("FIRECREST_URL") + "/certificator"
 else:
-    CERTIFICATOR_URL = os.environ.get("CERTIFICATOR_URL")	
+    CERTIFICATOR_URL = os.environ.get("F7T_CERTIFICATOR_URL")	
 
 
 

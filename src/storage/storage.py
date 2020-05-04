@@ -37,48 +37,48 @@ import time
 
 ## READING vars environment vars
 
-CERTIFICATOR_URL = os.environ.get("CERTIFICATOR_URL")
-TASKS_URL        = os.environ.get("TASKS_URL")
-COMPUTE_URL      = os.environ.get("COMPUTE_URL")
-STATUS_IP        = os.environ.get("STATUS_IP")
-KONG_URL         = os.environ.get("KONG_URL")
+CERTIFICATOR_URL = os.environ.get("F7T_CERTIFICATOR_URL")
+TASKS_URL        = os.environ.get("F7T_TASKS_URL")
+COMPUTE_URL      = os.environ.get("F7T_COMPUTE_URL")
+STATUS_IP        = os.environ.get("F7T_STATUS_IP")
+KONG_URL         = os.environ.get("F7T_KONG_URL")
 
-STORAGE_PORT     = os.environ.get("STORAGE_PORT", 5000)
+STORAGE_PORT     = os.environ.get("F7T_STORAGE_PORT", 5000)
 
 AUTH_HEADER_NAME = 'Authorization'
 
 # Machines for Storage:
 # Filesystem DNS or IP where to download or upload files:
-SYSTEMS_INTERNAL_STORAGE = os.environ.get("SYSTEMS_INTERNAL_STORAGE").strip('\'"')
+SYSTEMS_INTERNAL_STORAGE = os.environ.get("F7T_SYSTEMS_INTERNAL_STORAGE").strip('\'"')
 # Job machine where to send xfer-internal jobs (must be defined in SYSTEMS_PUBLIC)
-STORAGE_JOBS_MACHINE     = os.environ.get("STORAGE_JOBS_MACHINE").strip('\'"')
+STORAGE_JOBS_MACHINE     = os.environ.get("F7T_STORAGE_JOBS_MACHINE").strip('\'"')
 
 ###### ENV VAR FOR DETECT TECHNOLOGY OF STAGING AREA:
-OBJECT_STORAGE = os.environ.get("OBJECT_STORAGE", "").strip('\'"')
+OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE", "").strip('\'"')
 
 # Scheduller partition used for internal transfers
-XFER_PARTITION = os.environ.get("XFER_PARTITION", "").strip('\'"')
+XFER_PARTITION = os.environ.get("F7T_XFER_PARTITION", "").strip('\'"')
 
 # Machine used for external transfers
 
-EXT_TRANSFER_MACHINE_PUBLIC=os.environ.get("EXT_TRANSFER_MACHINE_PUBLIC", "").strip('\'"')
-EXT_TRANSFER_MACHINE_INTERNAL=os.environ.get("EXT_TRANSFER_MACHINE_INTERNAL", "").strip('\'"')
+EXT_TRANSFER_MACHINE_PUBLIC=os.environ.get("F7T_EXT_TRANSFER_MACHINE_PUBLIC", "").strip('\'"')
+EXT_TRANSFER_MACHINE_INTERNAL=os.environ.get("F7T_EXT_TRANSFER_MACHINE_INTERNAL", "").strip('\'"')
 
-OS_AUTH_URL             = os.environ.get("OS_AUTH_URL")
-OS_IDENTITY_PROVIDER    = os.environ.get("OS_IDENTITY_PROVIDER")
-OS_IDENTITY_PROVIDER_URL= os.environ.get("OS_IDENTITY_PROVIDER_URL")
-OS_PROTOCOL             = os.environ.get("OS_PROTOCOL")
-OS_INTERFACE            = os.environ.get("OS_INTERFACE")
-OS_PROJECT_ID           = os.environ.get("OS_PROJECT_ID")
+OS_AUTH_URL             = os.environ.get("F7T_OS_AUTH_URL")
+OS_IDENTITY_PROVIDER    = os.environ.get("F7T_OS_IDENTITY_PROVIDER")
+OS_IDENTITY_PROVIDER_URL= os.environ.get("F7T_OS_IDENTITY_PROVIDER_URL")
+OS_PROTOCOL             = os.environ.get("F7T_OS_PROTOCOL")
+OS_INTERFACE            = os.environ.get("F7T_OS_INTERFACE")
+OS_PROJECT_ID           = os.environ.get("F7T_OS_PROJECT_ID")
 
 # SECRET KEY for temp url without using Token
-SECRET_KEY              = os.environ.get("SECRET_KEY")
+SECRET_KEY              = os.environ.get("F7T_SECRET_KEY")
 
-STORAGE_TEMPURL_EXP_TIME = int(os.environ.get("STORAGE_TEMPURL_EXP_TIME", "2592000").strip('\'"'))
-STORAGE_MAX_FILE_SIZE = int(os.environ.get("STORAGE_MAX_FILE_SIZE", "5368709120").strip('\'"'))
+STORAGE_TEMPURL_EXP_TIME = int(os.environ.get("F7T_STORAGE_TEMPURL_EXP_TIME", "2592000").strip('\'"'))
+STORAGE_MAX_FILE_SIZE = int(os.environ.get("F7T_STORAGE_MAX_FILE_SIZE", "5368709120").strip('\'"'))
 
-STORAGE_POLLING_INTERVAL = int(os.environ.get("STORAGE_POLLING_INTERVAL", "60").strip('\'"'))
-CERT_CIPHER_KEY = os.environ.get("CERT_CIPHER_KEY", "").strip('\'"').encode('utf-8')
+STORAGE_POLLING_INTERVAL = int(os.environ.get("F7T_STORAGE_POLLING_INTERVAL", "60").strip('\'"'))
+CERT_CIPHER_KEY = os.environ.get("F7T_CERT_CIPHER_KEY", "").strip('\'"').encode('utf-8')
 
 
 # aynchronous tasks: upload & download --> http://TASKS_URL
@@ -91,7 +91,7 @@ storage_tasks = {}
 uploaded_files = {}
 
 # debug on console
-debug = os.environ.get("DEBUG_MODE", None)
+debug = os.environ.get("F7T_DEBUG_MODE", None)
 
 
 app = Flask(__name__)
@@ -1055,11 +1055,11 @@ def create_staging():
         from swiftOS import Swift
 
         # Object Storage URL & data:
-        SWIFT_URL = os.environ.get("SWIFT_URL")
-        SWIFT_API_VERSION = os.environ.get("SWIFT_API_VERSION")
-        SWIFT_ACCOUNT = os.environ.get("SWIFT_ACCOUNT")
-        SWIFT_USER = os.environ.get("SWIFT_USER")
-        SWIFT_PASS = os.environ.get("SWIFT_PASS")
+        SWIFT_URL = os.environ.get("F7T_SWIFT_URL")
+        SWIFT_API_VERSION = os.environ.get("F7T_SWIFT_API_VERSION")
+        SWIFT_ACCOUNT = os.environ.get("F7T_SWIFT_ACCOUNT")
+        SWIFT_USER = os.environ.get("F7T_SWIFT_USER")
+        SWIFT_PASS = os.environ.get("F7T_SWIFT_PASS")
 
         url = "{swift_url}/{swift_api_version}/AUTH_{swift_account}".format(
             swift_url=SWIFT_URL, swift_api_version=SWIFT_API_VERSION, swift_account=SWIFT_ACCOUNT)
@@ -1071,9 +1071,9 @@ def create_staging():
         from s3v2OS import S3v2
 
         # For S#:
-        S3_URL = os.environ.get("S3_URL")
-        S3_ACCESS_KEY = os.environ.get("S3_ACCESS_KEY")
-        S3_SECRET_KEY = os.environ.get("S3_SECRET_KEY")
+        S3_URL = os.environ.get("F7T_S3_URL")
+        S3_ACCESS_KEY = os.environ.get("F7T_S3_ACCESS_KEY")
+        S3_SECRET_KEY = os.environ.get("F7T_S3_SECRET_KEY")
 
         staging = S3v2(url=S3_URL, user=S3_ACCESS_KEY, passwd=S3_SECRET_KEY)
 
@@ -1082,9 +1082,9 @@ def create_staging():
         from s3v4OS import S3v4
 
         # For S#:
-        S3_URL = os.environ.get("S3_URL")
-        S3_ACCESS_KEY = os.environ.get("S3_ACCESS_KEY")
-        S3_SECRET_KEY = os.environ.get("S3_SECRET_KEY")
+        S3_URL = os.environ.get("F7T_S3_URL")
+        S3_ACCESS_KEY = os.environ.get("F7T_S3_ACCESS_KEY")
+        S3_SECRET_KEY = os.environ.get("F7T_S3_SECRET_KEY")
 
         staging = S3v4(url=S3_URL, user=S3_ACCESS_KEY, passwd=S3_SECRET_KEY)
 

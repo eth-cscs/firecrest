@@ -3,15 +3,16 @@ import requests
 import os
 from test_globals import *
 from markers import host_environment_test
+import json
 
 
 FIRECREST_URL = os.environ.get("FIRECREST_URL")
 if FIRECREST_URL:
 	UTILITIES_URL = os.environ.get("FIRECREST_URL") + "/utilities"
 else:
-    UTILITIES_URL = os.environ.get("UTILITIES_URL")
+    UTILITIES_URL = os.environ.get("F7T_UTILITIES_URL")
 
-SERVER_UTILITIES = os.environ.get("SYSTEMS_PUBLIC").split(";")[0]
+SERVER_UTILITIES = os.environ.get("F7T_SYSTEMS_PUBLIC").split(";")[0]
 
 
 # test data for rename, chmod,chown, file, download,upload
@@ -96,7 +97,8 @@ def test_list_directory(machine, targetPath, expected_response_code, headers):
 	url = "{}/ls".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.get(url, headers=headers, params=params)
-	print(resp.content)
+	print(json.dumps(resp.json(),indent=2))
+	print(resp.headers)
 	assert resp.status_code == expected_response_code
 
 

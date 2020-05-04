@@ -17,22 +17,22 @@ import tasks_persistence as persistence
 
 AUTH_HEADER_NAME = 'Authorization'
 
-STATUS_IP   = os.environ.get("STATUS_IP")
-STORAGE_IP  = os.environ.get("STORAGE_IP")
-COMPUTE_IP     = os.environ.get("COMPUTE_IP")
-KONG_URL    = os.environ.get("KONG_URL")
+STATUS_IP   = os.environ.get("F7T_STATUS_IP")
+STORAGE_IP  = os.environ.get("F7T_STORAGE_IP")
+COMPUTE_IP     = os.environ.get("F7T_COMPUTE_IP")
+KONG_URL    = os.environ.get("F7T_KONG_URL")
 
-TASKS_PORT    = os.environ.get("TASKS_PORT", 5000)
+TASKS_PORT    = os.environ.get("F7T_TASKS_PORT", 5000)
 
 # redis info:
-PERSISTENCE_IP   = os.environ.get("PERSISTENCE_IP")
-PERSIST_PORT = os.environ.get("PERSIST_PORT")
-PERSIST_PWD  = os.environ.get("PERSIST_PWD")
+PERSISTENCE_IP   = os.environ.get("F7T_PERSISTENCE_IP")
+PERSIST_PORT = os.environ.get("F7T_PERSIST_PORT")
+PERSIST_PWD  = os.environ.get("F7T_PERSIST_PWD")
 
 # expire time in seconds, for squeue or sacct tasks:
 TASK_EXP_TIME = 300
 
-debug = os.environ.get("DEBUG_MODE", None)
+debug = os.environ.get("F7T_DEBUG_MODE", None)
 
 # task dict, key is the task_id
 tasks = {}
