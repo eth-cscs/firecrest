@@ -53,8 +53,8 @@ which will be exactly the same as the test.env file shown in the previous exampl
 
 ***** Run tests *****
 
-Run all tests:
-  $ pytest [-c custom_config.ini]
+Run unit and integrations tests:
+  $ pytest [-c custom_config.ini] unit integration
 
 Run unit tests only:
   $ pytest -c test-build.ini unit/
@@ -68,6 +68,14 @@ Run a specific test file:
 Run a specific test within a test file:
    $ pytest [-c custom_config.ini] unit/test_unit_jobs.py -k "test_submit_job or test_acct"
 
+**** Concurrency tests *****
+Concurrency tests can be run using pytest-parallel plugin:
+
+   $ pytest -c test-build.ini concurrency/test_concurrency_compute.py --workers 1 --tests-per-worker 50
+
+The "workers" flag specifies the number of processes and "tests-per-worker" the number of threads.
+
+   
 
 
 ***** Tests Limitations *****
