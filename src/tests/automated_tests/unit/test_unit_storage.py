@@ -8,7 +8,7 @@ FIRECREST_URL = os.environ.get("FIRECREST_URL")
 if FIRECREST_URL:
 	STORAGE_URL = os.environ.get("FIRECREST_URL") + "/storage"
 else:
-    STORAGE_URL = os.environ.get("STORAGE_URL")
+    STORAGE_URL = os.environ.get("F7T_STORAGE_URL")
 
 
 # test upload request: ask for an upload task (must throw 200 OK)
@@ -24,6 +24,7 @@ def test_put_upload_request(headers):
     headers.update({"X-Task-ID": task_id})
     r = requests.put(STORAGE_URL + "/xfer-external/upload", headers=headers)
     assert r.status_code == 404
+
 
 def test_download_file_not_exist(headers):
     data = { "sourcePath": "no-existing-file" }

@@ -22,7 +22,6 @@ services:
     network_mode: "host"
     volumes:
       - "./environment/keys/user-key:/user-key:ro"
-      - ./logs/firecrest:/var/log:delegated
 
   status:
     build:
@@ -31,8 +30,6 @@ services:
     env_file:
       - ./environment/common.env
     network_mode: "host"
-    volumes:
-      - ./logs/firecrest:/var/log:delegated
 
   storage:
     build:
@@ -49,7 +46,6 @@ services:
       - "./environment/keys/user-key:/user-key:ro"
       # custom host file
       - "./environment/hosts:/etc/hosts:ro"
-      - ./logs/firecrest:/var/log:delegated
 
   tasks:
     build: 
@@ -58,14 +54,12 @@ services:
     env_file:
       - ./environment/common.env
     environment:
-      - PERSIST_PORT=6379
-      - PERSIST_PWD=rediS2200
-      - DEBUG_MODE=True
+      - F7T_PERSIST_PORT=6379
+      - F7T_PERSIST_PWD=rediS2200
+      - F7T_DEBUG_MODE=True
     depends_on:
       - "taskpersistence"
     network_mode: "host"
-    volumes:
-      - ./logs/firecrest:/var/log:delegated
 
   utilities:
     build: 
@@ -76,7 +70,6 @@ services:
     network_mode: "host"
     volumes:
       - "./environment/keys/user-key:/user-key:ro"
-      - ./logs/firecrest:/var/log:delegated
 
   # auxiliary containers
   cluster:
@@ -87,7 +80,6 @@ services:
     hostname: cluster
     ports:
       - "2223:22"
-
 
   minio:
     # runs on private network so "cluster" can reach it
@@ -106,4 +98,3 @@ services:
     network_mode: "host"
     volumes:
       - ./taskpersistence/redis.conf:/redis.conf:ro
-      - ./logs/firecrest:/var/log:delegated

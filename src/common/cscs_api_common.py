@@ -13,22 +13,22 @@ debug = os.environ.get("DEBUG_MODE", None)
 
 AUTH_HEADER_NAME = 'Authorization' # os.environ.get("AUTH_HEADER_NAME").strip('\'"')
 #if AUTH_HEADER_NAME == "Authorization":
-realm_pubkey=os.environ.get("REALM_RSA_PUBLIC_KEY", '')
+realm_pubkey=os.environ.get("F7T_REALM_RSA_PUBLIC_KEY", '')
 if realm_pubkey != '':
     # headers are inserted here, must not be present
     realm_pubkey = realm_pubkey.strip('\'"')   # remove '"'
     realm_pubkey = '-----BEGIN PUBLIC KEY-----\n' + realm_pubkey + '\n-----END PUBLIC KEY-----'
-    realm_pubkey_type = os.environ.get("REALM_RSA_TYPE").strip('\'"')
+    realm_pubkey_type = os.environ.get("F7T_REALM_RSA_TYPE").strip('\'"')
 
-AUTH_AUDIENCE = os.environ.get("AUTH_TOKEN_AUD", '').strip('\'"')
-ALLOWED_USERS = os.environ.get("AUTH_ALLOWED_USERS", '').strip('\'"').split(";")
-AUTH_REQUIRED_SCOPE = os.environ.get("AUTH_REQUIRED_SCOPE", '').strip('\'"')
+AUTH_AUDIENCE = os.environ.get("F7T_AUTH_TOKEN_AUD", '').strip('\'"')
+ALLOWED_USERS = os.environ.get("F7T_AUTH_ALLOWED_USERS", '').strip('\'"').split(";")
+AUTH_REQUIRED_SCOPE = os.environ.get("F7T_AUTH_REQUIRED_SCOPE", '').strip('\'"')
 
-AUTH_ROLE = os.environ.get("AUTH_ROLE", '').strip('\'"')
+AUTH_ROLE = os.environ.get("F7T_AUTH_ROLE", '').strip('\'"')
 
 
-CERTIFICATOR_URL = os.environ.get("CERTIFICATOR_URL")
-TASKS_URL = os.environ.get("TASKS_URL")
+CERTIFICATOR_URL = os.environ.get("F7T_CERTIFICATOR_URL")
+TASKS_URL = os.environ.get("F7T_TASKS_URL")
 
 logging.getLogger().setLevel(logging.INFO)
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',datefmt='%Y-%m-%d:%H:%M:%S',level=logging.INFO)

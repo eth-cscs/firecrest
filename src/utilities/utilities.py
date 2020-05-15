@@ -17,24 +17,24 @@ from cscs_api_common import check_header, get_username,exec_remote_command, crea
     get_buffer_lines, clean_err_output
 
 
-CERTIFICATOR_URL = os.environ.get("CERTIFICATOR_URL")
-STATUS_IP        = os.environ.get("STATUS_IP")
+CERTIFICATOR_URL = os.environ.get("F7T_CERTIFICATOR_URL")
+STATUS_IP        = os.environ.get("F7T_STATUS_IP")
 
-UTILITIES_PORT   = os.environ.get("UTILITIES_PORT", 5000)
+UTILITIES_PORT   = os.environ.get("F7T_UTILITIES_PORT", 5000)
 
 AUTH_HEADER_NAME = 'Authorization'
 
-UTILITIES_TIMEOUT = int(os.environ.get("UTILITIES_TIMEOUT"))
+UTILITIES_TIMEOUT = int(os.environ.get("F7T_UTILITIES_TIMEOUT"))
 
 # SYSTEMS: list of ; separated systems allowed
-SYSTEMS_PUBLIC  = os.environ.get("SYSTEMS_PUBLIC").strip('\'"').split(";")
+SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
 # internal machines for file operations
-SYS_INTERNALS   = os.environ.get("SYSTEMS_INTERNAL_UTILITIES").strip('\'"').split(";")
+SYS_INTERNALS   = os.environ.get("F7T_SYSTEMS_INTERNAL_UTILITIES").strip('\'"').split(";")
 
-debug = os.environ.get("DEBUG_MODE", None)
+debug = os.environ.get("F7T_DEBUG_MODE", None)
 
 #max file size for upload/download in MB
-MAX_FILE_SIZE=int(os.environ.get("UTILITIES_MAX_FILE_SIZE"))
+MAX_FILE_SIZE=int(os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE"))
 
 app = Flask(__name__)
 # max content lenght for upload in bytes
@@ -351,8 +351,8 @@ def file_type():
 
     # PUBLIC endpoints from Kong to users
     if machinename not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
-        return jsonify(description="Error in file operation", error="Machine does not exists"), 400, header
+        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
+        return jsonify(description="Error in file operation", error="Machine does not exist"), 400, header
 
     # iterate over SYSTEMS list and find the endpoint matching same order
     for i in range(len(SYSTEMS_PUBLIC)):
@@ -427,8 +427,8 @@ def chmod():
 
     # public endpoints from Kong to users
     if machinename not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
-        return jsonify(description="Error in chmod operation", error="Machine does not exists"), 400, header
+        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
+        return jsonify(description="Error in chmod operation", error="Machine does not exist"), 400, header
 
     # iterate over systems list and find the endpoint matching same order
     for i in range(len(SYSTEMS_PUBLIC)):
@@ -509,8 +509,8 @@ def chown():
 
     # public endpoints from Kong to users
     if machinename not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
-        return jsonify(description="Error in chown operation", error="Machine does not exists"), 400, header
+        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
+        return jsonify(description="Error in chown operation", error="Machine does not exist"), 400, header
 
     # iterate over systems list and find the endpoint matching same order
     for i in range(len(SYSTEMS_PUBLIC)):
@@ -603,8 +603,8 @@ def list_directory():
 
     # public endpoints from Kong to users
     if machinename not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
-        return jsonify(description="Error listing contents of path", error="Machine does not exists"), 400, header
+        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
+        return jsonify(description="Error listing contents of path", error="Machine does not exist"), 400, header
 
     # iterate over systems list and find the endpoint matching same order
     for i in range(len(SYSTEMS_PUBLIC)):
@@ -678,6 +678,8 @@ def list_directory():
     # if pageSize and number were set:
     pageSize = request.args.get("pageSize")
     pageNumber = request.args.get("pageNumber")
+
+    app.logger.info(f"PageSize: {pageSize}. PageNumber: {pageNumber}")
 
     # calculate the list to retrieve
     if pageSize and pageNumber:
@@ -760,8 +762,8 @@ def make_directory():
 
     # public endpoints from Kong to users
     if machinename not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
-        return jsonify(description="Error creating directory", error="Machine does not exists"), 400, header
+        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
+        return jsonify(description="Error creating directory", error="Machine does not exist"), 400, header
 
     # iterate over systems list and find the endpoint matching same order
     for i in range(len(SYSTEMS_PUBLIC)):
@@ -839,8 +841,8 @@ def rename():
 
     # public endpoints from Kong to users
     if machinename not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
-        return jsonify(description="Error on rename operation", error="Machine does not exists"), 400, header
+        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
+        return jsonify(description="Error on rename operation", error="Machine does not exist"), 400, header
 
     # iterate over systems list and find the endpoint matching same order
     for i in range(len(SYSTEMS_PUBLIC)):
@@ -932,8 +934,8 @@ def common_operation(request, command, method):
 
     # public endpoints from Kong to users
     if machinename not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
-        return jsonify(description="Error on " + command + " operation", error="Machine does not exists"), 400, header
+        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
+        return jsonify(description="Error on " + command + " operation", error="Machine does not exist"), 400, header
 
     # iterate over systems list and find the endpoint matching same order
     for i in range(len(SYSTEMS_PUBLIC)):
@@ -1028,8 +1030,8 @@ def rm():
 
     # public endpoints from Kong to users
     if machinename not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
-        return jsonify(description="Error on delete operation", error="Machine does not exists"), 400, header
+        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
+        return jsonify(description="Error on delete operation", error="Machine does not exist"), 400, header
 
     # iterate over systems list and find the endpoint matching same order
     for i in range(len(SYSTEMS_PUBLIC)):
@@ -1103,8 +1105,8 @@ def symlink():
 
     # public endpoints from Kong to users
     if machinename not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
-        return jsonify(description="Failed to create symlink", error="Machine does not exists"), 400, header
+        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
+        return jsonify(description="Failed to create symlink", error="Machine does not exist"), 400, header
 
     # iterate over systems list and find the endpoint matching same order
     for i in range(len(SYSTEMS_PUBLIC)):
@@ -1184,8 +1186,8 @@ def download():
 
     # public endpoints from Kong to users
     if machinename not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
-        return jsonify(description="Failed to download file", error="Machine does not exists"), 400, header
+        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
+        return jsonify(description="Failed to download file", error="Machine does not exist"), 400, header
 
     # iterate over systems list and find the endpoint matching same order
     for i in range(len(SYSTEMS_PUBLIC)):
@@ -1270,8 +1272,8 @@ def upload():
 
     # public endpoints from Kong to users
     if machinename not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
-        return jsonify(description="Failed to upload file", error="Machine does not exists"), 400, header
+        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
+        return jsonify(description="Failed to upload file", error="Machine does not exist"), 400, header
 
     # iterate over systems list and find the endpoint matching same order
     for i in range(len(SYSTEMS_PUBLIC)):

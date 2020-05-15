@@ -29,27 +29,27 @@ import jwt
 
 AUTH_HEADER_NAME = 'Authorization'
 
-CERTIFICATOR_URL= os.environ.get("CERTIFICATOR_URL")
-TASKS_URL       = os.environ.get("TASKS_URL")
-STATUS_IP       = os.environ.get("STATUS_IP")
-KONG_URL        = os.environ.get("KONG_URL")
+CERTIFICATOR_URL= os.environ.get("F7T_CERTIFICATOR_URL")
+TASKS_URL       = os.environ.get("F7T_TASKS_URL")
+STATUS_IP       = os.environ.get("F7T_STATUS_IP")
+KONG_URL        = os.environ.get("F7T_KONG_URL")
 
-COMPUTE_PORT    = os.environ.get("COMPUTE_PORT", 5000)
+COMPUTE_PORT    = os.environ.get("F7T_COMPUTE_PORT", 5000)
 
 
 # SYSTEMS_PUBLIC: list of allowed systems
 # remove quotes and split into array
-SYSTEMS_PUBLIC  = os.environ.get("SYSTEMS_PUBLIC").strip('\'"').split(";")
+SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
 # internal machines to submit/query jobs
-SYS_INTERNALS   = os.environ.get("SYSTEMS_INTERNAL_COMPUTE").strip('\'"').split(";")
+SYS_INTERNALS   = os.environ.get("F7T_SYSTEMS_INTERNAL_COMPUTE").strip('\'"').split(";")
 
 # base dir for sbatch files
-JOB_BASE_DIR=os.environ.get("JOB_BASE_DIR").strip('\'"')
+JOB_BASE_DIR=os.environ.get("F7T_JOB_BASE_DIR").strip('\'"')
 
 # scopes: get appropiate for jobs/storage, eg:  firecrest-tds.cscs.ch, firecrest-production.cscs.ch
-FIRECREST_SERVICE = os.environ.get("FIRECREST_SERVICE", '').strip('\'"')
+FIRECREST_SERVICE = os.environ.get("F7T_FIRECREST_SERVICE", '').strip('\'"')
 
-debug = os.environ.get("DEBUG_MODE", None)
+debug = os.environ.get("F7T_DEBUG_MODE", None)
 
 
 app = Flask(__name__)
