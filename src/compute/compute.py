@@ -49,6 +49,8 @@ JOB_BASE_DIR=os.environ.get("F7T_JOB_BASE_DIR").strip('\'"')
 # scopes: get appropiate for jobs/storage, eg:  firecrest-tds.cscs.ch, firecrest-production.cscs.ch
 FIRECREST_SERVICE = os.environ.get("F7T_FIRECREST_SERVICE", '').strip('\'"')
 
+TAIL_BYTES = os.environ.get("F7T_TAIL_BYTES",1000)
+
 debug = os.environ.get("F7T_DEBUG_MODE", None)
 
 
@@ -226,7 +228,7 @@ def paramiko_scp(auth_header, cluster, sourcePath, targetPath):
 
             jobid = extract_jobid(outlines)
 
-            msg = {"result":"Job submitted", "jobid":jobid}
+            msg = {"result":"Job submitted", "jobid":jobid, "jobfile":f"{targetPath}/{sourcePath}"}
 
             result = {"error": 0, "msg": msg}
 
@@ -287,7 +289,69 @@ def get_temp_dir():
 
     return "cscs-api-sbatch-{timestamp}".format(timestamp=timestamp)
 
+# checks with scontrol for out and err file location
+# - auth_header: coming from OIDC
+# - machine: machine where the command will be executed
+# - task_id: related to asynchronous task
+# - job_info: json containing jobid key 
+# - output: True if StdErr and StdOut of the job need to be added to the jobinfo (default False)
+def get_slurm_files(auth_header, machine, task_id,job_info,output=False):
+    # now looking for log and err files location
 
+    app.logger.info("Scontrol execution")
+
+    # save msg, so we can add it later:
+    control_info = job_info
+    control_info["StdOut"] = "Not available"
+    control_info["StdErr"] = "Not available"
+
+    # scontrol command :
+    # -o for "one line output"
+
+    action = f"scontrol -o show job={control_info['jobid']}"
+
+    app.logger.info(f"sControl command: {action}")
+
+    resp = exec_remote_command(auth_header, machine, action)
+
+    # if there was an error, the result will be SUCESS but not available outputs
+    if resp["error"] != 0:
+        update_task(task_id, auth_header, async_task.SUCCESS, control_info,True)
+        return
+
+    control_resp = resp["msg"]
+
+    control_list = control_resp.split()
+
+    control_dict = { value.split("=")[0] : value.split("=")[1] for value in control_list }
+
+    control_info["StdOut"] = control_dict["StdOut"]
+    control_info["StdErr"] = control_dict["StdErr"]
+    control_info["jobfile"] = control_dict["Command"]
+    control_info["StdOutData"] = ""
+    control_info["StdErrData"] = ""
+    # if all fine:
+    
+
+    if output:
+        # to add data from StdOut and StdErr files in Task
+        # this is done when GET compute/jobs is triggered.
+        #
+        # tail -n {number_of_lines_since_end} or
+        # tail -c {number_of_bytes} --> 1000B = 1KB
+
+        action = f"tail -c {TAIL_BYTES} {control_dict['StdOut']}"
+        resp = exec_remote_command(auth_header, machine, action)
+        if resp["error"] == 0:
+            control_info["StdOutData"] = resp["msg"]
+        
+        action = f"tail -c {TAIL_BYTES} {control_dict['StdErr']}"
+        resp = exec_remote_command(auth_header, machine, action)
+        if resp["error"] == 0:
+            control_info["StdErrData"] = resp["msg"]
+
+
+    update_task(task_id, auth_header, async_task.SUCCESS, control_info,True)
 
 def submit_job_task(auth_header,machine,fileName,tmpdir,task_id):
     # auth_header doesn't need to be checked,
@@ -308,6 +372,12 @@ def submit_job_task(auth_header,machine,fileName,tmpdir,task_id):
 
     # if job was submited succesfully, then "msg" is a dictionary with jobid field
     update_task(task_id, auth_header, async_task.SUCCESS, resp["msg"],True)
+
+    # now looking for log and err files location
+    get_slurm_files(auth_header, machine, task_id,resp["msg"])
+
+    
+
 
 
 # Submit a batch script to SLURM on the target system.
@@ -513,6 +583,7 @@ def list_job_task(auth_header,machine,action,task_id,pageSize,pageNumber):
          update_task(task_id, auth_header, async_task.SUCCESS,{},True)
          return
 
+
     # on success:
     jobList = resp["msg"].split("$")
     app.logger.info("Size jobs: %d" % len(jobList))
@@ -546,6 +617,8 @@ def list_job_task(auth_header,machine,action,task_id,pageSize,pageNumber):
 
         job = jobList[job_index]
 
+        
+
         jobaux = job.split("|")
         jobinfo = {"jobid": jobaux[0], "partition": jobaux[1], "name": jobaux[2],
                    "user": jobaux[3], "state": jobaux[4], "start_time": jobaux[5],
@@ -553,6 +626,8 @@ def list_job_task(auth_header,machine,action,task_id,pageSize,pageNumber):
                    "nodes": jobaux[8], "nodelist": jobaux[9]}
 
         jobs[str(job_index)]=jobinfo
+        # now looking for log and err files location
+        get_slurm_files(auth_header, machine, task_id,jobinfo,True)
 
     data = jobs
 
