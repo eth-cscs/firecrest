@@ -197,6 +197,9 @@ def paramiko_scp(auth_header, cluster, sourcePath, targetPath):
 
         stdin.channel.shutdown_write()
         sourceFile.close()
+        
+        # wait for cat command to finish
+        stdout.channel.recv_exit_status()
         # END: write sbatch file
 
 
