@@ -186,7 +186,7 @@ def paramiko_scp(auth_header, cluster, sourcePath, targetPath):
         ## end create tmpdir
 
 
-        # write sbatch file
+        # write sbatch file 
         sourceFile = open(sourcePath,"r")
 
         action = "cat > {targetPath}/{sourcePath}".format(targetPath=targetPath,sourcePath=sourcePath)
