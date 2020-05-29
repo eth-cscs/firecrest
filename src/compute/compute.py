@@ -185,6 +185,7 @@ def paramiko_scp(auth_header, cluster, sourcePath, targetPath):
             return result
         ## end create tmpdir
 
+
         # write sbatch file
         sourceFile = open(sourcePath,"r")
 
@@ -199,14 +200,19 @@ def paramiko_scp(auth_header, cluster, sourcePath, targetPath):
         sourceFile.close()
         
         # wait for cat command to finish
-        stdout.channel.recv_exit_status()
+        errno = stderr.channel.recv_exit_status()
+        errda = clean_err_output(stderr.channel.recv_stderr(1024))
+
+        if errno > 0 or len(errda) > 0:
+            app.logger.error("(Error {errno}) --> {stderr}".format(errno=errno, stderr=errda))
+            result = {"error": 1, "msg": errda}
+            return result
         # END: write sbatch file
 
 
         # execute sbatch
         action = "cd {target_path}; sbatch {scopes} {sbatch_file}".format(target_path=targetPath,
                                                               sbatch_file=sourcePath, scopes=scopes_parameters)
-
         app.logger.info(action)
 
         stdin, stdout, stderr = client.exec_command(action)
