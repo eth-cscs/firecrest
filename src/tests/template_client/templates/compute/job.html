@@ -5,10 +5,10 @@
 --  SPDX-License-Identifier: BSD-3-Clause
   -->
 {% extends "demo_base.html" %}
-{% block title %}List jobs{% endblock %}
+{% block title %}List single job{% endblock %}
 {% block content %}
 <style>
-table {
+/*table {
   font-family: arial, sans-serif;
   border-collapse: collapse;
   width: 100%;
@@ -22,7 +22,7 @@ td, th {
 
 tr:nth-child(even) {
   background-color: #dddddd;
-}
+}*/
 </style>
 
 <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
@@ -45,17 +45,25 @@ function update_progress(task_url) {
         type: 'GET',
         url: task_url,
         success: function(data){
-          $(".task").css("border-color","green");
-          $(".task").css("border-style","solid");
+          /*$(".task").css("border-color","green");
+          $(".task").css("border-style","solid");*/
 
           var resp = data['task']['data'];
 
+          if (data["task"]["status"] == "200"){
+            $(".task").addClass("bg-success");
+
+          }
+          else{
+            $(".task").addClass("bg-danger");
+          }
 
           console.log(resp.length);
           console.log(resp);
           
           if(is_object(resp)){
-		$(".task").text("You have active jobs");
+            
+		      $(".task").text("You have active jobs");
 		
                 var row_number = 1; /*starts with 1, because 0 is table header*/
                 for (var key in resp){
@@ -85,7 +93,23 @@ function update_progress(task_url) {
 				time_left.innerHTML = resp[key]["time_left"];
 				
 				var actions = row.insertCell(9);
-				actions.innerHTML = "<a href='{{ request.url_root }}compute/cancel/"+resp[key]["jobid"]+"?machine={{ request.args.get("machine") }}'>Cancel</a>";			
+        actions.innerHTML = "<a href='{{ request.url_root }}compute/cancel/"+resp[key]["jobid"]+"?machine={{ request.args.get("machine") }}'>Cancel</a>";	
+        
+        
+        var log_file_path = document.getElementById("td_log_file");
+        var err_file_path = document.getElementById("td_err_file");
+
+        log_file_path.innerHTML = resp[key]["StdOut"];
+        err_file_path.innerHTML = resp[key]["StdErr"];
+
+        var text_log_file = document.getElementById("text_log_file");
+        var text_err_file = document.getElementById("text_err_file");
+
+        var out_data = resp[key]["StdOutData"].replace("$", '<br>');
+
+        text_log_file.innerText = out_data;
+        text_err_file.innerText = resp[key]["StdErrData"];
+        
 
 				row_number+=1;
 			}
@@ -101,8 +125,9 @@ function update_progress(task_url) {
        },
 
         error: function(data){
-          $(".task").css("border-color","red");
-          $(".task").css("border-style","solid");
+          /*$(".task").css("border-color","red");
+          $(".task").css("border-style","solid");*/
+          $(".task").addClass("bg-danger");
           $( ".task" ).text("Error on submiting request\n"+data['error']);
 
           },
@@ -132,9 +157,17 @@ function update_progress(task_url) {
       <div class="task"></div><br>
 
       <div class="job_list">
-           	<table id="job_table">
+           	<table class="table table-hover" id="job_table">
                 <tr><th>Job ID</th><th>Job Name</th><th>Node List</th><th>Nodes</th><th>Partition</th><th>Start Time</th><th>State</th><th>Time</th><th>Time Left</th><th>Options</th></tr>
-		</table>
+    </table>
+    
+    <table class="table table-hover" id="job_result"> 
+      <tr><th>Log file</th><td id="td_log_file"></td></tr>
+      <tr><th>Log file content</th><td id="td_log_file_cnt"><textarea cols="100" rows="10" id="text_log_file"></textarea></td></tr>
+      <tr><th>Err file</th><td id="td_err_file"></td></tr>
+      <tr><th>Err file content</th><td id="td_err_file_cnt"><textarea cols="100" rows="10" id="text_err_file"></textarea></td></tr>
+
+    </table>
       </div>
     {% else %}
       {{ response.json()['error'] }}
