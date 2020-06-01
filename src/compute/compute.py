@@ -190,7 +190,7 @@ def paramiko_scp(auth_header, cluster, sourcePath, targetPath):
         sourceFile = open(sourcePath,"r")
 
         action = "cat > {targetPath}/{sourcePath}".format(targetPath=targetPath,sourcePath=sourcePath)
-	app.logger.info(action)
+        app.logger.info(action)
 
         stdin, stdout, stderr = client.exec_command(action)
 
