@@ -54,6 +54,7 @@ TAIL_BYTES = os.environ.get("F7T_TAIL_BYTES",1000)
 
 #max file size for sbatch upload in MB (POST compute/job)
 MAX_FILE_SIZE=int(os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE"))
+TIMEOUT = int(os.environ.get("F7T_UTILITIES_TIMEOUT"))
 
 app = Flask(__name__)
 # max content lenght for upload in bytes
@@ -347,13 +348,13 @@ def get_slurm_files(auth_header, machine, task_id,job_info,output=False):
         # tail -n {number_of_lines_since_end} or
         # tail -c {number_of_bytes} --> 1000B = 1KB
        
-        action = f"tail -c {TAIL_BYTES} {control_info['job_file_out']}"
+        action = f"timeout {TIMEOUT} tail -c {TAIL_BYTES} {control_info['job_file_out']}"
         resp = exec_remote_command(auth_header, machine, action)
         if resp["error"] == 0:
             control_info["job_data_out"] = resp["msg"]
         
    
-        action = f"tail -c {TAIL_BYTES} {control_info['job_file_err']}"
+        action = f"timeout {TIMEOUT} tail -c {TAIL_BYTES} {control_info['job_file_err']}"
         resp = exec_remote_command(auth_header, machine, action)
         if resp["error"] == 0:
             control_info["job_data_err"] = resp["msg"]
