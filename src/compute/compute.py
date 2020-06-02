@@ -380,9 +380,6 @@ def submit_job_task(auth_header,machine,fileName,tmpdir,task_id):
         update_task(task_id, auth_header, async_task.ERROR, resp["msg"])
         return
 
-    # if job was submited succesfully, then "msg" is a dictionary with jobid field
-    update_task(task_id, auth_header, async_task.SUCCESS, resp["msg"],True)
-
     # now looking for log and err files location
     job_extra_info = get_slurm_files(auth_header, machine, task_id,resp["msg"])
 
