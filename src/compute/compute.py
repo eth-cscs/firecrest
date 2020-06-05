@@ -43,9 +43,13 @@ COMPUTE_PORT    = os.environ.get("F7T_COMPUTE_PORT", 5000)
 SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
 # internal machines to submit/query jobs
 SYS_INTERNALS   = os.environ.get("F7T_SYSTEMS_INTERNAL_COMPUTE").strip('\'"').split(";")
+# Filesystems where to save sbatch files
+# F7T_FILESYSTEMS = "/home,/scratch;/home"
+FILESYSTEMS     = os.environ.get("F7T_FILESYSTEMS").strip('\'"').split(";")
+# FILESYSTEMS = ["/home,/scratch", "/home"]
 
-# base dir for sbatch files
-JOB_BASE_DIR=os.environ.get("F7T_JOB_BASE_DIR").strip('\'"')
+# JOB base Filesystem: ["/scratch";"/home"] 
+COMPUTE_BASE_FS     = os.environ.get("F7T_COMPUTE_BASE_FS").strip('\'"').split(";")
 
 # scopes: get appropiate for jobs/storage, eg:  firecrest-tds.cscs.ch, firecrest-production.cscs.ch
 FIRECREST_SERVICE = os.environ.get("F7T_FIRECREST_SERVICE", '').strip('\'"')
@@ -221,7 +225,9 @@ def paramiko_scp(auth_header, cluster, sourcePath, targetPath):
 
 
         # execute sbatch
-        action = "cd {target_path}; sbatch {scopes} {sbatch_file}".format(target_path=targetPath,
+        # action = "cd {target_path}; sbatch {scopes} {sbatch_file}".format(target_path=targetPath,
+        #                                                       sbatch_file=sourcePath, scopes=scopes_parameters)
+        action = "sbatch --chdir={target_path} {scopes} {sbatch_file}".format(target_path=targetPath,
                                                               sbatch_file=sourcePath, scopes=scopes_parameters)
         app.logger.info(action)
 
@@ -374,13 +380,12 @@ def get_slurm_files(auth_header, machine, task_id,job_info,output=False):
     # update_task(task_id, auth_header, async_task.SUCCESS, control_info,True)
     return control_info
 
-def submit_job_task(auth_header,machine,fileName,tmpdir,task_id):
+def submit_job_task(auth_header,machine,fileName,job_dir,task_id):
     # auth_header doesn't need to be checked,
     # it's delivered by another instance of Jobs,
     # and this function is not an entry point
 
-    resp = paramiko_scp(auth_header, machine, fileName, "{job_base_dir}/firecrest/{tmpdir}"
-                        .format(job_base_dir=JOB_BASE_DIR, tmpdir=tmpdir))
+    resp = paramiko_scp(auth_header, machine, fileName, f"{job_dir}")
 
     # in case of error:
     if resp["error"] == -2:
@@ -430,10 +435,11 @@ def submit_job():
         return jsonify(description="Failed to submit job file",error="Machine does not exists"), 400, header
 
     # iterate over SYSTEMS_PUBLIC list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machine:
-            machine = SYS_INTERNALS[i]
-            break
+
+    indx = SYSTEMS_PUBLIC.index(machine)
+    machine = SYS_INTERNALS[indx]
+
+    job_base_fs = COMPUTE_BASE_FS[indx] 
 
     try:
         # check if the post request has the file part
@@ -473,10 +479,16 @@ def submit_job():
     # now using hash_id from Tasks, which is user-task_id (internal)
     tmpdir = "{task_id}".format(task_id=task_id)
 
+    username = get_username(auth_header)
+
+    job_dir = f"{job_base_fs}/{username}/firecrest/{tmpdir}"
+
+    app.logger.info(f"Job dir: {job_dir}")
+
     try:
         # asynchronous task creation
         aTask = threading.Thread(target=submit_job_task,
-                             args=(auth_header, machine, file.filename, tmpdir, task_id))
+                             args=(auth_header, machine, file.filename, job_dir, task_id))
 
         aTask.start()
         retval = update_task(task_id, auth_header, async_task.QUEUED, TASKS_URL)
