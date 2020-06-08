@@ -385,7 +385,7 @@ def submit_job_task(auth_header,machine,fileName,job_dir,task_id):
     # it's delivered by another instance of Jobs,
     # and this function is not an entry point
 
-    resp = paramiko_scp(auth_header, machine, fileName, f"{job_dir}")
+    resp = paramiko_scp(auth_header, machine, fileName, job_dir)
 
     # in case of error:
     if resp["error"] == -2:
