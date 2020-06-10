@@ -127,7 +127,7 @@ def check_sourcePath(path, auth_header, system):
                 
 
         # permission denied
-        if in_str(error_str,"Permission denied"):
+        if in_str(error_str,"Permission denied") or in_str(error_str,"OPENSSH"):
             return {"result":False, "headers":{"X-Permission-Denied": "User does not have permissions to access machine or path"}}
             
 
@@ -188,7 +188,7 @@ def check_targetPath(path, auth_header, system):
                 
 
         # permission denied
-        if in_str(error_str,"Permission denied"):
+        if in_str(error_str,"Permission denied") or in_str(error_str,"OPENSSH"):
             return {"result":False, "headers":{"X-Permission-Denied": "User does not have permissions to access machine or path"}}
 
         # not a directory
@@ -401,8 +401,14 @@ def download_task(auth_header,system,sourcePath,task_id):
     res = exec_remote_command(auth_header,system,upload_url["command"])
 
     # if upload to SWIFT fails:
-    if res["error"] > 0:
+    if res["error"] != 0:
         msg = "Upload to Staging area has failed. Object: {object_name}".format(object_name=object_name)
+
+        error_str = res["msg"]
+        if in_str(error_str,"OPENSSH"):
+            error_str = "User does not have permissions to access machine"
+        msg += error_str
+
         app.logger.error(msg)
         update_task(task_id, auth_header, async_task.ST_UPL_ERR, msg)
         return
@@ -631,7 +637,7 @@ def upload_request():
             return jsonify(success=data), code
 
         except KeyError as e:
-            app.logger.info("Not a upload finished request")
+            app.logger.info("Not an upload finished request")
 
 
     # app.logger.info(EXT_TRANSFER_MACHINE_INTERNAL)
