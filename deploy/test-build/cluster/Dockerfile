@@ -75,5 +75,8 @@ RUN chmod -R 400 /etc/ssh/  && chown -R root:root /etc/ssh/
 
 RUN /usr/libexec/mariadb-prepare-db-dir 2>/dev/null
 
+ADD cluster/ssh/ssh_command_wrapper.sh /ssh_command_wrapper.sh
+RUN chmod 555 /ssh_command_wrapper.sh
+
 ENTRYPOINT ["/usr/bin/supervisord"]
 
