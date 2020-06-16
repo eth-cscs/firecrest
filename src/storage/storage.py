@@ -53,6 +53,12 @@ SYSTEMS_INTERNAL_STORAGE = os.environ.get("F7T_SYSTEMS_INTERNAL_STORAGE").strip(
 # Job machine where to send xfer-internal jobs (must be defined in SYSTEMS_PUBLIC)
 STORAGE_JOBS_MACHINE     = os.environ.get("F7T_STORAGE_JOBS_MACHINE").strip('\'"')
 
+# SYSTEMS_PUBLIC: list of allowed systems
+# remove quotes and split into array
+SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
+# internal machines to submit/query jobs
+SYS_INTERNALS   = os.environ.get("F7T_SYSTEMS_INTERNAL_COMPUTE").strip('\'"').split(";")
+
 ###### ENV VAR FOR DETECT TECHNOLOGY OF STAGING AREA:
 OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE", "").strip('\'"')
 
@@ -127,7 +133,7 @@ def check_sourcePath(path, auth_header, system):
                 
 
         # permission denied
-        if in_str(error_str,"Permission denied"):
+        if in_str(error_str,"Permission denied") or in_str(error_str,"OPENSSH"):
             return {"result":False, "headers":{"X-Permission-Denied": "User does not have permissions to access machine or path"}}
             
 
@@ -185,7 +191,7 @@ def check_targetPath(path, auth_header, system):
             return {"result":False, "headers":{"X-Invalid-Path": "{path} is an invalid path.".format(path=path)}}
 
         # permission denied
-        if in_str(error_str,"Permission denied"):
+        if in_str(error_str,"Permission denied") or in_str(error_str,"OPENSSH"):
             return {"result":False, "headers":{"X-Permission-Denied": "User does not have permissions to access machine or path"}}
 
         # not a directory
@@ -385,8 +391,14 @@ def download_task(auth_header,system,sourcePath,task_id):
     res = exec_remote_command(auth_header,system,upload_url["command"])
 
     # if upload to SWIFT fails:
-    if res["error"] > 0:
+    if res["error"] != 0:
         msg = "Upload to Staging area has failed. Object: {object_name}".format(object_name=object_name)
+
+        error_str = res["msg"]
+        if in_str(error_str,"OPENSSH"):
+            error_str = "User does not have permissions to access machine"
+        msg += error_str
+
         app.logger.error(msg)
         update_task(task_id, auth_header, async_task.ST_UPL_ERR, msg)
         return
@@ -607,7 +619,7 @@ def upload_request():
             return jsonify(success=data), code
 
         except KeyError as e:
-            app.logger.info("Not a upload finished request")
+            app.logger.info("Not an upload finished request")
 
 
     # app.logger.info(EXT_TRANSFER_MACHINE_INTERNAL)
@@ -881,6 +893,7 @@ def exec_internal_command(auth_header,command,sourcePath, targetPath, jobName, j
         result = {"error": 1, "msg":ioe.message}
         return result
 
+    
     # create xfer job
     resp = create_xfer_job(STORAGE_JOBS_MACHINE, auth_header, td + "/sbatch-job.sh")
 
@@ -962,6 +975,23 @@ def internal_operation(request, command):
         stageOutJobId = request.form["stageOutJobId"]  # start after this JobId has finished
     except:
         stageOutJobId = None
+
+    # select index in the list corresponding with machine name
+    machine_idx = SYSTEMS_PUBLIC.index(STORAGE_JOBS_MACHINE)
+    machine = SYS_INTERNALS[machine_idx]
+
+    # check if machine is accessible by user:
+    # exec test remote command
+    resp = exec_remote_command(auth_header, machine, "hostname")
+
+    if resp["error"] != 0:
+        error_str = resp["msg"]
+        if resp["error"] == -2:
+            header = {"X-Machine-Not-Available": "Machine is not available"}
+            return jsonify(description=f"Failed to submit {command} job"), 400, header
+        if in_str(error_str,"Permission") or in_str(error_str,"OPENSSH"):
+            header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
+            return jsonify(description=f"Failed to submit {command} job"), 404, header
 
     retval = exec_internal_command(auth_header, command, sourcePath, targetPath, jobName, jobTime, stageOutJobId)
 

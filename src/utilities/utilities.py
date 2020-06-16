@@ -113,39 +113,7 @@ def paramiko_upload(auth_header, cluster, local_path, remote_path):
         remote_file.write(local_data)
         result = {"error": 0, "msg": remote_path_file}
         remote_file.close()
-
-
-        # try:
-        #     remote_file = ftp_client.file(remote_path_file, "w")
-        #     remote_file.write(local_data)
-        #     result = {"error": 0, "msg": remote_path_file}
-        # except PermissionError as pe:
-        #     app.logger.error("Permission error {strerr}".format(strerr=pe.errno))
-        #     app.logger.error("Errno {errno}".format(errno=pe.strerror))
-        #     result = {"error": pe.errno, "msg": pe.strerror}
-        # except Exception as e:
-        #     app.logger.error(type(e))
-        #     app.logger.error(e)
-        #     result = {"error": 1, "msg": e}
-        # finally:
-        #     remote_file.close()
-        #     # closing client
-        #     app.logger.info("Closing clients")
-        #     ftp_client.close()
-        #     client.close()
-
-        #     app.logger.info("Removing temp certs")
-        #     # removing temporary keys, certs and dirs
-        #     os.remove(pub_cert)
-        #     os.remove(pub_key)
-        #     os.remove(priv_key)
-        #     os.rmdir(temp_dir)
-
-        #     app.logger.info("Returned: {result}".format(result=result))
-
-        #     return result
-
-        
+ 
 
     except PermissionError as pe:
         app.logger.error("Permission error {strerr}".format(strerr=pe.errno))
@@ -178,15 +146,21 @@ def paramiko_upload(auth_header, cluster, local_path, remote_path):
         app.logger.error(e.filename)
         app.logger.error(e.errno)        
         result = {"error": e.errno, "msg": "IOError"}
+    
+    except paramiko.ssh_exception.SSHException as e:
+        logging.error(e, exc_info=True)
+        app.logger.error(e)        
+        result = {"error":1, "msg":e.args[0]}
 
     except Exception as e:
-        app.logger.error(e)
-        result = {"error": 1, "msg": e}
+        app.logger.error(e.args)
+        result = {"error": 1, "msg": e.args[0]}
     finally:
         # closing client
         app.logger.info("Closing clients")
        
-        ftp_client.close()
+        if "ftp_client" in locals():
+            ftp_client.close()
         client.close()
 
         app.logger.info("Removing temp certs")
@@ -311,10 +285,14 @@ def paramiko_download(auth_header, cluster, path):
         app.logger.error(e.errno)
         app.logger.error(e.strerror)
         result = {"error": e.errno, "msg": "IOError"}
+    except paramiko.ssh_exception.SSHException as e:
+        logging.error(e, exc_info=True)
+        app.logger.error(e)        
+        result = {"error":1, "msg":e.args[0]}
     except Exception as e:
         logging.error(e, exc_info=True)
         app.logger.error(e)
-        result = {"error":1, "msg":e}
+        result = {"error":1, "msg":e.args[0]}
 
 
     os.remove(pub_cert)
@@ -381,7 +359,7 @@ def file_type():
             return jsonify(description="Error in file operation"), 400, header
 
         #in case of permission for other user
-        if in_str(error_str,"Permission"):
+        if in_str(error_str,"Permission") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Error in file operation"), 404, header
 
@@ -467,7 +445,7 @@ def chmod():
             header = {"X-Invalid-Path": "{path} is an invalid path".format(path=path)}
             return jsonify(description="Error in chmod operation"), 400, header
 
-        if in_str(error_str, "not permitted"):
+        if in_str(error_str, "not permitted") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Error in chmod operation"), 400, header
 
@@ -557,7 +535,7 @@ def chown():
             header={"X-Invalid-Path":"{path} is an invalid path".format(path=path)}
             return jsonify(description="Error in chown operation"), 400, header
 
-        if in_str(error_str,"not permitted"):
+        if in_str(error_str,"not permitted") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Error in chown operation"), 400, header
 
@@ -652,7 +630,7 @@ def list_directory():
             header={"X-Invalid-Path":"{path} is an invalid path".format(path=path)}
             return jsonify(description="Error listing contents of path"), 400, header
 
-        if in_str(error_str,"cannot open"):
+        if in_str(error_str,"cannot open") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Error listing contents of path"), 400, header
 
@@ -799,7 +777,7 @@ def make_directory():
             header={"X-Invalid-Path":"{path} is an invalid path".format(path=path)}
             return jsonify(description="Error creating directory"), 400, header
 
-        if in_str(error_str,"Permission denied"):
+        if in_str(error_str,"Permission denied") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Error creating directory"), 400, header
 
@@ -822,7 +800,6 @@ def make_directory():
 @app.route("/rename", methods=["PUT"])
 def rename():
     return common_operation(request, "rename", "PUT")
-
 
 
 ## copy cp
@@ -912,7 +889,7 @@ def common_operation(request, command, method):
                 return jsonify(description="Error on " + command + " operation"), 400, header
 
         # permission denied
-        if in_str(error_str,"Permission denied"):
+        if in_str(error_str,"Permission denied") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
             return jsonify(description="Error on " + command + " operation"), 400, header
 
@@ -990,7 +967,7 @@ def rm():
                 return jsonify(description="Error on delete operation"), 400, header
 
         # permission denied
-        if in_str(error_str,"Permission denied"):
+        if in_str(error_str,"Permission denied") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Error on delete operation"), 400, header
 
@@ -1067,7 +1044,7 @@ def symlink():
             return jsonify(description="Failed to create symlink"), 400, header
 
         # permission denied
-        if in_str(error_str,"Permission denied"):
+        if in_str(error_str,"Permission denied") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
             return jsonify(description="Failed to create symlink"), 400, header
 
@@ -1146,7 +1123,7 @@ def download():
         return jsonify(description="Failed to download file"), 400, header
 
     if retval["error"] != 0:
-        if in_str(retval["msg"],"Permission"):
+        if in_str(retval["msg"],"Permission") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
             return jsonify(description="Failed to download file"), 400, header
         else:
@@ -1246,7 +1223,7 @@ def upload():
         return jsonify(description="Failed to upload file"), 400, header
 
     if retval["error"] != 0:
-        if in_str(retval["msg"],"Permission"):
+        if in_str(retval["msg"],"Permission") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
             return jsonify(description="Failed to upload file"), 400, header
         else:
