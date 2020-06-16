@@ -457,10 +457,24 @@ def submit_job():
 
     # iterate over SYSTEMS_PUBLIC list and find the endpoint matching same order
 
-    indx = SYSTEMS_PUBLIC.index(machine)
-    machine = SYS_INTERNALS[indx]
+    # select index in the list corresponding with machine name
+    machine_idx = SYSTEMS_PUBLIC.index(machine)
+    machine = SYS_INTERNALS[machine_idx]
 
-    job_base_fs = COMPUTE_BASE_FS[indx] 
+    # check if machine is accessible by user:
+    # exec test remote command
+    resp = exec_remote_command(auth_header, machine, "hostname")
+
+    if resp["error"] != 0:
+        error_str = resp["msg"]
+        if resp["error"] == -2:
+            header = {"X-Machine-Not-Available": "Machine is not available"}
+            return jsonify(description="Failed to submit job file"), 400, header
+        if in_str(error_str,"Permission") or in_str(error_str,"OPENSSH"):
+            header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
+            return jsonify(description="Failed to submit job file"), 404, header
+
+    job_base_fs = COMPUTE_BASE_FS[machine_idx] 
 
     try:
         # check if the post request has the file part
@@ -550,11 +564,22 @@ def list_jobs():
         header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
         return jsonify(description="Failed to retrieve jobs information", error="Machine does not exists"), 400, header
 
-    # iterate over SYSTEMS_PUBLIC list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machine:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    machine_idx = SYSTEMS_PUBLIC.index(machine)
+    machine = SYS_INTERNALS[machine_idx]
+
+    # check if machine is accessible by user:
+    # exec test remote command
+    resp = exec_remote_command(auth_header, machine, "hostname")
+
+    if resp["error"] != 0:
+        error_str = resp["msg"]
+        if resp["error"] == -2:
+            header = {"X-Machine-Not-Available": "Machine is not available"}
+            return jsonify(description="Failed to retrieve jobs information"), 400, header
+        if in_str(error_str,"Permission") or in_str(error_str,"OPENSSH"):
+            header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
+            return jsonify(description="Failed to retrieve jobs information"), 404, header
 
     username = get_username(auth_header)
 
@@ -728,11 +753,22 @@ def list_job(jobid):
         header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
         return jsonify(description="Failed to retrieve job information", error="Machine does not exists"), 400, header
 
-    # iterate over SYSTEMS_PUBLIC list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machine:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    machine_idx = SYSTEMS_PUBLIC.index(machine)
+    machine = SYS_INTERNALS[machine_idx]
+
+    # check if machine is accessible by user:
+    # exec test remote command
+    resp = exec_remote_command(auth_header, machine, "hostname")
+
+    if resp["error"] != 0:
+        error_str = resp["msg"]
+        if resp["error"] == -2:
+            header = {"X-Machine-Not-Available": "Machine is not available"}
+            return jsonify(description="Failed to retrieve job information"), 400, header
+        if in_str(error_str,"Permission") or in_str(error_str,"OPENSSH"):
+            header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
+            return jsonify(description="Failed to retrieve job information"), 404, header
 
     username = get_username(auth_header)
     app.logger.info("Getting SLURM information of job={jobid} from {machine}".
@@ -831,11 +867,22 @@ def cancel_job(jobid):
         header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
         return jsonify(description="Failed to delete job", error="Machine does not exists"), 400, header
 
-    # iterate over SYSTEMS_PUBLIC list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machine:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    machine_idx = SYSTEMS_PUBLIC.index(machine)
+    machine = SYS_INTERNALS[machine_idx]
+
+    # check if machine is accessible by user:
+    # exec test remote command
+    resp = exec_remote_command(auth_header, machine, "hostname")
+
+    if resp["error"] != 0:
+        error_str = resp["msg"]
+        if resp["error"] == -2:
+            header = {"X-Machine-Not-Available": "Machine is not available"}
+            return jsonify(description="Failed to delete job"), 400, header
+        if in_str(error_str,"Permission") or in_str(error_str,"OPENSSH"):
+            header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
+            return jsonify(description="Failed to delete job"), 404, header
 
 
     app.logger.info("Cancel SLURM job={jobid} from {machine}".
@@ -936,11 +983,22 @@ def acct():
         header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
         return jsonify(description="Failed to retrieve account information", error="Machine does not exists"), 400, header
 
-    # iterate over SYSTEMS_PUBLIC list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machine:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    machine_idx = SYSTEMS_PUBLIC.index(machine)
+    machine = SYS_INTERNALS[machine_idx]
+
+    # check if machine is accessible by user:
+    # exec test remote command
+    resp = exec_remote_command(auth_header, machine, "hostname")
+
+    if resp["error"] != 0:
+        error_str = resp["msg"]
+        if resp["error"] == -2:
+            header = {"X-Machine-Not-Available": "Machine is not available"}
+            return jsonify(description="Failed to retrieve account information"), 400, header
+        if in_str(error_str,"Permission") or in_str(error_str,"OPENSSH"):
+            header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
+            return jsonify(description="Failed to retrieve account information"), 404, header
 
     #check if startime (--startime=) param is set:
     start_time_opt = ""
