@@ -16,9 +16,9 @@ plugins:
 consumers:
   - username: default2  # name is irrelevant but required
     jwt_secrets:
-    - key: AUTH_TOKEN_ISSUER
+    - key: F7T_AUTH_TOKEN_ISSUER
       algorithm: "RS256"
-      rsa_public_key: "-----BEGIN PUBLIC KEY-----\nREALM_RSA_PUBLIC_KEY\n-----END PUBLIC KEY-----"
+      rsa_public_key: "-----BEGIN PUBLIC KEY-----\nF7T_REALM_RSA_PUBLIC_KEY\n-----END PUBLIC KEY-----"
 
 routes:
 - name: reject
@@ -28,35 +28,35 @@ routes:
 
 services:
 - name: compute
-  url: KONG_COMPUTE_URL
+  url: F7T_KONG_COMPUTE_URL
   routes:
   - name: compute
     methods: [DELETE,GET,POST]
     paths:
     - /compute/
 - name: status
-  url: KONG_STATUS_URL
+  url: F7T_KONG_STATUS_URL
   routes:
   - name: status
     methods: [GET]
     paths:
     - /status/
 - name: storage
-  url: KONG_STORAGE_URL
+  url: F7T_KONG_STORAGE_URL
   routes:
   - name: storage
     methods: [GET,POST,PUT]
     paths:
     - /storage/
 - name: tasks
-  url: KONG_TASKS_URL
+  url: F7T_KONG_TASKS_URL
   routes:
   - name: tasks
     methods: [GET]
     paths:
     - /tasks/
 - name: utilities
-  url: KONG_UTILITIES_URL
+  url: F7T_KONG_UTILITIES_URL
   routes:
   - name: utilities
     methods: [DELETE,GET,POST,PUT]
