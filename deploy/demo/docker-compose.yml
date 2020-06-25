@@ -28,6 +28,8 @@ services:
       - ./logs/firecrest:/var/log:delegated
       - ../test-build/environment/keys/user-key.pub:/user-key.pub:ro
       - ../test-build/environment/keys/ca-key:/ca-key:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
 
   compute:
     container_name: compute
@@ -45,6 +47,8 @@ services:
     volumes:
       - ./logs/firecrest:/var/log:delegated
       - ../test-build/environment/keys/user-key:/user-key:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
 
   status:
     container_name: status
@@ -61,6 +65,8 @@ services:
       - 5001:5001
     volumes:
       - ./logs/firecrest:/var/log:delegated
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
 
   storage:
     container_name: storage
@@ -83,6 +89,8 @@ services:
     volumes:
       - ./logs/firecrest:/var/log:delegated
       - ../test-build/environment/keys/user-key:/user-key:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
 
   tasks:
     container_name: tasks
@@ -104,6 +112,8 @@ services:
       - 5003:5003
     volumes:
       - ./logs/firecrest:/var/log:delegated
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
 
   utilities:
     container_name: utilities
@@ -121,6 +131,8 @@ services:
     volumes:
       - ./logs/firecrest:/var/log:delegated
       - ../test-build/environment/keys/user-key:/user-key:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
 
   # web client
   client:
@@ -138,6 +150,8 @@ services:
       - ./demo_client/config.py:/app/config.py:ro
       - ./demo_client/client_secrets.json:/app/client_secrets.json:ro
       - ./logs/client:/var/log:delegated
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
 
   # dummy cluster
   cluster:
@@ -152,6 +166,8 @@ services:
     hostname: cluster
     volumes:
       - ./logs/cluster/:/var/log/slurm/:delegated
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
 
   # complementary 3rd party services
   keycloak:
@@ -169,6 +185,8 @@ services:
     volumes:
       - ./keycloak/config.json:/var/tmp/config.json:ro
       - ./logs/keycloak:/opt/jboss/keycloak/standalone/log/:delegated
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
 
   kong:
     image: kong:latest
@@ -183,6 +201,8 @@ services:
     volumes:
       - ./kong/kong.yml:/kong.yml:ro
       #- ./logs/kong/:/usr/local/kong/logs/:delegated
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
     networks:
       firecrest-internal:
         ipv4_address: 192.168.220.21
@@ -203,6 +223,8 @@ services:
       - "9000:9000"
     volumes:
       - ./minio:/data:delegated
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
 
   taskpersistence:
     container_name: taskpersistence
@@ -215,3 +237,5 @@ services:
       - ./taskpersistence/redis.conf:/redis.conf:ro
       - ./taskpersistence-data:/data:delegated
       - ./logs:/var/log:delegated
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro

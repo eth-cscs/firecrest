@@ -6,3 +6,5 @@ __pycache__/
 *.rdb
 **/minio/data/
 **/deploy/demo/minio/
+deploy/test-build/opa/test_opa.py
+deploy/test-build/logs/*
