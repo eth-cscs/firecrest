@@ -53,6 +53,12 @@ SYSTEMS_INTERNAL_STORAGE = os.environ.get("F7T_SYSTEMS_INTERNAL_STORAGE").strip(
 # Job machine where to send xfer-internal jobs (must be defined in SYSTEMS_PUBLIC)
 STORAGE_JOBS_MACHINE     = os.environ.get("F7T_STORAGE_JOBS_MACHINE").strip('\'"')
 
+# SYSTEMS_PUBLIC: list of allowed systems
+# remove quotes and split into array
+SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
+# internal machines to submit/query jobs
+SYS_INTERNALS   = os.environ.get("F7T_SYSTEMS_INTERNAL_COMPUTE").strip('\'"').split(";")
+
 ###### ENV VAR FOR DETECT TECHNOLOGY OF STAGING AREA:
 OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE", "").strip('\'"')
 
@@ -127,7 +133,7 @@ def check_sourcePath(path, auth_header, system):
                 
 
         # permission denied
-        if in_str(error_str,"Permission denied"):
+        if in_str(error_str,"Permission denied") or in_str(error_str,"OPENSSH"):
             return {"result":False, "headers":{"X-Permission-Denied": "User does not have permissions to access machine or path"}}
             
 
@@ -165,7 +171,7 @@ def check_targetPath(path, auth_header, system):
 
     tempFileName = f".firecrest.{hashedTS.hexdigest()}"
 
-    action = f"touch {path}/{tempFileName}"
+    action = f"touch -- {path}/{tempFileName}"
 
     retval = exec_remote_command(auth_header,system,action)
 
@@ -176,30 +182,26 @@ def check_targetPath(path, auth_header, system):
 
         if retval["error"] == 113:
             return {"result":False, "headers":{"X-Machine-Not-Available":"Machine is not available"} }
-            
 
         if retval["error"] == 124:
             return {"result":False, "headers":{"X-Timeout": "Command has finished with timeout signal"}}
-            
 
         # error no such file
         if in_str(error_str,"No such file"):
             return {"result":False, "headers":{"X-Invalid-Path": "{path} is an invalid path.".format(path=path)}}
-                
 
         # permission denied
-        if in_str(error_str,"Permission denied"):
+        if in_str(error_str,"Permission denied") or in_str(error_str,"OPENSSH"):
             return {"result":False, "headers":{"X-Permission-Denied": "User does not have permissions to access machine or path"}}
 
         # not a directory
         if in_str(error_str,"Not a directory"):
             return {"result":False, "headers":{"X-Not-A-Directory": "{path} is not a directory".format(path=path)}}
-            
 
         return {"result":False, "headers":{"X-Error": retval["msg"]}}    
 
     # delete test file created
-    action = f"rm {path}/{tempFileName}"
+    action = f"rm -- {path}/{tempFileName}"
     retval = exec_remote_command(auth_header,system,action)
 
 
@@ -210,12 +212,8 @@ def file_to_str(fileName):
     str_file = ""
     try:
         fileObj = open(fileName,"r")
-
         str_file = fileObj.read()
-
         fileObj.close()
-
-
         return str_file
 
     except IOError as e:
@@ -228,7 +226,7 @@ def str_to_file(str_file,dir_name,file_name):
         if not os.path.exists(dir_name):
             app.logger.info(f"Created temp directory for certs in {dir_name}")
             os.makedirs(dir_name)
-        
+
         file_str = open(f"{dir_name}/{file_name}","w")
         file_str.write(str_file)
         file_str.close()
@@ -244,7 +242,7 @@ def os_to_fs(task_id):
     system = upl_file["system"]
     username = upl_file["user"]
     objectname = upl_file["source"]
-    
+
     try:
         action = upl_file["msg"]["action"]
         # certificate is encrypted with CERT_CIPHER_KEY key
@@ -270,7 +268,7 @@ def os_to_fs(task_id):
             # user public and private key should be in Storage / path, symlinking in order to not use the same key at the same time
             os.symlink(os.getcwd() + "/user-key.pub", td + "/user-key.pub")  # link on temp dir
             os.symlink(os.getcwd() + "/user-key", td + "/user-key")  # link on temp dir
-        
+
             # stat.S_IRUSR -> owner has read permission
             os.chmod(td + "/user-key-cert.pub", stat.S_IRUSR)
 
@@ -278,11 +276,9 @@ def os_to_fs(task_id):
 
         # start download from OS to FS
         update_task(task_id,None,async_task.ST_DWN_BEG)
-        
-        # execute download
-        result = exec_remote_command_cert(system, username, "", cert_list)
 
-        
+        # execute download
+        result = exec_remote_command_cert(system, username, action, cert_list)
 
         # if no error, then download is complete
         if result["error"] == 0:
@@ -293,7 +289,6 @@ def os_to_fs(task_id):
             # must be deleted after object is moved to storage
             staging.delete_object(containername=username,prefix=task_id,objectname=objectname)
 
-                        
         # if error, should be prepared for try again
         else:
             app.logger.error(result["msg"])
@@ -301,17 +296,12 @@ def os_to_fs(task_id):
             uploaded_files[task_id] = upl_file
             update_task(task_id,None,async_task.ST_DWN_ERR,result["msg"])
 
-        
-        # if not os.path.exists(cert):
-        #     app.logger.info(f"{cert} doesn't exist")
     except Exception as e:
         app.logger.error(e)
 
 
 # asynchronous check of upload_files to declare which is downloadable to FS
 def check_upload_files():
-
-    
 
     global staging
 
@@ -401,8 +391,14 @@ def download_task(auth_header,system,sourcePath,task_id):
     res = exec_remote_command(auth_header,system,upload_url["command"])
 
     # if upload to SWIFT fails:
-    if res["error"] > 0:
+    if res["error"] != 0:
         msg = "Upload to Staging area has failed. Object: {object_name}".format(object_name=object_name)
+
+        error_str = res["msg"]
+        if in_str(error_str,"OPENSSH"):
+            error_str = "User does not have permissions to access machine"
+        msg += error_str
+
         app.logger.error(msg)
         update_task(task_id, auth_header, async_task.ST_UPL_ERR, msg)
         return
@@ -544,18 +540,13 @@ def upload_task(auth_header,system,targetPath,sourcePath,task_id):
     resp = staging.create_upload_form(sourcePath, container_name, object_prefix, STORAGE_TEMPURL_EXP_TIME, STORAGE_MAX_FILE_SIZE)
     data = uploaded_files[task_id]
 
-    # data["msg"] = resp
-
-
     # create download URL for later download from Object Storage to filesystem
     app.logger.info("Creating URL for later download")
     download_url = staging.create_temp_url(container_name, object_prefix, fileName, STORAGE_TEMPURL_EXP_TIME)
-   
-   
 
     # create certificate for later download from OS to filesystem
     app.logger.info("Creating certificate for later download") 
-    options = f"-q -O {targetPath}/{fileName} '{download_url}'"
+    options = f"-q -O {targetPath}/{fileName} -- '{download_url}'"
     certs = create_certificates(auth_header,system,command="wget",options=urllib.parse.quote(options))
     # certs = create_certificates(auth_header,system,command="wget",options=urllib.parse.quote(options),exp_time=STORAGE_TEMPURL_EXP_TIME)
 
@@ -580,17 +571,14 @@ def upload_task(auth_header,system,targetPath,sourcePath,task_id):
     # in order to save it as json, the cert encrypted should be decoded to string
     cert_pub_enc = cipher.encrypt(cert_pub.encode('utf-8')).decode('utf-8')
 
-    
 
-
-
-    resp["download_url"]= download_url 
-    resp["action"] = f"wget -q -O {targetPath}/{fileName} '{download_url}'"
+    resp["download_url"] = download_url
+    resp["action"] = f"wget {options}"
     resp["cert"] =  [cert_pub_enc, temp_dir]
 
     data["msg"] = resp
     data["status"] = async_task.ST_URL_REC
-    
+
     app.logger.info("Cert and url created correctly")
     # app.logger.info(download_url)
     # app.logger.info(certs)
@@ -631,7 +619,7 @@ def upload_request():
             return jsonify(success=data), code
 
         except KeyError as e:
-            app.logger.info("Not a upload finished request")
+            app.logger.info("Not an upload finished request")
 
 
     # app.logger.info(EXT_TRANSFER_MACHINE_INTERNAL)
@@ -697,10 +685,9 @@ def get_file_from_storage(auth_header,system,path,download_url,fileName):
                     format(url=download_url,system=system))
 
     # wget to be executed on cluster side:
-    action = "wget -q -O {directory}/{fileName} \"{url}\" ".\
-        format(directory=path,url=download_url,fileName=fileName)
+    action = f"wget -q -O {path}/{fileName} -- \"{downdload_url}\" "
 
-    app.logger.info("{action}".format(action=action))
+    app.logger.info(action)
 
     retval = exec_remote_command(auth_header,system,action)
 
@@ -906,6 +893,7 @@ def exec_internal_command(auth_header,command,sourcePath, targetPath, jobName, j
         result = {"error": 1, "msg":ioe.message}
         return result
 
+    
     # create xfer job
     resp = create_xfer_job(STORAGE_JOBS_MACHINE, auth_header, td + "/sbatch-job.sh")
 
@@ -987,6 +975,23 @@ def internal_operation(request, command):
         stageOutJobId = request.form["stageOutJobId"]  # start after this JobId has finished
     except:
         stageOutJobId = None
+
+    # select index in the list corresponding with machine name
+    machine_idx = SYSTEMS_PUBLIC.index(STORAGE_JOBS_MACHINE)
+    machine = SYS_INTERNALS[machine_idx]
+
+    # check if machine is accessible by user:
+    # exec test remote command
+    resp = exec_remote_command(auth_header, machine, "hostname")
+
+    if resp["error"] != 0:
+        error_str = resp["msg"]
+        if resp["error"] == -2:
+            header = {"X-Machine-Not-Available": "Machine is not available"}
+            return jsonify(description=f"Failed to submit {command} job"), 400, header
+        if in_str(error_str,"Permission") or in_str(error_str,"OPENSSH"):
+            header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
+            return jsonify(description=f"Failed to submit {command} job"), 404, header
 
     retval = exec_internal_command(auth_header, command, sourcePath, targetPath, jobName, jobTime, stageOutJobId)
 

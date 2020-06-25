@@ -22,6 +22,7 @@ import socket
 
 import json, urllib, tempfile, os
 from werkzeug.utils import secure_filename
+from werkzeug.exceptions import RequestEntityTooLarge
 
 from datetime import datetime
 
@@ -42,17 +43,29 @@ COMPUTE_PORT    = os.environ.get("F7T_COMPUTE_PORT", 5000)
 SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
 # internal machines to submit/query jobs
 SYS_INTERNALS   = os.environ.get("F7T_SYSTEMS_INTERNAL_COMPUTE").strip('\'"').split(";")
+# Filesystems where to save sbatch files
+# F7T_FILESYSTEMS = "/home,/scratch;/home"
+FILESYSTEMS     = os.environ.get("F7T_FILESYSTEMS").strip('\'"').split(";")
+# FILESYSTEMS = ["/home,/scratch", "/home"]
 
-# base dir for sbatch files
-JOB_BASE_DIR=os.environ.get("F7T_JOB_BASE_DIR").strip('\'"')
+# JOB base Filesystem: ["/scratch";"/home"] 
+COMPUTE_BASE_FS     = os.environ.get("F7T_COMPUTE_BASE_FS").strip('\'"').split(";")
 
 # scopes: get appropiate for jobs/storage, eg:  firecrest-tds.cscs.ch, firecrest-production.cscs.ch
 FIRECREST_SERVICE = os.environ.get("F7T_FIRECREST_SERVICE", '').strip('\'"')
 
-debug = os.environ.get("F7T_DEBUG_MODE", None)
+TAIL_BYTES = os.environ.get("F7T_TAIL_BYTES",1000)
 
+#max file size for sbatch upload in MB (POST compute/job)
+MAX_FILE_SIZE=int(os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE"))
+TIMEOUT = int(os.environ.get("F7T_UTILITIES_TIMEOUT"))
 
 app = Flask(__name__)
+# max content lenght for upload in bytes
+app.config['MAX_CONTENT_LENGTH'] = int(MAX_FILE_SIZE) * 1024 * 1024
+
+debug = os.environ.get("F7T_DEBUG_MODE", None)
+
 
 
 # Extract jobid number from SLURM sbatch returned string when it's OK
@@ -136,12 +149,15 @@ def paramiko_scp(auth_header, cluster, sourcePath, targetPath):
 
         app.logger.info("scope parameters: " + scopes_parameters)
 
+    
     except Exception as e:
         app.logger.error(type(e))
-
-        app.logger.error(e)
+        
+        app.logger.error(e.args)
         errmsg = e
         result = {"error":1, "msg":errmsg}
+
+    
 
 
     # -------------------
@@ -162,7 +178,8 @@ def paramiko_scp(auth_header, cluster, sourcePath, targetPath):
                        key_filename="{pub_cert}".format(pub_cert=pub_cert),
                        allow_agent=False,
                        look_for_keys=False,
-                       timeout=10)
+                       timeout=2)
+
 
         # create tmpdir for sbatch file
         action="mkdir -p {tmpdir}".format(tmpdir=targetPath)
@@ -185,10 +202,12 @@ def paramiko_scp(auth_header, cluster, sourcePath, targetPath):
             return result
         ## end create tmpdir
 
-        # write sbatch file
+
+        # write sbatch file 
         sourceFile = open(sourcePath,"r")
 
         action = "cat > {targetPath}/{sourcePath}".format(targetPath=targetPath,sourcePath=sourcePath)
+        app.logger.info(action)
 
         stdin, stdout, stderr = client.exec_command(action)
 
@@ -197,13 +216,23 @@ def paramiko_scp(auth_header, cluster, sourcePath, targetPath):
 
         stdin.channel.shutdown_write()
         sourceFile.close()
+        
+        # wait for cat command to finish
+        errno = stderr.channel.recv_exit_status()
+        errda = clean_err_output(stderr.channel.recv_stderr(1024))
+
+        if errno > 0 or len(errda) > 0:
+            app.logger.error("(Error {errno}) --> {stderr}".format(errno=errno, stderr=errda))
+            result = {"error": 1, "msg": errda}
+            return result
         # END: write sbatch file
 
 
         # execute sbatch
-        action = "cd {target_path}; sbatch {scopes} {sbatch_file}".format(target_path=targetPath,
+        # action = "cd {target_path}; sbatch {scopes} {sbatch_file}".format(target_path=targetPath,
+        #                                                       sbatch_file=sourcePath, scopes=scopes_parameters)
+        action = "sbatch --chdir={target_path} {scopes} {sbatch_file}".format(target_path=targetPath,
                                                               sbatch_file=sourcePath, scopes=scopes_parameters)
-
         app.logger.info(action)
 
         stdin, stdout, stderr = client.exec_command(action)
@@ -226,11 +255,24 @@ def paramiko_scp(auth_header, cluster, sourcePath, targetPath):
 
             jobid = extract_jobid(outlines)
 
-            msg = {"result":"Job submitted", "jobid":jobid}
+            msg = {"result":"Job submitted", "jobid":jobid, "jobfile":f"{targetPath}/{sourcePath}"}
 
             result = {"error": 0, "msg": msg}
 
     # first if paramiko exception raise
+    except paramiko.ssh_exception.AuthenticationException as e:
+        
+        app.logger.error(e)       
+        result = {"error":1, "msg":e.args[0]}
+    except paramiko.ssh_exception.SSHException as e:
+        
+        app.logger.error(e)
+        err_msg = e.args[0]
+        if in_str(err_msg,"OPENSSH"):
+            err_msg = "User does not have permissions to access machine"
+
+        result = {"error":1, "msg":err_msg}
+
     except paramiko.ssh_exception.NoValidConnectionsError as e:
         app.logger.error(type(e))
         if e.errors:
@@ -258,6 +300,8 @@ def paramiko_scp(auth_header, cluster, sourcePath, targetPath):
         app.logger.error(e.strerror)
         result = {"error": 1, "msg": e.message}
 
+    
+
     except Exception as e:
         app.logger.error(type(e))
 
@@ -275,6 +319,8 @@ def paramiko_scp(auth_header, cluster, sourcePath, targetPath):
     os.remove(priv_key)
     os.rmdir(temp_dir)
 
+    app.logger.info(result)
+
     return result
 
 
@@ -287,15 +333,80 @@ def get_temp_dir():
 
     return "cscs-api-sbatch-{timestamp}".format(timestamp=timestamp)
 
+# checks with scontrol for out and err file location
+# - auth_header: coming from OIDC
+# - machine: machine where the command will be executed
+# - task_id: related to asynchronous task
+# - job_info: json containing jobid key 
+# - output: True if StdErr and StdOut of the job need to be added to the jobinfo (default False)
+def get_slurm_files(auth_header, machine, task_id,job_info,output=False):
+    # now looking for log and err files location
+
+    app.logger.info("Recovering data from job")
+
+    # save msg, so we can add it later:
+    control_info = job_info
+    control_info["job_file_out"] = "Not available"
+    control_info["job_file_err"] = "Not available"
+
+    # scontrol command :
+    # -o for "one line output"
+
+    action = f"scontrol -o show job={control_info['jobid']}"
+
+    app.logger.info(f"sControl command: {action}")
+
+    resp = exec_remote_command(auth_header, machine, action)
 
 
-def submit_job_task(auth_header,machine,fileName,tmpdir,task_id):
+    # if there was an error, the result will be SUCESS but not available outputs
+    if resp["error"] != 0:
+        # update_task(task_id, auth_header, async_task.SUCCESS, control_info,True)
+        return control_info
+
+    # if it's ok, we can add information
+    control_resp = resp["msg"]
+
+    control_list = control_resp.split()
+
+    control_dict = { value.split("=")[0] : value.split("=")[1] for value in control_list }
+
+    control_info["job_file_out"] = control_dict["StdOut"]
+    control_info["job_file_err"] = control_dict["StdErr"]
+    control_info["job_file"] = control_dict["Command"]
+    control_info["job_data_out"] = ""
+    control_info["job_data_err"] = ""
+    # if all fine:
+
+    if output:
+        # to add data from StdOut and StdErr files in Task
+        # this is done when GET compute/jobs is triggered.
+        #
+        # tail -n {number_of_lines_since_end} or
+        # tail -c {number_of_bytes} --> 1000B = 1KB
+       
+        action = f"timeout {TIMEOUT} tail -c {TAIL_BYTES} {control_info['job_file_out']}"
+        resp = exec_remote_command(auth_header, machine, action)
+        if resp["error"] == 0:
+            control_info["job_data_out"] = resp["msg"]
+        
+   
+        action = f"timeout {TIMEOUT} tail -c {TAIL_BYTES} {control_info['job_file_err']}"
+        resp = exec_remote_command(auth_header, machine, action)
+        if resp["error"] == 0:
+            control_info["job_data_err"] = resp["msg"]
+
+   
+
+    # update_task(task_id, auth_header, async_task.SUCCESS, control_info,True)
+    return control_info
+
+def submit_job_task(auth_header,machine,fileName,job_dir,task_id):
     # auth_header doesn't need to be checked,
     # it's delivered by another instance of Jobs,
     # and this function is not an entry point
 
-    resp = paramiko_scp(auth_header, machine, fileName, "{job_base_dir}/firecrest/{tmpdir}"
-                        .format(job_base_dir=JOB_BASE_DIR, tmpdir=tmpdir))
+    resp = paramiko_scp(auth_header, machine, fileName, job_dir)
 
     # in case of error:
     if resp["error"] == -2:
@@ -306,9 +417,18 @@ def submit_job_task(auth_header,machine,fileName,tmpdir,task_id):
         update_task(task_id, auth_header, async_task.ERROR, resp["msg"])
         return
 
-    # if job was submited succesfully, then "msg" is a dictionary with jobid field
-    update_task(task_id, auth_header, async_task.SUCCESS, resp["msg"],True)
+    # now looking for log and err files location
+    job_extra_info = get_slurm_files(auth_header, machine, task_id,resp["msg"])
 
+    update_task(task_id, auth_header, async_task.SUCCESS, job_extra_info,True)
+
+    
+
+## error handler for files above SIZE_LIMIT -> app.config['MAX_CONTENT_LENGTH']
+@app.errorhandler(413)
+def request_entity_too_large(error):
+    app.logger.error(error)
+    return jsonify(description="Failed to upload sbatch file. The file is over {} MB".format(MAX_FILE_SIZE)), 413
 
 # Submit a batch script to SLURM on the target system.
 # The batch script is uploaded as a file
@@ -336,10 +456,25 @@ def submit_job():
         return jsonify(description="Failed to submit job file",error="Machine does not exists"), 400, header
 
     # iterate over SYSTEMS_PUBLIC list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machine:
-            machine = SYS_INTERNALS[i]
-            break
+
+    # select index in the list corresponding with machine name
+    machine_idx = SYSTEMS_PUBLIC.index(machine)
+    machine = SYS_INTERNALS[machine_idx]
+
+    # check if machine is accessible by user:
+    # exec test remote command
+    resp = exec_remote_command(auth_header, machine, "hostname")
+
+    if resp["error"] != 0:
+        error_str = resp["msg"]
+        if resp["error"] == -2:
+            header = {"X-Machine-Not-Available": "Machine is not available"}
+            return jsonify(description="Failed to submit job file"), 400, header
+        if in_str(error_str,"Permission") or in_str(error_str,"OPENSSH"):
+            header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
+            return jsonify(description="Failed to submit job file"), 404, header
+
+    job_base_fs = COMPUTE_BASE_FS[machine_idx] 
 
     try:
         # check if the post request has the file part
@@ -359,7 +494,10 @@ def submit_job():
 
         # save file locally (then removed)
         file.save(secure_filename(file.filename))
-
+    except RequestEntityTooLarge as re:
+        app.logger.error(re.description)
+        data = jsonify(description="Failed to submit job file", error=f"File is bigger than {MAX_FILE_SIZE} MB")
+        return data, 413
     except Exception as e:
         data = jsonify(description="Failed to submit job file",error=e)
         return data, 400
@@ -376,10 +514,16 @@ def submit_job():
     # now using hash_id from Tasks, which is user-task_id (internal)
     tmpdir = "{task_id}".format(task_id=task_id)
 
+    username = get_username(auth_header)
+
+    job_dir = f"{job_base_fs}/{username}/firecrest/{tmpdir}"
+
+    app.logger.info(f"Job dir: {job_dir}")
+
     try:
         # asynchronous task creation
         aTask = threading.Thread(target=submit_job_task,
-                             args=(auth_header, machine, file.filename, tmpdir, task_id))
+                             args=(auth_header, machine, file.filename, job_dir, task_id))
 
         aTask.start()
         retval = update_task(task_id, auth_header, async_task.QUEUED, TASKS_URL)
@@ -420,11 +564,22 @@ def list_jobs():
         header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
         return jsonify(description="Failed to retrieve jobs information", error="Machine does not exists"), 400, header
 
-    # iterate over SYSTEMS_PUBLIC list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machine:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    machine_idx = SYSTEMS_PUBLIC.index(machine)
+    machine = SYS_INTERNALS[machine_idx]
+
+    # check if machine is accessible by user:
+    # exec test remote command
+    resp = exec_remote_command(auth_header, machine, "hostname")
+
+    if resp["error"] != 0:
+        error_str = resp["msg"]
+        if resp["error"] == -2:
+            header = {"X-Machine-Not-Available": "Machine is not available"}
+            return jsonify(description="Failed to retrieve jobs information"), 400, header
+        if in_str(error_str,"Permission") or in_str(error_str,"OPENSSH"):
+            header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
+            return jsonify(description="Failed to retrieve jobs information"), 404, header
 
     username = get_username(auth_header)
 
@@ -505,13 +660,17 @@ def list_job_task(auth_header,machine,action,task_id,pageSize,pageNumber):
         return
 
     if resp["error"] == 1:
-        update_task(task_id, auth_header, async_task.ERROR ,resp["msg"])
+        err_msg = resp["msg"]
+        if in_str(err_msg,"OPENSSH"):
+            err_msg = "User does not have permissions to access machine"
+        update_task(task_id, auth_header, async_task.ERROR ,err_msg)
         return
 
     if len(resp["msg"]) == 0:
          #update_task(task_id, auth_header, async_task.SUCCESS, "You don't have active jobs on {machine}".format(machine=machine))
          update_task(task_id, auth_header, async_task.SUCCESS,{},True)
          return
+
 
     # on success:
     jobList = resp["msg"].split("$")
@@ -546,12 +705,18 @@ def list_job_task(auth_header,machine,action,task_id,pageSize,pageNumber):
 
         job = jobList[job_index]
 
+        
+
         jobaux = job.split("|")
         jobinfo = {"jobid": jobaux[0], "partition": jobaux[1], "name": jobaux[2],
                    "user": jobaux[3], "state": jobaux[4], "start_time": jobaux[5],
                    "time": jobaux[6], "time_left": jobaux[7],
                    "nodes": jobaux[8], "nodelist": jobaux[9]}
+        
+        # now looking for log and err files location
+        jobinfo = get_slurm_files(auth_header, machine, task_id,jobinfo,True)
 
+        # add jobinfo to the array
         jobs[str(job_index)]=jobinfo
 
     data = jobs
@@ -588,11 +753,22 @@ def list_job(jobid):
         header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
         return jsonify(description="Failed to retrieve job information", error="Machine does not exists"), 400, header
 
-    # iterate over SYSTEMS_PUBLIC list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machine:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    machine_idx = SYSTEMS_PUBLIC.index(machine)
+    machine = SYS_INTERNALS[machine_idx]
+
+    # check if machine is accessible by user:
+    # exec test remote command
+    resp = exec_remote_command(auth_header, machine, "hostname")
+
+    if resp["error"] != 0:
+        error_str = resp["msg"]
+        if resp["error"] == -2:
+            header = {"X-Machine-Not-Available": "Machine is not available"}
+            return jsonify(description="Failed to retrieve job information"), 400, header
+        if in_str(error_str,"Permission") or in_str(error_str,"OPENSSH"):
+            header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
+            return jsonify(description="Failed to retrieve job information"), 404, header
 
     username = get_username(auth_header)
     app.logger.info("Getting SLURM information of job={jobid} from {machine}".
@@ -630,6 +806,8 @@ def cancel_job_task(auth_header,machine,action,task_id):
     # exec scancel command
     resp = exec_remote_command(auth_header, machine, action)
 
+    app.logger.info(resp)
+
     data = resp["msg"]
 
     # in case of error:
@@ -640,6 +818,13 @@ def cancel_job_task(auth_header,machine,action,task_id):
 
     if resp["error"] == -2:
         update_task(task_id,auth_header, async_task.ERROR, "Machine is not available")
+        return
+
+    if resp["error"] != 0:
+        err_msg = resp["msg"]
+        if in_str(err_msg,"OPENSSH"):
+            err_msg = "User does not have permissions to access machine"
+        update_task(task_id, auth_header, async_task.ERROR, err_msg)
         return
 
     # in specific scancel's case, this command doesn't give error code over
@@ -682,11 +867,22 @@ def cancel_job(jobid):
         header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
         return jsonify(description="Failed to delete job", error="Machine does not exists"), 400, header
 
-    # iterate over SYSTEMS_PUBLIC list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machine:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    machine_idx = SYSTEMS_PUBLIC.index(machine)
+    machine = SYS_INTERNALS[machine_idx]
+
+    # check if machine is accessible by user:
+    # exec test remote command
+    resp = exec_remote_command(auth_header, machine, "hostname")
+
+    if resp["error"] != 0:
+        error_str = resp["msg"]
+        if resp["error"] == -2:
+            header = {"X-Machine-Not-Available": "Machine is not available"}
+            return jsonify(description="Failed to delete job"), 400, header
+        if in_str(error_str,"Permission") or in_str(error_str,"OPENSSH"):
+            header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
+            return jsonify(description="Failed to delete job"), 404, header
 
 
     app.logger.info("Cancel SLURM job={jobid} from {machine}".
@@ -731,8 +927,11 @@ def acct_task(auth_header, machine, action, task_id):
         return
 
     # in case of error:
-    if resp["error"] == 1:
-        update_task(task_id,auth_header,async_task.ERROR, data)
+    if resp["error"] != 0:
+        err_msg = resp["msg"]
+        if in_str(err_msg,"OPENSSH"):
+            err_msg = "User does not have permissions to access machine"
+        update_task(task_id, auth_header, async_task.ERROR, err_msg)
         return
 
     if len(resp["msg"]) == 0:
@@ -784,11 +983,22 @@ def acct():
         header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
         return jsonify(description="Failed to retrieve account information", error="Machine does not exists"), 400, header
 
-    # iterate over SYSTEMS_PUBLIC list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machine:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    machine_idx = SYSTEMS_PUBLIC.index(machine)
+    machine = SYS_INTERNALS[machine_idx]
+
+    # check if machine is accessible by user:
+    # exec test remote command
+    resp = exec_remote_command(auth_header, machine, "hostname")
+
+    if resp["error"] != 0:
+        error_str = resp["msg"]
+        if resp["error"] == -2:
+            header = {"X-Machine-Not-Available": "Machine is not available"}
+            return jsonify(description="Failed to retrieve account information"), 400, header
+        if in_str(error_str,"Permission") or in_str(error_str,"OPENSSH"):
+            header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
+            return jsonify(description="Failed to retrieve account information"), 404, header
 
     #check if startime (--startime=) param is set:
     start_time_opt = ""

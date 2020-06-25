@@ -113,39 +113,7 @@ def paramiko_upload(auth_header, cluster, local_path, remote_path):
         remote_file.write(local_data)
         result = {"error": 0, "msg": remote_path_file}
         remote_file.close()
-
-
-        # try:
-        #     remote_file = ftp_client.file(remote_path_file, "w")
-        #     remote_file.write(local_data)
-        #     result = {"error": 0, "msg": remote_path_file}
-        # except PermissionError as pe:
-        #     app.logger.error("Permission error {strerr}".format(strerr=pe.errno))
-        #     app.logger.error("Errno {errno}".format(errno=pe.strerror))
-        #     result = {"error": pe.errno, "msg": pe.strerror}
-        # except Exception as e:
-        #     app.logger.error(type(e))
-        #     app.logger.error(e)
-        #     result = {"error": 1, "msg": e}
-        # finally:
-        #     remote_file.close()
-        #     # closing client
-        #     app.logger.info("Closing clients")
-        #     ftp_client.close()
-        #     client.close()
-
-        #     app.logger.info("Removing temp certs")
-        #     # removing temporary keys, certs and dirs
-        #     os.remove(pub_cert)
-        #     os.remove(pub_key)
-        #     os.remove(priv_key)
-        #     os.rmdir(temp_dir)
-
-        #     app.logger.info("Returned: {result}".format(result=result))
-
-        #     return result
-
-        
+ 
 
     except PermissionError as pe:
         app.logger.error("Permission error {strerr}".format(strerr=pe.errno))
@@ -178,15 +146,21 @@ def paramiko_upload(auth_header, cluster, local_path, remote_path):
         app.logger.error(e.filename)
         app.logger.error(e.errno)        
         result = {"error": e.errno, "msg": "IOError"}
+    
+    except paramiko.ssh_exception.SSHException as e:
+        logging.error(e, exc_info=True)
+        app.logger.error(e)        
+        result = {"error":1, "msg":e.args[0]}
 
     except Exception as e:
-        app.logger.error(e)
-        result = {"error": 1, "msg": e}
+        app.logger.error(e.args)
+        result = {"error": 1, "msg": e.args[0]}
     finally:
         # closing client
         app.logger.info("Closing clients")
        
-        ftp_client.close()
+        if "ftp_client" in locals():
+            ftp_client.close()
         client.close()
 
         app.logger.info("Removing temp certs")
@@ -237,8 +211,7 @@ def paramiko_download(auth_header, cluster, path):
                        timeout=2)
 
         # check file size not over SIZE_LIMIT
-
-        action = "stat --dereference -c %s -- '{path}'".format(path=path)
+        action = f"timeout {UTILITIES_TIMEOUT} stat --dereference -c %s -- '{path}'"
         stdin, stdout, stderr = client.exec_command(action)
 
         # error status
@@ -312,10 +285,14 @@ def paramiko_download(auth_header, cluster, path):
         app.logger.error(e.errno)
         app.logger.error(e.strerror)
         result = {"error": e.errno, "msg": "IOError"}
+    except paramiko.ssh_exception.SSHException as e:
+        logging.error(e, exc_info=True)
+        app.logger.error(e)        
+        result = {"error":1, "msg":e.args[0]}
     except Exception as e:
         logging.error(e, exc_info=True)
         app.logger.error(e)
-        result = {"error":1, "msg":e}
+        result = {"error":1, "msg":e.args[0]}
 
 
     os.remove(pub_cert)
@@ -366,7 +343,7 @@ def file_type():
         return jsonify(description="Error in file operation",error="'targetPath' query string missing"), 400
 
 
-    action = "timeout {timeout} file -b -- '{path}'".format(timeout=UTILITIES_TIMEOUT, path=path)
+    action = f"timeout {UTILITIES_TIMEOUT} file -b -- '{path}'"
 
     retval = exec_remote_command(auth_header, machine, action)
 
@@ -382,7 +359,7 @@ def file_type():
             return jsonify(description="Error in file operation"), 400, header
 
         #in case of permission for other user
-        if in_str(error_str,"Permission"):
+        if in_str(error_str,"Permission") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Error in file operation"), 404, header
 
@@ -449,7 +426,7 @@ def chmod():
         return jsonify(description="Error in chmod operation", error="mode query string missing"), 400
 
     # using -c flag for verbose mode in stdout
-    action = "timeout {timeout} chmod -v '{mode}' -- '{path}'".format(timeout=UTILITIES_TIMEOUT,mode=mode,path=path)
+    action = f"timeout {UTILITIES_TIMEOUT} chmod -v '{mode}' -- '{path}'"
 
     retval = exec_remote_command(auth_header, machine, action)
 
@@ -468,7 +445,7 @@ def chmod():
             header = {"X-Invalid-Path": "{path} is an invalid path".format(path=path)}
             return jsonify(description="Error in chmod operation"), 400, header
 
-        if in_str(error_str, "not permitted"):
+        if in_str(error_str, "not permitted") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Error in chmod operation"), 400, header
 
@@ -539,8 +516,7 @@ def chown():
         return jsonify(description="Error in chown operation", error="group and/or owner should be set"), 400
 
 
-    action = "timeout {timeout} chown -v '{owner}':'{group}' -- '{path}'".format(
-                    timeout=UTILITIES_TIMEOUT,owner=owner,group=group,path=path)
+    action = f"timeout {UTILITIES_TIMEOUT} chown -v '{owner}':'{group}' -- '{path}'"
 
     retval = exec_remote_command(auth_header, machine, action)
 
@@ -559,7 +535,7 @@ def chown():
             header={"X-Invalid-Path":"{path} is an invalid path".format(path=path)}
             return jsonify(description="Error in chown operation"), 400, header
 
-        if in_str(error_str,"not permitted"):
+        if in_str(error_str,"not permitted") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Error in chown operation"), 400, header
 
@@ -634,7 +610,7 @@ def list_directory():
     #         path=path, showall=showall)
 
     # changed since bash only captures errors from the last command in pipeline, and this always was OK
-    action = "timeout {timeout} ls -l {showall} --time-style=+%Y-%m-%dT%H:%M:%S -- '{path}' ".format(path=path, showall=showall,timeout=UTILITIES_TIMEOUT)
+    action = f"timeout {UTILITIES_TIMEOUT} ls -l {showall} --time-style=+%Y-%m-%dT%H:%M:%S -- '{path}'"
 
     retval = exec_remote_command(auth_header, machine, action)
 
@@ -654,7 +630,7 @@ def list_directory():
             header={"X-Invalid-Path":"{path} is an invalid path".format(path=path)}
             return jsonify(description="Error listing contents of path"), 400, header
 
-        if in_str(error_str,"cannot open"):
+        if in_str(error_str,"cannot open") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Error listing contents of path"), 400, header
 
@@ -782,7 +758,7 @@ def make_directory():
     except BadRequestKeyError:
         parent = ""
 
-    action = "timeout {timeout} mkdir {parent} -- '{path}'".format(timeout=UTILITIES_TIMEOUT,path=path,parent=parent)
+    action = f"timeout {UTILITIES_TIMEOUT} mkdir {parent} -- '{path}'"
 
     retval = exec_remote_command(auth_header, machine, action)
 
@@ -801,7 +777,7 @@ def make_directory():
             header={"X-Invalid-Path":"{path} is an invalid path".format(path=path)}
             return jsonify(description="Error creating directory"), 400, header
 
-        if in_str(error_str,"Permission denied"):
+        if in_str(error_str,"Permission denied") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Error creating directory"), 400, header
 
@@ -823,85 +799,7 @@ def make_directory():
 
 @app.route("/rename", methods=["PUT"])
 def rename():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
-    try:
-        machinename = request.headers["X-Machine-Name"]
-    except KeyError as e:
-        app.logger.error("No machinename given")
-        return jsonify(description="No machine name given"), 400
-
-    # public endpoints from Kong to users
-    if machinename not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
-        return jsonify(description="Error on rename operation", error="Machine does not exist"), 400, header
-
-    # iterate over systems list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machinename:
-            machine = SYS_INTERNALS[i]
-            break
-
-    try:
-        sourcePath = request.form["sourcePath"]
-    except BadRequestKeyError:
-        return jsonify(description="Error on rename operation", error="'sourcePath' query string missing"), 400
-
-    try:
-        targetPath = request.form["targetPath"]
-    except BadRequestKeyError:
-        return jsonify(description="Error on rename operation", error="newpath query string missing"), 400
-
-    # action to execute
-    action = "echo n | timeout {timeout} mv -i -- '{sourcePath}' '{targetPath}'".format(
-                            timeout=UTILITIES_TIMEOUT,sourcePath=sourcePath, targetPath=targetPath)
-
-    retval = exec_remote_command(auth_header, machine, action)
-
-    if retval["error"] != 0:
-        error_str=retval["msg"]
-
-        if retval["error"] == 113:
-            header = {"X-Machine-Not-Available":"Machine is not available"}
-            return jsonify(description="Error on rename operation"), 400, header
-
-        if retval["error"] == 124:
-            header = {"X-Timeout": "Command has finished with timeout signal"}
-            return jsonify(description="Error on rename operation"), 400, header
-
-        # error no such file
-        if in_str(error_str,"No such file"):
-            if in_str(error_str,"cannot stat"):
-                header={"X-Not-Found":"{sourcePath} not found.".format(sourcePath=sourcePath)}
-                return jsonify(description="Error on rename operation"), 400, header
-
-            if in_str(error_str,"cannot move"):
-                header = {"X-Invalid-Path": "{sourcePath} and/or {targetPath} are invalid paths.".format(sourcePath=sourcePath,targetPath=targetPath)}
-                return jsonify(description="Error on rename operation"), 400, header
-
-        # permission denied
-        if in_str(error_str,"Permission denied"):
-            header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
-            return jsonify(description="Error on rename operation"), 400, header
-
-        # if already exists, not overwrite (-i)
-        if in_str(error_str,"overwrite"):
-            header = {"X-Exists": "{targetPath} already exists".format(targetPath=targetPath)}
-            return jsonify(description="Error on rename operation"), 400, header
-
-        return jsonify(description="Error on rename operation",error=error_str), 400
-
-
-    return jsonify(description="Success to rename file or directory.", output=""), 200
-
+    return common_operation(request, "rename", "PUT")
 
 
 ## copy cp
@@ -953,17 +851,18 @@ def common_operation(request, command, method):
     except BadRequestKeyError:
         return jsonify(description="Error on " + command + " operation", error="target query string missing"), 400
 
-    
+
     if command == "copy":
         # action to execute
-        # -i is for interactive, when user asks for confirmation, given with "echo n"
         # -r is for recursivelly copy files into directories
-        action = "echo n | timeout {timeout} cp -i -dR --preserve=all -- '{sourcePath}' '{targetPath}'".format(
-            timeout=UTILITIES_TIMEOUT, sourcePath=sourcePath, targetPath=targetPath)
+        action = f"timeout {UTILITIES_TIMEOUT} cp --force -dR --preserve=all -- '{sourcePath}' '{targetPath}'"
+        success_code = 201
     elif command == "rename":
-        action = "echo n | timeout {timeout} mv -i -- '{sourcePath}' '{targetPath}'".format(
-            timeout=UTILITIES_TIMEOUT, sourcePath=sourcePath, targetPath=targetPath)
-
+        action = f"timeout {UTILITIES_TIMEOUT} mv --force -- '{sourcePath}' '{targetPath}'"
+        success_code = 200
+    else:
+        app.logger.error("Unknown command on common_operation: " + command)
+        return jsonify(description="Error on unkownon operation", error="Unknown"), 400
 
     retval = exec_remote_command(auth_header, machine, action)
 
@@ -990,7 +889,7 @@ def common_operation(request, command, method):
                 return jsonify(description="Error on " + command + " operation"), 400, header
 
         # permission denied
-        if in_str(error_str,"Permission denied"):
+        if in_str(error_str,"Permission denied") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
             return jsonify(description="Error on " + command + " operation"), 400, header
 
@@ -1001,7 +900,7 @@ def common_operation(request, command, method):
 
         return jsonify(description="Error on copy operation"), 400
 
-    return jsonify(description="Success to " + command + " file or directory.", output=""), 201
+    return jsonify(description="Success to " + command + " file or directory.", output=""), success_code
 
 
 
@@ -1046,7 +945,7 @@ def rm():
 
     # action to execute
     # -r is for recursivelly delete files into directories
-    action = "echo n | timeout {timeout} rm -r -- '{path}'".format(timeout=UTILITIES_TIMEOUT,path=path)
+    action = f"timeout {UTILITIES_TIMEOUT} rm -fr -- '{path}'"
 
     retval = exec_remote_command(auth_header, machine, action)
 
@@ -1068,7 +967,7 @@ def rm():
                 return jsonify(description="Error on delete operation"), 400, header
 
         # permission denied
-        if in_str(error_str,"Permission denied"):
+        if in_str(error_str,"Permission denied") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Error on delete operation"), 400, header
 
@@ -1124,8 +1023,7 @@ def symlink():
     except BadRequestKeyError:
         return jsonify(description="Failed to create symlink",error="'targetPath' query string missing"), 400
 
-    action = "timeout {timeout} ln -s -- '{targetPath}' '{linkPath}'".format(
-                timeout=UTILITIES_TIMEOUT,targetPath=targetPath,linkPath=linkPath)
+    action = f"timeout {UTILITIES_TIMEOUT} ln -s -- '{targetPath}' '{linkPath}'"
 
     retval = exec_remote_command(auth_header, machine, action)
 
@@ -1146,7 +1044,7 @@ def symlink():
             return jsonify(description="Failed to create symlink"), 400, header
 
         # permission denied
-        if in_str(error_str,"Permission denied"):
+        if in_str(error_str,"Permission denied") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
             return jsonify(description="Failed to create symlink"), 400, header
 
@@ -1225,7 +1123,7 @@ def download():
         return jsonify(description="Failed to download file"), 400, header
 
     if retval["error"] != 0:
-        if in_str(retval["msg"],"Permission"):
+        if in_str(retval["msg"],"Permission") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
             return jsonify(description="Failed to download file"), 400, header
         else:
@@ -1325,7 +1223,7 @@ def upload():
         return jsonify(description="Failed to upload file"), 400, header
 
     if retval["error"] != 0:
-        if in_str(retval["msg"],"Permission"):
+        if in_str(retval["msg"],"Permission") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
             return jsonify(description="Failed to upload file"), 400, header
         else:
