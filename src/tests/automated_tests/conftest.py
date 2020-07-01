@@ -26,21 +26,36 @@ SA_SECRET_KEY = os.environ.get("F7T_SA_SECRET_KEY")
 SA_CLIENT_ID  = os.environ.get("F7T_SA_CLIENT_ID")
 
 
+# valid headers for test-build and demo environments testing
 @pytest.fixture(scope='session')
 def headers():
     
-    # authorization with fake jwt
+    # authorization with fake jwt (test-build)
     if SA_LOGIN.lower() != 'true':
         auth = "Bearer " + jwt.encode(payload, 'secret', algorithm='HS256').decode("utf-8")
         return {"Authorization": auth, "Accept" : "application/json", "X-Firecrest-Service": "storage"}
 
-    # authorization with sa account
+    # authorization with service account (demo)
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     data = {"grant_type":"client_credentials"}
-    
     resp = requests.post(SA_TOKEN_URI, headers=headers, data=data, auth=(SA_CLIENT_ID, SA_SECRET_KEY))
     auth = resp.json()["token_type"] + " " + resp.json()["access_token"]
-    return {"Authorization": auth, "Accept" : "application/json", "X-Firecrest-Service": "storage"}
+    return {"Authorization": auth, "Accept" : "application/json"}
 
-   
-    
+
+# header dictionary with invalid authorization
+@pytest.fixture(scope='session')
+def headers_invalid_auth():
+    auth = "Bearer ANYTHING"
+    return {"Authorization": auth, "Accept" : "application/json"}
+
+
+# headers dictionary without authorization header
+@pytest.fixture(scope='session')
+def headers_no_auth():
+    return {"Accept" : "application/json"}
+
+
+
+
+
