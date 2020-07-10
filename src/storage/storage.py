@@ -18,8 +18,8 @@ from logging.handlers import TimedRotatingFileHandler
 # common functions
 from cscs_api_common import check_header, get_username
 from cscs_api_common import create_task, update_task, get_task_status
-from cscs_api_common import exec_remote_command, exec_remote_command_cert
-from cscs_api_common import create_certificates
+from cscs_api_common import exec_remote_command
+from cscs_api_common import create_certificate
 from cscs_api_common import in_str
 
 # job_time_checker for correct SLURM job time in /xfer-internal tasks
@@ -278,7 +278,7 @@ def os_to_fs(task_id):
         update_task(task_id,None,async_task.ST_DWN_BEG)
 
         # execute download
-        result = exec_remote_command_cert(system, username, action, cert_list)
+        result = exec_remote_command(username, system, "", "storage_cert", cert_list)
 
         # if no error, then download is complete
         if result["error"] == 0:
@@ -547,7 +547,7 @@ def upload_task(auth_header,system,targetPath,sourcePath,task_id):
     # create certificate for later download from OS to filesystem
     app.logger.info("Creating certificate for later download") 
     options = f"-q -O {targetPath}/{fileName} -- '{download_url}'"
-    certs = create_certificates(auth_header,system,command="wget",options=urllib.parse.quote(options))
+    certs = create_certificate(auth_header, system, "wget", options)
     # certs = create_certificates(auth_header,system,command="wget",options=urllib.parse.quote(options),exp_time=STORAGE_TEMPURL_EXP_TIME)
 
     if not certs[0]:
@@ -982,7 +982,7 @@ def internal_operation(request, command):
 
     # check if machine is accessible by user:
     # exec test remote command
-    resp = exec_remote_command(auth_header, machine, "hostname")
+    resp = exec_remote_command(auth_header, machine, "/bin/true")
 
     if resp["error"] != 0:
         error_str = resp["msg"]

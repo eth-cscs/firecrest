@@ -13,9 +13,10 @@ from werkzeug.utils import secure_filename
 from werkzeug.exceptions import BadRequestKeyError
 
 from math import ceil
-from cscs_api_common import check_header, get_username,exec_remote_command, create_certificates, \
+from cscs_api_common import check_header, get_username,exec_remote_command, \
     get_buffer_lines, clean_err_output
-
+import base64
+import io
 
 CERTIFICATOR_URL = os.environ.get("F7T_CERTIFICATOR_URL")
 STATUS_IP        = os.environ.get("F7T_STATUS_IP")
@@ -64,38 +65,9 @@ def paramiko_upload(auth_header, cluster, local_path, remote_path):
 
     fileName = local_path.split("/")[-1]
 
-    # get certificate
-    cert_list = create_certificates(auth_header, cluster)
-
-    if cert_list[0] == None:
-        result = {"error": 1, "msg": "Certificator error: {msg}".format(msg=cert_list[2])}
-        return result
-
-    [pub_cert, pub_key, priv_key, temp_dir] = cert_list
-
-    username = get_username(auth_header)
-
     # -------------------
     # remote exec with paramiko
     try:
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-        ipaddr = cluster.split(':')
-        host = ipaddr[0]
-        if len(ipaddr) == 1:
-            port = 22
-        else:
-            port = int(ipaddr[1])
-
-        client.connect(hostname=host, port=port,
-                           username=username,
-                           key_filename="{pub_cert}".format(pub_cert=pub_cert),
-                           allow_agent=False,
-                           look_for_keys=False,
-                           timeout=2)
-
-        ftp_client = client.open_sftp()
 
         try:
             local_file = open(local_path, "rb")
@@ -106,14 +78,14 @@ def paramiko_upload(auth_header, cluster, local_path, remote_path):
         finally:
             local_file.close()
 
-        remote_path_file = "{remote_path}/{filename}".format(remote_path=remote_path, filename=fileName)
+        remote_path_file = f"{remote_path}/{fileName}"
 
 
         remote_file = ftp_client.file(remote_path_file, "w")
         remote_file.write(local_data)
         result = {"error": 0, "msg": remote_path_file}
         remote_file.close()
- 
+
 
     except PermissionError as pe:
         app.logger.error("Permission error {strerr}".format(strerr=pe.errno))
@@ -144,12 +116,12 @@ def paramiko_upload(auth_header, cluster, local_path, remote_path):
         app.logger.error("IOError")
         app.logger.error(e.strerror)
         app.logger.error(e.filename)
-        app.logger.error(e.errno)        
+        app.logger.error(e.errno)
         result = {"error": e.errno, "msg": "IOError"}
-    
+
     except paramiko.ssh_exception.SSHException as e:
         logging.error(e, exc_info=True)
-        app.logger.error(e)        
+        app.logger.error(e)
         result = {"error":1, "msg":e.args[0]}
 
     except Exception as e:
@@ -158,7 +130,7 @@ def paramiko_upload(auth_header, cluster, local_path, remote_path):
     finally:
         # closing client
         app.logger.info("Closing clients")
-       
+
         if "ftp_client" in locals():
             ftp_client.close()
         client.close()
@@ -175,40 +147,7 @@ def paramiko_upload(auth_header, cluster, local_path, remote_path):
     return result
 
 
-def paramiko_download(auth_header, cluster, path):
-
-    fileName = path.split("/")[-1]
-
-    # get certificate
-    cert_list = create_certificates(auth_header, cluster)
-
-    if cert_list[0] == None:
-        result = {"error": 1, "msg": "Certificator error: {msg}".format(msg=cert_list[2])}
-        return result
-
-    [pub_cert, pub_key, priv_key, temp_dir] = cert_list
-
-    username = get_username(auth_header)
-
-    # -------------------
-    # remote exec with paramiko
-    try:
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-        ipaddr = cluster.split(':')
-        host = ipaddr[0]
-        if len(ipaddr) == 1:
-            port = 22
-        else:
-            port = int(ipaddr[1])
-
-        client.connect(hostname=host, port=port,
-                       username=username,
-                       key_filename="{pub_cert}".format(pub_cert=pub_cert),
-                       allow_agent=False,
-                       look_for_keys=False,
-                       timeout=2)
+""" def paramiko_download(auth_header, cluster, path):
 
         # check file size not over SIZE_LIMIT
         action = f"timeout {UTILITIES_TIMEOUT} stat --dereference -c %s -- '{path}'"
@@ -237,16 +176,16 @@ def paramiko_download(auth_header, cluster, path):
                 result={"error":-3,"msg":"File size exceeds limit"}
             elif file_size == 0:
                 # may be empty, a special file or a directory, just return empty
-                _tmpdir=tempfile.mkdtemp("", "cscs", "/tmp")
-                local_path = "{tempdir}/{fileName}".format(tempdir=_tmpdir, fileName=fileName)
-                local_file = open(local_path,"wb")
+                _tmpdir = tempfile.mkdtemp("", "cscs", "/tmp")
+                local_path = f"{_tmpdir}/{fileName}"
+                local_file = open(local_path, "wb")
                 local_file.close()
                 result = {"error": 0, "msg": local_path}
             else:
                 #if file isn't too big, download
                 ftp_client = client.open_sftp()
-                _tmpdir=tempfile.mkdtemp("", "cscs", "/tmp")
-                local_path = "{tempdir}/{fileName}".format(tempdir=_tmpdir,fileName=fileName)
+                _tmpdir = tempfile.mkdtemp("", "cscs", "/tmp")
+                local_path = f"{_tmpdir}/{fileName}"
 
                 remote_file = ftp_client.file(path,"r")
                 local_file  = open(local_path,"wb")
@@ -267,7 +206,6 @@ def paramiko_download(auth_header, cluster, path):
         app.logger.error(type(e))
         if e.errors:
             for k, v in e.errors.items():
-
                 app.logger.error("errorno: {errno}".format(errno=v.errno))
                 app.logger.error("strerr: {strerr}".format(strerr=v.strerror))
                 result = {"error": v.errno, "msg": v.strerror}
@@ -287,7 +225,7 @@ def paramiko_download(auth_header, cluster, path):
         result = {"error": e.errno, "msg": "IOError"}
     except paramiko.ssh_exception.SSHException as e:
         logging.error(e, exc_info=True)
-        app.logger.error(e)        
+        app.logger.error(e)
         result = {"error":1, "msg":e.args[0]}
     except Exception as e:
         logging.error(e, exc_info=True)
@@ -301,7 +239,7 @@ def paramiko_download(auth_header, cluster, path):
     os.rmdir(temp_dir)
 
     return result
-
+ """
 
 ## file: determines the type of file of path
 ## params:
@@ -606,10 +544,6 @@ def list_directory():
     if showhidden != None:
         showall = "-A"
 
-    # action = "ls -l {showall} --time-style=+%Y-%m-%dT%H:%M:%S -- '{path}' | awk ' {{ print $7 \"|\" substr ($1,0,1) \"|\"$9\"|\"$3\"|\"$4\"|\" substr ($1,2,9) \"|\"$6\"|\"$5\";\" }} ' ".format(
-    #         path=path, showall=showall)
-
-    # changed since bash only captures errors from the last command in pipeline, and this always was OK
     action = f"timeout {UTILITIES_TIMEOUT} ls -l {showall} --time-style=+%Y-%m-%dT%H:%M:%S -- '{path}'"
 
     retval = exec_remote_command(auth_header, machine, action)
@@ -648,7 +582,7 @@ def list_directory():
             fileList = retval["msg"].split("$")
     else:
         fileList = retval["msg"].split("$")[1:]
-        
+
     totalSize = len(fileList)
 
     # if pageSize and number were set:
@@ -665,8 +599,8 @@ def list_directory():
 
         totalPages = int(ceil(float(totalSize) / float(pageSize)))
 
-        app.logger.info("Total Size: {totalSize}".format(totalSize=totalSize))
-        app.logger.info("Total Pages: {totalPages}".format(totalPages=totalPages))
+        app.logger.info(f"Total Size: {totalSize}")
+        app.logger.info(f"Total Pages: {totalPages}")
 
 
         if pageNumber < 1 or pageNumber>totalPages:
@@ -1099,7 +1033,17 @@ def download():
         return jsonify(description="Failed to download file",error="'sourcePath' query string missing"), 400
 
     # copy file from remote machinename to local filesystem
-    retval = paramiko_download(auth_header, machine, path)
+    # retval = paramiko_download(auth_header, machine, path)
+
+    action = f"timeout {UTILITIES_TIMEOUT} stat --dereference -c %s -- '{path}'"
+    retval = exec_remote_command(auth_header, machine, action)
+
+    ### TODO: copy code to check file size, if zero return empty
+    #file_size = int(outlines) # in bytes
+
+    # use base64 to avoid encoding conversion and string processing
+    action = f"timeout {UTILITIES_TIMEOUT} base64 --wrap=0 -- '{path}'"
+    retval = exec_remote_command(auth_header, machine, action, file_transfer="download")
 
     # posible errors
 
@@ -1129,11 +1073,17 @@ def download():
         else:
             return jsonify(description="Failed to download file"), 400
 
-    local_file = retval["msg"]
-    file_name  = path.split("/")[-1]
+    ##local_file = retval["msg"]
+    ##file_name  = path.split("/")[-1]
+    #TODO: check path doesn't finish with /
 
+    # try:
+    file_name = secure_filename(path.split("/")[-1])
+    data = io.BytesIO()
+    data.write(base64.b64decode(retval["msg"]))
+    data.seek(0)
 
-    return send_file(local_file,
+    return send_file(data,
                      mimetype="application/octet-stream",
                      attachment_filename=file_name,
                      as_attachment=True)
@@ -1196,16 +1146,18 @@ def upload():
         return jsonify(description="Failed to upload file", error="No file selected"), 400
 
     filename = secure_filename(file.filename)
+    action = f"cat > {path}/{filename}"
+    retval = exec_remote_command(auth_header, machine, action, file_transfer="upload", file_content=file.read())
 
-    _tmpdir = tempfile.mkdtemp("", "cscs-uploads", "/tmp")
-    local_path = os.path.join(_tmpdir, filename)
-
-    file.save(local_path)
-
-    retval=paramiko_upload(auth_header, machine, local_path, path)
-
-    os.remove(local_path)
-    os.rmdir(_tmpdir)
+    #try:
+        ###_tmpdir = tempfile.mkdtemp("", "cscs-uploads", "/tmp")
+        ### local_path = os.path.join(_tmpdir, filename)
+        ###file.save(local_path)
+        #retval = paramiko_upload(auth_header, machine, local_path, path)
+        #paramiko_upload(auth_header, machine, local_path, path)
+    #finally:
+        ###os.remove(local_path)
+        ###os.rmdir(_tmpdir)
 
     # IOError 13: Permission denied
     if retval["error"] == 13:
