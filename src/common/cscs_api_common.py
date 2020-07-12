@@ -13,6 +13,7 @@ import json
 import requests
 import urllib
 import base64
+import io
 
 debug = os.environ.get("DEBUG_MODE", None)
 
@@ -189,38 +190,6 @@ def create_certificate(auth_header, cluster, command=None, options=None, exp_tim
 
 
 
-# formats output for std buffer of paramiko
-def get_buffer_lines(buffer):
-
-    lines = ""
-    while True:
-        line = buffer.readline()
-        if line == "":
-            break
-
-        if line[-1] == "\n":
-            line = line.rstrip()
-
-        lines += line
-    return lines
-
-# formats output for std buffer of paramiko when squeue is executed
-def get_squeue_buffer_lines(buffer):
-
-    lines = ""
-    while True:
-        line = buffer.readline()
-        if line == "":
-            break
-
-        if line[-1] == "\n":
-            line = line[:-1]
-
-        lines += line + "$"
-    return lines[:-1]
-
-
-
 # execute remote commands with Paramiko:
 def exec_remote_command(auth_header, system, action, file_transfer=None, file_content=None):
 
@@ -252,7 +221,6 @@ def exec_remote_command(auth_header, system, action, file_transfer=None, file_co
 
     [pub_cert, pub_key, priv_key, temp_dir] = cert_list
 
-
     # -------------------
     # remote exec with paramiko
     try:
@@ -275,23 +243,56 @@ def exec_remote_command(auth_header, system, action, file_transfer=None, file_co
 
         # read cert to send it as a command to the server
         with open(pub_cert, 'r') as cert_file:
-            cert = cert_file.read()
+            cert = cert_file.read().rstrip("\n")  # remove newline at the end
 
         stdin, stdout, stderr = client.exec_command(cert)
 
         if file_transfer == "upload":
             # uploads use "cat", so write to stdin
-            stdin.channel.send(file_content)
+            stdin.channel.sendall(file_content)
             stdin.channel.shutdown_write()
+
+        output = ""
+        error = ""
+
+        while not (stdout.channel.exit_status_ready() and stderr.channel.exit_status_ready() \
+                   and stdout.channel.recv_ready and stderr.channel.recv_stderr_ready):
+            if stdout.channel.recv_ready():
+                data = stdout.channel.recv(4096)
+                while data:
+                    output += data.decode()
+                    data = stdout.channel.recv(65536)
+
+            if stderr.channel.recv_stderr_ready():
+                data = stderr.channel.recv_stderr(4096)
+                while data:
+                    error += data.decode()
+                    data = stderr.channel.recv_stderr(65536)
+
+        #exit_status = chan.recv_exit_status()
+        if stdout.channel.recv_ready():
+            data = stdout.channel.recv(4096)
+            while data:
+                output += data.decode()
+                data = stdout.channel.recv(65536)
+
+        if stderr.channel.recv_stderr_ready():
+            data = stderr.channel.recv_stderr(4096)
+            while data:
+                error += data.decode()
+                data = stderr.channel.recv_stderr(65536)
 
         stderr_errno = stderr.channel.recv_exit_status()
         stdout_errno = stdout.channel.recv_exit_status()
-        #errdadirt = stderr.channel.recv_stderr(1024)
         # clean "tput: No ..." lines at error output
-        stderr_errda = clean_err_output(stderr.channel.recv_stderr(65536))
-        stdout_errda = clean_err_output(stdout.channel.recv_stderr(65536))
+        stderr_errda = clean_err_output(error)
+        stdout_errda = clean_err_output(output)
 
-        outlines = get_squeue_buffer_lines(stdout)
+        if file_transfer == "download":
+            outlines = output
+        else:
+            # replace newlines with $ for parsing
+            outlines = output.replace('\n', '$')[:-1]
 
         logging.info("sdterr: ({errno}) --> {stderr}".format(errno=stderr_errno, stderr=stderr_errda))
         logging.info("stdout: ({errno}) --> {stderr}".format(errno=stdout_errno, stderr=stdout_errda))
@@ -346,8 +347,6 @@ def exec_remote_command(auth_header, system, action, file_transfer=None, file_co
         result = {"error": 1, "msg": str(e)}
 
     finally:
-        stdout.close()
-        stderr.close()
         client.close()
         logging.info(result["msg"])
         os.remove(pub_cert)
@@ -365,7 +364,7 @@ def clean_err_output(tex):
     lines = ""
 
     # python3 tex comes as a byte object, needs to be decoded to a str
-    tex = tex.decode('utf-8')
+    #tex = tex.decode('utf-8')
 
     for t in tex.split('\n'):
         if t != 'tput: No value for $TERM and no -T specified':

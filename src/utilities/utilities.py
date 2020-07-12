@@ -5,7 +5,6 @@
 #  SPDX-License-Identifier: BSD-3-Clause
 #
 from flask import Flask, request, jsonify, send_file
-import paramiko
 
 from logging.handlers import TimedRotatingFileHandler
 import tempfile, os, socket, logging
@@ -13,8 +12,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.exceptions import BadRequestKeyError
 
 from math import ceil
-from cscs_api_common import check_header, get_username,exec_remote_command, \
-    get_buffer_lines, clean_err_output
+from cscs_api_common import check_header, get_username,exec_remote_command
 import base64
 import io
 
@@ -54,192 +52,6 @@ def in_str(stringval,words):
     except ValueError:
         return False # if words never found
 
-
-# performs upload via SSH client of paramiko
-# user = remote cluster user
-# system = remote cluster
-# local_path = full local path (Filesystem) of the file to be uploaded
-# remote_path = remote dir (cluster) in which file will be uploaded - must exists
-
-def paramiko_upload(auth_header, cluster, local_path, remote_path):
-
-    fileName = local_path.split("/")[-1]
-
-    # -------------------
-    # remote exec with paramiko
-    try:
-
-        try:
-            local_file = open(local_path, "rb")
-            local_data = local_file.read()
-        except Exception as e:
-            app.logger.error(e.message)
-            result = {"error": 1, "msg": e.message}
-        finally:
-            local_file.close()
-
-        remote_path_file = f"{remote_path}/{fileName}"
-
-
-        remote_file = ftp_client.file(remote_path_file, "w")
-        remote_file.write(local_data)
-        result = {"error": 0, "msg": remote_path_file}
-        remote_file.close()
-
-
-    except PermissionError as pe:
-        app.logger.error("Permission error {strerr}".format(strerr=pe.errno))
-        app.logger.error("Errno {errno}".format(errno=pe.strerror))
-        result = {"error": pe.errno, "msg": pe.strerror}
-
-    except FileNotFoundError as fnfe:
-        app.logger.error("File Not Found error {strerr}".format(strerr=fnfe.strerror))
-        app.logger.error("Errno {errno}".format(errno=fnfe.errno))
-        result = {"error": fnfe.errno, "msg": fnfe.strerror}
-
-    except paramiko.ssh_exception.NoValidConnectionsError as e:
-        app.logger.error(type(e))
-        if e.errors:
-            for k, v in e.errors.items():
-                app.logger.error("errorno: {errno}".format(errno=v.errno))
-                app.logger.error("strerr: {strerr}".format(strerr=v.strerror))
-                result = {"error": v.errno, "msg": v.strerror}
-
-    # second: time out
-    except socket.timeout as e:
-        app.logger.error(type(e))
-        # timeout has not errno
-        app.logger.error(e)
-        result = {"error": 1, "msg": e}
-
-    except IOError as e:
-        app.logger.error("IOError")
-        app.logger.error(e.strerror)
-        app.logger.error(e.filename)
-        app.logger.error(e.errno)
-        result = {"error": e.errno, "msg": "IOError"}
-
-    except paramiko.ssh_exception.SSHException as e:
-        logging.error(e, exc_info=True)
-        app.logger.error(e)
-        result = {"error":1, "msg":e.args[0]}
-
-    except Exception as e:
-        app.logger.error(e.args)
-        result = {"error": 1, "msg": e.args[0]}
-    finally:
-        # closing client
-        app.logger.info("Closing clients")
-
-        if "ftp_client" in locals():
-            ftp_client.close()
-        client.close()
-
-        app.logger.info("Removing temp certs")
-        # removing temporary keys, certs and dirs
-        os.remove(pub_cert)
-        os.remove(pub_key)
-        os.remove(priv_key)
-        os.rmdir(temp_dir)
-
-    app.logger.info("Returned: {result}".format(result=result))
-
-    return result
-
-
-""" def paramiko_download(auth_header, cluster, path):
-
-        # check file size not over SIZE_LIMIT
-        action = f"timeout {UTILITIES_TIMEOUT} stat --dereference -c %s -- '{path}'"
-        stdin, stdout, stderr = client.exec_command(action)
-
-        # error status
-        errno = stderr.channel.recv_exit_status()
-        errda = clean_err_output(stderr.channel.recv_stderr(1024))
-
-        # if error raised shouldn't continue
-        if errno != 0 or errda != "":
-            app.logger.error("({errno}) --> {stderr}".format(errno=errno, stderr=errda))
-            app.logger.error(stdout.channel.recv_exit_status())
-            result = {"error": 1, "msg": errda.rstrip()}
-        else:  # no error on stat, now checking file size
-            outlines = get_buffer_lines(stdout)
-            app.logger.error(errda)
-            app.logger.error(errno)
-            app.logger.info("({errno}) --> File Size: {stdout}".format(errno=errno, stdout=outlines))
-
-            file_size = int(outlines) # in bytes
-
-            # if file is too big:
-            if file_size > MAX_FILE_SIZE*(1024*1024):
-                app.logger.warning("File size exceeds limit")
-                result={"error":-3,"msg":"File size exceeds limit"}
-            elif file_size == 0:
-                # may be empty, a special file or a directory, just return empty
-                _tmpdir = tempfile.mkdtemp("", "cscs", "/tmp")
-                local_path = f"{_tmpdir}/{fileName}"
-                local_file = open(local_path, "wb")
-                local_file.close()
-                result = {"error": 0, "msg": local_path}
-            else:
-                #if file isn't too big, download
-                ftp_client = client.open_sftp()
-                _tmpdir = tempfile.mkdtemp("", "cscs", "/tmp")
-                local_path = f"{_tmpdir}/{fileName}"
-
-                remote_file = ftp_client.file(path,"r")
-                local_file  = open(local_path,"wb")
-
-                remote_data = remote_file.read()
-                local_file.write(remote_data)
-
-                remote_file.close()
-                local_file.close()
-
-                ftp_client.close()
-                result = {"error": 0, "msg": local_path}
-
-            # close connection
-            client.close()
-
-    except paramiko.ssh_exception.NoValidConnectionsError as e:
-        app.logger.error(type(e))
-        if e.errors:
-            for k, v in e.errors.items():
-                app.logger.error("errorno: {errno}".format(errno=v.errno))
-                app.logger.error("strerr: {strerr}".format(strerr=v.strerror))
-                result = {"error": v.errno, "msg": v.strerror}
-
-    # second: time out
-    except socket.timeout as e:
-        app.logger.error(type(e))
-        # timeout has not errno
-        app.logger.error(e)
-        result = {"error": 1, "msg": e}
-    except IOError as e:
-        logging.error(e.message, exc_info=True)
-        app.logger.error("IOError")
-        app.logger.error(e.message)
-        app.logger.error(e.errno)
-        app.logger.error(e.strerror)
-        result = {"error": e.errno, "msg": "IOError"}
-    except paramiko.ssh_exception.SSHException as e:
-        logging.error(e, exc_info=True)
-        app.logger.error(e)
-        result = {"error":1, "msg":e.args[0]}
-    except Exception as e:
-        logging.error(e, exc_info=True)
-        app.logger.error(e)
-        result = {"error":1, "msg":e.args[0]}
-
-
-    os.remove(pub_cert)
-    os.remove(pub_key)
-    os.remove(priv_key)
-    os.rmdir(temp_dir)
-
-    return result
- """
 
 ## file: determines the type of file of path
 ## params:
@@ -1032,16 +844,40 @@ def download():
     if path == None:
         return jsonify(description="Failed to download file",error="'sourcePath' query string missing"), 400
 
-    # copy file from remote machinename to local filesystem
-    # retval = paramiko_download(auth_header, machine, path)
+    #TODO: check path doesn't finish with /
+    file_name = secure_filename(path.split("/")[-1])
 
     action = f"timeout {UTILITIES_TIMEOUT} stat --dereference -c %s -- '{path}'"
     retval = exec_remote_command(auth_header, machine, action)
 
-    ### TODO: copy code to check file size, if zero return empty
-    #file_size = int(outlines) # in bytes
+    if retval["error"] != 0:
+        if in_str(retval["msg"],"Permission") or in_str(retval["msg"],"OPENSSH"):
+            header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
+            return jsonify(description="Failed to download file"), 400, header
+        else:
+            return jsonify(description="Failed to download file"), 400
 
-    # use base64 to avoid encoding conversion and string processing
+    try:
+        file_size = int(retval["msg"]) # in bytes
+        if file_size > MAX_FILE_SIZE*(1024*1024):
+            app.logger.warning("File size exceeds limit")
+            # custom error raises when file size > SIZE_LIMIT env var
+            header = {"X-Size-Limit": "File exceeds size limit"}
+            return jsonify(description="Failed to download file"), 400, header
+        elif file_size == 0:
+            # may be empty, a special file or a directory, just return empty
+            data = io.BytesIO()
+            data.seek(0)
+            return send_file(data,
+                     mimetype="application/octet-stream",
+                     attachment_filename=file_name,
+                     as_attachment=True)
+
+    except Exception as e:
+        app.logger.error("Download decode error: " + e.message)
+        return jsonify(description="Failed to download file"), 400
+
+    # download with base64 to avoid encoding conversion and string processing
     action = f"timeout {UTILITIES_TIMEOUT} base64 --wrap=0 -- '{path}'"
     retval = exec_remote_command(auth_header, machine, action, file_transfer="download")
 
@@ -1061,10 +897,6 @@ def download():
     if retval["error"] == -2:
         header = {"X-Machine-Not-Available": "Machine is not available"}
         return jsonify(description="Failed to download file"), 400, header
-    # custom error raises when file size > SIZE_LIMIT env var
-    if retval["error"] == -3:
-        header = {"X-Size-Limit": "File exceeds size limit"}
-        return jsonify(description="Failed to download file"), 400, header
 
     if retval["error"] != 0:
         if in_str(retval["msg"],"Permission") or in_str(retval["msg"],"OPENSSH"):
@@ -1073,15 +905,13 @@ def download():
         else:
             return jsonify(description="Failed to download file"), 400
 
-    ##local_file = retval["msg"]
-    ##file_name  = path.split("/")[-1]
-    #TODO: check path doesn't finish with /
-
-    # try:
-    file_name = secure_filename(path.split("/")[-1])
-    data = io.BytesIO()
-    data.write(base64.b64decode(retval["msg"]))
-    data.seek(0)
+    try:
+        data = io.BytesIO()
+        data.write(base64.b64decode(retval["msg"]))
+        data.seek(0)
+    except Exception as e:
+        app.logger.error("Download decode error: " + e.message)
+        return jsonify(description="Failed to download file"), 400
 
     return send_file(data,
                      mimetype="application/octet-stream",
@@ -1148,16 +978,6 @@ def upload():
     filename = secure_filename(file.filename)
     action = f"cat > {path}/{filename}"
     retval = exec_remote_command(auth_header, machine, action, file_transfer="upload", file_content=file.read())
-
-    #try:
-        ###_tmpdir = tempfile.mkdtemp("", "cscs-uploads", "/tmp")
-        ### local_path = os.path.join(_tmpdir, filename)
-        ###file.save(local_path)
-        #retval = paramiko_upload(auth_header, machine, local_path, path)
-        #paramiko_upload(auth_header, machine, local_path, path)
-    #finally:
-        ###os.remove(local_path)
-        ###os.rmdir(_tmpdir)
 
     # IOError 13: Permission denied
     if retval["error"] == 13:
