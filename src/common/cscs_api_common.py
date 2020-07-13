@@ -10,6 +10,7 @@ import jwt
 import stat
 import tempfile
 import json
+from flask import jsonify
 import requests
 import urllib
 import base64
@@ -359,6 +360,31 @@ def clean_err_output(tex):
             lines += t
 
     return lines
+
+
+def parse_io_error(retval, operation, path):
+    """
+    As command ended with error, create message to return to user
+    Args: retval (from exec_remote_command)
+          operation, path:
+    return:
+        jsonify('error message'), error_code (4xx), optional_header
+    """
+    header = ''
+    if retval["error"] == 13:
+        # IOError 13: Permission denied
+        header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
+    elif retval["error"] == 2:
+        # IOError 2: no such file
+        header = {"X-Invalid-Path": f"{path} is invalid."}
+    elif retval["error"] == -2:
+        # IOError -2: name or service not known
+        header = {"X-Machine-Not-Available": "Machine is not available"}
+    elif in_str(retval["msg"],"Permission") or in_str(retval["msg"],"OPENSSH"):
+        header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
+
+    return jsonify(description = f"Failed to {operation}"), 400, header
+
 
 
 # function to call create task entry API in Queue FS, returns task_id for new task

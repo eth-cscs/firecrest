@@ -12,7 +12,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.exceptions import BadRequestKeyError
 
 from math import ceil
-from cscs_api_common import check_header, get_username,exec_remote_command
+from cscs_api_common import check_header, get_username,exec_remote_command, parse_io_error
 import base64
 import io
 
@@ -805,6 +805,7 @@ def symlink():
 
     return jsonify(description="Success create the symlink"), 201
 
+
 ## Returns the file from the specified path on the {machine} filesystem
 ## params:
 ##  - path: path to the file to download *required
@@ -851,11 +852,7 @@ def download():
     retval = exec_remote_command(auth_header, machine, action)
 
     if retval["error"] != 0:
-        if in_str(retval["msg"],"Permission") or in_str(retval["msg"],"OPENSSH"):
-            header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
-            return jsonify(description="Failed to download file"), 400, header
-        else:
-            return jsonify(description="Failed to download file"), 400
+        return parse_io_error(retval, 'download file', path)
 
     try:
         file_size = int(retval["msg"]) # in bytes
@@ -881,29 +878,8 @@ def download():
     action = f"timeout {UTILITIES_TIMEOUT} base64 --wrap=0 -- '{path}'"
     retval = exec_remote_command(auth_header, machine, action, file_transfer="download")
 
-    # posible errors
-
-    # IOError 13: Permission denied
-    if retval["error"] == 13:
-        header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
-        return jsonify(description="Failed to download file"), 400, header
-
-    # IOError 2: no such file
-    if retval["error"] == 2:
-        header = {"X-Invalid-Path": "{path} is invalid.".format(path=path)}
-        return jsonify(description="Failed to download file"), 400, header
-
-    # IOError -2: name or service not known
-    if retval["error"] == -2:
-        header = {"X-Machine-Not-Available": "Machine is not available"}
-        return jsonify(description="Failed to download file"), 400, header
-
     if retval["error"] != 0:
-        if in_str(retval["msg"],"Permission") or in_str(retval["msg"],"OPENSSH"):
-            header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
-            return jsonify(description="Failed to download file"), 400, header
-        else:
-            return jsonify(description="Failed to download file"), 400
+        return parse_io_error(retval, 'download file', path)
 
     try:
         data = io.BytesIO()
@@ -979,27 +955,8 @@ def upload():
     action = f"cat > {path}/{filename}"
     retval = exec_remote_command(auth_header, machine, action, file_transfer="upload", file_content=file.read())
 
-    # IOError 13: Permission denied
-    if retval["error"] == 13:
-        header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
-        return jsonify(description="Failed to upload file"), 400, header
-
-    # IOError 2: no such file
-    if retval["error"] == 2:
-        header = {"X-Invalid-Path": "{path} is invalid.".format(path=path)}
-        return jsonify(description="Failed to upload file"), 400, header
-
-    # IOError -2: name or service not known
-    if retval["error"] == -2:
-        header = {"X-Machine-Not-Available": "Machine is not available"}
-        return jsonify(description="Failed to upload file"), 400, header
-
     if retval["error"] != 0:
-        if in_str(retval["msg"],"Permission") or in_str(retval["msg"],"OPENSSH"):
-            header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
-            return jsonify(description="Failed to upload file"), 400, header
-        else:
-            return jsonify(description="Failed to upload file"), 400
+        return parse_io_error(retval, 'upload file', path)
 
     return jsonify(description="File upload successful"), 201
 
