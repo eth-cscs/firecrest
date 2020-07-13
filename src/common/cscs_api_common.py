@@ -17,8 +17,7 @@ import io
 
 debug = os.environ.get("DEBUG_MODE", None)
 
-AUTH_HEADER_NAME = 'Authorization' # os.environ.get("AUTH_HEADER_NAME").strip('\'"')
-#if AUTH_HEADER_NAME == "Authorization":
+AUTH_HEADER_NAME = 'Authorization'
 realm_pubkey=os.environ.get("F7T_REALM_RSA_PUBLIC_KEY", '')
 if realm_pubkey != '':
     # headers are inserted here, must not be present
@@ -132,31 +131,32 @@ def in_str(stringval,words):
 # SSH certificates creation
 # returns pub key certificate name
 def create_certificate(auth_header, cluster, command=None, options=None, exp_time=None):
+    """
+    Args:
+      cluster = system to be executed
+      command = command to be executed with the certificate (required)
+      option = parameters and options to be executed with {command}
+      exp_time = expiration time for SSH certificate
+    """
 
-    username = get_username(auth_header)
-
-    logging.info(f"Create certificate for user {username}")
-    if command:
-        logging.info(f"\tCommand: {command}")
-    if options:
-        logging.info(f"\tOptions: {options}")
-    if exp_time:
-        logging.info(f"\tExpiration: {exp_time} [s]")
-
-
-    # cluster = system to be executed
-    # command = command to be executed with the certificate
-    # option = parameters and options to be executed with {command}
-    # exp_time = expiration time for SSH certificate
+    if debug:
+        username = get_username(auth_header)
+        logging.info(f"Create certificate for user {username}")
 
     reqURL = f"{CERTIFICATOR_URL}/?cluster={cluster}"
 
     if command:
+        logging.info(f"\tCommand: {command}")
         reqURL += "&command=" + base64.urlsafe_b64encode(command.encode()).decode()
         if options:
+            logging.info(f"\tOptions: {options}")
             reqURL += "&option=" + base64.urlsafe_b64encode(options.encode()).decode()
             if exp_time:
+                logging.info(f"\tExpiration: {exp_time} [s]")
                 reqURL += f"&exptime={exp_time}"
+    else:
+        logging.error('Tried to create certificate without command')
+        return [None, 1, 'Internal error']
 
     logging.info(f"Request: {reqURL}")
 
@@ -179,13 +179,13 @@ def create_certificate(auth_header, cluster, command=None, options=None, exp_tim
         # keys: [pub_cert, pub_key, priv_key, temp_dir]
         return [td + "/user-key-cert.pub", td + "/user-key.pub", td + "/user-key", td]
     except URLError as ue:
-        logging.error("({errno}) -> {message}".format(errno=ue.errno, message=ue.strerror), exc_info=True)
+        logging.error(f"({ue.errno}) -> {ue.strerror}", exc_info=True)
         return [None, ue.errno, ue.strerror]
     except IOError as ioe:
-        logging.error("({errno}) -> {message}".format(errno=ioe.errno, message=ioe.strerror), exc_info=True)
+        logging.error(f"({ioe.errno}) -> {ioe.strerror}", exc_info=True)
         return [None, ioe.errno, ioe.strerror]
     except Exception as e:
-        logging.error("({type}) -> {message}".format(errno=type(e), message=e), exc_info=True)
+        logging.error(f"({type(e)}) -> {e}", exc_info=True)
         return [None, -1, e]
 
 
@@ -254,9 +254,11 @@ def exec_remote_command(auth_header, system, action, file_transfer=None, file_co
 
         output = ""
         error = ""
-
+        finished = 0
+        # channels can be ready to exit (exit_status) but there may be still data to read, so
+        # force one more read by requiring finished == 2
         while not (stdout.channel.exit_status_ready() and stderr.channel.exit_status_ready() \
-                   and stdout.channel.recv_ready and stderr.channel.recv_stderr_ready):
+                   and (finished == 2)):
             if stdout.channel.recv_ready():
                 data = stdout.channel.recv(4096)
                 while data:
@@ -269,18 +271,10 @@ def exec_remote_command(auth_header, system, action, file_transfer=None, file_co
                     error += data.decode()
                     data = stderr.channel.recv_stderr(65536)
 
-        #exit_status = chan.recv_exit_status()
-        if stdout.channel.recv_ready():
-            data = stdout.channel.recv(4096)
-            while data:
-                output += data.decode()
-                data = stdout.channel.recv(65536)
+            if stdout.channel.exit_status_ready() and stderr.channel.exit_status_ready():
+                finished += 1
 
-        if stderr.channel.recv_stderr_ready():
-            data = stderr.channel.recv_stderr(4096)
-            while data:
-                error += data.decode()
-                data = stderr.channel.recv_stderr(65536)
+        #exit_status = chan.recv_exit_status()
 
         stderr_errno = stderr.channel.recv_exit_status()
         stdout_errno = stdout.channel.recv_exit_status()
@@ -294,16 +288,14 @@ def exec_remote_command(auth_header, system, action, file_transfer=None, file_co
             # replace newlines with $ for parsing
             outlines = output.replace('\n', '$')[:-1]
 
-        logging.info("sdterr: ({errno}) --> {stderr}".format(errno=stderr_errno, stderr=stderr_errda))
-        logging.info("stdout: ({errno}) --> {stderr}".format(errno=stdout_errno, stderr=stdout_errda))
-        logging.info("sdtout: ({errno}) --> {stdout}".format(errno=stdout_errno, stdout=outlines))
+        logging.info(f"sdterr: ({stderr_errno}) --> {stderr_errda}")
+        logging.info(f"stdout: ({stdout_errno}) --> {stdout_errda}")
+        logging.info(f"sdtout: ({stdout_errno}) --> {outlines}")
 
         # TODO: change precedence of error, because in /xfer-external/download this gives error and it s not an error
         if stderr_errno == 0:
             if stderr_errda and not in_str(stderr_errda,"Could not chdir to home directory"):
                 result = {"error": 0, "msg": stderr_errda}
-            elif outlines:
-                result = {"error": 0, "msg": outlines}
             else:
                 result = {"error": 0, "msg": outlines}
         elif stderr_errno > 0:
@@ -317,22 +309,19 @@ def exec_remote_command(auth_header, system, action, file_transfer=None, file_co
         logging.error(type(e), exc_info=True)
         if e.errors:
             for k, v in e.errors.items():
-                logging.error("errorno: {errno}".format(errno=v.errno))
-                logging.error("strerr: {strerr}".format(strerr=v.strerror))
-
+                logging.error(f"errorno: {v.errno}")
+                logging.error(f"strerr: {v.strerror}")
                 result = {"error": v.errno, "msg": v.strerror}
 
     except socket.gaierror as e:
         logging.error(type(e), exc_info=True)
         logging.error(e.errno)
         logging.error(e.strerror)
-
         result = {"error": e.errno, "msg": e.strerror}
 
     except paramiko.ssh_exception.SSHException as e:
         logging.error(type(e), exc_info=True)
         logging.error(e)
-
         result = {"error": 1, "msg": str(e)}
 
     # second: time out
@@ -348,7 +337,6 @@ def exec_remote_command(auth_header, system, action, file_transfer=None, file_co
 
     finally:
         client.close()
-        logging.info(result["msg"])
         os.remove(pub_cert)
         os.remove(pub_key)
         os.remove(priv_key)
