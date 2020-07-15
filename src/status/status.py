@@ -396,7 +396,7 @@ def parameters():
                         "storage": [
                                         {"name":"OBJECT_STORAGE" ,"value":OBJECT_STORAGE, "unit": ""},
                                         {"name":"STORAGE_TEMPURL_EXP_TIME", "value":STORAGE_TEMPURL_EXP_TIME, "unit": "seconds"},
-                                        {"name":"STORAGE_MAX_FILE_SIZE", "value":STORAGE_MAX_FILE_SIZE, "unit": "bytes"},
+                                        {"name":"STORAGE_MAX_FILE_SIZE", "value":STORAGE_MAX_FILE_SIZE, "unit": "MB"},
                                         {"name":"FILESYSTEMS", "value":fs_list, "unit": ""}
                                         
                                         

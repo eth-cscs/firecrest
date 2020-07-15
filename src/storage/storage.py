@@ -80,8 +80,12 @@ OS_PROJECT_ID           = os.environ.get("F7T_OS_PROJECT_ID")
 # SECRET KEY for temp url without using Token
 SECRET_KEY              = os.environ.get("F7T_SECRET_KEY")
 
+# Expiration time for temp URLs in seconds, by default 30 days
 STORAGE_TEMPURL_EXP_TIME = int(os.environ.get("F7T_STORAGE_TEMPURL_EXP_TIME", "2592000").strip('\'"'))
-STORAGE_MAX_FILE_SIZE = int(os.environ.get("F7T_STORAGE_MAX_FILE_SIZE", "5368709120").strip('\'"'))
+# max file size for temp URLs in MegaBytes, by default 5120 MB = 5 GB
+STORAGE_MAX_FILE_SIZE = int(os.environ.get("F7T_STORAGE_MAX_FILE_SIZE", "5120").strip('\'"'))
+# for use on signature of URL it must be in bytes (MB*1024*1024 = Bytes)
+STORAGE_MAX_FILE_SIZE *= 1024*1024
 
 STORAGE_POLLING_INTERVAL = int(os.environ.get("F7T_STORAGE_POLLING_INTERVAL", "60").strip('\'"'))
 CERT_CIPHER_KEY = os.environ.get("F7T_CERT_CIPHER_KEY", "").strip('\'"').encode('utf-8')
