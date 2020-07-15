@@ -9,7 +9,7 @@ import os
 import jwt
 import stat
 
-debug = os.environ.get("DEBUG_MODE", None)
+debug = os.environ.get("F7T_DEBUG_MODE", None)
 
 AUTH_HEADER_NAME = 'Authorization' # os.environ.get("AUTH_HEADER_NAME").strip('\'"')
 #if AUTH_HEADER_NAME == "Authorization":
