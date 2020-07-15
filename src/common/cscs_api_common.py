@@ -258,19 +258,18 @@ def exec_remote_command(auth_header, system, action, file_transfer=None, file_co
         finished = 0
         # channels can be ready to exit (exit_status) but there may be still data to read, so
         # force one more read by requiring finished == 2
-        while not (stdout.channel.exit_status_ready() and stderr.channel.exit_status_ready() \
-                   and (finished == 2)):
+        while finished < 2:
             if stdout.channel.recv_ready():
                 data = stdout.channel.recv(4096)
                 while data:
                     output += data.decode()
-                    data = stdout.channel.recv(65536)
+                    data = stdout.channel.recv(131072)
 
             if stderr.channel.recv_stderr_ready():
                 data = stderr.channel.recv_stderr(4096)
                 while data:
                     error += data.decode()
-                    data = stderr.channel.recv_stderr(65536)
+                    data = stderr.channel.recv_stderr(131072)
 
             if stdout.channel.exit_status_ready() and stderr.channel.exit_status_ready():
                 finished += 1
@@ -390,13 +389,11 @@ def parse_io_error(retval, operation, path):
 # function to call create task entry API in Queue FS, returns task_id for new task
 def create_task(auth_header,service=None):
 
-    logging.info("{tasks_url}/".format(tasks_url=TASKS_URL))
-
     # returns {"task_id":task_id}
     # first try to get up task microservice:
     try:
         # X-Firecrest-Service: service that created the task
-        req = requests.post("{tasks_url}/".format(tasks_url=TASKS_URL),
+        req = requests.post(f"{TASKS_URL}/",
                            headers={AUTH_HEADER_NAME: auth_header, "X-Firecrest-Service":service})
 
     except requests.exceptions.ConnectionError as e:
@@ -417,18 +414,15 @@ def create_task(auth_header,service=None):
 # function to call update task entry API in Queue FS
 def update_task(task_id, auth_header, status, msg = None, is_json=False):
 
-    logging.info("{tasks_url}/{task_id}".
-                        format(tasks_url=TASKS_URL,task_id=task_id))
+    logging.info(f"{TASKS_URL}/{task_id}")
 
     if is_json:
         data = {"status": status, "msg": msg}
-        req = requests.put("{tasks_url}/{task_id}".
-                            format(tasks_url=TASKS_URL, task_id=task_id),
+        req = requests.put(f"{TASKS_URL}/{task_id}",
                             json=data, headers={AUTH_HEADER_NAME: auth_header})
     else:
         data = {"status": status, "msg": msg}
-        req = requests.put("{tasks_url}/{task_id}".
-                            format(tasks_url=TASKS_URL,task_id=task_id),
+        req = requests.put(f"{TASKS_URL}/{task_id}",
                             data=data, headers={AUTH_HEADER_NAME: auth_header})
 
     resp = json.loads(req.content)
@@ -438,12 +432,10 @@ def update_task(task_id, auth_header, status, msg = None, is_json=False):
 # function to call update task entry API in Queue FS
 def expire_task(task_id,auth_header):
 
-    logging.info("{tasks_url}/task-expire/{task_id}".
-                        format(tasks_url=TASKS_URL,task_id=task_id))
+    logging.info(f"{TASKS_URL}/task-expire/{task_id}")
 
 
-    req = requests.post("{tasks_url}/task-expire/{task_id}".
-                            format(tasks_url=TASKS_URL,task_id=task_id),
+    req = requests.post(f"{TASKS_URL}/task-expire/{task_id}",
                             headers={AUTH_HEADER_NAME: auth_header})
 
     resp = json.loads(req.content)
@@ -453,12 +445,10 @@ def expire_task(task_id,auth_header):
 # function to check task status:
 def get_task_status(task_id,auth_header):
 
-    logging.info("{tasks_url}/{task_id}".
-                 format(tasks_url=TASKS_URL, task_id=task_id))
+    logging.info(f"{TASKS_URL}/{task_id}")
 
     try:
-        retval = requests.get("{tasks_url}/{task_id}".
-                           format(tasks_url=TASKS_URL, task_id=task_id),
+        retval = requests.get(f"{TASKS_URL}/{task_id}",
                            headers={AUTH_HEADER_NAME: auth_header})
 
         if retval.status_code != 200:
