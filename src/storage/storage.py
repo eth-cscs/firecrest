@@ -589,7 +589,7 @@ def upload_task(auth_header,system,targetPath,sourcePath,task_id):
 
 
 # upload API entry point:
-@app.route("/xfer-external/upload",methods=["POST","PUT"])
+@app.route("/xfer-external/upload",methods=["POST"])
 def upload_request():
     # checks if AUTH_HEADER_NAME is set
     try:
@@ -600,31 +600,8 @@ def upload_request():
 
     if not check_header(auth_header):
         return jsonify(description="Invalid header"), 401
-
-    # if method used is PUT, then is to modify the upload process
-    # add task_id header for upload_finished
-    if request.method == "PUT":
-        try:
-            task_id = request.headers["X-Task-ID"]
-            app.logger.info("Upload finished request with task_id: {task_id}".format(task_id=task_id))
-
-            retval = upload_finished_call(hash_id=task_id, auth_header=auth_header)
-
-            data = retval["data"]
-            code = retval["code"]
-
-            if code != 200:
-                return jsonify(error=data), code
-
-            return jsonify(success=data), code
-
-        except KeyError as e:
-            app.logger.info("Not an upload finished request")
-
-
-    # app.logger.info(EXT_TRANSFER_MACHINE_INTERNAL)
+    
     system = EXT_TRANSFER_MACHINE_INTERNAL
-
 
 
     targetPath   = request.form["targetPath"] # path to save file in cluster
