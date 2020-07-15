@@ -46,9 +46,9 @@ def test_list_jobs(machine, expected_response_code, headers):
 
 
 # Test Retrieve information from an active jobid (jobid in the queue or running)
-@pytest.mark.parametrize("machine, expected_response_code",  DATA)
+@pytest.mark.parametrize("machine, expected_response_code",  [ (SERVER_COMPUTE, 400) , ("someservernotavailable", 400)])
 def test_list_job(machine, expected_response_code, headers):
-	# TODO: need to test valid and invalid jobid
+	# TODO: need to test valid
 	jobid = -1
 	url = "{}/{}".format(JOBS_URL, jobid)
 	headers.update({"X-Machine-Name": machine})

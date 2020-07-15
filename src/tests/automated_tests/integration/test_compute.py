@@ -72,9 +72,9 @@ def test_list_job(machine, headers):
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.get(url, headers=headers)
 	print(resp.content)
-	assert resp.status_code == 200
-	task_id = resp.json()["task_id"]
-	check_task_status(task_id, headers, 400)
+	assert resp.status_code == 400
+	# task_id = resp.json()["task_id"]
+	# check_task_status(task_id, headers, 400)
 
 # Test cancel job from slurm
 @pytest.mark.parametrize("machine", [SERVER_COMPUTE])

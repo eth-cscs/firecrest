@@ -67,47 +67,45 @@ app.config['MAX_CONTENT_LENGTH'] = int(MAX_FILE_SIZE) * 1024 * 1024
 debug = os.environ.get("F7T_DEBUG_MODE", None)
 
 
+def is_jobid(jobid):
+    try:
+        jobid = int(jobid)
+        if jobid > 0:
+            return True
+        app.logger.error("Wrong SLURM sbatch return string")
+        app.logger.error(f"{jobid} isn't > 0")
+        
+    except ValueError as e:
+        app.logger.error("Wrong SLURM sbatch return string")
+        app.logger.error("Couldn't convert to int")
+        app.logger.error(e)
+    except IndexError as e:
+        app.logger.error("Wrong SLURM sbatch return string")
+        app.logger.error("String is empty")
+        app.logger.error(e)
+    except Exception as e:
+        app.logger.error("Wrong SLURM sbatch return string")
+        app.logger.error("Generic error")
+        app.logger.error(e)
+    return False
 
 # Extract jobid number from SLURM sbatch returned string when it's OK
 # Commonly  "Submitted batch job 9999" being 9999 a jobid
 def extract_jobid(outline):
 
-    try:
-        # splitting string by spaces
-        list_line = outline.split()
-        # last element should be the jobid
-        jobid = int(list_line[-1])
+    # splitting string by spaces
+    list_line = outline.split()
+    # last element should be the jobid
 
-        return jobid
+    if not is_jobid(list_line[-1]):
+        # for compatibility reasons if error, returns original string
+        return outline
+    
+    # all clear, conversion is OK
+    jobid = int(list_line[-1])
 
-    except ValueError as e:
-        app.logger.error("Wrong SLURM sbatch return string")
-        app.logger.error("Couldn't convert to int")
-        app.logger.error(e)
+    return jobid
 
-
-    except IndexError as e:
-        app.logger.error("Wrong SLURM sbatch return string")
-        app.logger.error("String is empty")
-        app.logger.error(e)
-
-    except Exception as e:
-        app.logger.error("Wrong SLURM sbatch return string")
-        app.logger.error("Generic error")
-        app.logger.error(e)
-
-    # for compatibility reasons if error, returns original string
-    return outline
-
-
-
-# function to check if pattern is in string
-# def in_str(stringval,words):
-#     try:
-#         stringval.index(words)
-#         return True
-#     except ValueError:
-#         return False
 
 
 # copies file and submits with sbatch
@@ -463,7 +461,7 @@ def submit_job():
 
     # check if machine is accessible by user:
     # exec test remote command
-    resp = exec_remote_command(auth_header, machine, "hostname")
+    resp = exec_remote_command(auth_header, machine, "true")
 
     if resp["error"] != 0:
         error_str = resp["msg"]
@@ -570,7 +568,7 @@ def list_jobs():
 
     # check if machine is accessible by user:
     # exec test remote command
-    resp = exec_remote_command(auth_header, machine, "hostname")
+    resp = exec_remote_command(auth_header, machine, "true")
 
     if resp["error"] != 0:
         error_str = resp["msg"]
@@ -753,13 +751,17 @@ def list_job(jobid):
         header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
         return jsonify(description="Failed to retrieve job information", error="Machine does not exists"), 400, header
 
+    #check if jobid is a valid jobid for SLURM
+    if not is_jobid(jobid):
+        return jsonify(description="Failed to retrieve job information", error=f"{jobid} is not a valid job ID"), 400
+
     # select index in the list corresponding with machine name
     machine_idx = SYSTEMS_PUBLIC.index(machine)
     machine = SYS_INTERNALS[machine_idx]
 
     # check if machine is accessible by user:
     # exec test remote command
-    resp = exec_remote_command(auth_header, machine, "hostname")
+    resp = exec_remote_command(auth_header, machine, "true")
 
     if resp["error"] != 0:
         error_str = resp["msg"]
@@ -873,7 +875,7 @@ def cancel_job(jobid):
 
     # check if machine is accessible by user:
     # exec test remote command
-    resp = exec_remote_command(auth_header, machine, "hostname")
+    resp = exec_remote_command(auth_header, machine, "true")
 
     if resp["error"] != 0:
         error_str = resp["msg"]
@@ -989,7 +991,7 @@ def acct():
 
     # check if machine is accessible by user:
     # exec test remote command
-    resp = exec_remote_command(auth_header, machine, "hostname")
+    resp = exec_remote_command(auth_header, machine, "true")
 
     if resp["error"] != 0:
         error_str = resp["msg"]
