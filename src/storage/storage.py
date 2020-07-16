@@ -920,21 +920,33 @@ def internal_operation(request, command):
     if not check_header(auth_header):
         return jsonify(description="Invalid header"), 401
 
+
     try:
         targetPath = request.form["targetPath"]  # path to save file in cluster
     except:
         app.logger.error("targetPath not specified")
         return jsonify(error="targetPath not specified"), 400
 
+    # using actual_command to add options to check sanity of the command to be executed
+    actual_command = ""
     if command in ['cp', 'mv', 'rsync']:
         try:
             sourcePath = request.form["sourcePath"]  # path to get file in cluster
         except:
             app.logger.error("sourcePath not specified")
             return jsonify(error="sourcePath not specified"), 400
-    else:
+        if command == "cp":
+            actual_command = "cp --force -dR --preserve=all -- "
+        elif command == "mv":
+            actual_command = "mv --force -- "
+        else:
+            actual_command = "rsync -av -- "
+    elif command == "rm":
         # for 'rm' there's no source, set empty to call exec_internal_command(...)
         sourcePath = ""
+        actual_command = "rm -rf -- "
+    else:
+        return jsonify(error=f"Command {command} not allowed"), 400
 
     try:
         jobName = request.form["jobName"]  # jobName for SLURM
@@ -963,7 +975,7 @@ def internal_operation(request, command):
 
     # check if machine is accessible by user:
     # exec test remote command
-    resp = exec_remote_command(auth_header, machine, "hostname")
+    resp = exec_remote_command(auth_header, machine, "true")
 
     if resp["error"] != 0:
         error_str = resp["msg"]
@@ -974,7 +986,7 @@ def internal_operation(request, command):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description=f"Failed to submit {command} job"), 404, header
 
-    retval = exec_internal_command(auth_header, command, sourcePath, targetPath, jobName, jobTime, stageOutJobId)
+    retval = exec_internal_command(auth_header, actual_command, sourcePath, targetPath, jobName, jobTime, stageOutJobId)
 
     # returns "error" key or "success" key
     try:
