@@ -923,6 +923,8 @@ def internal_operation(request, command):
 
     try:
         targetPath = request.form["targetPath"]  # path to save file in cluster
+        if targetPath == "":
+            return jsonify(error="targetPath is empty"), 400    
     except:
         app.logger.error("targetPath not specified")
         return jsonify(error="targetPath not specified"), 400
@@ -932,6 +934,8 @@ def internal_operation(request, command):
     if command in ['cp', 'mv', 'rsync']:
         try:
             sourcePath = request.form["sourcePath"]  # path to get file in cluster
+            if sourcePath == "":
+                return jsonify(error="sourcePath is empty"), 400
         except:
             app.logger.error("sourcePath not specified")
             return jsonify(error="sourcePath not specified"), 400
