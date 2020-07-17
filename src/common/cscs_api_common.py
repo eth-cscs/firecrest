@@ -8,6 +8,8 @@ import logging
 import os
 import jwt
 import stat
+import functools
+from flask import request, jsonify
 
 debug = os.environ.get("F7T_DEBUG_MODE", None)
 
@@ -583,3 +585,24 @@ def get_task_status(task_id,auth_header):
         logging.error(e)
         return -1
 
+
+# wrapper to check if AUTH header is correct
+# decorator use:
+#
+# @app.route("/endpoint", methods=["GET","..."])
+# @check_auth_header
+# def function_that_check_header():
+# .....
+def check_auth_header(func):
+    @functools.wraps(func)
+    def wrapper_check_auth_header(*args, **kwargs):
+        try:
+            auth_header = request.headers[AUTH_HEADER_NAME]
+        except KeyError:
+            logging.error("No Auth Header given")
+            return jsonify(description="No Auth Header given"), 401
+        if not check_header(auth_header):
+            return jsonify(description="Invalid header"), 401
+
+        return func(*args, **kwargs)
+    return wrapper_check_auth_header

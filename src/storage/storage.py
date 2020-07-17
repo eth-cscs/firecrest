@@ -16,7 +16,7 @@ import threading
 # logging handler
 from logging.handlers import TimedRotatingFileHandler
 # common functions
-from cscs_api_common import check_header, get_username
+from cscs_api_common import check_auth_header, get_username
 from cscs_api_common import create_task, update_task, get_task_status
 from cscs_api_common import exec_remote_command, exec_remote_command_cert
 from cscs_api_common import create_certificates
@@ -431,18 +431,11 @@ def download_task(auth_header,system,sourcePath,task_id):
 
 # download large file, returns temp url for downloading
 @app.route("/xfer-external/download", methods=["POST"])
+@check_auth_header
 def download_request():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
 
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
-    
+    auth_header = request.headers[AUTH_HEADER_NAME]
+        
     system = EXT_TRANSFER_MACHINE_INTERNAL
     sourcePath = request.form["sourcePath"]  # path file in cluster
 
@@ -594,17 +587,11 @@ def upload_task(auth_header,system,targetPath,sourcePath,task_id):
 
 # upload API entry point:
 @app.route("/xfer-external/upload",methods=["POST"])
+@check_auth_header
 def upload_request():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
     
+    auth_header = request.headers[AUTH_HEADER_NAME]
+
     system = EXT_TRANSFER_MACHINE_INTERNAL
 
 
@@ -887,40 +874,36 @@ def exec_internal_command(auth_header,command,sourcePath, targetPath, jobName, j
 
 # Internal cp transfer via SLURM with xfer partition:
 @app.route("/xfer-internal/cp", methods=["POST"])
+@check_auth_header
 def internal_cp():
     return internal_operation(request, "cp")
 
 # Internal mv transfer via SLURM with xfer partition:
 @app.route("/xfer-internal/mv", methods=["POST"])
+@check_auth_header
 def internal_mv():
     return internal_operation(request, "mv")
 
 
 # Internal rsync transfer via SLURM with xfer partition:
 @app.route("/xfer-internal/rsync", methods=["POST"])
+@check_auth_header
 def internal_rsync():
     return internal_operation(request, "rsync")
 
 
 # Internal rm transfer via SLURM with xfer partition:
 @app.route("/xfer-internal/rm", methods=["POST"])
+@check_auth_header
 def internal_rm():
     return internal_operation(request, "rm")
 
 
 # common code for internal cp, mv, rsync, rm
 def internal_operation(request, command):
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
 
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
-
+    auth_header = request.headers[AUTH_HEADER_NAME]
+    
     try:
         targetPath = request.form["targetPath"]  # path to save file in cluster
         if targetPath == "":
@@ -1009,6 +992,8 @@ def internal_operation(request, command):
 # uses Jobs microservice API call: POST http://{compute_url}/{machine}
 # all calls to cp, mv, rm or rsync are made using Jobs us.
 def create_xfer_job(machine,auth_header,fileName):
+
+    auth_header = request.headers[AUTH_HEADER_NAME]
 
     files = {'file': open(fileName, 'rb')}
 

@@ -13,7 +13,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.exceptions import BadRequestKeyError
 
 from math import ceil
-from cscs_api_common import check_header, get_username,exec_remote_command, create_certificates, \
+from cscs_api_common import check_auth_header, get_username,exec_remote_command, create_certificates, \
     get_buffer_lines, clean_err_output
 
 
@@ -309,16 +309,10 @@ def paramiko_download(auth_header, cluster, path):
 ##  - machinename: str *required
 
 @app.route("/file", methods=["GET"])
+@check_auth_header
 def file_type():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
+    
+    auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
         machinename = request.headers["X-Machine-Name"]
@@ -385,17 +379,11 @@ def file_type():
 ##  - machinename: str *required
 
 @app.route("/chmod",methods=["PUT"])
+@check_auth_header
 def chmod():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
 
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
+    auth_header = request.headers[AUTH_HEADER_NAME]
+    
     try:
         machinename = request.headers["X-Machine-Name"]
     except KeyError as e:
@@ -467,16 +455,10 @@ def chmod():
 ##  - machinename: str *required
 
 @app.route("/chown",methods=["PUT"])
+@check_auth_header
 def chown():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
+    
+    auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
         machinename = request.headers["X-Machine-Name"]
@@ -560,16 +542,10 @@ def chown():
 ##  - machinename: str *required
 
 @app.route("/ls",methods=["GET"])
+@check_auth_header
 def list_directory():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
+    
+    auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
         machinename = request.headers["X-Machine-Name"]
@@ -719,17 +695,11 @@ def list_directory():
 ##  - machinename: str *required
 
 @app.route("/mkdir",methods=["POST"])
+@check_auth_header
 def make_directory():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
 
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
+    auth_header = request.headers[AUTH_HEADER_NAME]
+    
     try:
         machinename = request.headers["X-Machine-Name"]
     except KeyError as e:
@@ -798,6 +768,7 @@ def make_directory():
 ##  - machinename: str *required
 
 @app.route("/rename", methods=["PUT"])
+@check_auth_header
 def rename():
     return common_operation(request, "rename", "PUT")
 
@@ -809,20 +780,14 @@ def rename():
 ##  - machinename: str *required
 
 @app.route("/copy", methods=["POST"])
+@check_auth_header
 def copy():
     return common_operation(request, "copy", "POST")
 
 ## common code for file operations: copy, rename (move)
 def common_operation(request, command, method):
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
+    
+    auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
         machinename = request.headers["X-Machine-Name"]
@@ -910,17 +875,11 @@ def common_operation(request, command, method):
 ## - X-Machine-Name: system
 
 @app.route("/rm", methods=["DELETE"])
+@check_auth_header
 def rm():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
 
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
+    auth_header = request.headers[AUTH_HEADER_NAME]
+    
     try:
         machinename = request.headers["X-Machine-Name"]
     except KeyError as e:
@@ -985,17 +944,11 @@ def rm():
 ##  - machinename: str *required
 
 @app.route("/symlink", methods=["POST"])
+@check_auth_header
 def symlink():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
 
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
+    auth_header = request.headers[AUTH_HEADER_NAME]
+    
     try:
         machinename = request.headers["X-Machine-Name"]
     except KeyError as e:
@@ -1065,16 +1018,10 @@ def symlink():
 ##  - machinename: str *required
 
 @app.route("/download", methods=["GET"])
+@check_auth_header
 def download():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
 
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
+    auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
         machinename = request.headers["X-Machine-Name"]
@@ -1151,16 +1098,10 @@ def request_entity_too_large(error):
     return jsonify(description="Failed to upload file. The file is over {} MB".format(MAX_FILE_SIZE)), 413
 
 @app.route("/upload", methods=["POST"])
+@check_auth_header
 def upload():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
 
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
+    auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
         machinename = request.headers["X-Machine-Name"]

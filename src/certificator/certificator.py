@@ -6,7 +6,7 @@
 #
 import subprocess, os, tempfile
 from flask import Flask, request, jsonify
-# from cscs_api_common import check_header, get_username
+import functools
 import jwt
 
 import logging
@@ -115,10 +115,30 @@ def get_username(header):
 
     return None
 
+# wrapper to check if AUTH header is correct
+# decorator use:
+#
+# @app.route("/endpoint", methods=["GET","..."])
+# @check_auth_header
+# def function_that_check_header():
+# .....
+def check_auth_header(func):
+    @functools.wraps(func)
+    def wrapper_check_auth_header(*args, **kwargs):
+        try:
+            auth_header = request.headers[AUTH_HEADER_NAME]
+        except KeyError:
+            logging.error("No Auth Header given")
+            return jsonify(description="No Auth Header given"), 401
+        if not check_header(auth_header):
+            return jsonify(description="Invalid header"), 401
 
+        return func(*args, **kwargs)
+    return wrapper_check_auth_header
 
 # returns an SSH certificate, username is got from token
 @app.route("/", methods=["GET"])
+@check_auth_header
 def receive():
     """
     Input:
@@ -134,16 +154,7 @@ def receive():
         logging.info('debug: certificator: request.headers[AUTH_HEADER_NAME]: ' + request.headers[AUTH_HEADER_NAME])
 
     try:
-        try:
-            auth_header = request.headers[AUTH_HEADER_NAME]
-        except KeyError as e:
-            app.logger.error("No Auth Header given")
-            return jsonify(description="No Auth Header given"), 401
-
-        if not check_header(auth_header):
-            app.logger.error("Bad header")
-            return jsonify(description="Invalid header"), 401
-
+        auth_header = request.headers[AUTH_HEADER_NAME]
         username = get_username(auth_header)
         if username == None:
             app.logger.error("No username")

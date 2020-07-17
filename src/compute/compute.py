@@ -9,7 +9,7 @@ import paramiko
 from logging.handlers import TimedRotatingFileHandler
 import threading
 import async_task
-from cscs_api_common import check_header, get_username, get_buffer_lines, get_squeue_buffer_lines, \
+from cscs_api_common import check_auth_header, get_username, get_buffer_lines, get_squeue_buffer_lines, \
     create_certificates, exec_remote_command, create_task, update_task, expire_task, clean_err_output, in_str
 
 from job_time import check_sacctTime
@@ -431,17 +431,11 @@ def request_entity_too_large(error):
 # Submit a batch script to SLURM on the target system.
 # The batch script is uploaded as a file
 @app.route("/jobs",methods=["POST"])
+@check_auth_header
 def submit_job():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Failed to submit job",error="Wrong auth"), 401
-
+    
+    auth_header = request.headers[AUTH_HEADER_NAME]
+    
     try:
         machine = request.headers["X-Machine-Name"]
     except KeyError as e:
@@ -538,18 +532,10 @@ def submit_job():
 
 # Retrieves information from all jobs (squeue)
 @app.route("/jobs",methods=["GET"])
+@check_auth_header
 def list_jobs():
 
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-
-    if not check_header(auth_header):
-        return jsonify(description="Failed to retrieve jobs information",error="Wrong auth"), 401
+    auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
         machine = request.headers["X-Machine-Name"]
@@ -729,16 +715,10 @@ def list_job_task(auth_header,machine,action,task_id,pageSize,pageNumber):
 
 # Retrieves information from a jobid
 @app.route("/jobs/<jobid>",methods=["GET"])
+@check_auth_header
 def list_job(jobid):
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Failed to retrieve job information",error="Wrong auth"), 401
+    
+    auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
         machine = request.headers["X-Machine-Name"]
@@ -847,17 +827,11 @@ def cancel_job_task(auth_header,machine,action,task_id):
 
 # Cancel job from SLURM using scancel command
 @app.route("/jobs/<jobid>",methods=["DELETE"])
+@check_auth_header
 def cancel_job(jobid):
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
 
-    if not check_header(auth_header):
-        return jsonify(description="Failed to delete job",error="Wrong auth"), 401
-
+    auth_header = request.headers[AUTH_HEADER_NAME]
+    
     try:
         machine = request.headers["X-Machine-Name"]
     except KeyError as e:
@@ -962,18 +936,9 @@ def acct_task(auth_header, machine, action, task_id):
 
 # Job account information
 @app.route("/acct",methods=["GET"])
+@check_auth_header
 def acct():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-
-    if not check_header(auth_header):
-        return jsonify(description="Failed to retrieve account information",error="Wrong auth"), 401
-
+    auth_header = request.headers[AUTH_HEADER_NAME]
     try:
         machine = request.headers["X-Machine-Name"]
     except KeyError as e:
