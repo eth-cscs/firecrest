@@ -51,8 +51,14 @@ def check_header(header):
             else:
                 decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, audience=AUTH_AUDIENCE)
 
-        if AUTH_REQUIRED_SCOPE != '':
-            if not (AUTH_REQUIRED_SCOPE in decoded['realm_access']['roles']):
+        # if AUTH_REQUIRED_SCOPE != '':
+        #     if not (AUTH_REQUIRED_SCOPE in decoded['realm_access']['roles']):
+        #         return False
+
+
+        # {"scope": "openid profile firecrest email"}
+        if AUTH_REQUIRED_SCOPE != "":
+            if AUTH_REQUIRED_SCOPE not in decoded["scope"].split():
                 return False
 
         #if not (decoded['preferred_username'] in ALLOWED_USERS):
