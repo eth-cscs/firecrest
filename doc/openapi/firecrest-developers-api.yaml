@@ -1099,7 +1099,7 @@ paths:
       summary: rsync
       description: >-
         Data transfer between internal CSCS file systems. To transfer files and
-        folders from `/users`, `/project` or `/store` to the `/scratch` file systems for
+        folders from `/project` or `/store` to the `/scratch` file systems for
         stage-in or stage-out jobs. Reference:
         https://user.cscs.ch/storage/transfer/internal/
       tags:
@@ -1178,7 +1178,7 @@ paths:
       summary: move (rename) files
       description: >-
         'Move files between internal CSCS file systems. Rename sourcePath to
-        targetPath, or move sourcePath to targetPath /users, /project or /store
+        targetPath, or move sourcePath to targetPath /project or /store
         to the /scratch file systems. Possible to stage-out jobs providing the
         SLURM Id of a production job. Reference:
         https://user.cscs.ch/storage/data_transfer/internal_transfer/'
@@ -1258,7 +1258,7 @@ paths:
       summary: copy files and directories
       description: >-
         'Copy files and directories between internal CSCS file systems. Copy
-        sourcePath to targetPath /users, /project or /store to the /scratch file
+        sourcePath to targetPath /project or /store to the /scratch file
         systems. Possible to stage-out jobs providing the SLURM Id of a
         production job. Reference:
         https://user.cscs.ch/storage/data_transfer/internal_transfer/'
@@ -1338,7 +1338,7 @@ paths:
       summary: remove files or directories
       description: >-
         'Remove files or directories in the internal CSCS file systems, with
-        options rm -rf. With targetPath pointing to file system /users,
+        options rm -rf. With targetPath pointing to file system
         /project, /store, or /scratch. Possible to stage-out jobs providing the
         SLURM Id of a production job. Reference:
         https://user.cscs.ch/storage/data_transfer/internal_transfer/'
