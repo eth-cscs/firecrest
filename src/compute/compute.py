@@ -305,7 +305,7 @@ def submit_job():
 
     # check if machine is accessible by user:
     # exec test remote command
-    resp = exec_remote_command(auth_header, machine, "/bin/true")
+    resp = exec_remote_command(auth_header, machine, "true")
 
     if resp["error"] != 0:
         error_str = resp["msg"]
@@ -408,7 +408,7 @@ def list_jobs():
 
     # check if machine is accessible by user:
     # exec test remote command
-    resp = exec_remote_command(auth_header, machine, "/bin/true")
+    resp = exec_remote_command(auth_header, machine, "true")
 
     if resp["error"] != 0:
         error_str = resp["msg"]
@@ -591,7 +591,7 @@ def list_job(jobid):
 
     # check if machine is accessible by user:
     # exec test remote command
-    resp = exec_remote_command(auth_header, machine, "/bin/true")
+    resp = exec_remote_command(auth_header, machine, "true")
 
     if resp["error"] != 0:
         error_str = resp["msg"]
@@ -705,7 +705,7 @@ def cancel_job(jobid):
 
     # check if machine is accessible by user:
     # exec test remote command
-    resp = exec_remote_command(auth_header, machine, "/bin/true")
+    resp = exec_remote_command(auth_header, machine, "true")
 
     if resp["error"] != 0:
         error_str = resp["msg"]
@@ -820,7 +820,7 @@ def acct():
 
     # check if machine is accessible by user:
     # exec test remote command
-    resp = exec_remote_command(auth_header, machine, "/bin/true")
+    resp = exec_remote_command(auth_header, machine, "true")
 
     if resp["error"] != 0:
         error_str = resp["msg"]

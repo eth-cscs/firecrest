@@ -982,7 +982,7 @@ def internal_operation(request, command):
 
     # check if machine is accessible by user:
     # exec test remote command
-    resp = exec_remote_command(auth_header, machine, "/bin/true")
+    resp = exec_remote_command(auth_header, machine, "true")
 
     if resp["error"] != 0:
         error_str = resp["msg"]

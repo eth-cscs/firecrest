@@ -45,7 +45,7 @@ esac
 command="${SSH_EXECUTE%% *}"    # remove all after first space
 
 case "$command" in
-    cat|rm|touch|/bin/true)
+    cat|rm|touch|true)
         ;;
     timeout)
         # sintax: timeout number command options
