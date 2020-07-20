@@ -138,7 +138,7 @@ def submit_job_task(auth_header, machine, job_file, job_dir, task_id):
     # -------------------
     try:
         # create tmpdir for sbatch file
-        action = f"mkdir -p -- '{job_dir}'"
+        action = f"timeout {TIMEOUT} mkdir -p -- '{job_dir}'"
         app.logger.info(action)
         retval = exec_remote_command(auth_header, machine, action)
 
