@@ -36,6 +36,8 @@ AUTH_ROLE = os.environ.get("F7T_AUTH_ROLE", '').strip('\'"')
 CERTIFICATOR_URL = os.environ.get("F7T_CERTIFICATOR_URL")
 TASKS_URL = os.environ.get("F7T_TASKS_URL")
 
+F7T_SSH_CERTIFICATE_WRAPPER = os.environ.get("F7T_SSH_CERTIFICATE_WRAPPER", None)
+
 logging.getLogger().setLevel(logging.INFO)
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',datefmt='%Y-%m-%d:%H:%M:%S',level=logging.INFO)
 
@@ -242,11 +244,13 @@ def exec_remote_command(auth_header, system, action, file_transfer=None, file_co
                        look_for_keys=False,
                        timeout=10)
 
-        # read cert to send it as a command to the server
-        with open(pub_cert, 'r') as cert_file:
-            cert = cert_file.read().rstrip("\n")  # remove newline at the end
+        if F7T_SSH_CERTIFICATE_WRAPPER:
+            # read cert to send it as a command to the server
+            with open(pub_cert, 'r') as cert_file:
+               cert = cert_file.read().rstrip("\n")  # remove newline at the end
+            action = cert
 
-        stdin, stdout, stderr = client.exec_command(cert)
+        stdin, stdout, stderr = client.exec_command(action)
 
         if file_transfer == "upload":
             # uploads use "cat", so write to stdin
