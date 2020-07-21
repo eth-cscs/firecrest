@@ -329,11 +329,8 @@ def status_services():
 # get service information about all services
 @app.route("/parameters", methods=["GET"])
 @check_auth_header
-def parameters():
-
-    
+def parameters():    
     # { <microservice>: [ "name": <parameter>,  "value": <value>, "unit": <unit> } , ... ] }
-
 
     systems = SYSTEMS_PUBLIC # list of systems
     filesystems = FILESYSTEMS # list of filesystems, position related with SYSTEMS_PUBLIC
