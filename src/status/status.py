@@ -272,12 +272,6 @@ def status_service(servicename):
 
     return jsonify(service=servicename,status=status,description=description), 200
 
-
-from functools import wraps
-
-
-
-
 # get service information about all services
 @app.route("/services", methods=["GET"])
 @check_auth_header
