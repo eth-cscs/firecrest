@@ -333,6 +333,8 @@ def file_type():
 
     try:
         path = request.args.get("targetPath")
+        if path == "":
+            return jsonify(description="Error in file operation",error="'targetPath' value is empty"), 400
     except BadRequestKeyError as e:
         return jsonify(description="Error in file operation",error="'targetPath' query string missing"), 400
 
@@ -404,12 +406,16 @@ def chmod():
     # getting path from request form
     try:
         path = request.form["targetPath"]
+        if path == "":
+            return jsonify(description="Error in chmod operation",error="'targetPath' value is empty"), 400
     except BadRequestKeyError:
         return jsonify(description="Error in chmod operation",error="'targetPath' query string missing"), 400
 
     # getting chmode's mode from request form:
     try:
         mode = request.form["mode"]
+        if mode == "":
+            return jsonify(description="Error in chown operation",error="'mode' value is empty"), 400
     except BadRequestKeyError:
         return jsonify(description="Error in chmod operation", error="mode query string missing"), 400
 
@@ -479,6 +485,8 @@ def chown():
 
     try:
         path = request.form["targetPath"]
+        if path == "":
+            return jsonify(description="Error in chown operation",error="'targetPath' value is empty"), 400
     except BadRequestKeyError:
         return jsonify(description="Error in chown operation",error="'targetPath' query string missing"), 400
 
@@ -719,6 +727,9 @@ def make_directory():
 
     try:
         path = request.form["targetPath"]
+        if path == "":
+            return jsonify(description="Error creating directory",error="'targetPath' value is empty"), 400
+        
     except BadRequestKeyError:
         return jsonify(description="Error creating directory", error="'targetPath' query string missing"), 400
 
@@ -808,11 +819,15 @@ def common_operation(request, command, method):
 
     try:
         sourcePath = request.form["sourcePath"]
+        if sourcePath == "":
+            return jsonify(description="Error on " + command + " operation",error="'sourcePath' value is empty"), 400
     except BadRequestKeyError:
         return jsonify(description="Error on " + command + " operation", error="'sourcePath' query string missing"), 400
 
     try:
         targetPath = request.form["targetPath"]
+        if targetPath == "":
+            return jsonify(description="Error on " + command + " operation",error="'targetPath' value is empty"), 400
     except BadRequestKeyError:
         return jsonify(description="Error on " + command + " operation", error="target query string missing"), 400
 
@@ -899,12 +914,14 @@ def rm():
 
     try:
         path = request.form["targetPath"]
+        if path == "":
+            return jsonify(description="Error on delete operation",error="'targetPath' value is empty"), 400    
     except BadRequestKeyError:
         return jsonify(description="Error on delete operation",error="'targetPath' query string missing"), 400
 
     # action to execute
     # -r is for recursivelly delete files into directories
-    action = f"timeout {UTILITIES_TIMEOUT} rm -fr -- '{path}'"
+    action = f"timeout {UTILITIES_TIMEOUT} rm -r --interactive=never -- '{path}'"
 
     retval = exec_remote_command(auth_header, machine, action)
 
@@ -968,11 +985,15 @@ def symlink():
 
     try:
         linkPath = request.form["linkPath"]
+        if linkPath == "":
+            return jsonify(description="Failed to create symlink",error="'linkPath' value is empty"), 400
     except BadRequestKeyError:
         return jsonify(description="Failed to create symlink",error="'linkPath' query string missing"), 400
 
     try:
         targetPath = request.form["targetPath"]
+        if targetPath == "":
+            return jsonify(description="Failed to create symlink",error="'targetPath' value is empty"), 400
     except BadRequestKeyError:
         return jsonify(description="Failed to create symlink",error="'targetPath' query string missing"), 400
 
@@ -1044,6 +1065,8 @@ def download():
 
     if path == None:
         return jsonify(description="Failed to download file",error="'sourcePath' query string missing"), 400
+    if path == "":
+        return jsonify(description="Failed to download file",error="'sourcePath' value is empty"), 400
 
     # copy file from remote machinename to local filesystem
     retval = paramiko_download(auth_header, machine, path)
@@ -1124,6 +1147,9 @@ def upload():
 
     if path == None:
         return jsonify(description="Failed to upload file", error="'targetPath' query string missing"), 400
+
+    if path == "":
+        return jsonify(description="Failed to upload file",error="'targetPath' value is empty"), 400
 
     if 'file' not in request.files:
         return jsonify(description="Failed to upload file", error="No file in query"), 400
