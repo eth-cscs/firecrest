@@ -439,7 +439,7 @@ def download_request():
     system = EXT_TRANSFER_MACHINE_INTERNAL
     sourcePath = request.form["sourcePath"]  # path file in cluster
 
-    if sourcePath == None:
+    if sourcePath == None or sourcePath == "":
         data = jsonify(error="Source path not set in request")
         return data, 400
 
@@ -599,19 +599,20 @@ def upload_request():
     sourcePath   = request.form["sourcePath"] # path from the local FS
 
 
-    if system == None:
+    if system == None or system == "":
         data = jsonify(error="System not set in request")
         return data, 400
 
-    if targetPath == None:
+    if targetPath == None or targetPath == "":
         data = jsonify(error="Target path not set in request")
         return data, 400
 
-    if sourcePath == None:
+    
+    if sourcePath == None or sourcePath == "":
         data = jsonify(error="Source path not set in request")
         return data, 400
 
-    # checks if sourcePath is a valid path
+    # checks if targetPath is a valid path
     check = check_targetPath(targetPath, auth_header, system)
 
     if not check["result"]:
