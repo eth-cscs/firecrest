@@ -11,6 +11,7 @@ import jwt
 
 import logging
 from logging.handlers import TimedRotatingFileHandler
+import base64
 
 STATUS_IP = os.environ.get("F7T_STATUS_IP")
 AUTH_HEADER_NAME = 'Authorization'
@@ -51,8 +52,13 @@ def check_header(header):
             else:
                 decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, audience=AUTH_AUDIENCE)
 
-        if AUTH_REQUIRED_SCOPE != '':
-            if not (AUTH_REQUIRED_SCOPE in decoded['realm_access']['roles']):
+        # if AUTH_REQUIRED_SCOPE != '':
+        #     if not (AUTH_REQUIRED_SCOPE in decoded['realm_access']['roles']):
+        #         return False
+        
+        # {"scope": "openid profile firecrest email"}
+        if AUTH_REQUIRED_SCOPE != "":
+            if AUTH_REQUIRED_SCOPE not in decoded["scope"].split():
                 return False
 
         #if not (decoded['preferred_username'] in ALLOWED_USERS):
@@ -142,7 +148,7 @@ def check_auth_header(func):
 def receive():
     """
     Input:
-    - command (optional): generates certificate for this specific command
+    - command (required): generates certificate for this specific command
     - option (optional): options for command
     - exptime (optional): expiration time given to the certificate in seconds (default +5m)
     Returns:
@@ -164,31 +170,28 @@ def receive():
         ssh_expire = '+5m'
 
         # if command is provided, parse to use force-command
-        force_command = request.args.get("command", '')
+        force_command = base64.urlsafe_b64decode(request.args.get("command", '')).decode("utf-8")
         if force_command:
-            force_opt = request.args.get("option", '')
+            force_opt = base64.urlsafe_b64decode(request.args.get("option", '')).decode("utf-8")
             if force_command == 'wget':
                 force_command = '/usr/bin/wget'
                 ssh_expire = "+30m" #change to '+7d'
                 exp_time = request.args.get("exptime",'')
                 if exp_time:
                     ssh_expire = f"+{exp_time}s"
-                
-                
-            else:
-                return jsonify(msg='Invalid specific command'), 404
+        else:
+            return jsonify(description='No command specified'), 404
 
-            force_command = f"-O force-command=\"{force_command} {force_opt}\""
 
-        app.logger.info("Generating cert for user: {user}".format(user=username))
+        force_command = f"-O force-command=\"{force_command} {force_opt}\""
 
         # create temp dir to store certificate for this request
         td = tempfile.mkdtemp(prefix = "cert")
         os.symlink(os.getcwd() + "/user-key.pub", td + "/user-key.pub")  # link on temp dir
 
-        command = "ssh-keygen -s ca-key -n {user} -V {ssh_expire} -I ca-key {fc} {tempdir}/user-key.pub ".\
-            format(user=username, ssh_expire=ssh_expire, tempdir=td, fc=force_command)
-        app.logger.info(f"SSH keygen command: {command}".format(command))
+        app.logger.info(f"Generating cert for user: {username}")
+        app.logger.info(f"SSH keygen command: {force_command}")
+        command = f"ssh-keygen -s ca-key -n {username} -V {ssh_expire} -I ca-key {force_command} {td}/user-key.pub "
 
     except Exception as e:
         logging.error(e)
