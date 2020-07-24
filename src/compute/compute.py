@@ -601,6 +601,10 @@ def list_jobs():
             if '' in job_aux_list:
                 return jsonify(error="Jobs list wrong format",description="Failed to retrieve job information"), 400
 
+            for jobid in job_aux_list:
+                if not is_jobid(jobid):
+                    return jsonify(error=f"{jobid} is not a valid job ID", description="Failed to retrieve job information"), 400    
+
             job_list="--job={jobs}".format(jobs=jobs)
         except:
             return jsonify(error="Jobs list wrong format",description="Failed to retrieve job information"), 400
