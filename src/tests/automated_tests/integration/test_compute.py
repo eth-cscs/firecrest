@@ -83,7 +83,7 @@ def test_cancel_job(machine, headers):
 	resp = submit_job(machine, headers)
 	task_id = resp.json()["task_id"]
 
-	time.sleep(10) # wait until task is running
+	time.sleep(20) # wait until task is running
 	job_id = get_job_id(task_id, headers)
 
 	# cancel job
@@ -104,7 +104,7 @@ def test_acct_job(machine, headers):
 	resp = submit_job(machine, headers)
 	task_id = resp.json()["task_id"]
 
-	time.sleep(10) # wait until task is running
+	time.sleep(20) # wait until task is running
 	job_id = get_job_id(task_id, headers)
 
 	# cancel job
