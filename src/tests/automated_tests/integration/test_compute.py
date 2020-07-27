@@ -21,7 +21,7 @@ SERVER_COMPUTE = os.environ.get("F7T_SYSTEMS_PUBLIC").split(";")[0]
 def submit_job(machine, headers, file='testsbatch.sh'):
 	files = {'file': ('upload.txt', open(file, 'rb'))}
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.post(JOBS_URL, headers=headers, files=files)
+	resp = requests.post(f"{JOBS_URL}/upload", headers=headers, files=files)
 	print(resp.content)
 	assert resp.status_code == 201
 	return resp
