@@ -845,7 +845,7 @@ paths:
               description: Command has finished with timeout signal
               schema:
                 type: string
-  '/compute/jobs':
+  '/compute/jobs/upload':
     parameters:
       - in: header
         name: X-Machine-Name
@@ -854,7 +854,7 @@ paths:
         schema:
           type: string
     post:
-      summary: Submit Job
+      summary: Submit Job by uploading a local sbatch file
       description: >-
         Non-blocking call. Submits a batch script to SLURM on the target system.
         The batch script is uploaded as a file to the microservice which then
@@ -907,6 +907,75 @@ paths:
               description: sbatch returned error
               schema:
                 type: integer
+  '/compute/jobs/path':
+    parameters:
+      - in: header
+        name: X-Machine-Name
+        description: The system name
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Submit Job by a given remote sbatch file
+      description: >-
+        Non-blocking call. Submits a batch script to SLURM on the target system.
+        The batch script is uploaded as a file to the microservice which then
+        stores it in a temporal directory in preparation to be submitted to the
+        workload manager. The operation returns the task id associated to the
+        Task microservice that will contain information of the SLURM job once
+        it is created.
+      tags:
+        - Compute
+      requestBody:
+        required: true
+        content:
+          'multipart/form-data':
+            schema:
+              type: object
+              properties:
+                targetPath:
+                  type: string
+                  description: path to the SBATCH script file stored in {X-Machine-Name} machine to be submitted to SLURM
+              required:
+                - targetPath
+      responses:
+        '201':
+          description: Task for job creation queued successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Upload-ok'
+        '400':
+          description: Failed to submit job file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Upload-notok'
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: integer
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: integer
+            X-Permission-Denied:
+              description: User does not have permissions to access machine
+              schema:
+                type: integer
+            X-sbatch-error:
+              description: sbatch returned error
+              schema:
+                type: integer
+  '/compute/jobs':
+    parameters:
+      - in: header
+        name: X-Machine-Name
+        description: The system name
+        required: true
+        schema:
+          type: string
     get:
       summary: Retrieves information from all jobs
       description: Information about jobs on the SLURM scheduling queue. This call uses the `squeue` command.
