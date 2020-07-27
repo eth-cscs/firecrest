@@ -3,22 +3,22 @@ Operations:
 Docker images:
 
 There're 4 images used:
-- Centos:7   base for all microservices (except Kong, QueuePersistance). Python and several pip packages are taken from them. It also uses EPEL repository
-- Redis:5    used for QueuePersistance. Doesn't depend on any specific Redis feature of this version, but python-redis used to access it may depend.
+- Centos:7   base for all microservices (except Kong, TaskPersistance). Python and several pip packages are taken from them. It also uses EPEL repository
+- Redis:5    used for TaskPersistance. Doesn't depend on any specific Redis feature of this version, but python-redis used to access it may depend.
 - Kong:1.0   stable release, nothing especific. Should be possible to upgrade without issues.
 - postgres:11  used by Kong. Nothing specific, just compatible with Kong
 
 
-Microservices (except Kong, QueuePersistance) adds EPEL repository, install pip and add several packages, mainly Flask and pyjwt.
+Microservices (except Kong, TaskPersistance) adds EPEL repository, install pip and add several packages, mainly Flask and pyjwt.
 
-QueuePersistance is the only container which requires disk space to store its data. 
+TaskPersistance is the only container which requires disk space to store its data. 
 
 
 Startup and shutdown order:
-Queue requires QueuePersistance to be up before starting. Other services can be started/stoped in any order, but for functionality there're dependecies:
+Tasks requires TaskPersistance to be up before starting. Other services can be started/stoped in any order, but for functionality there're dependecies:
 - Certificator: none
-- Compute: depends on Queue, Certificator
+- Compute: depends on Tasks, Certificator
 - Status: none
-- Storage: depends on Queue, Jobs, Certificator
+- Storage: depends on Tasks, Compute, Certificator
 - Utilities: depends on Certificator
 
