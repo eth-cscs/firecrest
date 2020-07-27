@@ -17,7 +17,7 @@ QueuePersistance is the only container which requires disk space to store its da
 Startup and shutdown order:
 Queue requires QueuePersistance to be up before starting. Other services can be started/stoped in any order, but for functionality there're dependecies:
 - Certificator: none
-- Jobs: depends on Queue, Certificator
+- Compute: depends on Queue, Certificator
 - Status: none
 - Storage: depends on Queue, Jobs, Certificator
 - Utilities: depends on Certificator
