@@ -8,6 +8,8 @@ import logging
 import os
 import jwt
 import stat
+import datetime
+import hashlib
 
 debug = os.environ.get("DEBUG_MODE", None)
 
@@ -589,3 +591,103 @@ def get_task_status(task_id,auth_header):
         logging.error(e)
         return -1
 
+# checks if {path} is a valid file (exists and user in {auth_header} has read permissions)
+def is_valid_file(path, auth_header, system):
+
+    # checks user accessibility to path using touch
+    # -r parameter is to not modify timestamp of the file (by modifiying for the same file's timestamp)
+    action = f"touch -r {path} {path}"
+
+    retval = exec_remote_command(auth_header,system,action)
+
+    logging.info(retval)
+
+    if retval["error"] != 0:
+        error_str=retval["msg"]
+
+        if retval["error"] == 113:
+            return {"result":False, "headers":{"X-Machine-Not-Available":"Machine is not available"} }
+            
+
+        if retval["error"] == 124:
+            return {"result":False, "headers":{"X-Timeout": "Command has finished with timeout signal"}}
+            
+
+        # error no such file
+        if in_str(error_str,"No such file"):
+            return {"result":False, "headers":{"X-Invalid-Path": "{path} is an invalid path.".format(path=path)}}
+                
+
+        # permission denied
+        if in_str(error_str,"Permission denied") or in_str(error_str,"OPENSSH"):
+            return {"result":False, "headers":{"X-Permission-Denied": "User does not have permissions to access machine or path"}}
+            
+
+        return {"result":False, "headers":{"X-Error": retval["msg"]}}
+
+    # checks using ls -ld of the path (-d is used for listing dir info not its content)
+    action = f"ls -ld {path}"
+
+    retval = exec_remote_command(auth_header,system,action)
+
+    is_dir = retval["msg"][0]
+    if is_dir ==  "d":
+        return {"result":False, "headers":{"X-A-Directory": "{path} is a directory".format(path=path)}}
+
+
+    return {"result":True}
+
+
+    
+# checks if {path} is a valid directory
+# 'path' should exists and be accesible to the user (write permissions)
+#
+def is_valid_dir(path, auth_header, system):
+
+    # create an empty file for testing path accesibility
+    # test file is a hidden file and has a timestamp in order to not overwrite other files created by user
+    # after this, file should be deleted
+
+    
+    timestamp = datetime.datetime.today().strftime("%Y-%m-%dT%H:%M:%S.%f")
+    # using a hash 
+    hashedTS  =  hashlib.md5()
+    hashedTS.update(timestamp.encode("utf-8"))
+
+    tempFileName = f".firecrest.{hashedTS.hexdigest()}"
+
+    action = f"touch -- {path}/{tempFileName}"
+
+    retval = exec_remote_command(auth_header,system,action)
+
+    logging.info(retval)
+
+    if retval["error"] != 0:
+        error_str=retval["msg"]
+
+        if retval["error"] == 113:
+            return {"result":False, "headers":{"X-Machine-Not-Available":"Machine is not available"} }
+
+        if retval["error"] == 124:
+            return {"result":False, "headers":{"X-Timeout": "Command has finished with timeout signal"}}
+
+        # error no such file
+        if in_str(error_str,"No such file"):
+            return {"result":False, "headers":{"X-Invalid-Path": "{path} is an invalid path.".format(path=path)}}
+
+        # permission denied
+        if in_str(error_str,"Permission denied") or in_str(error_str,"OPENSSH"):
+            return {"result":False, "headers":{"X-Permission-Denied": "User does not have permissions to access machine or path"}}
+
+        # not a directory
+        if in_str(error_str,"Not a directory"):
+            return {"result":False, "headers":{"X-Not-A-Directory": "{path} is not a directory".format(path=path)}}
+
+        return {"result":False, "headers":{"X-Error": retval["msg"]}}    
+
+    # delete test file created
+    action = f"rm -- {path}/{tempFileName}"
+    retval = exec_remote_command(auth_header,system,action)
+
+
+    return {"result":True}
