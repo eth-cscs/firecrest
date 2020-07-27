@@ -21,6 +21,7 @@ from cscs_api_common import create_task, update_task, get_task_status
 from cscs_api_common import exec_remote_command, exec_remote_command_cert
 from cscs_api_common import create_certificates
 from cscs_api_common import in_str
+from cscs_api_common import is_valid_file, is_valid_dir
 
 # job_time_checker for correct SLURM job time in /xfer-internal tasks
 import job_time
@@ -101,111 +102,6 @@ debug = os.environ.get("F7T_DEBUG_MODE", None)
 
 
 app = Flask(__name__)
-
-# checks if path is valid for upload/download file process
-# 'path' should exists and be accesible to the user
-#
-# * for download the sourcePath should be a file that you can read 
-def check_sourcePath(path, auth_header, system):
-
-    # checks user accessibility to path using touch
-    # -r parameter is to not modify timestamp of the file (by modifiying for the same file's timestamp)
-    action = f"touch -r {path} {path}"
-
-    retval = exec_remote_command(auth_header,system,action)
-
-    app.logger.info(retval)
-
-    if retval["error"] != 0:
-        error_str=retval["msg"]
-
-        if retval["error"] == 113:
-            return {"result":False, "headers":{"X-Machine-Not-Available":"Machine is not available"} }
-            
-
-        if retval["error"] == 124:
-            return {"result":False, "headers":{"X-Timeout": "Command has finished with timeout signal"}}
-            
-
-        # error no such file
-        if in_str(error_str,"No such file"):
-            return {"result":False, "headers":{"X-Invalid-Path": "{path} is an invalid path.".format(path=path)}}
-                
-
-        # permission denied
-        if in_str(error_str,"Permission denied") or in_str(error_str,"OPENSSH"):
-            return {"result":False, "headers":{"X-Permission-Denied": "User does not have permissions to access machine or path"}}
-            
-
-        return {"result":False, "headers":{"X-Error": retval["msg"]}}
-
-    # checks using ls -ld of the path (-d is used for listing dir info not its content)
-    action = f"ls -ld {path}"
-
-    retval = exec_remote_command(auth_header,system,action)
-
-    is_dir = retval["msg"][0]
-    if is_dir ==  "d":
-        return {"result":False, "headers":{"X-A-Directory": "{path} is a directory, can't download directories".format(path=path)}}
-
-
-    return {"result":True}
-
-
-    
-# checks if path is valid for upload/download file process
-# 'path' should exists and be accesible to the user
-#
-# * for upload the targetPath should be a directory where you can write
-def check_targetPath(path, auth_header, system):
-
-    # create an empty file for testing path accesibility
-    # test file is a hidden file and has a timestamp in order to not overwrite other files created by user
-    # after this, file should be deleted
-
-    
-    timestamp = datetime.datetime.today().strftime("%Y-%m-%dT%H:%M:%S.%f")
-    # using a hash 
-    hashedTS  =  md5()
-    hashedTS.update(timestamp.encode("utf-8"))
-
-    tempFileName = f".firecrest.{hashedTS.hexdigest()}"
-
-    action = f"touch -- {path}/{tempFileName}"
-
-    retval = exec_remote_command(auth_header,system,action)
-
-    app.logger.info(retval)
-
-    if retval["error"] != 0:
-        error_str=retval["msg"]
-
-        if retval["error"] == 113:
-            return {"result":False, "headers":{"X-Machine-Not-Available":"Machine is not available"} }
-
-        if retval["error"] == 124:
-            return {"result":False, "headers":{"X-Timeout": "Command has finished with timeout signal"}}
-
-        # error no such file
-        if in_str(error_str,"No such file"):
-            return {"result":False, "headers":{"X-Invalid-Path": "{path} is an invalid path.".format(path=path)}}
-
-        # permission denied
-        if in_str(error_str,"Permission denied") or in_str(error_str,"OPENSSH"):
-            return {"result":False, "headers":{"X-Permission-Denied": "User does not have permissions to access machine or path"}}
-
-        # not a directory
-        if in_str(error_str,"Not a directory"):
-            return {"result":False, "headers":{"X-Not-A-Directory": "{path} is not a directory".format(path=path)}}
-
-        return {"result":False, "headers":{"X-Error": retval["msg"]}}    
-
-    # delete test file created
-    action = f"rm -- {path}/{tempFileName}"
-    retval = exec_remote_command(auth_header,system,action)
-
-
-    return {"result":True}
 
 def file_to_str(fileName):
 
@@ -447,7 +343,7 @@ def download_request():
         return data, 400
 
     # checks if sourcePath is a valid path
-    check = check_sourcePath(sourcePath, auth_header, system)
+    check = is_valid_file(sourcePath, auth_header, system)
 
     if not check["result"]:
         return jsonify(description="sourcePath error"), 400, check["headers"]
@@ -644,7 +540,7 @@ def upload_request():
         return data, 400
 
     # checks if sourcePath is a valid path
-    check = check_targetPath(targetPath, auth_header, system)
+    check = is_valid_dir(targetPath, auth_header, system)
 
     if not check["result"]:
         return jsonify(description="sourcePath error"), 400, check["headers"]
@@ -1016,7 +912,7 @@ def create_xfer_job(machine,auth_header,fileName):
     files = {'file': open(fileName, 'rb')}
 
     try:
-        req = requests.post("{compute_url}/jobs".
+        req = requests.post("{compute_url}/jobs/upload".
                             format(compute_url=COMPUTE_URL),
                             files=files, headers={AUTH_HEADER_NAME: auth_header, "X-Machine-Name":machine})
 
