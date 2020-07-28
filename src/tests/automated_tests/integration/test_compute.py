@@ -40,9 +40,19 @@ def check_task_status(task_id, headers, final_expected_status = 200): # may be 2
 	assert status == 100 or status == 101 or status == final_expected_status
 
 def get_job_id(task_id, headers):
-	resp = get_task(task_id, headers)
-	assert "jobid" in resp.json()["task"]["data"]
-	job_id = int(resp.json()["task"]["data"]["jobid"])
+	
+	job_id = None
+	for i in range(10):
+		resp = get_task(task_id, headers)
+		if "jobid" in resp.json()["task"]["data"]:
+			if isinstance(resp.json()["task"]["data"]["jobid"], int):
+				job_id = int(resp.json()["task"]["data"]["jobid"])
+				break
+		time.sleep(10)
+
+	#assert "jobid" in resp.json()["task"]["data"]
+	#job_id = int(resp.json()["task"]["data"]["jobid"])
+	assert job_id is not None
 	return job_id
 
 
@@ -82,10 +92,8 @@ def test_cancel_job(machine, headers):
 
 	resp = submit_job(machine, headers)
 	task_id = resp.json()["task_id"]
-
-	time.sleep(20) # wait until task is running
 	job_id = get_job_id(task_id, headers)
-
+		
 	# cancel job
 	url = "{}/{}".format(JOBS_URL, job_id)
 	headers.update({"X-Machine-Name": machine})
@@ -103,8 +111,6 @@ def test_acct_job(machine, headers):
 
 	resp = submit_job(machine, headers)
 	task_id = resp.json()["task_id"]
-
-	time.sleep(20) # wait until task is running
 	job_id = get_job_id(task_id, headers)
 
 	# cancel job
