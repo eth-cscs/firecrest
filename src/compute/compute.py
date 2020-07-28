@@ -9,7 +9,8 @@ import paramiko
 from logging.handlers import TimedRotatingFileHandler
 import threading
 import async_task
-from cscs_api_common import check_header, get_username, \
+
+from cscs_api_common import check_auth_header, get_username, \
     exec_remote_command, create_task, update_task, expire_task, clean_err_output, in_str
 
 from job_time import check_sacctTime
@@ -66,40 +67,44 @@ app.config['MAX_CONTENT_LENGTH'] = int(MAX_FILE_SIZE) * 1024 * 1024
 debug = os.environ.get("F7T_DEBUG_MODE", None)
 
 
+def is_jobid(jobid):
+    try:
+        jobid = int(jobid)
+        if jobid > 0:
+            return True
+        app.logger.error("Wrong SLURM sbatch return string")
+        app.logger.error(f"{jobid} isn't > 0")
+        
+    except ValueError as e:
+        app.logger.error("Wrong SLURM sbatch return string")
+        app.logger.error("Couldn't convert to int")
+        app.logger.error(e)
+    except IndexError as e:
+        app.logger.error("Wrong SLURM sbatch return string")
+        app.logger.error("String is empty")
+        app.logger.error(e)
+    except Exception as e:
+        app.logger.error("Wrong SLURM sbatch return string")
+        app.logger.error("Generic error")
+        app.logger.error(e)
+    return False
 
 # Extract jobid number from SLURM sbatch returned string when it's OK
 # Commonly  "Submitted batch job 9999" being 9999 a jobid
 def extract_jobid(outline):
 
-    try:
-        # splitting string by spaces
-        list_line = outline.split()
-        # last element should be the jobid
-        jobid = int(list_line[-1])
+    # splitting string by spaces
+    list_line = outline.split()
+    # last element should be the jobid
 
-        return jobid
+    if not is_jobid(list_line[-1]):
+        # for compatibility reasons if error, returns original string
+        return outline
+    
+    # all clear, conversion is OK
+    jobid = int(list_line[-1])
 
-    except ValueError as e:
-        app.logger.error("Wrong SLURM sbatch return string")
-        app.logger.error("Couldn't convert to int")
-        app.logger.error(e)
-
-
-    except IndexError as e:
-        app.logger.error("Wrong SLURM sbatch return string")
-        app.logger.error("String is empty")
-        app.logger.error(e)
-
-    except Exception as e:
-        app.logger.error("Wrong SLURM sbatch return string")
-        app.logger.error("Generic error")
-        app.logger.error(e)
-
-    # for compatibility reasons if error, returns original string
-    return outline
-
-
-
+    return jobid
 
 # copies file and submits with sbatch
 def submit_job_task(auth_header, machine, job_file, job_dir, task_id):
@@ -275,17 +280,11 @@ def request_entity_too_large(error):
 # Submit a batch script to SLURM on the target system.
 # The batch script is uploaded as a file
 @app.route("/jobs",methods=["POST"])
+@check_auth_header
 def submit_job():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Failed to submit job",error="Wrong auth"), 401
-
+    
+    auth_header = request.headers[AUTH_HEADER_NAME]
+    
     try:
         machine = request.headers["X-Machine-Name"]
     except KeyError as e:
@@ -378,18 +377,10 @@ def submit_job():
 
 # Retrieves information from all jobs (squeue)
 @app.route("/jobs",methods=["GET"])
+@check_auth_header
 def list_jobs():
 
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-
-    if not check_header(auth_header):
-        return jsonify(description="Failed to retrieve jobs information",error="Wrong auth"), 401
+    auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
         machine = request.headers["X-Machine-Name"]
@@ -453,6 +444,10 @@ def list_jobs():
             job_aux_list = jobs.split(",")
             if '' in job_aux_list:
                 return jsonify(error="Jobs list wrong format",description="Failed to retrieve job information"), 400
+
+            for jobid in job_aux_list:
+                if not is_jobid(jobid):
+                    return jsonify(error=f"{jobid} is not a valid job ID", description="Failed to retrieve job information"), 400    
 
             job_list="--job={jobs}".format(jobs=jobs)
         except:
@@ -563,16 +558,10 @@ def list_job_task(auth_header,machine,action,task_id,pageSize,pageNumber):
 
 # Retrieves information from a jobid
 @app.route("/jobs/<jobid>",methods=["GET"])
+@check_auth_header
 def list_job(jobid):
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Failed to retrieve job information",error="Wrong auth"), 401
+    
+    auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
         machine = request.headers["X-Machine-Name"]
@@ -584,6 +573,10 @@ def list_job(jobid):
     if machine not in SYSTEMS_PUBLIC:
         header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
         return jsonify(description="Failed to retrieve job information", error="Machine does not exists"), 400, header
+
+    #check if jobid is a valid jobid for SLURM
+    if not is_jobid(jobid):
+        return jsonify(description="Failed to retrieve job information", error=f"{jobid} is not a valid job ID"), 400
 
     # select index in the list corresponding with machine name
     machine_idx = SYSTEMS_PUBLIC.index(machine)
@@ -677,17 +670,11 @@ def cancel_job_task(auth_header,machine,action,task_id):
 
 # Cancel job from SLURM using scancel command
 @app.route("/jobs/<jobid>",methods=["DELETE"])
+@check_auth_header
 def cancel_job(jobid):
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
 
-    if not check_header(auth_header):
-        return jsonify(description="Failed to delete job",error="Wrong auth"), 401
-
+    auth_header = request.headers[AUTH_HEADER_NAME]
+    
     try:
         machine = request.headers["X-Machine-Name"]
     except KeyError as e:
@@ -791,18 +778,9 @@ def acct_task(auth_header, machine, action, task_id):
 
 # Job account information
 @app.route("/acct",methods=["GET"])
+@check_auth_header
 def acct():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-
-    if not check_header(auth_header):
-        return jsonify(description="Failed to retrieve account information",error="Wrong auth"), 401
-
+    auth_header = request.headers[AUTH_HEADER_NAME]
     try:
         machine = request.headers["X-Machine-Name"]
     except KeyError as e:

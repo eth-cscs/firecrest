@@ -12,9 +12,11 @@ from werkzeug.utils import secure_filename
 from werkzeug.exceptions import BadRequestKeyError
 
 from math import ceil
-from cscs_api_common import check_header, get_username,exec_remote_command, parse_io_error
+
+from cscs_api_common import check_auth_header, get_username,exec_remote_command, parse_io_error
 import base64
 import io
+
 
 CERTIFICATOR_URL = os.environ.get("F7T_CERTIFICATOR_URL")
 STATUS_IP        = os.environ.get("F7T_STATUS_IP")
@@ -59,16 +61,10 @@ def in_str(stringval,words):
 ##  - machinename: str *required
 
 @app.route("/file", methods=["GET"])
+@check_auth_header
 def file_type():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
+    
+    auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
         machinename = request.headers["X-Machine-Name"]
@@ -89,6 +85,8 @@ def file_type():
 
     try:
         path = request.args.get("targetPath")
+        if path == "":
+            return jsonify(description="Error in file operation",error="'targetPath' value is empty"), 400
     except BadRequestKeyError as e:
         return jsonify(description="Error in file operation",error="'targetPath' query string missing"), 400
 
@@ -135,17 +133,11 @@ def file_type():
 ##  - machinename: str *required
 
 @app.route("/chmod",methods=["PUT"])
+@check_auth_header
 def chmod():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
 
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
+    auth_header = request.headers[AUTH_HEADER_NAME]
+    
     try:
         machinename = request.headers["X-Machine-Name"]
     except KeyError as e:
@@ -166,12 +158,16 @@ def chmod():
     # getting path from request form
     try:
         path = request.form["targetPath"]
+        if path == "":
+            return jsonify(description="Error in chmod operation",error="'targetPath' value is empty"), 400
     except BadRequestKeyError:
         return jsonify(description="Error in chmod operation",error="'targetPath' query string missing"), 400
 
     # getting chmode's mode from request form:
     try:
         mode = request.form["mode"]
+        if mode == "":
+            return jsonify(description="Error in chown operation",error="'mode' value is empty"), 400
     except BadRequestKeyError:
         return jsonify(description="Error in chmod operation", error="mode query string missing"), 400
 
@@ -217,16 +213,10 @@ def chmod():
 ##  - machinename: str *required
 
 @app.route("/chown",methods=["PUT"])
+@check_auth_header
 def chown():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
+    
+    auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
         machinename = request.headers["X-Machine-Name"]
@@ -247,6 +237,8 @@ def chown():
 
     try:
         path = request.form["targetPath"]
+        if path == "":
+            return jsonify(description="Error in chown operation",error="'targetPath' value is empty"), 400
     except BadRequestKeyError:
         return jsonify(description="Error in chown operation",error="'targetPath' query string missing"), 400
 
@@ -310,16 +302,10 @@ def chown():
 ##  - machinename: str *required
 
 @app.route("/ls",methods=["GET"])
+@check_auth_header
 def list_directory():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
+    
+    auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
         machinename = request.headers["X-Machine-Name"]
@@ -465,17 +451,11 @@ def list_directory():
 ##  - machinename: str *required
 
 @app.route("/mkdir",methods=["POST"])
+@check_auth_header
 def make_directory():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
 
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
+    auth_header = request.headers[AUTH_HEADER_NAME]
+    
     try:
         machinename = request.headers["X-Machine-Name"]
     except KeyError as e:
@@ -495,6 +475,9 @@ def make_directory():
 
     try:
         path = request.form["targetPath"]
+        if path == "":
+            return jsonify(description="Error creating directory",error="'targetPath' value is empty"), 400
+        
     except BadRequestKeyError:
         return jsonify(description="Error creating directory", error="'targetPath' query string missing"), 400
 
@@ -544,6 +527,7 @@ def make_directory():
 ##  - machinename: str *required
 
 @app.route("/rename", methods=["PUT"])
+@check_auth_header
 def rename():
     return common_operation(request, "rename", "PUT")
 
@@ -555,20 +539,14 @@ def rename():
 ##  - machinename: str *required
 
 @app.route("/copy", methods=["POST"])
+@check_auth_header
 def copy():
     return common_operation(request, "copy", "POST")
 
 ## common code for file operations: copy, rename (move)
 def common_operation(request, command, method):
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
+    
+    auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
         machinename = request.headers["X-Machine-Name"]
@@ -589,11 +567,15 @@ def common_operation(request, command, method):
 
     try:
         sourcePath = request.form["sourcePath"]
+        if sourcePath == "":
+            return jsonify(description="Error on " + command + " operation",error="'sourcePath' value is empty"), 400
     except BadRequestKeyError:
         return jsonify(description="Error on " + command + " operation", error="'sourcePath' query string missing"), 400
 
     try:
         targetPath = request.form["targetPath"]
+        if targetPath == "":
+            return jsonify(description="Error on " + command + " operation",error="'targetPath' value is empty"), 400
     except BadRequestKeyError:
         return jsonify(description="Error on " + command + " operation", error="target query string missing"), 400
 
@@ -656,17 +638,11 @@ def common_operation(request, command, method):
 ## - X-Machine-Name: system
 
 @app.route("/rm", methods=["DELETE"])
+@check_auth_header
 def rm():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
 
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
+    auth_header = request.headers[AUTH_HEADER_NAME]
+    
     try:
         machinename = request.headers["X-Machine-Name"]
     except KeyError as e:
@@ -686,12 +662,14 @@ def rm():
 
     try:
         path = request.form["targetPath"]
+        if path == "":
+            return jsonify(description="Error on delete operation",error="'targetPath' value is empty"), 400    
     except BadRequestKeyError:
         return jsonify(description="Error on delete operation",error="'targetPath' query string missing"), 400
 
     # action to execute
     # -r is for recursivelly delete files into directories
-    action = f"timeout {UTILITIES_TIMEOUT} rm -fr -- '{path}'"
+    action = f"timeout {UTILITIES_TIMEOUT} rm -r --interactive=never -- '{path}'"
 
     retval = exec_remote_command(auth_header, machine, action)
 
@@ -731,17 +709,11 @@ def rm():
 ##  - machinename: str *required
 
 @app.route("/symlink", methods=["POST"])
+@check_auth_header
 def symlink():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
 
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
+    auth_header = request.headers[AUTH_HEADER_NAME]
+    
     try:
         machinename = request.headers["X-Machine-Name"]
     except KeyError as e:
@@ -761,11 +733,15 @@ def symlink():
 
     try:
         linkPath = request.form["linkPath"]
+        if linkPath == "":
+            return jsonify(description="Failed to create symlink",error="'linkPath' value is empty"), 400
     except BadRequestKeyError:
         return jsonify(description="Failed to create symlink",error="'linkPath' query string missing"), 400
 
     try:
         targetPath = request.form["targetPath"]
+        if targetPath == "":
+            return jsonify(description="Failed to create symlink",error="'targetPath' value is empty"), 400
     except BadRequestKeyError:
         return jsonify(description="Failed to create symlink",error="'targetPath' query string missing"), 400
 
@@ -812,16 +788,10 @@ def symlink():
 ##  - machinename: str *required
 
 @app.route("/download", methods=["GET"])
+@check_auth_header
 def download():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
 
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
+    auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
         machinename = request.headers["X-Machine-Name"]
@@ -844,6 +814,8 @@ def download():
 
     if path == None:
         return jsonify(description="Failed to download file",error="'sourcePath' query string missing"), 400
+    if path == "":
+        return jsonify(description="Failed to download file",error="'sourcePath' value is empty"), 400
 
     #TODO: check path doesn't finish with /
     file_name = secure_filename(path.split("/")[-1])
@@ -907,16 +879,10 @@ def request_entity_too_large(error):
     return jsonify(description="Failed to upload file. The file is over {} MB".format(MAX_FILE_SIZE)), 413
 
 @app.route("/upload", methods=["POST"])
+@check_auth_header
 def upload():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
 
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
+    auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
         machinename = request.headers["X-Machine-Name"]
@@ -939,6 +905,9 @@ def upload():
 
     if path == None:
         return jsonify(description="Failed to upload file", error="'targetPath' query string missing"), 400
+
+    if path == "":
+        return jsonify(description="Failed to upload file",error="'targetPath' value is empty"), 400
 
     if 'file' not in request.files:
         return jsonify(description="Failed to upload file", error="No file in query"), 400

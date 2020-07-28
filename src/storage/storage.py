@@ -16,7 +16,7 @@ import threading
 # logging handler
 from logging.handlers import TimedRotatingFileHandler
 # common functions
-from cscs_api_common import check_header, get_username
+from cscs_api_common import check_auth_header, get_username
 from cscs_api_common import create_task, update_task, get_task_status
 from cscs_api_common import exec_remote_command
 from cscs_api_common import create_certificate
@@ -80,8 +80,12 @@ OS_PROJECT_ID           = os.environ.get("F7T_OS_PROJECT_ID")
 # SECRET KEY for temp url without using Token
 SECRET_KEY              = os.environ.get("F7T_SECRET_KEY")
 
+# Expiration time for temp URLs in seconds, by default 30 days
 STORAGE_TEMPURL_EXP_TIME = int(os.environ.get("F7T_STORAGE_TEMPURL_EXP_TIME", "2592000").strip('\'"'))
-STORAGE_MAX_FILE_SIZE = int(os.environ.get("F7T_STORAGE_MAX_FILE_SIZE", "5368709120").strip('\'"'))
+# max file size for temp URLs in MegaBytes, by default 5120 MB = 5 GB
+STORAGE_MAX_FILE_SIZE = int(os.environ.get("F7T_STORAGE_MAX_FILE_SIZE", "5120").strip('\'"'))
+# for use on signature of URL it must be in bytes (MB*1024*1024 = Bytes)
+STORAGE_MAX_FILE_SIZE *= 1024*1024
 
 STORAGE_POLLING_INTERVAL = int(os.environ.get("F7T_STORAGE_POLLING_INTERVAL", "60").strip('\'"'))
 CERT_CIPHER_KEY = os.environ.get("F7T_CERT_CIPHER_KEY", "").strip('\'"').encode('utf-8')
@@ -427,22 +431,15 @@ def download_task(auth_header,system,sourcePath,task_id):
 
 # download large file, returns temp url for downloading
 @app.route("/xfer-external/download", methods=["POST"])
+@check_auth_header
 def download_request():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
 
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
-    
+    auth_header = request.headers[AUTH_HEADER_NAME]
+        
     system = EXT_TRANSFER_MACHINE_INTERNAL
     sourcePath = request.form["sourcePath"]  # path file in cluster
 
-    if sourcePath == None:
+    if sourcePath == None or sourcePath == "":
         data = jsonify(error="Source path not set in request")
         return data, 400
 
@@ -589,61 +586,33 @@ def upload_task(auth_header,system,targetPath,sourcePath,task_id):
 
 
 # upload API entry point:
-@app.route("/xfer-external/upload",methods=["POST","PUT"])
+@app.route("/xfer-external/upload",methods=["POST"])
+@check_auth_header
 def upload_request():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
+    
+    auth_header = request.headers[AUTH_HEADER_NAME]
 
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
-    # if method used is PUT, then is to modify the upload process
-    # add task_id header for upload_finished
-    if request.method == "PUT":
-        try:
-            task_id = request.headers["X-Task-ID"]
-            app.logger.info("Upload finished request with task_id: {task_id}".format(task_id=task_id))
-
-            retval = upload_finished_call(hash_id=task_id, auth_header=auth_header)
-
-            data = retval["data"]
-            code = retval["code"]
-
-            if code != 200:
-                return jsonify(error=data), code
-
-            return jsonify(success=data), code
-
-        except KeyError as e:
-            app.logger.info("Not an upload finished request")
-
-
-    # app.logger.info(EXT_TRANSFER_MACHINE_INTERNAL)
     system = EXT_TRANSFER_MACHINE_INTERNAL
-
 
 
     targetPath   = request.form["targetPath"] # path to save file in cluster
     sourcePath   = request.form["sourcePath"] # path from the local FS
 
 
-    if system == None:
+    if system == None or system == "":
         data = jsonify(error="System not set in request")
         return data, 400
 
-    if targetPath == None:
+    if targetPath == None or targetPath == "":
         data = jsonify(error="Target path not set in request")
         return data, 400
 
-    if sourcePath == None:
+    
+    if sourcePath == None or sourcePath == "":
         data = jsonify(error="Source path not set in request")
         return data, 400
 
-    # checks if sourcePath is a valid path
+    # checks if targetPath is a valid path
     check = check_targetPath(targetPath, auth_header, system)
 
     if not check["result"]:
@@ -906,54 +875,66 @@ def exec_internal_command(auth_header,command,sourcePath, targetPath, jobName, j
 
 # Internal cp transfer via SLURM with xfer partition:
 @app.route("/xfer-internal/cp", methods=["POST"])
+@check_auth_header
 def internal_cp():
     return internal_operation(request, "cp")
 
 # Internal mv transfer via SLURM with xfer partition:
 @app.route("/xfer-internal/mv", methods=["POST"])
+@check_auth_header
 def internal_mv():
     return internal_operation(request, "mv")
 
 
 # Internal rsync transfer via SLURM with xfer partition:
 @app.route("/xfer-internal/rsync", methods=["POST"])
+@check_auth_header
 def internal_rsync():
     return internal_operation(request, "rsync")
 
 
 # Internal rm transfer via SLURM with xfer partition:
 @app.route("/xfer-internal/rm", methods=["POST"])
+@check_auth_header
 def internal_rm():
     return internal_operation(request, "rm")
 
 
 # common code for internal cp, mv, rsync, rm
 def internal_operation(request, command):
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
 
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
+    auth_header = request.headers[AUTH_HEADER_NAME]
+    
     try:
         targetPath = request.form["targetPath"]  # path to save file in cluster
+        if targetPath == "":
+            return jsonify(error="targetPath is empty"), 400    
     except:
         app.logger.error("targetPath not specified")
         return jsonify(error="targetPath not specified"), 400
 
+    # using actual_command to add options to check sanity of the command to be executed
+    actual_command = ""
     if command in ['cp', 'mv', 'rsync']:
         try:
             sourcePath = request.form["sourcePath"]  # path to get file in cluster
+            if sourcePath == "":
+                return jsonify(error="sourcePath is empty"), 400
         except:
             app.logger.error("sourcePath not specified")
             return jsonify(error="sourcePath not specified"), 400
-    else:
+        if command == "cp":
+            actual_command = "cp --force -dR --preserve=all -- "
+        elif command == "mv":
+            actual_command = "mv --force -- "
+        else:
+            actual_command = "rsync -av -- "
+    elif command == "rm":
         # for 'rm' there's no source, set empty to call exec_internal_command(...)
         sourcePath = ""
+        actual_command = "rm -rf -- "
+    else:
+        return jsonify(error=f"Command {command} not allowed"), 400
 
     try:
         jobName = request.form["jobName"]  # jobName for SLURM
@@ -993,7 +974,7 @@ def internal_operation(request, command):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description=f"Failed to submit {command} job"), 404, header
 
-    retval = exec_internal_command(auth_header, command, sourcePath, targetPath, jobName, jobTime, stageOutJobId)
+    retval = exec_internal_command(auth_header, actual_command, sourcePath, targetPath, jobName, jobTime, stageOutJobId)
 
     # returns "error" key or "success" key
     try:
@@ -1012,6 +993,8 @@ def internal_operation(request, command):
 # uses Jobs microservice API call: POST http://{compute_url}/{machine}
 # all calls to cp, mv, rm or rsync are made using Jobs us.
 def create_xfer_job(machine,auth_header,fileName):
+
+    auth_header = request.headers[AUTH_HEADER_NAME]
 
     files = {'file': open(fileName, 'rb')}
 

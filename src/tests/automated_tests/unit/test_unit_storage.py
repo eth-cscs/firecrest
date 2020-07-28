@@ -17,15 +17,6 @@ def test_post_upload_request(headers):
     resp = requests.post(STORAGE_URL + "/xfer-external/upload", headers=headers, data=data)
     assert resp.status_code == 200
 
-
-# Test an invalid upload task
-def test_put_upload_request(headers):
-    task_id = "-1"
-    headers.update({"X-Task-ID": task_id})
-    r = requests.put(STORAGE_URL + "/xfer-external/upload", headers=headers)
-    assert r.status_code == 404
-
-
 def test_download_file_not_exist(headers):
     data = { "sourcePath": "no-existing-file" }
     resp = requests.post(STORAGE_URL + "/xfer-external/download", headers=headers, data=data) 

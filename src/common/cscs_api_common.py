@@ -10,13 +10,15 @@ import jwt
 import stat
 import tempfile
 import json
-from flask import jsonify
+import functools
+from flask import request, jsonify
 import requests
 import urllib
 import base64
 import io
+import time
 
-debug = os.environ.get("DEBUG_MODE", None)
+debug = os.environ.get("F7T_DEBUG_MODE", None)
 
 AUTH_HEADER_NAME = 'Authorization'
 realm_pubkey=os.environ.get("F7T_REALM_RSA_PUBLIC_KEY", '')
@@ -262,35 +264,62 @@ def exec_remote_command(auth_header, system, action, file_transfer=None, file_co
             # uploads use "cat", so write to stdin
             stdin.channel.sendall(file_content)
             stdin.channel.shutdown_write()
+            #stdin.channel.close()
 
         output = ""
         error = ""
         finished = 0
-        # channels can be ready to exit (exit_status) but there may be still data to read, so
-        # force one more read by requiring finished == 2
-        while finished < 2:
-            if stdout.channel.recv_ready():
-                data = stdout.channel.recv(4096)
-                while data:
-                    output += data.decode()
-                    data = stdout.channel.recv(131072)
 
-            if stderr.channel.recv_stderr_ready():
-                data = stderr.channel.recv_stderr(4096)
-                while data:
-                    error += data.decode()
-                    data = stderr.channel.recv_stderr(131072)
+        stderr_errno = -2
+        stdout_errno = -2
+        stderr_errda = ""
+        stdout_errda = ""
 
-            if stdout.channel.exit_status_ready() and stderr.channel.exit_status_ready():
-                finished += 1
+        
+	# poll process status since directly using recv_exit_status() could result
+        # in a permanent hang when remote output is larger than the current Transport or session’s window_size 
+        for i in range(0,10):
+            if stderr.channel.exit_status_ready():
+                logging.info("stderr channel exit status ready") 
+                stderr_errno = stderr.channel.recv_exit_status()
+                endtime = time.time() + 30
+                eof_received = True
+                while not stderr.channel.eof_received:
+                    time.sleep(1)
+                    if time.time() > endtime:
+                        stderr.channel.close()
+                        eof_received = False
+                        break
+                if eof_received:
+                    error = "".join(stderr.readlines())
+                    # error = stderr.read()
+                    # clean "tput: No ..." lines at error output
+                    stderr_errda = clean_err_output(error)
+                break
+            else:
+                time.sleep(5)
 
-        #exit_status = chan.recv_exit_status()
+        for i in range(0,10):
+            if stdout.channel.exit_status_ready():
+                logging.info("stdout channel exit status ready") 
+                stdout_errno = stdout.channel.recv_exit_status()
+                endtime = time.time() + 30
+                eof_received = True
+                while not stdout.channel.eof_received:
+                    time.sleep(1)
+                    if time.time() > endtime:
+                        stdout.channel.close()
+                        eof_received = False
+                        break
+                if eof_received:
+                    output = "".join(stdout.readlines())
+                    # error = stderr.read() it hangs
+                    # clean "tput: No ..." lines at error output
+                    stdout_errda = clean_err_output(output)
+                break
+            else:
+                time.sleep(5)
 
-        stderr_errno = stderr.channel.recv_exit_status()
-        stdout_errno = stdout.channel.recv_exit_status()
-        # clean "tput: No ..." lines at error output
-        stderr_errda = clean_err_output(error)
-        stdout_errda = clean_err_output(output)
 
         if file_transfer == "download":
             outlines = output
@@ -312,7 +341,10 @@ def exec_remote_command(auth_header, system, action, file_transfer=None, file_co
             result = {"error": stderr_errno, "msg": stderr_errda}
         elif len(stderr_errda) > 0:
             result = {"error": 1, "msg": stderr_errda}
-
+        elif stdout_errno == -2:
+            result = {"error": -2, "msg": "Receive ready timeout exceeded"}
+        elif stderr_errno == -1:
+            result = {"error": -1, "msg": "No exit status was provided by the server"}
 
     # first if paramiko exception raise
     except paramiko.ssh_exception.NoValidConnectionsError as e:
@@ -478,3 +510,24 @@ def get_task_status(task_id,auth_header):
         logging.error(e)
         return -1
 
+
+# wrapper to check if AUTH header is correct
+# decorator use:
+#
+# @app.route("/endpoint", methods=["GET","..."])
+# @check_auth_header
+# def function_that_check_header():
+# .....
+def check_auth_header(func):
+    @functools.wraps(func)
+    def wrapper_check_auth_header(*args, **kwargs):
+        try:
+            auth_header = request.headers[AUTH_HEADER_NAME]
+        except KeyError:
+            logging.error("No Auth Header given")
+            return jsonify(description="No Auth Header given"), 401
+        if not check_header(auth_header):
+            return jsonify(description="Invalid header"), 401
+
+        return func(*args, **kwargs)
+    return wrapper_check_auth_header

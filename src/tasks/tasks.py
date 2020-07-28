@@ -12,7 +12,7 @@ import async_task
 import os
 import logging
 from logging.handlers import TimedRotatingFileHandler
-from cscs_api_common import check_header, get_username
+from cscs_api_common import check_auth_header, get_username, check_header
 import tasks_persistence as persistence
 
 AUTH_HEADER_NAME = 'Authorization'
@@ -72,17 +72,9 @@ def init_queue():
 
     
 @app.route("/",methods=["GET"])
+@check_auth_header
 def list_tasks():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
+    auth_header = request.headers[AUTH_HEADER_NAME]
     # getting username from auth_header
     username = get_username(auth_header)
 
@@ -160,17 +152,11 @@ def create_task():
 
 # should return status of the task
 @app.route("/<id>",methods=["GET"])
+@check_auth_header
 def get_task(id):
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
 
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
+    auth_header = request.headers[AUTH_HEADER_NAME]
+    
     # getting username from auth_header
     username = get_username(auth_header)
 
@@ -292,17 +278,10 @@ def update_task(id):
 
 
 @app.route("/<id>",methods=["DELETE"])
+@check_auth_header
 def delete_task(id):
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
+    auth_header = request.headers[AUTH_HEADER_NAME]
+    
     # remote address request by Flask
     remote_addr = request.remote_addr
 
@@ -340,17 +319,10 @@ def delete_task(id):
 
 #set expiration for task, in case of Jobs list or account info:
 @app.route("/task-expire/<id>",methods=["POST"])
+@check_auth_header
 def expire_task(id):
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
 
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
+    auth_header = request.headers[AUTH_HEADER_NAME]
     # remote address request by Flask
     remote_addr = request.remote_addr
 
