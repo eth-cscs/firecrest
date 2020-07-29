@@ -12,6 +12,7 @@ import jwt
 import logging
 from logging.handlers import TimedRotatingFileHandler
 import base64
+import requests
 
 STATUS_IP = os.environ.get("F7T_STATUS_IP")
 AUTH_HEADER_NAME = 'Authorization'
@@ -24,6 +25,11 @@ AUTH_ROLE = os.environ.get("F7T_AUTH_ROLE", '').strip('\'"')
 
 CERTIFICATOR_PORT = os.environ.get("F7T_CERTIFICATOR_PORT", 5000)
 
+# OPA endpoint
+OPA_USE = os.environ.get("F7T_OPA_USE",False)
+OPA_URL = os.environ.get("F7T_OPA_URL","http://localhost:8181").strip('\'"')
+POLICY_PATH = os.environ.get("F7T_POLICY_PATH","v1/data/f7t/authz").strip('\'"')
+
 realm_pubkey=os.environ.get("F7T_REALM_RSA_PUBLIC_KEY", '')
 if realm_pubkey != '':
     # headers are inserted here, must not be present
@@ -34,6 +40,37 @@ if realm_pubkey != '':
 debug = os.environ.get("F7T_DEBUG_MODE", False)
 
 app = Flask(__name__)
+
+
+# check user authorization on endpoint
+# using Open Policy Agent
+# 
+# use:
+# check_user_auth(username,system)
+def check_user_auth(username,system):
+
+    # check if OPA is active
+    if OPA_USE:
+        try: 
+            input = {"input":{"user": f"{username}", "system": f"{system}"}}
+            #resp_opa = requests.post(f"{OPA_URL}/{POLICY_PATH}", json=input)
+            logging.info(f"{OPA_URL}/{POLICY_PATH}")
+
+            resp_opa = requests.post(f"{OPA_URL}/{POLICY_PATH}", json=input)
+
+            logging.info(resp_opa.content)
+
+            if resp_opa.json()["result"]["allow"]:
+                logging.info(f"User {username} authorized by OPA")
+                return {"allow": True, "description":f"User {username} authorized", "status_code": 200 }
+            else:
+                logging.error(f"User {username} NOT authorized by OPA")
+                return {"allow": False, "description":f"User {username} not authorized in {system}", "status_code": 401}                
+        except requests.exceptions.RequestException as e:
+            logging.error(e.args)
+            return {"allow": False, "description":"Authorization server error", "status_code": 404} 
+    
+    return {"allow": True, "description":"Authorization method not active", "status_code": 200 }
 
 # checks JWT from Keycloak, optionally validates signature. It only receives the content of header's auth pair (not key:content)
 def check_header(header):
@@ -89,17 +126,11 @@ def get_username(header):
         if realm_pubkey == '':
             decoded = jwt.decode(header[7:], verify=False)
         else:
-#            if AUTH_AUDIENCE == '':
             decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, options={'verify_aud': False})
-#            else:
-#                decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, audience=AUTH_AUDIENCE)
-
-#        if ALLOWED_USERS != '':
-#            if not (decoded['preferred_username'] in ALLOWED_USERS):
-#                return None
+        
         # check if it's a service account token
         try:
-            if AUTH_ROLE in decoded["realm_access"]["roles"]: # firecrest-sa
+            if AUTH_ROLE in decoded["realm_access"]["roles"]:
 
                 clientId = decoded["clientId"]
                 username = decoded["resource_access"][clientId]["roles"][0]
@@ -165,6 +196,18 @@ def receive():
         if username == None:
             app.logger.error("No username")
             return jsonify(description="Invalid user"), 401
+
+
+        # Check if user is authorized in OPA
+        cluster = request.args.get("cluster","")
+            
+        if not cluster:
+            return jsonify(description='No cluster specified'), 404
+
+
+        auth_result = check_user_auth(username,cluster)
+        if not auth_result["allow"]:
+            return jsonify(description=auth_result["description"]), auth_result["status_code"]
 
         # default expiration time for certificates
         ssh_expire = '+5m'

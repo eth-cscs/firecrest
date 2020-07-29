@@ -1,0 +1,12 @@
+
+{
+    "systems": {
+            "127.0.0.1:2223": {
+                "users": ["testuser"] 
+            },
+            "not_a_system": {
+                "users": ["testuser"]
+            }
+        }
+        
+}

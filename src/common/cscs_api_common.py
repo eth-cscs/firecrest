@@ -40,6 +40,11 @@ TASKS_URL = os.environ.get("F7T_TASKS_URL")
 
 F7T_SSH_CERTIFICATE_WRAPPER = os.environ.get("F7T_SSH_CERTIFICATE_WRAPPER", None)
 
+# OPA endpoint
+OPA_USE = os.environ.get("F7T_OPA_USE",False)
+OPA_URL = os.environ.get("F7T_OPA_URL","http://localhost:8181").strip('\'"')
+POLICY_PATH = os.environ.get("F7T_POLICY_PATH","v1/data/f7t/authz").strip('\'"')
+
 logging.getLogger().setLevel(logging.INFO)
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',datefmt='%Y-%m-%d:%H:%M:%S',level=logging.INFO)
 
@@ -60,20 +65,11 @@ def check_header(header):
                 decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, options={'verify_aud': False})
             else:
                 decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, audience=AUTH_AUDIENCE)
-
-        # if AUTH_REQUIRED_SCOPE != '':
-        #     if not (AUTH_REQUIRED_SCOPE in decoded['realm_access']['roles']):
-        #         return False
-
-
-        # {"scope": "openid profile firecrest email"}
+       
         if AUTH_REQUIRED_SCOPE != "":
             if AUTH_REQUIRED_SCOPE not in decoded["scope"].split():
                 return False
-
-        #if not (decoded['preferred_username'] in ALLOWED_USERS):
-        #    return False
-
+        
         return True
 
     except jwt.exceptions.InvalidSignatureError:
@@ -98,17 +94,11 @@ def get_username(header):
         if realm_pubkey == '':
             decoded = jwt.decode(header[7:], verify=False)
         else:
-#            if AUTH_AUDIENCE == '':
             decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, options={'verify_aud': False})
-#            else:
-#                decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, audience=AUTH_AUDIENCE)
-
-#        if ALLOWED_USERS != '':
-#            if not (decoded['preferred_username'] in ALLOWED_USERS):
-#                return None
+        logging.info(decoded)
         # check if it's a service account token
         try:
-            if AUTH_ROLE in decoded["realm_access"]["roles"]: # firecrest-sa
+            if AUTH_ROLE in decoded["realm_access"]["roles"]: 
 
                 clientId = decoded["clientId"]
                 username = decoded["resource_access"][clientId]["roles"][0]
@@ -531,3 +521,35 @@ def check_auth_header(func):
 
         return func(*args, **kwargs)
     return wrapper_check_auth_header
+
+
+# check user authorization on endpoint
+# using Open Policy Agent
+# 
+# use:
+# check_user_auth(username,system)
+def check_user_auth(username,system):
+
+    # check if OPA is active
+    if OPA_USE:
+        try: 
+            input = {"input":{"user": f"{username}", "system": f"{system}"}}
+            #resp_opa = requests.post(f"{OPA_URL}/{POLICY_PATH}", json=input)
+            logging.info(f"{OPA_URL}/{POLICY_PATH}")
+
+            resp_opa = requests.post(f"{OPA_URL}/{POLICY_PATH}", json=input)
+
+            logging.info(resp_opa.content)
+
+            if resp_opa.json()["result"]["allow"]:
+                logging.info(f"User {username} authorized by OPA")
+                return {"allow": True, "description":f"User {username} authorized", "status_code": 200 }
+            else:
+                logging.error(f"User {username} NOT authorized by OPA")
+                return {"allow": False, "description":f"User {username} not authorized in {system}", "status_code": 401}                
+        except requests.exceptions.RequestException as e:
+            logging.error(e.args)
+            return {"allow": False, "description":"Authorization server error", "status_code": 404} 
+    
+    return {"allow": True, "description":"Authorization method not active", "status_code": 200 }
+            

@@ -1,0 +1,12 @@
+
+{
+    "systems": {
+            "192.168.220.12:22": {
+                "users": ["test1"] 
+            },
+            "not_a_system": {
+                "users": ["testuser"]
+            }
+        }
+        
+}
