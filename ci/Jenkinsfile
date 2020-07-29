@@ -99,6 +99,14 @@ node {
     }
     finally {
 
+        // Save Log files
+  	try {
+            sh "mkdir -p /var/log/jenkins/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}"
+            sh "cp -r ${env.WORKSPACE}/deploy/test-build/logs/firecrest/* /var/log/jenkins/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}/."
+        } catch(errCpLogs) {
+            echo "Error while saving log files: " + errCpLogs.toString()
+  	}
+
         sh '''#!/bin/sh
         sleep 30
         echo "Waiting 30 seconds before containers removal..."
