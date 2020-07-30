@@ -1,7 +1,7 @@
 
 {
     "systems": {
-            "127.0.0.1:2223": {
+            "system01": {
                 "users": ["testuser"] 
             },
             "not_a_system": {
