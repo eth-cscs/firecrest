@@ -67,21 +67,19 @@ def file_type():
     auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
-        machinename = request.headers["X-Machine-Name"]
+        system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
     # PUBLIC endpoints from Kong to users
-    if machinename not in SYSTEMS_PUBLIC:
+    if system_name not in SYSTEMS_PUBLIC:
         header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
         return jsonify(description="Error in file operation", error="Machine does not exist"), 400, header
 
-    # iterate over SYSTEMS list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machinename:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
 
     try:
         path = request.args.get("targetPath")
@@ -93,7 +91,7 @@ def file_type():
 
     action = f"timeout {UTILITIES_TIMEOUT} file -b -- '{path}'"
 
-    retval = exec_remote_command(auth_header, machine, action)
+    retval = exec_remote_command(auth_header, system_name, system_addr, action)
 
     error_str = retval["msg"]
 
@@ -139,21 +137,19 @@ def chmod():
     auth_header = request.headers[AUTH_HEADER_NAME]
     
     try:
-        machinename = request.headers["X-Machine-Name"]
+        system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
-    # public endpoints from Kong to users
-    if machinename not in SYSTEMS_PUBLIC:
+    # PUBLIC endpoints from Kong to users
+    if system_name not in SYSTEMS_PUBLIC:
         header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
         return jsonify(description="Error in chmod operation", error="Machine does not exist"), 400, header
 
-    # iterate over systems list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machinename:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
 
     # getting path from request form
     try:
@@ -174,7 +170,7 @@ def chmod():
     # using -c flag for verbose mode in stdout
     action = f"timeout {UTILITIES_TIMEOUT} chmod -v '{mode}' -- '{path}'"
 
-    retval = exec_remote_command(auth_header, machine, action)
+    retval = exec_remote_command(auth_header, system_name, system_addr, action)
 
     if retval["error"] != 0:
         if retval["error"] == -2:
@@ -219,21 +215,19 @@ def chown():
     auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
-        machinename = request.headers["X-Machine-Name"]
+        system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
-    # public endpoints from Kong to users
-    if machinename not in SYSTEMS_PUBLIC:
+    # PUBLIC endpoints from Kong to users
+    if system_name not in SYSTEMS_PUBLIC:
         header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
         return jsonify(description="Error in chown operation", error="Machine does not exist"), 400, header
 
-    # iterate over systems list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machinename:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
 
     try:
         path = request.form["targetPath"]
@@ -260,7 +254,7 @@ def chown():
 
     action = f"timeout {UTILITIES_TIMEOUT} chown -v '{owner}':'{group}' -- '{path}'"
 
-    retval = exec_remote_command(auth_header, machine, action)
+    retval = exec_remote_command(auth_header, system_name, system_addr, action)
 
     if retval["error"] != 0:
         if retval["error"] == -2:
@@ -308,21 +302,19 @@ def list_directory():
     auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
-        machinename = request.headers["X-Machine-Name"]
+        system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
-    # public endpoints from Kong to users
-    if machinename not in SYSTEMS_PUBLIC:
+    # PUBLIC endpoints from Kong to users
+    if system_name not in SYSTEMS_PUBLIC:
         header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
         return jsonify(description="Error listing contents of path", error="Machine does not exist"), 400, header
 
-    # iterate over systems list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machinename:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
 
     try:
         path = request.args.get("targetPath")
@@ -344,7 +336,7 @@ def list_directory():
 
     action = f"timeout {UTILITIES_TIMEOUT} ls -l {showall} --time-style=+%Y-%m-%dT%H:%M:%S -- '{path}'"
 
-    retval = exec_remote_command(auth_header, machine, action)
+    retval = exec_remote_command(auth_header, system_name, system_addr, action)
 
     if retval["error"] != 0:
         error_str=retval["msg"]
@@ -457,21 +449,19 @@ def make_directory():
     auth_header = request.headers[AUTH_HEADER_NAME]
     
     try:
-        machinename = request.headers["X-Machine-Name"]
+        system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
-    # public endpoints from Kong to users
-    if machinename not in SYSTEMS_PUBLIC:
+    # PUBLIC endpoints from Kong to users
+    if system_name not in SYSTEMS_PUBLIC:
         header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
         return jsonify(description="Error creating directory", error="Machine does not exist"), 400, header
 
-    # iterate over systems list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machinename:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
 
     try:
         path = request.form["targetPath"]
@@ -489,7 +479,7 @@ def make_directory():
 
     action = f"timeout {UTILITIES_TIMEOUT} mkdir {parent} -- '{path}'"
 
-    retval = exec_remote_command(auth_header, machine, action)
+    retval = exec_remote_command(auth_header, system_name, system_addr, action)
 
     if retval["error"] != 0:
         error_str=retval["msg"]
@@ -549,21 +539,19 @@ def common_operation(request, command, method):
     auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
-        machinename = request.headers["X-Machine-Name"]
+        system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
-    # public endpoints from Kong to users
-    if machinename not in SYSTEMS_PUBLIC:
+    # PUBLIC endpoints from Kong to users
+    if system_name not in SYSTEMS_PUBLIC:
         header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
         return jsonify(description="Error on " + command + " operation", error="Machine does not exist"), 400, header
 
-    # iterate over systems list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machinename:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
 
     try:
         sourcePath = request.form["sourcePath"]
@@ -592,7 +580,7 @@ def common_operation(request, command, method):
         app.logger.error("Unknown command on common_operation: " + command)
         return jsonify(description="Error on unkownon operation", error="Unknown"), 400
 
-    retval = exec_remote_command(auth_header, machine, action)
+    retval = exec_remote_command(auth_header,system_name ,system_addr, action)
 
     if retval["error"] != 0:
         error_str=retval["msg"]
@@ -644,21 +632,19 @@ def rm():
     auth_header = request.headers[AUTH_HEADER_NAME]
     
     try:
-        machinename = request.headers["X-Machine-Name"]
+        system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
-    # public endpoints from Kong to users
-    if machinename not in SYSTEMS_PUBLIC:
+    # PUBLIC endpoints from Kong to users
+    if system_name not in SYSTEMS_PUBLIC:
         header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
         return jsonify(description="Error on delete operation", error="Machine does not exist"), 400, header
 
-    # iterate over systems list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machinename:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
 
     try:
         path = request.form["targetPath"]
@@ -671,7 +657,7 @@ def rm():
     # -r is for recursivelly delete files into directories
     action = f"timeout {UTILITIES_TIMEOUT} rm -r --interactive=never -- '{path}'"
 
-    retval = exec_remote_command(auth_header, machine, action)
+    retval = exec_remote_command(auth_header, system_name, system_addr, action)
 
     if retval["error"] != 0:
         error_str=retval["msg"]
@@ -715,21 +701,19 @@ def symlink():
     auth_header = request.headers[AUTH_HEADER_NAME]
     
     try:
-        machinename = request.headers["X-Machine-Name"]
+        system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
-    # public endpoints from Kong to users
-    if machinename not in SYSTEMS_PUBLIC:
+    # PUBLIC endpoints from Kong to users
+    if system_name not in SYSTEMS_PUBLIC:
         header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
         return jsonify(description="Failed to create symlink", error="Machine does not exist"), 400, header
 
-    # iterate over systems list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machinename:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
 
     try:
         linkPath = request.form["linkPath"]
@@ -747,7 +731,7 @@ def symlink():
 
     action = f"timeout {UTILITIES_TIMEOUT} ln -s -- '{targetPath}' '{linkPath}'"
 
-    retval = exec_remote_command(auth_header, machine, action)
+    retval = exec_remote_command(auth_header, system_name, system_addr, action)
 
     if retval["error"] != 0:
         error_str=retval["msg"]
@@ -794,21 +778,19 @@ def download():
     auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
-        machinename = request.headers["X-Machine-Name"]
+        system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
-    # public endpoints from Kong to users
-    if machinename not in SYSTEMS_PUBLIC:
+    # PUBLIC endpoints from Kong to users
+    if system_name not in SYSTEMS_PUBLIC:
         header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
         return jsonify(description="Failed to download file", error="Machine does not exist"), 400, header
 
-    # iterate over systems list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machinename:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
 
     path = request.args.get("sourcePath")
 
@@ -821,7 +803,7 @@ def download():
     file_name = secure_filename(path.split("/")[-1])
 
     action = f"timeout {UTILITIES_TIMEOUT} stat --dereference -c %s -- '{path}'"
-    retval = exec_remote_command(auth_header, machine, action)
+    retval = exec_remote_command(auth_header, system_name, system_addr, action)
 
     if retval["error"] != 0:
         return parse_io_error(retval, 'download file', path)
@@ -848,7 +830,7 @@ def download():
 
     # download with base64 to avoid encoding conversion and string processing
     action = f"timeout {UTILITIES_TIMEOUT} base64 --wrap=0 -- '{path}'"
-    retval = exec_remote_command(auth_header, machine, action, file_transfer="download")
+    retval = exec_remote_command(auth_header, system_name, system_addr, action, file_transfer="download")
 
     if retval["error"] != 0:
         return parse_io_error(retval, 'download file', path)
@@ -885,21 +867,19 @@ def upload():
     auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
-        machinename = request.headers["X-Machine-Name"]
+        system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
-    # public endpoints from Kong to users
-    if machinename not in SYSTEMS_PUBLIC:
+    # PUBLIC endpoints from Kong to users
+    if system_name not in SYSTEMS_PUBLIC:
         header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
-        return jsonify(description="Failed to upload file", error="Machine does not exist"), 400, header
+        return jsonify(description="Failed to download file", error="Machine does not exist"), 400, header
 
-    # iterate over systems list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machinename:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
 
     path = request.form["targetPath"]
 
@@ -922,7 +902,7 @@ def upload():
 
     filename = secure_filename(file.filename)
     action = f"cat > {path}/{filename}"
-    retval = exec_remote_command(auth_header, machine, action, file_transfer="upload", file_content=file.read())
+    retval = exec_remote_command(auth_header, system_name, system_addr, action, file_transfer="upload", file_content=file.read())
 
     if retval["error"] != 0:
         return parse_io_error(retval, 'upload file', path)

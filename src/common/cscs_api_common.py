@@ -95,7 +95,6 @@ def get_username(header):
             decoded = jwt.decode(header[7:], verify=False)
         else:
             decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, options={'verify_aud': False})
-        logging.info(decoded)
         # check if it's a service account token
         try:
             if AUTH_ROLE in decoded["realm_access"]["roles"]: 
@@ -131,10 +130,11 @@ def in_str(stringval,words):
 
 # SSH certificates creation
 # returns pub key certificate name
-def create_certificate(auth_header, cluster, command=None, options=None, exp_time=None):
+def create_certificate(auth_header, cluster_name, cluster_addr,  command=None, options=None, exp_time=None):
     """
     Args:
-      cluster = system to be executed
+      cluster_name = public name of system to be executed
+      cluster_addr = private DNS or IP of the system
       command = command to be executed with the certificate (required)
       option = parameters and options to be executed with {command}
       exp_time = expiration time for SSH certificate
@@ -144,7 +144,7 @@ def create_certificate(auth_header, cluster, command=None, options=None, exp_tim
         username = get_username(auth_header)
         logging.info(f"Create certificate for user {username}")
 
-    reqURL = f"{CERTIFICATOR_URL}/?cluster={cluster}"
+    reqURL = f"{CERTIFICATOR_URL}/?cluster={cluster_name}&addr={cluster_addr}"
 
     if command:
         logging.info(f"\tCommand: {command}")
@@ -192,11 +192,11 @@ def create_certificate(auth_header, cluster, command=None, options=None, exp_tim
 
 
 # execute remote commands with Paramiko:
-def exec_remote_command(auth_header, system, action, file_transfer=None, file_content=None):
+def exec_remote_command(auth_header, system_name, system_addr, action, file_transfer=None, file_content=None):
 
     import paramiko, socket
 
-    logging.info('debug: cscs_common_api: exec_remote_command: system: ' + system + '  -  action: ' + action)
+    logging.info('debug: cscs_common_api: exec_remote_command: system name: ' + system_name + '  -  action: ' + action)
 
     if file_transfer == "storage_cert":
         # storage is using a previously generated cert, save cert list from content
@@ -211,7 +211,7 @@ def exec_remote_command(auth_header, system, action, file_transfer=None, file_co
         # get certificate:
         # if OK returns: [pub_cert, pub_key, priv_key, temp_dir]
         # if FAILED returns: [None, errno, strerror]
-        cert_list = create_certificate(auth_header, system, command=action)
+        cert_list = create_certificate(auth_header, system_name, system_addr, command=action)
 
         if cert_list[0] == None:
             result = {"error": 1, "msg": "Cannot create certificates"}
@@ -228,7 +228,7 @@ def exec_remote_command(auth_header, system, action, file_transfer=None, file_co
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-        ipaddr = system.split(':')
+        ipaddr = system_addr.split(':')
         host = ipaddr[0]
         if len(ipaddr) == 1:
             port = 22

@@ -182,6 +182,8 @@ def receive():
     - command (required): generates certificate for this specific command
     - option (optional): options for command
     - exptime (optional): expiration time given to the certificate in seconds (default +5m)
+    - cluster (required): public name of the system where to exec the command
+    - addr (required): private IP or DNS (including port if needed) of the system where to exec the command
     Returns:
     - certificate (json)
     """
