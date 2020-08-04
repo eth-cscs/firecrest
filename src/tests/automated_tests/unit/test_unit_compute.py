@@ -35,9 +35,17 @@ def test_submit_job_upload(machine, expected_response_code, headers):
 	assert resp.status_code == expected_response_code
 
 # Test send a job to the systems
-@pytest.mark.parametrize("machine, expected_response_code", [ (SERVER_COMPUTE, 400) , ("someservernotavailable", 400)])
-def test_submit_job_path(machine, expected_response_code, headers):
-	data = {"targetPath" : f"{USER_HOME}/sbatch.sh"}
+@pytest.mark.parametrize("machine, targetPath, expected_response_code", [ 
+(SERVER_COMPUTE, "/srv/f7t/test_sbatch.sh", 200), 
+(SERVER_COMPUTE, "/srv/f7t/test_sbatch_forbidden.sh", 400),
+(SERVER_COMPUTE, "notexists", 400),
+(SERVER_COMPUTE, "", 400),
+(SERVER_COMPUTE, None, 400),
+("someservernotavailable", "/srv/f7t/test_sbatch.sh", 400)]
+
+)
+def test_submit_job_path(machine, targetPath, expected_response_code, headers):
+	data = {"targetPath" : targetPath}
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.post(f"{JOBS_URL}/path", headers=headers, data=data)
 	print(resp.content)

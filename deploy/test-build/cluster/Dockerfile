@@ -78,5 +78,13 @@ RUN /usr/libexec/mariadb-prepare-db-dir 2>/dev/null
 ADD cluster/ssh/ssh_command_wrapper.sh /ssh_command_wrapper.sh
 RUN chmod 555 /ssh_command_wrapper.sh
 
+# add sbatch scripts for testing purposes
+RUN mkdir /srv/f7t
+ADD cluster/test_sbatch.sh /srv/f7t/.
+ADD cluster/test_sbatch.sh /srv/f7t/test_sbatch_forbidden.sh
+RUN chmod 777 /srv/f7t
+RUN chmod 555 /srv/f7t/test_sbatch.sh
+RUN chmod 700 /srv/f7t/test_sbatch_forbidden.sh
+
 ENTRYPOINT ["/usr/bin/supervisord"]
 
