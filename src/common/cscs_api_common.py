@@ -164,6 +164,9 @@ def create_certificate(auth_header, cluster_name, cluster_addr,  command=None, o
     try:
         resp = requests.get(reqURL, headers={AUTH_HEADER_NAME: auth_header})
 
+        if not resp.ok:
+            return [None, resp.status_code, resp.json()["description"]]
+
         jcert = resp.json()
 
         # create temp dir to store certificate for this request
@@ -214,7 +217,7 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
         cert_list = create_certificate(auth_header, system_name, system_addr, command=action)
 
         if cert_list[0] == None:
-            result = {"error": 1, "msg": "Cannot create certificates"}
+            result = {"error": cert_list[1], "msg": cert_list[2]}
             return result
 
         username = get_username(auth_header)

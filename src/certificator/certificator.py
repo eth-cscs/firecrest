@@ -65,7 +65,7 @@ def check_user_auth(username,system):
                 return {"allow": True, "description":f"User {username} authorized", "status_code": 200 }
             else:
                 logging.error(f"User {username} NOT authorized by OPA")
-                return {"allow": False, "description":f"User {username} not authorized in {system}", "status_code": 401}                
+                return {"allow": False, "description":f"Permission denied for user {username} in {system}", "status_code": 401}                
         except requests.exceptions.RequestException as e:
             logging.error(e.args)
             return {"allow": False, "description":"Authorization server error", "status_code": 404} 
