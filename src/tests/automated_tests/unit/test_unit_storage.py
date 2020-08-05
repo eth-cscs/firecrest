@@ -15,7 +15,7 @@ else:
 def test_post_upload_request(headers):
     data = { "sourcePath": "testsbatch.sh", "targetPath": USER_HOME }
     resp = requests.post(STORAGE_URL + "/xfer-external/upload", headers=headers, data=data)
-    assert resp.status_code == 200
+    assert resp.status_code == 201
 
 def test_download_file_not_exist(headers):
     data = { "sourcePath": "no-existing-file" }
