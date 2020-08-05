@@ -275,10 +275,14 @@ class Swift(ObjectStorage):
             logging.error(e)
             return -1
 
-    def delete_object(self,containername,prefix,objectname):
+    def delete_object(self,containername,prefix,objectname=None):
 
-        swift_account_url = "{swift_url}/{containername}/{prefix}/{objectname}".format(
-            swift_url=self.url, containername=containername, prefix=prefix, objectname=objectname)
+        if objectname!=None:
+
+            swift_account_url = f"{self.url}/{containername}/{prefix}/{objectname}"
+        
+        else:
+            swift_account_url = f"{self.url}/{containername}/{prefix}"
 
         header = {"X-Auth-Token": self.auth}
 
