@@ -107,7 +107,7 @@ def extract_jobid(outline):
     return jobid
 
 # copies file and submits with sbatch
-def submit_job_task(auth_header, machine, job_file, job_dir, task_id):
+def submit_job_task(auth_header, system_name, system_addr, job_file, job_dir, task_id):
 
     try:
         # get scopes from token
@@ -145,7 +145,7 @@ def submit_job_task(auth_header, machine, job_file, job_dir, task_id):
         # create tmpdir for sbatch file
         action = f"timeout {TIMEOUT} mkdir -p -- '{job_dir}'"
         app.logger.info(action)
-        retval = exec_remote_command(auth_header, machine, action)
+        retval = exec_remote_command(auth_header, system_name, system_addr, action)
 
         if retval["error"] != 0:
             app.logger.error(f"(Error: {retval['msg']}")
@@ -154,7 +154,7 @@ def submit_job_task(auth_header, machine, job_file, job_dir, task_id):
 
         if job_file['content']:
             action = f"cat > {job_dir}/{job_file['filename']}"
-            retval = exec_remote_command(auth_header, machine, action, file_transfer="upload", file_content=job_file['content'])
+            retval = exec_remote_command(auth_header, system_name, system_addr, action, file_transfer="upload", file_content=job_file['content'])
             if retval["error"] != 0:
                 app.logger.error(f"(Error: {retval['msg']}")
                 update_task(task_id, auth_header, async_task.ERROR, "Failed to upload file")
@@ -164,7 +164,7 @@ def submit_job_task(auth_header, machine, job_file, job_dir, task_id):
         action = f"sbatch --chdir={job_dir} {scopes_parameters} -- {job_file['filename']}"
         app.logger.info(action)
 
-        retval = exec_remote_command(auth_header, machine, action)
+        retval = exec_remote_command(auth_header, system_name, system_addr, action)
 
         if retval["error"] != 0:
             app.logger.error(f"(Error: {retval['msg']}")
@@ -185,7 +185,7 @@ def submit_job_task(auth_header, machine, job_file, job_dir, task_id):
         msg = {"result" : "Job submitted", "jobid" : jobid, "jobfile" : f"{job_dir}/{job_file['filename']}"}
 
         # now look for log and err files location
-        job_extra_info = get_slurm_files(auth_header, machine, task_id, msg)
+        job_extra_info = get_slurm_files(auth_header, system_name, system_addr, task_id, msg)
 
         update_task(task_id, auth_header, async_task.SUCCESS, job_extra_info, True)
 
@@ -209,7 +209,7 @@ def submit_job_task(auth_header, machine, job_file, job_dir, task_id):
 # - task_id: related to asynchronous task
 # - job_info: json containing jobid key
 # - output: True if StdErr and StdOut of the job need to be added to the jobinfo (default False)
-def get_slurm_files(auth_header, machine, task_id,job_info,output=False):
+def get_slurm_files(auth_header, system_name, system_addr, task_id,job_info,output=False):
     # now looking for log and err files location
 
     app.logger.info("Recovering data from job")
@@ -226,7 +226,7 @@ def get_slurm_files(auth_header, machine, task_id,job_info,output=False):
 
     app.logger.info(f"sControl command: {action}")
 
-    resp = exec_remote_command(auth_header, machine, action)
+    resp = exec_remote_command(auth_header, system_name, system_addr, action)
 
     # if there was an error, the result will be SUCESS but not available outputs
     if resp["error"] != 0:
@@ -255,13 +255,13 @@ def get_slurm_files(auth_header, machine, task_id,job_info,output=False):
         # tail -c {number_of_bytes} --> 1000B = 1KB
 
         action = f"timeout {TIMEOUT} tail -c {TAIL_BYTES} {control_info['job_file_out']}"
-        resp = exec_remote_command(auth_header, machine, action)
+        resp = exec_remote_command(auth_header, system_name, system_addr, action)
         if resp["error"] == 0:
             control_info["job_data_out"] = resp["msg"]
 
 
         action = f"timeout {TIMEOUT} tail -c {TAIL_BYTES} {control_info['job_file_err']}"
-        resp = exec_remote_command(auth_header, machine, action)
+        resp = exec_remote_command(auth_header, system_name, system_addr, action)
         if resp["error"] == 0:
             control_info["job_data_err"] = resp["msg"]
 
@@ -286,25 +286,25 @@ def submit_job():
     auth_header = request.headers[AUTH_HEADER_NAME]
     
     try:
-        machine = request.headers["X-Machine-Name"]
+        system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
     # public endpoints from Kong to users
-    if machine not in SYSTEMS_PUBLIC:
+    if system_name not in SYSTEMS_PUBLIC:
         header={"X-Machine-Does-Not-Exists":"Machine does not exists"}
         return jsonify(description="Failed to submit job file",error="Machine does not exists"), 400, header
 
     # iterate over SYSTEMS_PUBLIC list and find the endpoint matching same order
 
     # select index in the list corresponding with machine name
-    machine_idx = SYSTEMS_PUBLIC.index(machine)
-    machine = SYS_INTERNALS[machine_idx]
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
 
     # check if machine is accessible by user:
     # exec test remote command
-    resp = exec_remote_command(auth_header, machine, "true")
+    resp = exec_remote_command(auth_header, system_name, system_addr, "true")
 
     if resp["error"] != 0:
         error_str = resp["msg"]
@@ -315,7 +315,7 @@ def submit_job():
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Failed to submit job file"), 404, header
 
-    job_base_fs = COMPUTE_BASE_FS[machine_idx]
+    job_base_fs = COMPUTE_BASE_FS[system_idx]
 
     try:
         # check if the post request has the file part
@@ -360,7 +360,7 @@ def submit_job():
     try:
         # asynchronous task creation
         aTask = threading.Thread(target=submit_job_task,
-                             args=(auth_header, machine, job_file, job_dir, task_id))
+                             args=(auth_header, system_name, system_addr, job_file, job_dir, task_id))
 
         aTask.start()
         retval = update_task(task_id, auth_header, async_task.QUEUED, TASKS_URL)
@@ -383,23 +383,23 @@ def list_jobs():
     auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
-        machine = request.headers["X-Machine-Name"]
+        system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
     # public endpoints from Kong to users
-    if machine not in SYSTEMS_PUBLIC:
+    if system_name not in SYSTEMS_PUBLIC:
         header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
         return jsonify(description="Failed to retrieve jobs information", error="Machine does not exists"), 400, header
 
     # select index in the list corresponding with machine name
-    machine_idx = SYSTEMS_PUBLIC.index(machine)
-    machine = SYS_INTERNALS[machine_idx]
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
 
     # check if machine is accessible by user:
     # exec test remote command
-    resp = exec_remote_command(auth_header, machine, "true")
+    resp = exec_remote_command(auth_header, system_name, system_addr, "true")
 
     if resp["error"] != 0:
         error_str = resp["msg"]
@@ -412,7 +412,7 @@ def list_jobs():
 
     username = get_username(auth_header)
 
-    app.logger.info(f"Getting SLURM information of jobs from {machine}")
+    app.logger.info(f"Getting SLURM information of jobs from {system_name} ({system_addr})")
 
     # job list comma separated:
     jobs        = request.args.get("jobs", None)
@@ -464,7 +464,7 @@ def list_jobs():
 
         # asynchronous task creation
         aTask = threading.Thread(target=list_job_task,
-                                 args=(auth_header, machine, action, task_id, pageSize, pageNumber))
+                                 args=(auth_header, system_name, system_addr, action, task_id, pageSize, pageNumber))
 
         aTask.start()
 
@@ -479,9 +479,9 @@ def list_jobs():
 
 
 
-def list_job_task(auth_header,machine,action,task_id,pageSize,pageNumber):
+def list_job_task(auth_header,system_name, system_addr,action,task_id,pageSize,pageNumber):
     # exec command
-    resp = exec_remote_command(auth_header, machine, action)
+    resp = exec_remote_command(auth_header, system_name, system_addr, action)
 
     app.logger.info(resp)
 
@@ -564,13 +564,13 @@ def list_job(jobid):
     auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
-        machine = request.headers["X-Machine-Name"]
+        system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
     # public endpoints from Kong to users
-    if machine not in SYSTEMS_PUBLIC:
+    if system_name not in SYSTEMS_PUBLIC:
         header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
         return jsonify(description="Failed to retrieve job information", error="Machine does not exists"), 400, header
 
@@ -579,12 +579,12 @@ def list_job(jobid):
         return jsonify(description="Failed to retrieve job information", error=f"{jobid} is not a valid job ID"), 400
 
     # select index in the list corresponding with machine name
-    machine_idx = SYSTEMS_PUBLIC.index(machine)
-    machine = SYS_INTERNALS[machine_idx]
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
 
     # check if machine is accessible by user:
     # exec test remote command
-    resp = exec_remote_command(auth_header, machine, "true")
+    resp = exec_remote_command(auth_header, system_name, system_addr, "true")
 
     if resp["error"] != 0:
         error_str = resp["msg"]
@@ -596,8 +596,7 @@ def list_job(jobid):
             return jsonify(description="Failed to retrieve job information"), 404, header
 
     username = get_username(auth_header)
-    app.logger.info("Getting SLURM information of job={jobid} from {machine}".
-                    format(machine=machine,jobid=jobid))
+    app.logger.info(f"Getting SLURM information of job={jobid} from {system_name} ({system_addr})")
 
     # format: jobid (i) partition (P) jobname (j) user (u) job sTate (T),
     #          start time (S), job time (M), left time (L)
@@ -612,7 +611,7 @@ def list_job(jobid):
 
         # asynchronous task creation
         aTask = threading.Thread(target=list_job_task,
-                                 args=(auth_header, machine, action, task_id, 1, 1))
+                                 args=(auth_header, system_name, system_addr, action, task_id, 1, 1))
 
         aTask.start()
 
@@ -627,9 +626,9 @@ def list_job(jobid):
 
 
 
-def cancel_job_task(auth_header,machine,action,task_id):
+def cancel_job_task(auth_header,system_name, system_addr,action,task_id):
     # exec scancel command
-    resp = exec_remote_command(auth_header, machine, action)
+    resp = exec_remote_command(auth_header, system_name, system_addr, action)
 
     app.logger.info(resp)
 
@@ -676,23 +675,23 @@ def cancel_job(jobid):
     auth_header = request.headers[AUTH_HEADER_NAME]
     
     try:
-        machine = request.headers["X-Machine-Name"]
+        system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
     # public endpoints from Kong to users
-    if machine not in SYSTEMS_PUBLIC:
+    if system_name not in SYSTEMS_PUBLIC:
         header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
         return jsonify(description="Failed to delete job", error="Machine does not exists"), 400, header
 
     # select index in the list corresponding with machine name
-    machine_idx = SYSTEMS_PUBLIC.index(machine)
-    machine = SYS_INTERNALS[machine_idx]
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
 
     # check if machine is accessible by user:
     # exec test remote command
-    resp = exec_remote_command(auth_header, machine, "true")
+    resp = exec_remote_command(auth_header, system_name, system_addr, "true")
 
     if resp["error"] != 0:
         error_str = resp["msg"]
@@ -704,7 +703,7 @@ def cancel_job(jobid):
             return jsonify(description="Failed to delete job"), 404, header
 
 
-    app.logger.info(f"Cancel SLURM job={jobid} from {machine}")
+    app.logger.info(f"Cancel SLURM job={jobid} from {system_name} ({system_addr})")
 
     # scancel with verbose in order to show correctly the error
     action = f"scancel -v {jobid}"
@@ -715,7 +714,7 @@ def cancel_job(jobid):
 
         # asynchronous task creation
         aTask = threading.Thread(target=cancel_job_task,
-                             args=(auth_header, machine, action, task_id))
+                             args=(auth_header, system_name, system_addr, action, task_id))
 
         aTask.start()
 
@@ -731,9 +730,9 @@ def cancel_job(jobid):
         return data, 400
 
 
-def acct_task(auth_header, machine, action, task_id):
+def acct_task(auth_header, system_name, system_addr, action, task_id):
     # exec remote command
-    resp = exec_remote_command(auth_header, machine, action)
+    resp = exec_remote_command(auth_header, system_name, system_addr, action)
 
     app.logger.info(resp)
 
@@ -782,23 +781,23 @@ def acct_task(auth_header, machine, action, task_id):
 def acct():
     auth_header = request.headers[AUTH_HEADER_NAME]
     try:
-        machine = request.headers["X-Machine-Name"]
+        system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
     # public endpoints from Kong to users
-    if machine not in SYSTEMS_PUBLIC:
+    if system_name not in SYSTEMS_PUBLIC:
         header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
         return jsonify(description="Failed to retrieve account information", error="Machine does not exists"), 400, header
 
     # select index in the list corresponding with machine name
-    machine_idx = SYSTEMS_PUBLIC.index(machine)
-    machine = SYS_INTERNALS[machine_idx]
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
 
     # check if machine is accessible by user:
     # exec test remote command
-    resp = exec_remote_command(auth_header, machine, "true")
+    resp = exec_remote_command(auth_header, system_name, system_addr, "true")
 
     if resp["error"] != 0:
         error_str = resp["msg"]
@@ -865,7 +864,7 @@ def acct():
 
         # asynchronous task creation
         aTask = threading.Thread(target=acct_task,
-                                 args=(auth_header, machine, action, task_id))
+                                 args=(auth_header, system_name, system_addr, action, task_id))
 
         aTask.start()
         task_url = "{KONG_URL}/tasks/{task_id}".format(KONG_URL=KONG_URL, task_id=task_id)

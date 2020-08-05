@@ -215,3 +215,14 @@ services:
       - ./taskpersistence/redis.conf:/redis.conf:ro
       - ./taskpersistence-data:/data:delegated
       - ./logs:/var/log:delegated
+
+  opa:
+    image: openpolicyagent/opa:0.22.0
+    command: run --server --log-level=debug --log-format=json-pretty  /opa-files/data.json /opa-files/policy.rego
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.40
+    ports: 
+      - "8181:8181"    
+    volumes: 
+      - ./opa:/opa-files

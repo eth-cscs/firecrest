@@ -40,6 +40,11 @@ TASKS_URL = os.environ.get("F7T_TASKS_URL")
 
 F7T_SSH_CERTIFICATE_WRAPPER = os.environ.get("F7T_SSH_CERTIFICATE_WRAPPER", None)
 
+# OPA endpoint
+OPA_USE = os.environ.get("F7T_OPA_USE",False)
+OPA_URL = os.environ.get("F7T_OPA_URL","http://localhost:8181").strip('\'"')
+POLICY_PATH = os.environ.get("F7T_POLICY_PATH","v1/data/f7t/authz").strip('\'"')
+
 logging.getLogger().setLevel(logging.INFO)
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',datefmt='%Y-%m-%d:%H:%M:%S',level=logging.INFO)
 
@@ -60,20 +65,11 @@ def check_header(header):
                 decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, options={'verify_aud': False})
             else:
                 decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, audience=AUTH_AUDIENCE)
-
-        # if AUTH_REQUIRED_SCOPE != '':
-        #     if not (AUTH_REQUIRED_SCOPE in decoded['realm_access']['roles']):
-        #         return False
-
-
-        # {"scope": "openid profile firecrest email"}
+       
         if AUTH_REQUIRED_SCOPE != "":
             if AUTH_REQUIRED_SCOPE not in decoded["scope"].split():
                 return False
-
-        #if not (decoded['preferred_username'] in ALLOWED_USERS):
-        #    return False
-
+        
         return True
 
     except jwt.exceptions.InvalidSignatureError:
@@ -98,17 +94,10 @@ def get_username(header):
         if realm_pubkey == '':
             decoded = jwt.decode(header[7:], verify=False)
         else:
-#            if AUTH_AUDIENCE == '':
             decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, options={'verify_aud': False})
-#            else:
-#                decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, audience=AUTH_AUDIENCE)
-
-#        if ALLOWED_USERS != '':
-#            if not (decoded['preferred_username'] in ALLOWED_USERS):
-#                return None
         # check if it's a service account token
         try:
-            if AUTH_ROLE in decoded["realm_access"]["roles"]: # firecrest-sa
+            if AUTH_ROLE in decoded["realm_access"]["roles"]: 
 
                 clientId = decoded["clientId"]
                 username = decoded["resource_access"][clientId]["roles"][0]
@@ -141,10 +130,11 @@ def in_str(stringval,words):
 
 # SSH certificates creation
 # returns pub key certificate name
-def create_certificate(auth_header, cluster, command=None, options=None, exp_time=None):
+def create_certificate(auth_header, cluster_name, cluster_addr,  command=None, options=None, exp_time=None):
     """
     Args:
-      cluster = system to be executed
+      cluster_name = public name of system to be executed
+      cluster_addr = private DNS or IP of the system
       command = command to be executed with the certificate (required)
       option = parameters and options to be executed with {command}
       exp_time = expiration time for SSH certificate
@@ -154,7 +144,7 @@ def create_certificate(auth_header, cluster, command=None, options=None, exp_tim
         username = get_username(auth_header)
         logging.info(f"Create certificate for user {username}")
 
-    reqURL = f"{CERTIFICATOR_URL}/?cluster={cluster}"
+    reqURL = f"{CERTIFICATOR_URL}/?cluster={cluster_name}&addr={cluster_addr}"
 
     if command:
         logging.info(f"\tCommand: {command}")
@@ -173,6 +163,9 @@ def create_certificate(auth_header, cluster, command=None, options=None, exp_tim
 
     try:
         resp = requests.get(reqURL, headers={AUTH_HEADER_NAME: auth_header})
+
+        if not resp.ok:
+            return [None, resp.status_code, resp.json()["description"]]
 
         jcert = resp.json()
 
@@ -202,11 +195,11 @@ def create_certificate(auth_header, cluster, command=None, options=None, exp_tim
 
 
 # execute remote commands with Paramiko:
-def exec_remote_command(auth_header, system, action, file_transfer=None, file_content=None):
+def exec_remote_command(auth_header, system_name, system_addr, action, file_transfer=None, file_content=None):
 
     import paramiko, socket
 
-    logging.info('debug: cscs_common_api: exec_remote_command: system: ' + system + '  -  action: ' + action)
+    logging.info('debug: cscs_common_api: exec_remote_command: system name: ' + system_name + '  -  action: ' + action)
 
     if file_transfer == "storage_cert":
         # storage is using a previously generated cert, save cert list from content
@@ -221,10 +214,10 @@ def exec_remote_command(auth_header, system, action, file_transfer=None, file_co
         # get certificate:
         # if OK returns: [pub_cert, pub_key, priv_key, temp_dir]
         # if FAILED returns: [None, errno, strerror]
-        cert_list = create_certificate(auth_header, system, command=action)
+        cert_list = create_certificate(auth_header, system_name, system_addr, command=action)
 
         if cert_list[0] == None:
-            result = {"error": 1, "msg": "Cannot create certificates"}
+            result = {"error": cert_list[1], "msg": cert_list[2]}
             return result
 
         username = get_username(auth_header)
@@ -238,7 +231,7 @@ def exec_remote_command(auth_header, system, action, file_transfer=None, file_co
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-        ipaddr = system.split(':')
+        ipaddr = system_addr.split(':')
         host = ipaddr[0]
         if len(ipaddr) == 1:
             port = 22
@@ -531,3 +524,35 @@ def check_auth_header(func):
 
         return func(*args, **kwargs)
     return wrapper_check_auth_header
+
+
+# check user authorization on endpoint
+# using Open Policy Agent
+# 
+# use:
+# check_user_auth(username,system)
+def check_user_auth(username,system):
+
+    # check if OPA is active
+    if OPA_USE:
+        try: 
+            input = {"input":{"user": f"{username}", "system": f"{system}"}}
+            #resp_opa = requests.post(f"{OPA_URL}/{POLICY_PATH}", json=input)
+            logging.info(f"{OPA_URL}/{POLICY_PATH}")
+
+            resp_opa = requests.post(f"{OPA_URL}/{POLICY_PATH}", json=input)
+
+            logging.info(resp_opa.content)
+
+            if resp_opa.json()["result"]["allow"]:
+                logging.info(f"User {username} authorized by OPA")
+                return {"allow": True, "description":f"User {username} authorized", "status_code": 200 }
+            else:
+                logging.error(f"User {username} NOT authorized by OPA")
+                return {"allow": False, "description":f"User {username} not authorized in {system}", "status_code": 401}                
+        except requests.exceptions.RequestException as e:
+            logging.error(e.args)
+            return {"allow": False, "description":"Authorization server error", "status_code": 404} 
+    
+    return {"allow": True, "description":"Authorization method not active", "status_code": 200 }
+            

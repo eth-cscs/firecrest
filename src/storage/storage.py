@@ -110,13 +110,13 @@ app = Flask(__name__)
 # 'path' should exists and be accesible to the user
 #
 # * for download the sourcePath should be a file that you can read 
-def check_sourcePath(path, auth_header, system):
+def check_sourcePath(path, auth_header, system_name, system_addr):
 
     # checks user accessibility to path using touch
     # -r parameter is to not modify timestamp of the file (by modifiying for the same file's timestamp)
     action = f"touch -r {path} {path}"
 
-    retval = exec_remote_command(auth_header,system,action)
+    retval = exec_remote_command(auth_header,system_name,system_addr,action)
 
     app.logger.info(retval)
 
@@ -146,7 +146,7 @@ def check_sourcePath(path, auth_header, system):
     # checks using ls -ld of the path (-d is used for listing dir info not its content)
     action = f"ls -ld {path}"
 
-    retval = exec_remote_command(auth_header,system,action)
+    retval = exec_remote_command(auth_header,system_name,system_addr,action)
 
     is_dir = retval["msg"][0]
     if is_dir ==  "d":
@@ -161,7 +161,7 @@ def check_sourcePath(path, auth_header, system):
 # 'path' should exists and be accesible to the user
 #
 # * for upload the targetPath should be a directory where you can write
-def check_targetPath(path, auth_header, system):
+def check_targetPath(path, auth_header, system_name, system_addr):
 
     # create an empty file for testing path accesibility
     # test file is a hidden file and has a timestamp in order to not overwrite other files created by user
@@ -177,7 +177,7 @@ def check_targetPath(path, auth_header, system):
 
     action = f"touch -- {path}/{tempFileName}"
 
-    retval = exec_remote_command(auth_header,system,action)
+    retval = exec_remote_command(auth_header,system_name,system_addr,action)
 
     app.logger.info(retval)
 
@@ -206,7 +206,7 @@ def check_targetPath(path, auth_header, system):
 
     # delete test file created
     action = f"rm -- {path}/{tempFileName}"
-    retval = exec_remote_command(auth_header,system,action)
+    retval = exec_remote_command(auth_header,system_name,system_addr,action)
 
 
     return {"result":True}
@@ -243,7 +243,8 @@ def str_to_file(str_file,dir_name,file_name):
 
 def os_to_fs(task_id):
     upl_file = uploaded_files[task_id]
-    system = upl_file["system"]
+    system_name = upl_file["system_name"]
+    system_addr = upl_file["system_addr"]
     username = upl_file["user"]
     objectname = upl_file["source"]
 
@@ -282,7 +283,7 @@ def os_to_fs(task_id):
         update_task(task_id,None,async_task.ST_DWN_BEG)
 
         # execute download
-        result = exec_remote_command(username, system, "", "storage_cert", cert_list)
+        result = exec_remote_command(username, system_name, system_addr, "", "storage_cert", cert_list)
 
         # if no error, then download is complete
         if result["error"] == 0:
@@ -361,7 +362,7 @@ def check_upload_files():
 # sourcePath: path in FS where the object is
 # task_id: async task id given for Tasks microservice
 
-def download_task(auth_header,system,sourcePath,task_id):
+def download_task(auth_header,system_name, system_addr,sourcePath,task_id):
     object_name = sourcePath.split("/")[-1]
     global staging
 
@@ -392,7 +393,7 @@ def download_task(auth_header,system,sourcePath,task_id):
     update_task(task_id, auth_header, async_task.ST_UPL_BEG)
 
     # upload starts:
-    res = exec_remote_command(auth_header,system,upload_url["command"])
+    res = exec_remote_command(auth_header,system_name, system_addr,upload_url["command"])
 
     # if upload to SWIFT fails:
     if res["error"] != 0:
@@ -436,7 +437,8 @@ def download_request():
 
     auth_header = request.headers[AUTH_HEADER_NAME]
         
-    system = EXT_TRANSFER_MACHINE_INTERNAL
+    system_addr = EXT_TRANSFER_MACHINE_INTERNAL
+    system_name = EXT_TRANSFER_MACHINE_PUBLIC
     sourcePath = request.form["sourcePath"]  # path file in cluster
 
     if sourcePath == None or sourcePath == "":
@@ -444,7 +446,7 @@ def download_request():
         return data, 400
 
     # checks if sourcePath is a valid path
-    check = check_sourcePath(sourcePath, auth_header, system)
+    check = check_sourcePath(sourcePath, auth_header, system_name, system_addr)
 
     if not check["result"]:
         return jsonify(description="sourcePath error"), 400, check["headers"]
@@ -460,7 +462,7 @@ def download_request():
 
     # asynchronous task creation
     aTask = threading.Thread(target=download_task,
-                             args=(auth_header, system, sourcePath, task_id))
+                             args=(auth_header, system_name, system_addr, sourcePath, task_id))
 
     storage_tasks[task_id] = aTask
 
@@ -485,7 +487,7 @@ def download_request():
 # targetPath: absolute path in which to store the file
 # sourcePath: absolute path in local FS
 # task_id: async task_id created with Tasks microservice
-def upload_task(auth_header,system,targetPath,sourcePath,task_id):
+def upload_task(auth_header,system_name, system_addr,targetPath,sourcePath,task_id):
 
     fileName = sourcePath.split("/")[-1]
 
@@ -494,7 +496,8 @@ def upload_task(auth_header,system,targetPath,sourcePath,task_id):
 
     # change hash_id for task_id since is not longer needed for (failed) redirection
     uploaded_files[task_id] = {"user": container_name,
-                               "system": system,
+                               "system_name": system_name,
+                               "system_addr": system_addr,
                                "target": targetPath,
                                "source": fileName,
                                "status": async_task.ST_URL_ASK,
@@ -544,7 +547,7 @@ def upload_task(auth_header,system,targetPath,sourcePath,task_id):
     # create certificate for later download from OS to filesystem
     app.logger.info("Creating certificate for later download") 
     options = f"-q -O {targetPath}/{fileName} -- '{download_url}'"
-    certs = create_certificate(auth_header, system, "wget", options)
+    certs = create_certificate(auth_header, system_name, system_addr, "wget", options)
     # certs = create_certificates(auth_header,system,command="wget",options=urllib.parse.quote(options),exp_time=STORAGE_TEMPURL_EXP_TIME)
 
     if not certs[0]:
@@ -592,14 +595,15 @@ def upload_request():
     
     auth_header = request.headers[AUTH_HEADER_NAME]
 
-    system = EXT_TRANSFER_MACHINE_INTERNAL
+    system_addr = EXT_TRANSFER_MACHINE_INTERNAL
+    system_name = EXT_TRANSFER_MACHINE_PUBLIC
 
 
     targetPath   = request.form["targetPath"] # path to save file in cluster
     sourcePath   = request.form["sourcePath"] # path from the local FS
 
 
-    if system == None or system == "":
+    if system_addr == None or system_addr == "":
         data = jsonify(error="System not set in request")
         return data, 400
 
@@ -613,7 +617,7 @@ def upload_request():
         return data, 400
 
     # checks if targetPath is a valid path
-    check = check_targetPath(targetPath, auth_header, system)
+    check = check_targetPath(targetPath, auth_header, system_name, system_addr)
 
     if not check["result"]:
         return jsonify(description="sourcePath error"), 400, check["headers"]
@@ -630,7 +634,7 @@ def upload_request():
         update_task(task_id, auth_header, async_task.QUEUED)
 
         aTask = threading.Thread(target=upload_task,
-                             args=(auth_header,system,targetPath,sourcePath,task_id))
+                             args=(auth_header,system_name, system_addr,targetPath,sourcePath,task_id))
 
         storage_tasks[task_id] = aTask
 
@@ -648,24 +652,24 @@ def upload_request():
 
 
 # use wget to download file from download_url created with swift
-def get_file_from_storage(auth_header,system,path,download_url,fileName):
+def get_file_from_storage(auth_header,system_name, system_addr,path,download_url,fileName):
 
-    app.logger.info("Trying downloading {url} from Object Storage to {system}".
-                    format(url=download_url,system=system))
+    app.logger.info(f"Trying downloading {download_url} from Object Storage to {system_name}")
+                    
 
     # wget to be executed on cluster side:
-    action = f"wget -q -O {path}/{fileName} -- \"{downdload_url}\" "
+    action = f"wget -q -O {path}/{fileName} -- \"{download_url}\" "
 
     app.logger.info(action)
 
-    retval = exec_remote_command(auth_header,system,action)
+    retval = exec_remote_command(auth_header,system_name, system_addr,action)
 
     return retval
 
 
 
 ## upload callback asynchronous task: has_id and task_id
-def upload_finished_task(auth_header, system, targetPath, sourcePath, hash_id):
+def upload_finished_task(auth_header, system_name, system_addr, targetPath, sourcePath, hash_id):
 
     global staging
 
@@ -704,7 +708,7 @@ def upload_finished_task(auth_header, system, targetPath, sourcePath, hash_id):
 
     # register download to server started
     update_task(hash_id,auth_header, async_task.ST_DWN_BEG, data, is_json=True)
-    res = get_file_from_storage(auth_header,system,targetPath,temp_url,sourcePath) #download file to system
+    res = get_file_from_storage(auth_header,system_name, system_addr,targetPath,temp_url,sourcePath) #download file to system
 
     # result {"error": "error_msg"}
     if res["error"] != 0:
@@ -763,7 +767,8 @@ def upload_finished_call(hash_id,auth_header):
         # data = uploaded_files[hash_id]
         user = data["user"]
         sourcePath = data["source"]
-        system = data["system"]
+        system_addr = data["system_addr"]
+        system_name = data["system_name"]
         target = data["target"]
 
         app.logger.info("Source: {}".format(sourcePath))
@@ -802,7 +807,7 @@ def upload_finished_call(hash_id,auth_header):
         update_task(hash_id, auth_header, async_task.ST_DWN_BEG, data, is_json=True)
 
         aTask = threading.Thread(target=upload_finished_task,
-                                 args=(auth_header,system,target,sourcePath,hash_id,))
+                                 args=(auth_header,system_name,system_addr,target,sourcePath,hash_id,))
 
         # replace the old upload_task using the same task_id
         storage_tasks[hash_id] = aTask
@@ -958,12 +963,12 @@ def internal_operation(request, command):
         stageOutJobId = None
 
     # select index in the list corresponding with machine name
-    machine_idx = SYSTEMS_PUBLIC.index(STORAGE_JOBS_MACHINE)
-    machine = SYS_INTERNALS[machine_idx]
+    system_idx = SYSTEMS_PUBLIC.index(STORAGE_JOBS_MACHINE)
+    system_addr = SYS_INTERNALS[system_idx]
 
     # check if machine is accessible by user:
     # exec test remote command
-    resp = exec_remote_command(auth_header, machine, "true")
+    resp = exec_remote_command(auth_header, STORAGE_JOBS_MACHINE, system_addr, "true")
 
     if resp["error"] != 0:
         error_str = resp["msg"]
