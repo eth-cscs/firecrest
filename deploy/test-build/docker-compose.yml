@@ -106,3 +106,12 @@ services:
     volumes:
       - ./taskpersistence/redis.conf:/redis.conf:ro
       - ./logs/firecrest:/var/log:delegated
+
+  opa:
+    image: openpolicyagent/opa:0.22.0
+    command: run --server --log-level=debug --log-format=json-pretty  /opa-files/data.json /opa-files/policy.rego
+    network_mode: "host"
+    ports: 
+      - "8181:8181"    
+    volumes: 
+      - ./opa:/opa-files

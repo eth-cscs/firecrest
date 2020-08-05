@@ -1,0 +1,12 @@
+
+{
+    "systems": {
+            "cluster": {
+                "users": ["test1"] 
+            },
+            "not_a_system": {
+                "users": ["testuser"]
+            }
+        }
+        
+}
