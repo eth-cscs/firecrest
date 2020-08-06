@@ -596,7 +596,7 @@ def is_valid_file(path, auth_header, system):
 
     # checks user accessibility to path using touch
     # -r parameter is to not modify timestamp of the file (by modifiying for the same file's timestamp)
-    action = f"touch -r {path} {path}"
+    action = f"tail -c 1 -- {path}"
 
     retval = exec_remote_command(auth_header,system,action)
 
@@ -621,18 +621,20 @@ def is_valid_file(path, auth_header, system):
         # permission denied
         if in_str(error_str,"Permission denied") or in_str(error_str,"OPENSSH"):
             return {"result":False, "headers":{"X-Permission-Denied": "User does not have permissions to access machine or path"}}
-            
+
+        if in_str(error_str, "directory"):
+            return {"result":False, "headers":{"X-A-Directory": "{path} is a directory".format(path=path)}}  
 
         return {"result":False, "headers":{"X-Error": retval["msg"]}}
 
     # checks using ls -ld of the path (-d is used for listing dir info not its content)
-    action = f"ls -ld {path}"
+    # action = f"ls -ld {path}"
 
-    retval = exec_remote_command(auth_header,system,action)
+    # retval = exec_remote_command(auth_header,system,action)
 
-    is_dir = retval["msg"][0]
-    if is_dir ==  "d":
-        return {"result":False, "headers":{"X-A-Directory": "{path} is a directory".format(path=path)}}
+    # is_dir = retval["msg"][0]
+    # if is_dir ==  "d":
+    #     return {"result":False, "headers":{"X-A-Directory": "{path} is a directory".format(path=path)}}
 
 
     return {"result":True}
