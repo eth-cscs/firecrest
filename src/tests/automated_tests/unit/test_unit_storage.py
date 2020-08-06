@@ -34,7 +34,14 @@ def test_download_file_not_exist(headers):
     assert resp.status_code == 400
 
 def test_download_file_not_allowed(headers):
-    data = { "sourcePath": "/etc/hosts" }
+    data = { "sourcePath": "/srv/f7t/test_sbatch_forbidden.sh" }
+    resp = requests.post(STORAGE_URL + "/xfer-external/download", headers=headers, data=data) 
+    print(resp.json())  
+    print(resp.headers)
+    assert resp.status_code == 400
+
+def test_download_dir_not_allowed(headers):
+    data = { "sourcePath": "/srv/f7t" }
     resp = requests.post(STORAGE_URL + "/xfer-external/download", headers=headers, data=data) 
     print(resp.json())  
     print(resp.headers)
