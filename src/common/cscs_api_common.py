@@ -594,9 +594,8 @@ def get_task_status(task_id,auth_header):
 # checks if {path} is a valid file (exists and user in {auth_header} has read permissions)
 def is_valid_file(path, auth_header, system):
 
-    # checks user accessibility to path using touch
-    # -r parameter is to not modify timestamp of the file (by modifiying for the same file's timestamp)
-    action = f"tail -c 1 -- {path}"
+    # checks user accessibility to path using head command with 0 bytes
+    action = f"head -c 1 -- {path}"
 
     retval = exec_remote_command(auth_header,system,action)
 
