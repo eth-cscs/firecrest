@@ -512,7 +512,7 @@ def invalidate_request():
         if error == -1:
             return jsonify(error="Could not invalidate URL"), 400
 
-    return jsonify(success="URL invalidated successfully"), 200
+    return jsonify(success="URL invalidated successfully"), 201
 
 
 
