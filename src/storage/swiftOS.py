@@ -255,14 +255,11 @@ class Swift(ObjectStorage):
         # object_prefix = "{prefix}/{objectname}".format(prefix=prefix, objectname=objectname)
 
         url = f"{self.url}/{containername}"
-
-        print(url)
-
+        
         try:
             req = requests.get(url, headers={"X-Auth-Token": self.auth})
             if req.ok:
-                print(req.content)
-
+                
                 values = req.content.decode("utf-8")
                 object_list = values.split("\n")[0:-1] # last element on the list is a ''
 
@@ -311,14 +308,9 @@ class Swift(ObjectStorage):
             logging.error(e)
             return -1
 
-    def delete_object(self,containername,prefix,objectname=None):
+    def delete_object(self,containername,prefix,objectname):
 
-        if objectname!=None:
-
-            swift_account_url = f"{self.url}/{containername}/{prefix}/{objectname}"
-        
-        else:
-            swift_account_url = f"{self.url}/{containername}/{prefix}"
+        swift_account_url = f"{self.url}/{containername}/{prefix}"
 
         header = {"X-Auth-Token": self.auth}
 

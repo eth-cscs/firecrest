@@ -553,7 +553,7 @@ class S3v4(ObjectStorage):
         return -1
 
 
-    def delete_object(self,containername,prefix,objectname=None):
+    def delete_object(self,containername,prefix,objectname):
 
         ttl = 120
         httpVerb = "DELETE"
@@ -571,11 +571,8 @@ class S3v4(ObjectStorage):
         amzdate = t.strftime('%Y%m%dT%H%M%SZ')
         datestamp = t.strftime('%Y%m%d')  # Date w/o time, used in credential scope
 
-        if objectname != None:
-            canonical_uri = "/" + containername + "/" + prefix + "/" + objectname
-        else:
-            canonical_uri = "/" + containername + "/" + prefix + "/"
-
+        canonical_uri = "/" + containername + "/" + prefix + "/" + objectname
+        
         canonical_headers = 'host:' + host + "\n"  # + "x-amz-date:"+ amzdate + "\n"
 
         signed_headers = "host"  # "host;x-amz-content-sha256;x-amz-date"
