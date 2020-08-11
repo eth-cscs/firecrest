@@ -14,12 +14,12 @@ import requests
 import os
 
 
-OS_AUTH_URL             = os.environ.get("OS_AUTH_URL")
-OS_IDENTITY_PROVIDER    = os.environ.get("OS_IDENTITY_PROVIDER")
-OS_IDENTITY_PROVIDER_URL= os.environ.get("OS_IDENTITY_PROVIDER_URL")
-OS_PROTOCOL             = os.environ.get("OS_PROTOCOL")
-OS_INTERFACE            = os.environ.get("OS_INTERFACE")
-OS_PROJECT_ID           = os.environ.get("OS_PROJECT_ID")
+OS_AUTH_URL             = os.environ.get("F7T_OS_AUTH_URL")
+OS_IDENTITY_PROVIDER    = os.environ.get("F7T_OS_IDENTITY_PROVIDER")
+OS_IDENTITY_PROVIDER_URL= os.environ.get("F7T_OS_IDENTITY_PROVIDER_URL")
+OS_PROTOCOL             = os.environ.get("F7T_OS_PROTOCOL")
+OS_INTERFACE            = os.environ.get("F7T_OS_INTERFACE")
+OS_PROJECT_ID           = os.environ.get("F7T_OS_PROJECT_ID")
 
 
 logging.basicConfig(level=logging.INFO)

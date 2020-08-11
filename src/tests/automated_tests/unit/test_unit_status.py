@@ -7,9 +7,9 @@ FIRECREST_URL = os.environ.get("FIRECREST_URL")
 if FIRECREST_URL:
 	STATUS_URL = os.environ.get("FIRECREST_URL") + "/status"
 else:
-    STATUS_URL = os.environ.get("STATUS_URL")
+    STATUS_URL = os.environ.get("F7T_STATUS_URL")
 
-SYSTEMS = os.environ.get("SYSTEMS_PUBLIC").split(";")
+SYSTEMS = os.environ.get("F7T_SYSTEMS_PUBLIC").split(";")
 
 
 
@@ -40,6 +40,7 @@ def test_status_services(headers):
 	url = "{}/services".format(STATUS_URL)
 	resp = requests.get(url, headers=headers)
 	print(resp.content)
+	print(resp.json())
 	assert 'description' in resp.json()
 
 

@@ -5,7 +5,6 @@
 #  SPDX-License-Identifier: BSD-3-Clause
 #
 from flask import Flask, request, jsonify, send_file
-import paramiko
 
 from logging.handlers import TimedRotatingFileHandler
 import tempfile, os, socket, logging
@@ -13,28 +12,30 @@ from werkzeug.utils import secure_filename
 from werkzeug.exceptions import BadRequestKeyError
 
 from math import ceil
-from cscs_api_common import check_header, get_username,exec_remote_command, create_certificates, \
-    get_buffer_lines, clean_err_output
+
+from cscs_api_common import check_auth_header, get_username,exec_remote_command, parse_io_error
+import base64
+import io
 
 
-CERTIFICATOR_URL = os.environ.get("CERTIFICATOR_URL")
-STATUS_IP        = os.environ.get("STATUS_IP")
+CERTIFICATOR_URL = os.environ.get("F7T_CERTIFICATOR_URL")
+STATUS_IP        = os.environ.get("F7T_STATUS_IP")
 
-UTILITIES_PORT   = os.environ.get("UTILITIES_PORT", 5000)
+UTILITIES_PORT   = os.environ.get("F7T_UTILITIES_PORT", 5000)
 
 AUTH_HEADER_NAME = 'Authorization'
 
-UTILITIES_TIMEOUT = int(os.environ.get("UTILITIES_TIMEOUT"))
+UTILITIES_TIMEOUT = int(os.environ.get("F7T_UTILITIES_TIMEOUT"))
 
 # SYSTEMS: list of ; separated systems allowed
-SYSTEMS_PUBLIC  = os.environ.get("SYSTEMS_PUBLIC").strip('\'"').split(";")
+SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
 # internal machines for file operations
-SYS_INTERNALS   = os.environ.get("SYSTEMS_INTERNAL_UTILITIES").strip('\'"').split(";")
+SYS_INTERNALS   = os.environ.get("F7T_SYSTEMS_INTERNAL_UTILITIES").strip('\'"').split(";")
 
-debug = os.environ.get("DEBUG_MODE", None)
+debug = os.environ.get("F7T_DEBUG_MODE", None)
 
 #max file size for upload/download in MB
-MAX_FILE_SIZE=int(os.environ.get("UTILITIES_MAX_FILE_SIZE"))
+MAX_FILE_SIZE=int(os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE"))
 
 app = Flask(__name__)
 # max content lenght for upload in bytes
@@ -54,321 +55,43 @@ def in_str(stringval,words):
         return False # if words never found
 
 
-# performs upload via SSH client of paramiko
-# user = remote cluster user
-# system = remote cluster
-# local_path = full local path (Filesystem) of the file to be uploaded
-# remote_path = remote dir (cluster) in which file will be uploaded - must exists
-
-def paramiko_upload(auth_header, cluster, local_path, remote_path):
-
-    fileName = local_path.split("/")[-1]
-
-    # get certificate
-    cert_list = create_certificates(auth_header, cluster)
-
-    if cert_list[0] == None:
-        result = {"error": 1, "msg": "Certificator error: {msg}".format(msg=cert_list[2])}
-        return result
-
-    [pub_cert, pub_key, priv_key, temp_dir] = cert_list
-
-    username = get_username(auth_header)
-
-    # -------------------
-    # remote exec with paramiko
-    try:
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-        ipaddr = cluster.split(':')
-        host = ipaddr[0]
-        if len(ipaddr) == 1:
-            port = 22
-        else:
-            port = int(ipaddr[1])
-
-        client.connect(hostname=host, port=port,
-                           username=username,
-                           key_filename="{pub_cert}".format(pub_cert=pub_cert),
-                           allow_agent=False,
-                           look_for_keys=False,
-                           timeout=2)
-
-        ftp_client = client.open_sftp()
-
-        try:
-            local_file = open(local_path, "rb")
-            local_data = local_file.read()
-        except Exception as e:
-            app.logger.error(e.message)
-            result = {"error": 1, "msg": e.message}
-        finally:
-            local_file.close()
-
-        remote_path_file = "{remote_path}/{filename}".format(remote_path=remote_path, filename=fileName)
-
-
-        remote_file = ftp_client.file(remote_path_file, "w")
-        remote_file.write(local_data)
-        result = {"error": 0, "msg": remote_path_file}
-        remote_file.close()
-
-
-        # try:
-        #     remote_file = ftp_client.file(remote_path_file, "w")
-        #     remote_file.write(local_data)
-        #     result = {"error": 0, "msg": remote_path_file}
-        # except PermissionError as pe:
-        #     app.logger.error("Permission error {strerr}".format(strerr=pe.errno))
-        #     app.logger.error("Errno {errno}".format(errno=pe.strerror))
-        #     result = {"error": pe.errno, "msg": pe.strerror}
-        # except Exception as e:
-        #     app.logger.error(type(e))
-        #     app.logger.error(e)
-        #     result = {"error": 1, "msg": e}
-        # finally:
-        #     remote_file.close()
-        #     # closing client
-        #     app.logger.info("Closing clients")
-        #     ftp_client.close()
-        #     client.close()
-
-        #     app.logger.info("Removing temp certs")
-        #     # removing temporary keys, certs and dirs
-        #     os.remove(pub_cert)
-        #     os.remove(pub_key)
-        #     os.remove(priv_key)
-        #     os.rmdir(temp_dir)
-
-        #     app.logger.info("Returned: {result}".format(result=result))
-
-        #     return result
-
-        
-
-    except PermissionError as pe:
-        app.logger.error("Permission error {strerr}".format(strerr=pe.errno))
-        app.logger.error("Errno {errno}".format(errno=pe.strerror))
-        result = {"error": pe.errno, "msg": pe.strerror}
-
-    except FileNotFoundError as fnfe:
-        app.logger.error("File Not Found error {strerr}".format(strerr=fnfe.strerror))
-        app.logger.error("Errno {errno}".format(errno=fnfe.errno))
-        result = {"error": fnfe.errno, "msg": fnfe.strerror}
-
-    except paramiko.ssh_exception.NoValidConnectionsError as e:
-        app.logger.error(type(e))
-        if e.errors:
-            for k, v in e.errors.items():
-                app.logger.error("errorno: {errno}".format(errno=v.errno))
-                app.logger.error("strerr: {strerr}".format(strerr=v.strerror))
-                result = {"error": v.errno, "msg": v.strerror}
-
-    # second: time out
-    except socket.timeout as e:
-        app.logger.error(type(e))
-        # timeout has not errno
-        app.logger.error(e)
-        result = {"error": 1, "msg": e}
-
-    except IOError as e:
-        app.logger.error("IOError")
-        app.logger.error(e.strerror)
-        app.logger.error(e.filename)
-        app.logger.error(e.errno)        
-        result = {"error": e.errno, "msg": "IOError"}
-
-    except Exception as e:
-        app.logger.error(e)
-        result = {"error": 1, "msg": e}
-    finally:
-        # closing client
-        app.logger.info("Closing clients")
-       
-        ftp_client.close()
-        client.close()
-
-        app.logger.info("Removing temp certs")
-        # removing temporary keys, certs and dirs
-        os.remove(pub_cert)
-        os.remove(pub_key)
-        os.remove(priv_key)
-        os.rmdir(temp_dir)
-
-    app.logger.info("Returned: {result}".format(result=result))
-
-    return result
-
-
-def paramiko_download(auth_header, cluster, path):
-
-    fileName = path.split("/")[-1]
-
-    # get certificate
-    cert_list = create_certificates(auth_header, cluster)
-
-    if cert_list[0] == None:
-        result = {"error": 1, "msg": "Certificator error: {msg}".format(msg=cert_list[2])}
-        return result
-
-    [pub_cert, pub_key, priv_key, temp_dir] = cert_list
-
-    username = get_username(auth_header)
-
-    # -------------------
-    # remote exec with paramiko
-    try:
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-        ipaddr = cluster.split(':')
-        host = ipaddr[0]
-        if len(ipaddr) == 1:
-            port = 22
-        else:
-            port = int(ipaddr[1])
-
-        client.connect(hostname=host, port=port,
-                       username=username,
-                       key_filename="{pub_cert}".format(pub_cert=pub_cert),
-                       allow_agent=False,
-                       look_for_keys=False,
-                       timeout=2)
-
-        # check file size not over SIZE_LIMIT
-
-        action = "stat --dereference -c %s -- '{path}'".format(path=path)
-        stdin, stdout, stderr = client.exec_command(action)
-
-        # error status
-        errno = stderr.channel.recv_exit_status()
-        errda = clean_err_output(stderr.channel.recv_stderr(1024))
-
-        # if error raised shouldn't continue
-        if errno != 0 or errda != "":
-            app.logger.error("({errno}) --> {stderr}".format(errno=errno, stderr=errda))
-            app.logger.error(stdout.channel.recv_exit_status())
-            result = {"error": 1, "msg": errda.rstrip()}
-        else:  # no error on stat, now checking file size
-            outlines = get_buffer_lines(stdout)
-            app.logger.error(errda)
-            app.logger.error(errno)
-            app.logger.info("({errno}) --> File Size: {stdout}".format(errno=errno, stdout=outlines))
-
-            file_size = int(outlines) # in bytes
-
-            # if file is too big:
-            if file_size > MAX_FILE_SIZE*(1024*1024):
-                app.logger.warning("File size exceeds limit")
-                result={"error":-3,"msg":"File size exceeds limit"}
-            elif file_size == 0:
-                # may be empty, a special file or a directory, just return empty
-                _tmpdir=tempfile.mkdtemp("", "cscs", "/tmp")
-                local_path = "{tempdir}/{fileName}".format(tempdir=_tmpdir, fileName=fileName)
-                local_file = open(local_path,"wb")
-                local_file.close()
-                result = {"error": 0, "msg": local_path}
-            else:
-                #if file isn't too big, download
-                ftp_client = client.open_sftp()
-                _tmpdir=tempfile.mkdtemp("", "cscs", "/tmp")
-                local_path = "{tempdir}/{fileName}".format(tempdir=_tmpdir,fileName=fileName)
-
-                remote_file = ftp_client.file(path,"r")
-                local_file  = open(local_path,"wb")
-
-                remote_data = remote_file.read()
-                local_file.write(remote_data)
-
-                remote_file.close()
-                local_file.close()
-
-                ftp_client.close()
-                result = {"error": 0, "msg": local_path}
-
-            # close connection
-            client.close()
-
-    except paramiko.ssh_exception.NoValidConnectionsError as e:
-        app.logger.error(type(e))
-        if e.errors:
-            for k, v in e.errors.items():
-
-                app.logger.error("errorno: {errno}".format(errno=v.errno))
-                app.logger.error("strerr: {strerr}".format(strerr=v.strerror))
-                result = {"error": v.errno, "msg": v.strerror}
-
-    # second: time out
-    except socket.timeout as e:
-        app.logger.error(type(e))
-        # timeout has not errno
-        app.logger.error(e)
-        result = {"error": 1, "msg": e}
-    except IOError as e:
-        logging.error(e.message, exc_info=True)
-        app.logger.error("IOError")
-        app.logger.error(e.message)
-        app.logger.error(e.errno)
-        app.logger.error(e.strerror)
-        result = {"error": e.errno, "msg": "IOError"}
-    except Exception as e:
-        logging.error(e, exc_info=True)
-        app.logger.error(e)
-        result = {"error":1, "msg":e}
-
-
-    os.remove(pub_cert)
-    os.remove(pub_key)
-    os.remove(priv_key)
-    os.rmdir(temp_dir)
-
-    return result
-
-
 ## file: determines the type of file of path
 ## params:
 ##  - path: Filesystem path (Str) *required
 ##  - machinename: str *required
 
 @app.route("/file", methods=["GET"])
+@check_auth_header
 def file_type():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
+    
+    auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
-        machinename = request.headers["X-Machine-Name"]
+        system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
     # PUBLIC endpoints from Kong to users
-    if machinename not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
-        return jsonify(description="Error in file operation", error="Machine does not exists"), 400, header
+    if system_name not in SYSTEMS_PUBLIC:
+        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
+        return jsonify(description="Error in file operation", error="Machine does not exist"), 400, header
 
-    # iterate over SYSTEMS list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machinename:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
 
     try:
         path = request.args.get("targetPath")
+        if path == "":
+            return jsonify(description="Error in file operation",error="'targetPath' value is empty"), 400
     except BadRequestKeyError as e:
         return jsonify(description="Error in file operation",error="'targetPath' query string missing"), 400
 
 
-    action = "timeout {timeout} file -b -- '{path}'".format(timeout=UTILITIES_TIMEOUT, path=path)
+    action = f"timeout {UTILITIES_TIMEOUT} file -b -- '{path}'"
 
-    retval = exec_remote_command(auth_header, machine, action)
+    retval = exec_remote_command(auth_header, system_name, system_addr, action)
 
     error_str = retval["msg"]
 
@@ -382,7 +105,7 @@ def file_type():
             return jsonify(description="Error in file operation"), 400, header
 
         #in case of permission for other user
-        if in_str(error_str,"Permission"):
+        if in_str(error_str,"Permission") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Error in file operation"), 404, header
 
@@ -408,50 +131,46 @@ def file_type():
 ##  - machinename: str *required
 
 @app.route("/chmod",methods=["PUT"])
+@check_auth_header
 def chmod():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
 
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
+    auth_header = request.headers[AUTH_HEADER_NAME]
+    
     try:
-        machinename = request.headers["X-Machine-Name"]
+        system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
-    # public endpoints from Kong to users
-    if machinename not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
-        return jsonify(description="Error in chmod operation", error="Machine does not exists"), 400, header
+    # PUBLIC endpoints from Kong to users
+    if system_name not in SYSTEMS_PUBLIC:
+        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
+        return jsonify(description="Error in chmod operation", error="Machine does not exist"), 400, header
 
-    # iterate over systems list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machinename:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
 
     # getting path from request form
     try:
         path = request.form["targetPath"]
+        if path == "":
+            return jsonify(description="Error in chmod operation",error="'targetPath' value is empty"), 400
     except BadRequestKeyError:
         return jsonify(description="Error in chmod operation",error="'targetPath' query string missing"), 400
 
     # getting chmode's mode from request form:
     try:
         mode = request.form["mode"]
+        if mode == "":
+            return jsonify(description="Error in chown operation",error="'mode' value is empty"), 400
     except BadRequestKeyError:
         return jsonify(description="Error in chmod operation", error="mode query string missing"), 400
 
     # using -c flag for verbose mode in stdout
-    action = "timeout {timeout} chmod -v '{mode}' -- '{path}'".format(timeout=UTILITIES_TIMEOUT,mode=mode,path=path)
+    action = f"timeout {UTILITIES_TIMEOUT} chmod -v '{mode}' -- '{path}'"
 
-    retval = exec_remote_command(auth_header, machine, action)
+    retval = exec_remote_command(auth_header, system_name, system_addr, action)
 
     if retval["error"] != 0:
         if retval["error"] == -2:
@@ -468,7 +187,7 @@ def chmod():
             header = {"X-Invalid-Path": "{path} is an invalid path".format(path=path)}
             return jsonify(description="Error in chmod operation"), 400, header
 
-        if in_str(error_str, "not permitted"):
+        if in_str(error_str, "not permitted") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Error in chmod operation"), 400, header
 
@@ -490,36 +209,30 @@ def chmod():
 ##  - machinename: str *required
 
 @app.route("/chown",methods=["PUT"])
+@check_auth_header
 def chown():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
+    
+    auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
-        machinename = request.headers["X-Machine-Name"]
+        system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
-    # public endpoints from Kong to users
-    if machinename not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
-        return jsonify(description="Error in chown operation", error="Machine does not exists"), 400, header
+    # PUBLIC endpoints from Kong to users
+    if system_name not in SYSTEMS_PUBLIC:
+        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
+        return jsonify(description="Error in chown operation", error="Machine does not exist"), 400, header
 
-    # iterate over systems list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machinename:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
 
     try:
         path = request.form["targetPath"]
+        if path == "":
+            return jsonify(description="Error in chown operation",error="'targetPath' value is empty"), 400
     except BadRequestKeyError:
         return jsonify(description="Error in chown operation",error="'targetPath' query string missing"), 400
 
@@ -539,10 +252,9 @@ def chown():
         return jsonify(description="Error in chown operation", error="group and/or owner should be set"), 400
 
 
-    action = "timeout {timeout} chown -v '{owner}':'{group}' -- '{path}'".format(
-                    timeout=UTILITIES_TIMEOUT,owner=owner,group=group,path=path)
+    action = f"timeout {UTILITIES_TIMEOUT} chown -v '{owner}':'{group}' -- '{path}'"
 
-    retval = exec_remote_command(auth_header, machine, action)
+    retval = exec_remote_command(auth_header, system_name, system_addr, action)
 
     if retval["error"] != 0:
         if retval["error"] == -2:
@@ -559,7 +271,7 @@ def chown():
             header={"X-Invalid-Path":"{path} is an invalid path".format(path=path)}
             return jsonify(description="Error in chown operation"), 400, header
 
-        if in_str(error_str,"not permitted"):
+        if in_str(error_str,"not permitted") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Error in chown operation"), 400, header
 
@@ -584,33 +296,25 @@ def chown():
 ##  - machinename: str *required
 
 @app.route("/ls",methods=["GET"])
+@check_auth_header
 def list_directory():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
+    
+    auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
-        machinename = request.headers["X-Machine-Name"]
+        system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
-    # public endpoints from Kong to users
-    if machinename not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
-        return jsonify(description="Error listing contents of path", error="Machine does not exists"), 400, header
+    # PUBLIC endpoints from Kong to users
+    if system_name not in SYSTEMS_PUBLIC:
+        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
+        return jsonify(description="Error listing contents of path", error="Machine does not exist"), 400, header
 
-    # iterate over systems list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machinename:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
 
     try:
         path = request.args.get("targetPath")
@@ -630,13 +334,9 @@ def list_directory():
     if showhidden != None:
         showall = "-A"
 
-    # action = "ls -l {showall} --time-style=+%Y-%m-%dT%H:%M:%S -- '{path}' | awk ' {{ print $7 \"|\" substr ($1,0,1) \"|\"$9\"|\"$3\"|\"$4\"|\" substr ($1,2,9) \"|\"$6\"|\"$5\";\" }} ' ".format(
-    #         path=path, showall=showall)
+    action = f"timeout {UTILITIES_TIMEOUT} ls -l {showall} --time-style=+%Y-%m-%dT%H:%M:%S -- '{path}'"
 
-    # changed since bash only captures errors from the last command in pipeline, and this always was OK
-    action = "timeout {timeout} ls -l {showall} --time-style=+%Y-%m-%dT%H:%M:%S -- '{path}' ".format(path=path, showall=showall,timeout=UTILITIES_TIMEOUT)
-
-    retval = exec_remote_command(auth_header, machine, action)
+    retval = exec_remote_command(auth_header, system_name, system_addr, action)
 
     if retval["error"] != 0:
         error_str=retval["msg"]
@@ -654,7 +354,7 @@ def list_directory():
             header={"X-Invalid-Path":"{path} is an invalid path".format(path=path)}
             return jsonify(description="Error listing contents of path"), 400, header
 
-        if in_str(error_str,"cannot open"):
+        if in_str(error_str,"cannot open") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Error listing contents of path"), 400, header
 
@@ -672,12 +372,14 @@ def list_directory():
             fileList = retval["msg"].split("$")
     else:
         fileList = retval["msg"].split("$")[1:]
-        
+
     totalSize = len(fileList)
 
     # if pageSize and number were set:
     pageSize = request.args.get("pageSize")
     pageNumber = request.args.get("pageNumber")
+
+    app.logger.info(f"PageSize: {pageSize}. PageNumber: {pageNumber}")
 
     # calculate the list to retrieve
     if pageSize and pageNumber:
@@ -687,8 +389,8 @@ def list_directory():
 
         totalPages = int(ceil(float(totalSize) / float(pageSize)))
 
-        app.logger.info("Total Size: {totalSize}".format(totalSize=totalSize))
-        app.logger.info("Total Pages: {totalPages}".format(totalPages=totalPages))
+        app.logger.info(f"Total Size: {totalSize}")
+        app.logger.info(f"Total Pages: {totalPages}")
 
 
         if pageNumber < 1 or pageNumber>totalPages:
@@ -741,36 +443,31 @@ def list_directory():
 ##  - machinename: str *required
 
 @app.route("/mkdir",methods=["POST"])
+@check_auth_header
 def make_directory():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
 
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
+    auth_header = request.headers[AUTH_HEADER_NAME]
+    
     try:
-        machinename = request.headers["X-Machine-Name"]
+        system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
-    # public endpoints from Kong to users
-    if machinename not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
-        return jsonify(description="Error creating directory", error="Machine does not exists"), 400, header
+    # PUBLIC endpoints from Kong to users
+    if system_name not in SYSTEMS_PUBLIC:
+        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
+        return jsonify(description="Error creating directory", error="Machine does not exist"), 400, header
 
-    # iterate over systems list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machinename:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
 
     try:
         path = request.form["targetPath"]
+        if path == "":
+            return jsonify(description="Error creating directory",error="'targetPath' value is empty"), 400
+        
     except BadRequestKeyError:
         return jsonify(description="Error creating directory", error="'targetPath' query string missing"), 400
 
@@ -780,9 +477,9 @@ def make_directory():
     except BadRequestKeyError:
         parent = ""
 
-    action = "timeout {timeout} mkdir {parent} -- '{path}'".format(timeout=UTILITIES_TIMEOUT,path=path,parent=parent)
+    action = f"timeout {UTILITIES_TIMEOUT} mkdir {parent} -- '{path}'"
 
-    retval = exec_remote_command(auth_header, machine, action)
+    retval = exec_remote_command(auth_header, system_name, system_addr, action)
 
     if retval["error"] != 0:
         error_str=retval["msg"]
@@ -799,7 +496,7 @@ def make_directory():
             header={"X-Invalid-Path":"{path} is an invalid path".format(path=path)}
             return jsonify(description="Error creating directory"), 400, header
 
-        if in_str(error_str,"Permission denied"):
+        if in_str(error_str,"Permission denied") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Error creating directory"), 400, header
 
@@ -820,86 +517,9 @@ def make_directory():
 ##  - machinename: str *required
 
 @app.route("/rename", methods=["PUT"])
+@check_auth_header
 def rename():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
-    try:
-        machinename = request.headers["X-Machine-Name"]
-    except KeyError as e:
-        app.logger.error("No machinename given")
-        return jsonify(description="No machine name given"), 400
-
-    # public endpoints from Kong to users
-    if machinename not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
-        return jsonify(description="Error on rename operation", error="Machine does not exists"), 400, header
-
-    # iterate over systems list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machinename:
-            machine = SYS_INTERNALS[i]
-            break
-
-    try:
-        sourcePath = request.form["sourcePath"]
-    except BadRequestKeyError:
-        return jsonify(description="Error on rename operation", error="'sourcePath' query string missing"), 400
-
-    try:
-        targetPath = request.form["targetPath"]
-    except BadRequestKeyError:
-        return jsonify(description="Error on rename operation", error="newpath query string missing"), 400
-
-    # action to execute
-    action = "echo n | timeout {timeout} mv -i -- '{sourcePath}' '{targetPath}'".format(
-                            timeout=UTILITIES_TIMEOUT,sourcePath=sourcePath, targetPath=targetPath)
-
-    retval = exec_remote_command(auth_header, machine, action)
-
-    if retval["error"] != 0:
-        error_str=retval["msg"]
-
-        if retval["error"] == 113:
-            header = {"X-Machine-Not-Available":"Machine is not available"}
-            return jsonify(description="Error on rename operation"), 400, header
-
-        if retval["error"] == 124:
-            header = {"X-Timeout": "Command has finished with timeout signal"}
-            return jsonify(description="Error on rename operation"), 400, header
-
-        # error no such file
-        if in_str(error_str,"No such file"):
-            if in_str(error_str,"cannot stat"):
-                header={"X-Not-Found":"{sourcePath} not found.".format(sourcePath=sourcePath)}
-                return jsonify(description="Error on rename operation"), 400, header
-
-            if in_str(error_str,"cannot move"):
-                header = {"X-Invalid-Path": "{sourcePath} and/or {targetPath} are invalid paths.".format(sourcePath=sourcePath,targetPath=targetPath)}
-                return jsonify(description="Error on rename operation"), 400, header
-
-        # permission denied
-        if in_str(error_str,"Permission denied"):
-            header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
-            return jsonify(description="Error on rename operation"), 400, header
-
-        # if already exists, not overwrite (-i)
-        if in_str(error_str,"overwrite"):
-            header = {"X-Exists": "{targetPath} already exists".format(targetPath=targetPath)}
-            return jsonify(description="Error on rename operation"), 400, header
-
-        return jsonify(description="Error on rename operation",error=error_str), 400
-
-
-    return jsonify(description="Success to rename file or directory.", output=""), 200
-
+    return common_operation(request, "rename", "PUT")
 
 
 ## copy cp
@@ -909,61 +529,58 @@ def rename():
 ##  - machinename: str *required
 
 @app.route("/copy", methods=["POST"])
+@check_auth_header
 def copy():
     return common_operation(request, "copy", "POST")
 
 ## common code for file operations: copy, rename (move)
 def common_operation(request, command, method):
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
+    
+    auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
-        machinename = request.headers["X-Machine-Name"]
+        system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
-    # public endpoints from Kong to users
-    if machinename not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
-        return jsonify(description="Error on " + command + " operation", error="Machine does not exists"), 400, header
+    # PUBLIC endpoints from Kong to users
+    if system_name not in SYSTEMS_PUBLIC:
+        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
+        return jsonify(description="Error on " + command + " operation", error="Machine does not exist"), 400, header
 
-    # iterate over systems list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machinename:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
 
     try:
         sourcePath = request.form["sourcePath"]
+        if sourcePath == "":
+            return jsonify(description="Error on " + command + " operation",error="'sourcePath' value is empty"), 400
     except BadRequestKeyError:
         return jsonify(description="Error on " + command + " operation", error="'sourcePath' query string missing"), 400
 
     try:
         targetPath = request.form["targetPath"]
+        if targetPath == "":
+            return jsonify(description="Error on " + command + " operation",error="'targetPath' value is empty"), 400
     except BadRequestKeyError:
         return jsonify(description="Error on " + command + " operation", error="target query string missing"), 400
 
-    
+
     if command == "copy":
         # action to execute
-        # -i is for interactive, when user asks for confirmation, given with "echo n"
         # -r is for recursivelly copy files into directories
-        action = "echo n | timeout {timeout} cp -i -dR --preserve=all -- '{sourcePath}' '{targetPath}'".format(
-            timeout=UTILITIES_TIMEOUT, sourcePath=sourcePath, targetPath=targetPath)
+        action = f"timeout {UTILITIES_TIMEOUT} cp --force -dR --preserve=all -- '{sourcePath}' '{targetPath}'"
+        success_code = 201
     elif command == "rename":
-        action = "echo n | timeout {timeout} mv -i -- '{sourcePath}' '{targetPath}'".format(
-            timeout=UTILITIES_TIMEOUT, sourcePath=sourcePath, targetPath=targetPath)
+        action = f"timeout {UTILITIES_TIMEOUT} mv --force -- '{sourcePath}' '{targetPath}'"
+        success_code = 200
+    else:
+        app.logger.error("Unknown command on common_operation: " + command)
+        return jsonify(description="Error on unkownon operation", error="Unknown"), 400
 
-
-    retval = exec_remote_command(auth_header, machine, action)
+    retval = exec_remote_command(auth_header,system_name ,system_addr, action)
 
     if retval["error"] != 0:
         error_str=retval["msg"]
@@ -988,7 +605,7 @@ def common_operation(request, command, method):
                 return jsonify(description="Error on " + command + " operation"), 400, header
 
         # permission denied
-        if in_str(error_str,"Permission denied"):
+        if in_str(error_str,"Permission denied") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
             return jsonify(description="Error on " + command + " operation"), 400, header
 
@@ -999,7 +616,7 @@ def common_operation(request, command, method):
 
         return jsonify(description="Error on copy operation"), 400
 
-    return jsonify(description="Success to " + command + " file or directory.", output=""), 201
+    return jsonify(description="Success to " + command + " file or directory.", output=""), success_code
 
 
 
@@ -1009,44 +626,38 @@ def common_operation(request, command, method):
 ## - X-Machine-Name: system
 
 @app.route("/rm", methods=["DELETE"])
+@check_auth_header
 def rm():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
 
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
+    auth_header = request.headers[AUTH_HEADER_NAME]
+    
     try:
-        machinename = request.headers["X-Machine-Name"]
+        system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
-    # public endpoints from Kong to users
-    if machinename not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
-        return jsonify(description="Error on delete operation", error="Machine does not exists"), 400, header
+    # PUBLIC endpoints from Kong to users
+    if system_name not in SYSTEMS_PUBLIC:
+        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
+        return jsonify(description="Error on delete operation", error="Machine does not exist"), 400, header
 
-    # iterate over systems list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machinename:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
 
     try:
         path = request.form["targetPath"]
+        if path == "":
+            return jsonify(description="Error on delete operation",error="'targetPath' value is empty"), 400    
     except BadRequestKeyError:
         return jsonify(description="Error on delete operation",error="'targetPath' query string missing"), 400
 
     # action to execute
     # -r is for recursivelly delete files into directories
-    action = "echo n | timeout {timeout} rm -r -- '{path}'".format(timeout=UTILITIES_TIMEOUT,path=path)
+    action = f"timeout {UTILITIES_TIMEOUT} rm -r --interactive=never -- '{path}'"
 
-    retval = exec_remote_command(auth_header, machine, action)
+    retval = exec_remote_command(auth_header, system_name, system_addr, action)
 
     if retval["error"] != 0:
         error_str=retval["msg"]
@@ -1066,7 +677,7 @@ def rm():
                 return jsonify(description="Error on delete operation"), 400, header
 
         # permission denied
-        if in_str(error_str,"Permission denied"):
+        if in_str(error_str,"Permission denied") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Error on delete operation"), 400, header
 
@@ -1084,48 +695,43 @@ def rm():
 ##  - machinename: str *required
 
 @app.route("/symlink", methods=["POST"])
+@check_auth_header
 def symlink():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
 
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
+    auth_header = request.headers[AUTH_HEADER_NAME]
+    
     try:
-        machinename = request.headers["X-Machine-Name"]
+        system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
-    # public endpoints from Kong to users
-    if machinename not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
-        return jsonify(description="Failed to create symlink", error="Machine does not exists"), 400, header
+    # PUBLIC endpoints from Kong to users
+    if system_name not in SYSTEMS_PUBLIC:
+        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
+        return jsonify(description="Failed to create symlink", error="Machine does not exist"), 400, header
 
-    # iterate over systems list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machinename:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
 
     try:
         linkPath = request.form["linkPath"]
+        if linkPath == "":
+            return jsonify(description="Failed to create symlink",error="'linkPath' value is empty"), 400
     except BadRequestKeyError:
         return jsonify(description="Failed to create symlink",error="'linkPath' query string missing"), 400
 
     try:
         targetPath = request.form["targetPath"]
+        if targetPath == "":
+            return jsonify(description="Failed to create symlink",error="'targetPath' value is empty"), 400
     except BadRequestKeyError:
         return jsonify(description="Failed to create symlink",error="'targetPath' query string missing"), 400
 
-    action = "timeout {timeout} ln -s -- '{targetPath}' '{linkPath}'".format(
-                timeout=UTILITIES_TIMEOUT,targetPath=targetPath,linkPath=linkPath)
+    action = f"timeout {UTILITIES_TIMEOUT} ln -s -- '{targetPath}' '{linkPath}'"
 
-    retval = exec_remote_command(auth_header, machine, action)
+    retval = exec_remote_command(auth_header, system_name, system_addr, action)
 
     if retval["error"] != 0:
         error_str=retval["msg"]
@@ -1144,7 +750,7 @@ def symlink():
             return jsonify(description="Failed to create symlink"), 400, header
 
         # permission denied
-        if in_str(error_str,"Permission denied"):
+        if in_str(error_str,"Permission denied") or in_str(retval["msg"],"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
             return jsonify(description="Failed to create symlink"), 400, header
 
@@ -1159,81 +765,85 @@ def symlink():
 
     return jsonify(description="Success create the symlink"), 201
 
+
 ## Returns the file from the specified path on the {machine} filesystem
 ## params:
 ##  - path: path to the file to download *required
 ##  - machinename: str *required
 
 @app.route("/download", methods=["GET"])
+@check_auth_header
 def download():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
 
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
+    auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
-        machinename = request.headers["X-Machine-Name"]
+        system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
-    # public endpoints from Kong to users
-    if machinename not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
-        return jsonify(description="Failed to download file", error="Machine does not exists"), 400, header
+    # PUBLIC endpoints from Kong to users
+    if system_name not in SYSTEMS_PUBLIC:
+        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
+        return jsonify(description="Failed to download file", error="Machine does not exist"), 400, header
 
-    # iterate over systems list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machinename:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
 
     path = request.args.get("sourcePath")
 
     if path == None:
         return jsonify(description="Failed to download file",error="'sourcePath' query string missing"), 400
+    if path == "":
+        return jsonify(description="Failed to download file",error="'sourcePath' value is empty"), 400
 
-    # copy file from remote machinename to local filesystem
-    retval = paramiko_download(auth_header, machine, path)
+    #TODO: check path doesn't finish with /
+    file_name = secure_filename(path.split("/")[-1])
 
-    # posible errors
-
-    # IOError 13: Permission denied
-    if retval["error"] == 13:
-        header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
-        return jsonify(description="Failed to download file"), 400, header
-
-    # IOError 2: no such file
-    if retval["error"] == 2:
-        header = {"X-Invalid-Path": "{path} is invalid.".format(path=path)}
-        return jsonify(description="Failed to download file"), 400, header
-
-    # IOError -2: name or service not known
-    if retval["error"] == -2:
-        header = {"X-Machine-Not-Available": "Machine is not available"}
-        return jsonify(description="Failed to download file"), 400, header
-    # custom error raises when file size > SIZE_LIMIT env var
-    if retval["error"] == -3:
-        header = {"X-Size-Limit": "File exceeds size limit"}
-        return jsonify(description="Failed to download file"), 400, header
+    action = f"timeout {UTILITIES_TIMEOUT} stat --dereference -c %s -- '{path}'"
+    retval = exec_remote_command(auth_header, system_name, system_addr, action)
 
     if retval["error"] != 0:
-        if in_str(retval["msg"],"Permission"):
-            header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
+        return parse_io_error(retval, 'download file', path)
+
+    try:
+        file_size = int(retval["msg"]) # in bytes
+        if file_size > MAX_FILE_SIZE*(1024*1024):
+            app.logger.warning("File size exceeds limit")
+            # custom error raises when file size > SIZE_LIMIT env var
+            header = {"X-Size-Limit": "File exceeds size limit"}
             return jsonify(description="Failed to download file"), 400, header
-        else:
-            return jsonify(description="Failed to download file"), 400
+        elif file_size == 0:
+            # may be empty, a special file or a directory, just return empty
+            data = io.BytesIO()
+            data.seek(0)
+            return send_file(data,
+                     mimetype="application/octet-stream",
+                     attachment_filename=file_name,
+                     as_attachment=True)
 
-    local_file = retval["msg"]
-    file_name  = path.split("/")[-1]
+    except Exception as e:
+        app.logger.error("Download decode error: " + e.message)
+        return jsonify(description="Failed to download file"), 400
 
+    # download with base64 to avoid encoding conversion and string processing
+    action = f"timeout {UTILITIES_TIMEOUT} base64 --wrap=0 -- '{path}'"
+    retval = exec_remote_command(auth_header, system_name, system_addr, action, file_transfer="download")
 
-    return send_file(local_file,
+    if retval["error"] != 0:
+        return parse_io_error(retval, 'download file', path)
+
+    try:
+        data = io.BytesIO()
+        data.write(base64.b64decode(retval["msg"]))
+        data.seek(0)
+    except Exception as e:
+        app.logger.error("Download decode error: " + e.message)
+        return jsonify(description="Failed to download file"), 400
+
+    return send_file(data,
                      mimetype="application/octet-stream",
                      attachment_filename=file_name,
                      as_attachment=True)
@@ -1251,38 +861,33 @@ def request_entity_too_large(error):
     return jsonify(description="Failed to upload file. The file is over {} MB".format(MAX_FILE_SIZE)), 413
 
 @app.route("/upload", methods=["POST"])
+@check_auth_header
 def upload():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
 
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
+    auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
-        machinename = request.headers["X-Machine-Name"]
+        system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
-    # public endpoints from Kong to users
-    if machinename not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
-        return jsonify(description="Failed to upload file", error="Machine does not exists"), 400, header
+    # PUBLIC endpoints from Kong to users
+    if system_name not in SYSTEMS_PUBLIC:
+        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
+        return jsonify(description="Failed to download file", error="Machine does not exist"), 400, header
 
-    # iterate over systems list and find the endpoint matching same order
-    for i in range(len(SYSTEMS_PUBLIC)):
-        if SYSTEMS_PUBLIC[i] == machinename:
-            machine = SYS_INTERNALS[i]
-            break
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
 
     path = request.form["targetPath"]
 
     if path == None:
         return jsonify(description="Failed to upload file", error="'targetPath' query string missing"), 400
+
+    if path == "":
+        return jsonify(description="Failed to upload file",error="'targetPath' value is empty"), 400
 
     if 'file' not in request.files:
         return jsonify(description="Failed to upload file", error="No file in query"), 400
@@ -1296,38 +901,11 @@ def upload():
         return jsonify(description="Failed to upload file", error="No file selected"), 400
 
     filename = secure_filename(file.filename)
-
-    _tmpdir = tempfile.mkdtemp("", "cscs-uploads", "/tmp")
-    local_path = os.path.join(_tmpdir, filename)
-
-    file.save(local_path)
-
-    retval=paramiko_upload(auth_header, machine, local_path, path)
-
-    os.remove(local_path)
-    os.rmdir(_tmpdir)
-
-    # IOError 13: Permission denied
-    if retval["error"] == 13:
-        header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
-        return jsonify(description="Failed to upload file"), 400, header
-
-    # IOError 2: no such file
-    if retval["error"] == 2:
-        header = {"X-Invalid-Path": "{path} is invalid.".format(path=path)}
-        return jsonify(description="Failed to upload file"), 400, header
-
-    # IOError -2: name or service not known
-    if retval["error"] == -2:
-        header = {"X-Machine-Not-Available": "Machine is not available"}
-        return jsonify(description="Failed to upload file"), 400, header
+    action = f"cat > {path}/{filename}"
+    retval = exec_remote_command(auth_header, system_name, system_addr, action, file_transfer="upload", file_content=file.read())
 
     if retval["error"] != 0:
-        if in_str(retval["msg"],"Permission"):
-            header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
-            return jsonify(description="Failed to upload file"), 400, header
-        else:
-            return jsonify(description="Failed to upload file"), 400
+        return parse_io_error(retval, 'upload file', path)
 
     return jsonify(description="File upload successful"), 201
 

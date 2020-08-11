@@ -58,13 +58,13 @@ services:
     env_file:
       - ./environment/common.env
     environment:
-      - PERSIST_PORT=6379
-      - PERSIST_PWD=rediS2200
-      - DEBUG_MODE=True
+      - F7T_PERSIST_PORT=6379
+      - F7T_PERSIST_PWD=rediS2200
+      - F7T_DEBUG_MODE=True
     depends_on:
       - "taskpersistence"
     network_mode: "host"
-    volumes:
+    volumes: 
       - ./logs/firecrest:/var/log:delegated
 
   utilities:
@@ -88,7 +88,6 @@ services:
     ports:
       - "2223:22"
 
-
   minio:
     # runs on private network so "cluster" can reach it
     container_name: minio_test_build
@@ -99,7 +98,7 @@ services:
       MINIO_SECRET_KEY: storage_secret_key
     ports:
       - "9000:9000"
-
+    
   taskpersistence:
     image: redis:latest
     command: redis-server /redis.conf
@@ -107,3 +106,12 @@ services:
     volumes:
       - ./taskpersistence/redis.conf:/redis.conf:ro
       - ./logs/firecrest:/var/log:delegated
+
+  opa:
+    image: openpolicyagent/opa:0.22.0
+    command: run --server --log-level=debug --log-format=json-pretty  /opa-files/data.json /opa-files/policy.rego
+    network_mode: "host"
+    ports: 
+      - "8181:8181"    
+    volumes: 
+      - ./opa:/opa-files

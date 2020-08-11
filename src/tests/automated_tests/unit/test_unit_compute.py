@@ -8,10 +8,10 @@ FIRECREST_URL = os.environ.get("FIRECREST_URL")
 if FIRECREST_URL:
 	COMPUTE_URL = os.environ.get("FIRECREST_URL") + "/compute"
 else:
-    COMPUTE_URL = os.environ.get("COMPUTE_URL")	
+    COMPUTE_URL = os.environ.get("F7T_COMPUTE_URL")	
 
 JOBS_URL = COMPUTE_URL + "/jobs"
-SERVER_COMPUTE = os.environ.get("SYSTEMS_PUBLIC").split(";")[0]
+SERVER_COMPUTE = os.environ.get("F7T_SYSTEMS_PUBLIC").split(";")[0]
 
 
 # test data: (server name, expected response code)
@@ -20,6 +20,7 @@ DATA = [ (SERVER_COMPUTE, 200) , ("someservernotavailable", 400)]
 
 # Helper function for job submittings
 def submit_job(machine, headers):
+	print(f"COMPUTE_URL {COMPUTE_URL}")
 	files = {'file': ('upload.txt', open('testsbatch.sh', 'rb'))}
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.post(JOBS_URL, headers=headers, files=files)
@@ -45,9 +46,9 @@ def test_list_jobs(machine, expected_response_code, headers):
 
 
 # Test Retrieve information from an active jobid (jobid in the queue or running)
-@pytest.mark.parametrize("machine, expected_response_code",  DATA)
+@pytest.mark.parametrize("machine, expected_response_code",  [ (SERVER_COMPUTE, 400) , ("someservernotavailable", 400)])
 def test_list_job(machine, expected_response_code, headers):
-	# TODO: need to test valid and invalid jobid
+	# TODO: need to test valid
 	jobid = -1
 	url = "{}/{}".format(JOBS_URL, jobid)
 	headers.update({"X-Machine-Name": machine})

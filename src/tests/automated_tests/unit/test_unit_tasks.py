@@ -8,7 +8,7 @@ FIRECREST_URL = os.environ.get("FIRECREST_URL")
 if FIRECREST_URL:
 	TASKS_URL = os.environ.get("FIRECREST_URL") + "/tasks"
 else:
-    TASKS_URL = os.environ.get("TASKS_URL")
+    TASKS_URL = os.environ.get("F7T_TASKS_URL")
 
 INVALID_CODE1 = "9999"
 INVALID_CODE2 = "47777"
@@ -57,7 +57,7 @@ def create_task(headers):
 def test_list_tasks(headers):
 	url = "{}/".format(TASKS_URL)
 	resp = requests.get(url, headers=headers)
-	print(resp.content)
+	print(json.dumps(resp.json(),indent=2))
 	print(url)
 	assert resp.status_code == 200
 	
@@ -73,10 +73,10 @@ def test_create_task(headers):
 @host_environment_test
 def test_get_task(headers):
 	resp = create_task(headers)
-	hash_id = resp.json()["hash_id"]
+	hash_id = resp.json()["hash_id"]	
 	url = "{}/{}".format(TASKS_URL, hash_id)
 	resp = requests.get(url, headers=headers)
-	print(resp.content)
+	print(json.dumps(resp.json(),indent=2))
 	assert resp.status_code == 200
 
 

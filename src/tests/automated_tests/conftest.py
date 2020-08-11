@@ -7,7 +7,7 @@ from base64 import b64encode
 
 # fake JWT, only works if REALM_RSA_PUBLIC_KEY is empty
 TEST_USER = os.environ.get("TEST_USER")
-SCOPES = os.environ.get("SCOPES")
+SCOPES = os.environ.get("F7T_SCOPES")
 payload = {
   "sub": "1234567890",
   "name": "{}".format(TEST_USER),
@@ -20,10 +20,10 @@ payload = {
 
 
 # Service account JWT
-SA_LOGIN      = os.environ.get("SA_LOGIN", "")
-SA_TOKEN_URI  = os.environ.get("SA_TOKEN_URI")
-SA_SECRET_KEY = os.environ.get("SA_SECRET_KEY")
-SA_CLIENT_ID  = os.environ.get("SA_CLIENT_ID")
+SA_LOGIN      = os.environ.get("F7T_SA_LOGIN", "")
+SA_TOKEN_URI  = os.environ.get("F7T_SA_TOKEN_URI")
+SA_SECRET_KEY = os.environ.get("F7T_SA_SECRET_KEY")
+SA_CLIENT_ID  = os.environ.get("F7T_SA_CLIENT_ID")
 
 
 @pytest.fixture(scope='session')
