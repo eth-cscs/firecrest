@@ -1530,7 +1530,33 @@ paths:
               description: Error
               schema:
                 type: string
-
+  '/storage/xfer-external/invalidate':
+    post:
+      summary: Invalidate temporary URL
+      description: >-
+        Remove a temporary URL attached to a given Task Id
+      tags:
+        - Storage
+      parameters:
+      - in: header
+        name: X-Task-Id
+        description: Task Id associated to the upload/download task
+        required: true
+        schema:
+          type: string
+      responses:
+        '201':
+          description: operation queued. Task Id returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invalidate-ok'
+        '400':
+          description: Error on operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Upload-notok'
   '/tasks/':
     get:
       summary: Returns all tasks
@@ -1814,6 +1840,11 @@ components:
       type: object
       properties:
         error:
+          type: string
+    Invalidate-ok:
+      type: object
+      properties:
+        success:
           type: string
 tags:
   - name: Status
