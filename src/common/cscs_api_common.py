@@ -8,6 +8,8 @@ import logging
 import os
 import jwt
 import stat
+import datetime
+import hashlib
 import tempfile
 import json
 import functools
@@ -21,6 +23,7 @@ import time
 debug = os.environ.get("F7T_DEBUG_MODE", None)
 
 AUTH_HEADER_NAME = 'Authorization'
+
 realm_pubkey=os.environ.get("F7T_REALM_RSA_PUBLIC_KEY", '')
 if realm_pubkey != '':
     # headers are inserted here, must not be present
@@ -504,6 +507,99 @@ def get_task_status(task_id,auth_header):
         return -1
 
 
+# checks if {path} is a valid file (exists and user in {auth_header} has read permissions)
+def is_valid_file(path, auth_header, system_name, system_addr):
+
+    # checks user accessibility to path using head command with 0 bytes
+    action = f"head -c 1 -- {path}"
+
+    retval = exec_remote_command(auth_header,system_name, system_addr,action)
+
+    logging.info(retval)
+
+    if retval["error"] != 0:
+        error_str=retval["msg"]
+
+        if retval["error"] == 113:
+            return {"result":False, "headers":{"X-Machine-Not-Available":"Machine is not available"} }
+            
+
+        if retval["error"] == 124:
+            return {"result":False, "headers":{"X-Timeout": "Command has finished with timeout signal"}}
+            
+
+        # error no such file
+        if in_str(error_str,"No such file"):
+            return {"result":False, "headers":{"X-Invalid-Path": "{path} is an invalid path.".format(path=path)}}
+                
+
+        # permission denied
+        if in_str(error_str,"Permission denied") or in_str(error_str,"OPENSSH"):
+            return {"result":False, "headers":{"X-Permission-Denied": "User does not have permissions to access machine or path"}}
+
+        if in_str(error_str, "directory"):
+            return {"result":False, "headers":{"X-A-Directory": "{path} is a directory".format(path=path)}}  
+
+        return {"result":False, "headers":{"X-Error": retval["msg"]}}
+
+    return {"result":True}
+
+
+    
+# checks if {path} is a valid directory
+# 'path' should exists and be accesible to the user (write permissions)
+#
+def is_valid_dir(path, auth_header, system_name, system_addr):
+
+    # create an empty file for testing path accesibility
+    # test file is a hidden file and has a timestamp in order to not overwrite other files created by user
+    # after this, file should be deleted
+
+    
+    timestamp = datetime.datetime.today().strftime("%Y-%m-%dT%H:%M:%S.%f")
+    # using a hash 
+    hashedTS  =  hashlib.md5()
+    hashedTS.update(timestamp.encode("utf-8"))
+
+    tempFileName = f".firecrest.{hashedTS.hexdigest()}"
+
+    action = f"touch -- {path}/{tempFileName}"
+
+    retval = exec_remote_command(auth_header,system_name, system_addr,action)
+
+    logging.info(retval)
+
+    if retval["error"] != 0:
+        error_str=retval["msg"]
+
+        if retval["error"] == 113:
+            return {"result":False, "headers":{"X-Machine-Not-Available":"Machine is not available"} }
+
+        if retval["error"] == 124:
+            return {"result":False, "headers":{"X-Timeout": "Command has finished with timeout signal"}}
+
+        # error no such file
+        if in_str(error_str,"No such file"):
+            return {"result":False, "headers":{"X-Invalid-Path": "{path} is an invalid path.".format(path=path)}}
+
+        # permission denied
+        if in_str(error_str,"Permission denied") or in_str(error_str,"OPENSSH"):
+            return {"result":False, "headers":{"X-Permission-Denied": "User does not have permissions to access machine or path"}}
+
+        # not a directory
+        if in_str(error_str,"Not a directory"):
+            return {"result":False, "headers":{"X-Not-A-Directory": "{path} is not a directory".format(path=path)}}
+
+        return {"result":False, "headers":{"X-Error": retval["msg"]}}    
+
+    # delete test file created
+    action = f"rm -- {path}/{tempFileName}"
+    retval = exec_remote_command(auth_header,system_name, system_addr,action)
+
+
+    return {"result":True}
+
+
 # wrapper to check if AUTH header is correct
 # decorator use:
 #
@@ -555,4 +651,3 @@ def check_user_auth(username,system):
             return {"allow": False, "description":"Authorization server error", "status_code": 404} 
     
     return {"allow": True, "description":"Authorization method not active", "status_code": 200 }
-            
