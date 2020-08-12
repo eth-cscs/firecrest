@@ -13,7 +13,7 @@ RUN pip3 install --upgrade pip
 
 RUN yum install -y openssh
 
-RUN pip3 install Flask cryptography pyjwt
+RUN pip3 install Flask cryptography pyjwt requests
 
 ADD src/certificator/certificator.py certificator.py
 # ADD src/common/cscs_api_common.py cscs_api_common.py

@@ -10,11 +10,20 @@ import jwt
 import stat
 import datetime
 import hashlib
+import tempfile
+import json
+import functools
+from flask import request, jsonify
+import requests
+import urllib
+import base64
+import io
+import time
 
-debug = os.environ.get("DEBUG_MODE", None)
+debug = os.environ.get("F7T_DEBUG_MODE", None)
 
-AUTH_HEADER_NAME = 'Authorization' # os.environ.get("AUTH_HEADER_NAME").strip('\'"')
-#if AUTH_HEADER_NAME == "Authorization":
+AUTH_HEADER_NAME = 'Authorization'
+
 realm_pubkey=os.environ.get("F7T_REALM_RSA_PUBLIC_KEY", '')
 if realm_pubkey != '':
     # headers are inserted here, must not be present
@@ -32,6 +41,13 @@ AUTH_ROLE = os.environ.get("F7T_AUTH_ROLE", '').strip('\'"')
 CERTIFICATOR_URL = os.environ.get("F7T_CERTIFICATOR_URL")
 TASKS_URL = os.environ.get("F7T_TASKS_URL")
 
+F7T_SSH_CERTIFICATE_WRAPPER = os.environ.get("F7T_SSH_CERTIFICATE_WRAPPER", None)
+
+# OPA endpoint
+OPA_USE = os.environ.get("F7T_OPA_USE",False)
+OPA_URL = os.environ.get("F7T_OPA_URL","http://localhost:8181").strip('\'"')
+POLICY_PATH = os.environ.get("F7T_POLICY_PATH","v1/data/f7t/authz").strip('\'"')
+
 logging.getLogger().setLevel(logging.INFO)
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',datefmt='%Y-%m-%d:%H:%M:%S',level=logging.INFO)
 
@@ -40,7 +56,7 @@ logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:
 def check_header(header):
     if debug:
         logging.info('debug: cscs_api_common: check_header: ' + header)
-    
+
     # header = "Bearer ey...", remove first 7 chars
     try:
         if realm_pubkey == '':
@@ -52,20 +68,11 @@ def check_header(header):
                 decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, options={'verify_aud': False})
             else:
                 decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, audience=AUTH_AUDIENCE)
-
-        # if AUTH_REQUIRED_SCOPE != '':
-        #     if not (AUTH_REQUIRED_SCOPE in decoded['realm_access']['roles']):
-        #         return False
-
-
-        # {"scope": "openid profile firecrest email"}
+       
         if AUTH_REQUIRED_SCOPE != "":
             if AUTH_REQUIRED_SCOPE not in decoded["scope"].split():
                 return False
-
-        #if not (decoded['preferred_username'] in ALLOWED_USERS):
-        #    return False
-
+        
         return True
 
     except jwt.exceptions.InvalidSignatureError:
@@ -90,17 +97,10 @@ def get_username(header):
         if realm_pubkey == '':
             decoded = jwt.decode(header[7:], verify=False)
         else:
-#            if AUTH_AUDIENCE == '':
             decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, options={'verify_aud': False})
-#            else:
-#                decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, audience=AUTH_AUDIENCE)
-
-#        if ALLOWED_USERS != '':
-#            if not (decoded['preferred_username'] in ALLOWED_USERS):
-#                return None
         # check if it's a service account token
         try:
-            if AUTH_ROLE in decoded["realm_access"]["roles"]: # firecrest-sa
+            if AUTH_ROLE in decoded["realm_access"]["roles"]: 
 
                 clientId = decoded["clientId"]
                 username = decoded["resource_access"][clientId]["roles"][0]
@@ -133,53 +133,44 @@ def in_str(stringval,words):
 
 # SSH certificates creation
 # returns pub key certificate name
-# auth_header = 
-def create_certificates(auth_header, cluster, command=None, options=None, exp_time=None):
+def create_certificate(auth_header, cluster_name, cluster_addr,  command=None, options=None, exp_time=None):
+    """
+    Args:
+      cluster_name = public name of system to be executed
+      cluster_addr = private DNS or IP of the system
+      command = command to be executed with the certificate (required)
+      option = parameters and options to be executed with {command}
+      exp_time = expiration time for SSH certificate
+    """
 
-    import tempfile, json
-    from urllib.request import urlopen, Request
-    from urllib.error import HTTPError, URLError
+    if debug:
+        username = get_username(auth_header)
+        logging.info(f"Create certificate for user {username}")
 
-    import requests
+    reqURL = f"{CERTIFICATOR_URL}/?cluster={cluster_name}&addr={cluster_addr}"
 
-    username = get_username(auth_header)
-
-    logging.info(f"Create certificate for user {username}")
     if command:
         logging.info(f"\tCommand: {command}")
-    if options:
-        logging.info(f"\tOptions: {options}")
-    if exp_time:
-        logging.info(f"\tExpiration: {exp_time} [s]")
-
-
-    # cluster = system to be executed
-    # command = command to be executed with the certificate
-    # option = parameters and options to be executed with {command}
-    # exp_time = expiration time for SSH certificate
-
-    reqURL = "{cert_url}/?cluster={cluster}".format(cert_url=CERTIFICATOR_URL, cluster=cluster)
-
-    if command:
-        reqURL += "&command={command}".format(command=command)
+        reqURL += "&command=" + base64.urlsafe_b64encode(command.encode()).decode()
         if options:
-            reqURL +="&option={options}".format(options=options)
+            logging.info(f"\tOptions: {options}")
+            reqURL += "&option=" + base64.urlsafe_b64encode(options.encode()).decode()
             if exp_time:
-                reqURL +="&exptime={exp_time}".format(exp_time=exp_time)
-
-    # getting request method:
-    req = Request(reqURL)
-    req.add_header(AUTH_HEADER_NAME, auth_header)
+                logging.info(f"\tExpiration: {exp_time} [s]")
+                reqURL += f"&exptime={exp_time}"
+    else:
+        logging.error('Tried to create certificate without command')
+        return [None, 1, 'Internal error']
 
     logging.info(f"Request: {reqURL}")
 
     try:
-        #jcert = json.loads(urlopen(req).read())
-        resp = requests.get(reqURL,headers={AUTH_HEADER_NAME: auth_header})
-        
+        resp = requests.get(reqURL, headers={AUTH_HEADER_NAME: auth_header})
+
+        if not resp.ok:
+            return [None, resp.status_code, resp.json()["description"]]
+
         jcert = resp.json()
-
-
 
         # create temp dir to store certificate for this request
         td = tempfile.mkdtemp(prefix="dummy")
@@ -195,69 +186,47 @@ def create_certificates(auth_header, cluster, command=None, options=None, exp_ti
         # keys: [pub_cert, pub_key, priv_key, temp_dir]
         return [td + "/user-key-cert.pub", td + "/user-key.pub", td + "/user-key", td]
     except URLError as ue:
-        logging.error("({errno}) -> {message}".format(errno=ue.errno, message=ue.strerror), exc_info=True)
+        logging.error(f"({ue.errno}) -> {ue.strerror}", exc_info=True)
         return [None, ue.errno, ue.strerror]
     except IOError as ioe:
-        logging.error("({errno}) -> {message}".format(errno=ioe.errno, message=ioe.strerror), exc_info=True)
+        logging.error(f"({ioe.errno}) -> {ioe.strerror}", exc_info=True)
         return [None, ioe.errno, ioe.strerror]
     except Exception as e:
-        logging.error("({type}) -> {message}".format(errno=type(e), message=e), exc_info=True)
+        logging.error(f"({type(e)}) -> {e}", exc_info=True)
         return [None, -1, e]
-    
-
-
-# formats output for std buffer of paramiko
-def get_buffer_lines(buffer):
-
-    lines = ""
-    while True:
-        line = buffer.readline()
-        if line == "":
-            break
-
-        if line[-1] == "\n":
-            line = line.rstrip()
-
-        lines += line
-    return lines
-
-# formats output for std buffer of paramiko when squeue is executed
-def get_squeue_buffer_lines(buffer):
-
-    lines = ""
-    while True:
-        line = buffer.readline()
-        if line == "":
-            break
-
-        if line[-1] == "\n":
-            line = line[:-1]
-
-        lines += line + "$"
-    return lines[:-1]
 
 
 
 # execute remote commands with Paramiko:
-def exec_remote_command(auth_header, system, action):
+def exec_remote_command(auth_header, system_name, system_addr, action, file_transfer=None, file_content=None):
 
     import paramiko, socket
 
-    logging.info('debug: cscs_common_api: exec_remote_command: system: ' + system + '  -  action: ' + action)
+    logging.info('debug: cscs_common_api: exec_remote_command: system name: ' + system_name + '  -  action: ' + action)
 
-    # get certificate:
-    # if OK returns: [pub_cert, pub_key, priv_key, temp_dir]
-    # if FAILED returns: [None, errno, strerror]
-    cert_list = create_certificates(auth_header, system)
+    if file_transfer == "storage_cert":
+        # storage is using a previously generated cert, save cert list from content
+        # cert_list: list of 4 elements that contains
+        #   [0] path to the public certificate
+        #   [1] path to the public key for user
+        #   [2] path to the priv key for user
+        #   [3] path to the dir containing 3 previous files
+        cert_list = file_content
+        username = auth_header
+    else:
+        # get certificate:
+        # if OK returns: [pub_cert, pub_key, priv_key, temp_dir]
+        # if FAILED returns: [None, errno, strerror]
+        cert_list = create_certificate(auth_header, system_name, system_addr, command=action)
 
-    if cert_list[0] == None:
-        result = {"error": 1, "msg": "Cannot create certificates"}
-        return result
+        if cert_list[0] == None:
+            result = {"error": cert_list[1], "msg": cert_list[2]}
+            return result
+
+        username = get_username(auth_header)
+
 
     [pub_cert, pub_key, priv_key, temp_dir] = cert_list
-
-    #getting username from auth_header
-    username = get_username(auth_header)
 
     # -------------------
     # remote exec with paramiko
@@ -265,7 +234,7 @@ def exec_remote_command(auth_header, system, action):
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-        ipaddr = system.split(':')
+        ipaddr = system_addr.split(':')
         host = ipaddr[0]
         if len(ipaddr) == 1:
             port = 22
@@ -274,62 +243,123 @@ def exec_remote_command(auth_header, system, action):
 
         client.connect(hostname=host, port=port,
                        username=username,
-                       key_filename="{cert_name}".format(cert_name=pub_cert),
+                       key_filename=pub_cert,
                        allow_agent=False,
                        look_for_keys=False,
                        timeout=10)
 
-        stdin , stdout, stderr = client.exec_command(action)
-        logging.info("action: {}".format(action))
+        if F7T_SSH_CERTIFICATE_WRAPPER:
+            # read cert to send it as a command to the server
+            with open(pub_cert, 'r') as cert_file:
+               cert = cert_file.read().rstrip("\n")  # remove newline at the end
+            action = cert
 
-        stderr_errno = stderr.channel.recv_exit_status()
-        stdout_errno = stdout.channel.recv_exit_status()
-        #errdadirt = stderr.channel.recv_stderr(1024)
-        # clean "tput: No ..." lines at error output
-        stderr_errda = clean_err_output(stderr.channel.recv_stderr(1024))
-        stdout_errda = clean_err_output(stdout.channel.recv_stderr(1024))
+        stdin, stdout, stderr = client.exec_command(action)
 
-        outlines = get_squeue_buffer_lines(stdout)
+        if file_transfer == "upload":
+            # uploads use "cat", so write to stdin
+            stdin.channel.sendall(file_content)
+            stdin.channel.shutdown_write()
+            #stdin.channel.close()
 
-        logging.info("sdterr: ({errno}) --> {stderr}".format(errno=stderr_errno, stderr=stderr_errda))
-        logging.info("stdout: ({errno}) --> {stderr}".format(errno=stdout_errno, stderr=stdout_errda))
-        logging.info("sdtout: ({errno}) --> {stdout}".format(errno=stdout_errno, stdout=outlines))
+        output = ""
+        error = ""
+        finished = 0
+
+        stderr_errno = -2
+        stdout_errno = -2
+        stderr_errda = ""
+        stdout_errda = ""
+
         
+	# poll process status since directly using recv_exit_status() could result
+        # in a permanent hang when remote output is larger than the current Transport or session’s window_size 
+        for i in range(0,10):
+            if stderr.channel.exit_status_ready():
+                logging.info("stderr channel exit status ready") 
+                stderr_errno = stderr.channel.recv_exit_status()
+                endtime = time.time() + 30
+                eof_received = True
+                while not stderr.channel.eof_received:
+                    time.sleep(1)
+                    if time.time() > endtime:
+                        stderr.channel.close()
+                        eof_received = False
+                        break
+                if eof_received:
+                    error = "".join(stderr.readlines())
+                    # error = stderr.read()
+                    # clean "tput: No ..." lines at error output
+                    stderr_errda = clean_err_output(error)
+                break
+            else:
+                time.sleep(5)
+
+        for i in range(0,10):
+            if stdout.channel.exit_status_ready():
+                logging.info("stdout channel exit status ready") 
+                stdout_errno = stdout.channel.recv_exit_status()
+                endtime = time.time() + 30
+                eof_received = True
+                while not stdout.channel.eof_received:
+                    time.sleep(1)
+                    if time.time() > endtime:
+                        stdout.channel.close()
+                        eof_received = False
+                        break
+                if eof_received:
+                    output = "".join(stdout.readlines())
+                    # error = stderr.read() it hangs
+                    # clean "tput: No ..." lines at error output
+                    stdout_errda = clean_err_output(output)
+                break
+            else:
+                time.sleep(5)
+
+
+        if file_transfer == "download":
+            outlines = output
+        else:
+            # replace newlines with $ for parsing
+            outlines = output.replace('\n', '$')[:-1]
+
+        logging.info(f"sdterr: ({stderr_errno}) --> {stderr_errda}")
+        logging.info(f"stdout: ({stdout_errno}) --> {stdout_errda}")
+        logging.info(f"sdtout: ({stdout_errno}) --> {outlines}")
+
         # TODO: change precedence of error, because in /xfer-external/download this gives error and it s not an error
         if stderr_errno == 0:
             if stderr_errda and not in_str(stderr_errda,"Could not chdir to home directory"):
                 result = {"error": 0, "msg": stderr_errda}
-            elif outlines:
-                result = {"error": 0, "msg": outlines}
             else:
                 result = {"error": 0, "msg": outlines}
         elif stderr_errno > 0:
             result = {"error": stderr_errno, "msg": stderr_errda}
         elif len(stderr_errda) > 0:
             result = {"error": 1, "msg": stderr_errda}
-
+        elif stdout_errno == -2:
+            result = {"error": -2, "msg": "Receive ready timeout exceeded"}
+        elif stderr_errno == -1:
+            result = {"error": -1, "msg": "No exit status was provided by the server"}
 
     # first if paramiko exception raise
     except paramiko.ssh_exception.NoValidConnectionsError as e:
         logging.error(type(e), exc_info=True)
         if e.errors:
             for k, v in e.errors.items():
-                logging.error("errorno: {errno}".format(errno=v.errno))
-                logging.error("strerr: {strerr}".format(strerr=v.strerror))
-
+                logging.error(f"errorno: {v.errno}")
+                logging.error(f"strerr: {v.strerror}")
                 result = {"error": v.errno, "msg": v.strerror}
 
     except socket.gaierror as e:
         logging.error(type(e), exc_info=True)
         logging.error(e.errno)
         logging.error(e.strerror)
-
         result = {"error": e.errno, "msg": e.strerror}
 
     except paramiko.ssh_exception.SSHException as e:
         logging.error(type(e), exc_info=True)
         logging.error(e)
-
         result = {"error": 1, "msg": str(e)}
 
     # second: time out
@@ -345,137 +375,12 @@ def exec_remote_command(auth_header, system, action):
 
     finally:
         client.close()
-        logging.info(result["msg"])
         os.remove(pub_cert)
         os.remove(pub_key)
         os.remove(priv_key)
         os.rmdir(temp_dir)
 
-    logging.info("Result returned {}".format(result["msg"]))
-    return result
-
-# execute remote commands with Paramiko:
-# system: <ip:port> style for machine where the <action> will be executed
-# username: name of the user that executes the command
-# action: command(s) to be executed withing the <pub_cert>
-# cert_list: list of 4 elements that contains 
-#   [0] path to the public certificate valid for execute <action> on behalf of the <username>
-#   [1] path to the public key for user
-#   [2] path to the priv key for user
-#   [3] path to the dir containing 3 previous files
-def exec_remote_command_cert(system, username, action, cert_list):
-
-    import paramiko, socket
-
-    logging.info('debug: cscs_common_api: exec_remote_command: system: ' + system + '  -  user: ' + username)
-
-    # getting pub/priv keys for execution
-    [pub_cert, pub_key, priv_key, temp_dir] = cert_list
-
-    # -------------------
-    # remote exec with paramiko
-    try:
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-        ipaddr = system.split(':')
-        host = ipaddr[0]
-        if len(ipaddr) == 1:
-            port = 22
-        else:
-            port = int(ipaddr[1])
-
-        client.connect(hostname=host, port=port,
-                       username=username,
-                       key_filename="{cert_name}".format(cert_name=pub_cert),
-                       allow_agent=False,
-                       look_for_keys=False,
-                       timeout=10)
-
-        stdin , stdout, stderr = client.exec_command(action)
-        logging.info("action: {}".format(action))
-
-        stderr_errno = stderr.channel.recv_exit_status()
-        stdout_errno = stdout.channel.recv_exit_status()
-        #errdadirt = stderr.channel.recv_stderr(1024)
-        # clean "tput: No ..." lines at error output
-        stderr_errda = clean_err_output(stderr.channel.recv_stderr(1024))
-        stdout_errda = clean_err_output(stdout.channel.recv_stderr(1024))
-
-        outlines = get_squeue_buffer_lines(stdout)
-
-        logging.info("sdterr: ({errno}) --> {stderr}".format(errno=stderr_errno, stderr=stderr_errda))
-        logging.info("stdout: ({errno}) --> {stderr}".format(errno=stdout_errno, stderr=stdout_errda))
-        logging.info("sdtout: ({errno}) --> {stdout}".format(errno=stdout_errno, stdout=outlines))
-        
-        # TODO: change precedence of error, because in /xfer-external/download this gives error and it s not an error
-        if stderr_errno == 0:
-            if stderr_errda and not in_str(stderr_errda,"Could not chdir to home directory"):
-                result = {"error": 0, "msg": stderr_errda}
-            elif outlines:
-                result = {"error": 0, "msg": outlines}
-            else:
-                result = {"error": 0, "msg": outlines}
-        elif stderr_errno > 0:
-            result = {"error": stderr_errno, "msg": stderr_errda}
-        elif len(stderr_errda) > 0:
-            result = {"error": 1, "msg": stderr_errda}
-
-
-    # first if paramiko exception raise
-    except paramiko.ssh_exception.NoValidConnectionsError as e:
-        logging.error(type(e), exc_info=True)
-        if e.errors:
-            for k, v in e.errors.items():
-                logging.error("errorno: {errno}".format(errno=v.errno))
-                logging.error("strerr: {strerr}".format(strerr=v.strerror))
-
-                result = {"error": v.errno, "msg": v.strerror}
-
-    except socket.gaierror as e:
-        logging.error(type(e), exc_info=True)
-        logging.error(e.errno)
-        logging.error(e.strerror)
-
-        result = {"error": e.errno, "msg": e.strerror}
-
-    except paramiko.ssh_exception.ChannelException as e:
-        
-        logging.error(type(e), exc_info=True)
-        logging.error(e)
-
-        result = {"error": 1, "msg": str(e)}
-    
-    except paramiko.ssh_exception.SSHException as e:
-        
-        logging.error(type(e), exc_info=True)
-        logging.error(f"In paramiko - args: {e.args}")
-        logging.error(f"In paramiko - code: {e.code}")
-        logging.error(e)
-        
-
-        result = {"error": 1, "msg": str(e)}
-
-    # second: time out
-    except socket.timeout as e:
-        logging.error(type(e), exc_info=True)
-        # timeout has not errno
-        logging.error(e)
-        result = {"error": 1, "msg": e.strerror}
-
-    except Exception as e:
-        logging.error(type(e), exc_info=True)
-        result = {"error": 1, "msg": str(e)}
-
-    finally:
-        client.close()
-        logging.info(result["msg"])
-        os.remove(pub_cert)
-        os.remove(pub_key)
-        os.remove(priv_key)
-        os.rmdir(temp_dir)
-
-    logging.info("Result returned {}".format(result["msg"]))
+    logging.info(f"Result returned: {result['msg']}")
     return result
 
 
@@ -485,7 +390,7 @@ def clean_err_output(tex):
     lines = ""
 
     # python3 tex comes as a byte object, needs to be decoded to a str
-    tex = tex.decode('latin-1')
+    #tex = tex.decode('utf-8')
 
     for t in tex.split('\n'):
         if t != 'tput: No value for $TERM and no -T specified':
@@ -494,17 +399,39 @@ def clean_err_output(tex):
     return lines
 
 
+def parse_io_error(retval, operation, path):
+    """
+    As command ended with error, create message to return to user
+    Args: retval (from exec_remote_command)
+          operation, path:
+    return:
+        jsonify('error message'), error_code (4xx), optional_header
+    """
+    header = ''
+    if retval["error"] == 13:
+        # IOError 13: Permission denied
+        header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
+    elif retval["error"] == 2:
+        # IOError 2: no such file
+        header = {"X-Invalid-Path": f"{path} is invalid."}
+    elif retval["error"] == -2:
+        # IOError -2: name or service not known
+        header = {"X-Machine-Not-Available": "Machine is not available"}
+    elif in_str(retval["msg"],"Permission") or in_str(retval["msg"],"OPENSSH"):
+        header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
+
+    return jsonify(description = f"Failed to {operation}"), 400, header
+
+
+
 # function to call create task entry API in Queue FS, returns task_id for new task
 def create_task(auth_header,service=None):
-    import json, requests
-
-    logging.info("{tasks_url}/".format(tasks_url=TASKS_URL))
 
     # returns {"task_id":task_id}
     # first try to get up task microservice:
     try:
         # X-Firecrest-Service: service that created the task
-        req = requests.post("{tasks_url}/".format(tasks_url=TASKS_URL),
+        req = requests.post(f"{TASKS_URL}/",
                            headers={AUTH_HEADER_NAME: auth_header, "X-Firecrest-Service":service})
 
     except requests.exceptions.ConnectionError as e:
@@ -525,20 +452,15 @@ def create_task(auth_header,service=None):
 # function to call update task entry API in Queue FS
 def update_task(task_id, auth_header, status, msg = None, is_json=False):
 
-    import json, requests
-
-    logging.info("{tasks_url}/{task_id}".
-                        format(tasks_url=TASKS_URL,task_id=task_id))
+    logging.info(f"{TASKS_URL}/{task_id}")
 
     if is_json:
         data = {"status": status, "msg": msg}
-        req = requests.put("{tasks_url}/{task_id}".
-                            format(tasks_url=TASKS_URL, task_id=task_id),
+        req = requests.put(f"{TASKS_URL}/{task_id}",
                             json=data, headers={AUTH_HEADER_NAME: auth_header})
     else:
         data = {"status": status, "msg": msg}
-        req = requests.put("{tasks_url}/{task_id}".
-                            format(tasks_url=TASKS_URL,task_id=task_id),
+        req = requests.put(f"{TASKS_URL}/{task_id}",
                             data=data, headers={AUTH_HEADER_NAME: auth_header})
 
     resp = json.loads(req.content)
@@ -548,14 +470,10 @@ def update_task(task_id, auth_header, status, msg = None, is_json=False):
 # function to call update task entry API in Queue FS
 def expire_task(task_id,auth_header):
 
-    import json, requests
-
-    logging.info("{tasks_url}/task-expire/{task_id}".
-                        format(tasks_url=TASKS_URL,task_id=task_id))
+    logging.info(f"{TASKS_URL}/task-expire/{task_id}")
 
 
-    req = requests.post("{tasks_url}/task-expire/{task_id}".
-                            format(tasks_url=TASKS_URL,task_id=task_id),
+    req = requests.post(f"{TASKS_URL}/task-expire/{task_id}",
                             headers={AUTH_HEADER_NAME: auth_header})
 
     resp = json.loads(req.content)
@@ -564,14 +482,11 @@ def expire_task(task_id,auth_header):
 
 # function to check task status:
 def get_task_status(task_id,auth_header):
-    import requests
 
-    logging.info("{tasks_url}/{task_id}".
-                 format(tasks_url=TASKS_URL, task_id=task_id))
+    logging.info(f"{TASKS_URL}/{task_id}")
 
     try:
-        retval = requests.get("{tasks_url}/{task_id}".
-                           format(tasks_url=TASKS_URL, task_id=task_id),
+        retval = requests.get(f"{TASKS_URL}/{task_id}",
                            headers={AUTH_HEADER_NAME: auth_header})
 
         if retval.status_code != 200:
@@ -590,6 +505,7 @@ def get_task_status(task_id,auth_header):
         logging.error(type(e), exc_info=True)
         logging.error(e)
         return -1
+
 
 # checks if {path} is a valid file (exists and user in {auth_header} has read permissions)
 def is_valid_file(path, auth_header, system):
@@ -692,3 +608,56 @@ def is_valid_dir(path, auth_header, system):
 
 
     return {"result":True}
+
+
+# wrapper to check if AUTH header is correct
+# decorator use:
+#
+# @app.route("/endpoint", methods=["GET","..."])
+# @check_auth_header
+# def function_that_check_header():
+# .....
+def check_auth_header(func):
+    @functools.wraps(func)
+    def wrapper_check_auth_header(*args, **kwargs):
+        try:
+            auth_header = request.headers[AUTH_HEADER_NAME]
+        except KeyError:
+            logging.error("No Auth Header given")
+            return jsonify(description="No Auth Header given"), 401
+        if not check_header(auth_header):
+            return jsonify(description="Invalid header"), 401
+
+        return func(*args, **kwargs)
+    return wrapper_check_auth_header
+
+
+# check user authorization on endpoint
+# using Open Policy Agent
+# 
+# use:
+# check_user_auth(username,system)
+def check_user_auth(username,system):
+
+    # check if OPA is active
+    if OPA_USE:
+        try: 
+            input = {"input":{"user": f"{username}", "system": f"{system}"}}
+            #resp_opa = requests.post(f"{OPA_URL}/{POLICY_PATH}", json=input)
+            logging.info(f"{OPA_URL}/{POLICY_PATH}")
+
+            resp_opa = requests.post(f"{OPA_URL}/{POLICY_PATH}", json=input)
+
+            logging.info(resp_opa.content)
+
+            if resp_opa.json()["result"]["allow"]:
+                logging.info(f"User {username} authorized by OPA")
+                return {"allow": True, "description":f"User {username} authorized", "status_code": 200 }
+            else:
+                logging.error(f"User {username} NOT authorized by OPA")
+                return {"allow": False, "description":f"User {username} not authorized in {system}", "status_code": 401}                
+        except requests.exceptions.RequestException as e:
+            logging.error(e.args)
+            return {"allow": False, "description":"Authorization server error", "status_code": 404} 
+    
+    return {"allow": True, "description":"Authorization method not active", "status_code": 200 }

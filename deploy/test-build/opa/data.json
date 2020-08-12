@@ -1,0 +1,12 @@
+
+{
+    "systems": {
+            "system01": {
+                "users": ["testuser"] 
+            },
+            "not_a_system": {
+                "users": ["testuser"]
+            }
+        }
+        
+}

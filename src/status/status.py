@@ -11,7 +11,7 @@ import logging
 import multiprocessing as mp
 
 # common modules
-from cscs_api_common import check_header
+from cscs_api_common import check_auth_header
 
 import paramiko
 import socket
@@ -162,17 +162,9 @@ def test_system(machinename, status_list=[]):
 
 # get service information about a particular servicename
 @app.route("/systems/<machinename>", methods=["GET"])
+@check_auth_header
 def status_system(machinename):
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
+    
     status_list = []
     test_system(machinename,status_list)
 
@@ -200,17 +192,8 @@ def status_system(machinename):
 
 
 @app.route("/systems",methods=["GET"])
+@check_auth_header
 def status_systems():
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
     # resp_list list to fill with responses from each service
     resp_list = []
 
@@ -257,17 +240,8 @@ def status_systems():
 
 # get service information about a particular servicename
 @app.route("/services/<servicename>",methods=["GET"])
+@check_auth_header
 def status_service(servicename):
-
-    # checks if AUTH_HEADER_NAME is set
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
 
     # update services:
     set_services()
@@ -298,20 +272,11 @@ def status_service(servicename):
 
     return jsonify(service=servicename,status=status,description=description), 200
 
-
-
 # get service information about all services
 @app.route("/services", methods=["GET"])
+@check_auth_header
 def status_services():
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
+    
     # update services:
     set_services()
 
@@ -361,22 +326,11 @@ def status_services():
                    out=resp_list), 200
 
 
-
 # get service information about all services
 @app.route("/parameters", methods=["GET"])
-def parameters():
-
-    try:
-        auth_header = request.headers[AUTH_HEADER_NAME]
-    except KeyError as e:
-        app.logger.error("No Auth Header given")
-        return jsonify(description="No Auth Header given"), 401
-
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
-
+@check_auth_header
+def parameters():    
     # { <microservice>: [ "name": <parameter>,  "value": <value>, "unit": <unit> } , ... ] }
-
 
     systems = SYSTEMS_PUBLIC # list of systems
     filesystems = FILESYSTEMS # list of filesystems, position related with SYSTEMS_PUBLIC
@@ -396,7 +350,7 @@ def parameters():
                         "storage": [
                                         {"name":"OBJECT_STORAGE" ,"value":OBJECT_STORAGE, "unit": ""},
                                         {"name":"STORAGE_TEMPURL_EXP_TIME", "value":STORAGE_TEMPURL_EXP_TIME, "unit": "seconds"},
-                                        {"name":"STORAGE_MAX_FILE_SIZE", "value":STORAGE_MAX_FILE_SIZE, "unit": "bytes"},
+                                        {"name":"STORAGE_MAX_FILE_SIZE", "value":STORAGE_MAX_FILE_SIZE, "unit": "MB"},
                                         {"name":"FILESYSTEMS", "value":fs_list, "unit": ""}
                                         
                                         

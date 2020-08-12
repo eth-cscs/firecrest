@@ -1539,60 +1539,6 @@ paths:
               description: Error
               schema:
                 type: string
-    put:
-      tags:
-        - Storage
-      summary: Upload to Object Storage finished notification
-      description: >-
-        Once upload to file server has completed, user must notify this to Storage microservice in order to move file to targetPath.
-      parameters:
-        - in: header
-          name: X-Task-ID
-          description: taskid of related task created on POST upload call
-          required: true
-          schema:
-            type: string
-      responses:
-        '404':
-          description: task_id not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Upload-notok'
-        '400':
-          description: object does not exist on file server.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Upload-notok'
-        '200':
-          description: object start to move to targetPath
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Upload-ok'
-  '/storage/xfer-external/upload-finished/{task_id}':
-    get:
-      summary: Upload to Object Storage finished notification
-      description: >-
-        Once upload to file server has completed, user must notify this to Storage microservice in order to move file to targetPath.
-      tags:
-        - Storage
-      parameters:
-        - name: task_id
-          in: path
-          description: id of related task created on upload
-          required: true
-          schema:
-            type: string
-      responses:
-        '404':
-          description: task_id not found
-        '400':
-          description: object does not exist on file server.
-        '200':
-          description: object start to move to targetPath
-      deprecated: true
   '/storage/xfer-external/download':
     post:
       summary: Download a file
