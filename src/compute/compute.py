@@ -270,27 +270,6 @@ def get_slurm_files(auth_header, system_name, system_addr, task_id,job_info,outp
     # update_task(task_id, auth_header, async_task.SUCCESS, control_info,True)
     return control_info
 
-def submit_job_task(auth_header,machine,fileName,job_dir,task_id):
-    # auth_header doesn't need to be checked,
-    # it's delivered by another instance of Jobs,
-    # and this function is not an entry point
-
-    resp = paramiko_scp(auth_header, machine, fileName, job_dir)
-
-    # in case of error:
-    if resp["error"] == -2:
-        update_task(task_id, auth_header, async_task.ERROR, "Machine is not available")
-        return
-
-    if resp["error"] == 1:
-        update_task(task_id, auth_header, async_task.ERROR, resp["msg"])
-        return
-
-    # now looking for log and err files location
-    job_extra_info = get_slurm_files(auth_header, machine, task_id,resp["msg"])
-
-    update_task(task_id, auth_header, async_task.SUCCESS, job_extra_info,True)
-
 def submit_job_path_task(auth_header,system_name, system_addr,fileName,job_dir, task_id):
     
     try:
@@ -350,7 +329,7 @@ def submit_job_path_task(auth_header,system_name, system_addr,fileName,job_dir, 
 
     
     # now looking for log and err files location
-    job_extra_info = get_slurm_files(auth_header, machine, task_id,msg)
+    job_extra_info = get_slurm_files(auth_header, system_name, system_addr, task_id,msg)
 
     update_task(task_id, auth_header, async_task.SUCCESS, job_extra_info,True)
     
@@ -508,7 +487,7 @@ def submit_job_path():
 
     
     # checks if targetPath is a valid path for this user in this machine
-    check = is_valid_file(targetPath, auth_header, machine)
+    check = is_valid_file(targetPath, auth_header, system_name, system_addr)
 
     if not check["result"]:
         return jsonify(description="Failed to submit job"), 400, check["headers"]
@@ -712,7 +691,7 @@ def list_job_task(auth_header,system_name, system_addr,action,task_id,pageSize,p
                    "nodes": jobaux[8], "nodelist": jobaux[9]}
 
         # now looking for log and err files location
-        jobinfo = get_slurm_files(auth_header, machine, task_id,jobinfo,True)
+        jobinfo = get_slurm_files(auth_header, system_name, system_addr, task_id,jobinfo,True)
 
         # add jobinfo to the array
         jobs[str(job_index)]=jobinfo

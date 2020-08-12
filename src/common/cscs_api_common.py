@@ -508,12 +508,12 @@ def get_task_status(task_id,auth_header):
 
 
 # checks if {path} is a valid file (exists and user in {auth_header} has read permissions)
-def is_valid_file(path, auth_header, system):
+def is_valid_file(path, auth_header, system_name, system_addr):
 
     # checks user accessibility to path using head command with 0 bytes
     action = f"head -c 1 -- {path}"
 
-    retval = exec_remote_command(auth_header,system,action)
+    retval = exec_remote_command(auth_header,system_name, system_addr,action)
 
     logging.info(retval)
 
@@ -542,16 +542,6 @@ def is_valid_file(path, auth_header, system):
 
         return {"result":False, "headers":{"X-Error": retval["msg"]}}
 
-    # checks using ls -ld of the path (-d is used for listing dir info not its content)
-    # action = f"ls -ld {path}"
-
-    # retval = exec_remote_command(auth_header,system,action)
-
-    # is_dir = retval["msg"][0]
-    # if is_dir ==  "d":
-    #     return {"result":False, "headers":{"X-A-Directory": "{path} is a directory".format(path=path)}}
-
-
     return {"result":True}
 
 
@@ -559,7 +549,7 @@ def is_valid_file(path, auth_header, system):
 # checks if {path} is a valid directory
 # 'path' should exists and be accesible to the user (write permissions)
 #
-def is_valid_dir(path, auth_header, system):
+def is_valid_dir(path, auth_header, system_name, system_addr):
 
     # create an empty file for testing path accesibility
     # test file is a hidden file and has a timestamp in order to not overwrite other files created by user
@@ -575,7 +565,7 @@ def is_valid_dir(path, auth_header, system):
 
     action = f"touch -- {path}/{tempFileName}"
 
-    retval = exec_remote_command(auth_header,system,action)
+    retval = exec_remote_command(auth_header,system_name, system_addr,action)
 
     logging.info(retval)
 
@@ -604,7 +594,7 @@ def is_valid_dir(path, auth_header, system):
 
     # delete test file created
     action = f"rm -- {path}/{tempFileName}"
-    retval = exec_remote_command(auth_header,system,action)
+    retval = exec_remote_command(auth_header,system_name, system_addr,action)
 
 
     return {"result":True}

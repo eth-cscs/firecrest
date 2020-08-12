@@ -342,7 +342,7 @@ def download_request():
         return data, 400
 
     # checks if sourcePath is a valid path
-    check = is_valid_file(sourcePath, auth_header, system)
+    check = is_valid_file(sourcePath, auth_header, system_name, system_addr)
 
 
     if not check["result"]:
@@ -514,7 +514,7 @@ def upload_request():
         return data, 400
 
     # checks if sourcePath is a valid path
-    check = is_valid_dir(targetPath, auth_header, system)
+    check = is_valid_dir(targetPath, auth_header, system_name, system_addr)
 
     if not check["result"]:
         return jsonify(description="sourcePath error"), 400, check["headers"]
