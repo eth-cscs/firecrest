@@ -845,6 +845,65 @@ paths:
               description: Command has finished with timeout signal
               schema:
                 type: string
+  '/utilities/checksum':
+    parameters:
+      - in: header
+        name: X-Machine-Name
+        description: The system name
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Calculate the checksum of a given file
+      description: 'Calculate the SHA256 (256-bit) checksum of a specified file in {targetPath} on the {X-Machine-Name} filesystem.'
+      tags:
+        - Utilities
+      parameters: 
+        - name: targetPath
+          in: query
+          description: Path to the file to calculate checksum
+          required: true
+          schema:
+            type: string
+          allowReserved: true
+      responses:
+        '200':
+          description: Checksum successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilities-ok'
+        '400':
+          description: Error obatining checksum
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilities-notok'
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: string
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: string
+            X-Permission-Denied:
+              description: User does not have permissions to access machine or path
+              schema:
+                type: string
+            X-Invalid-Path:
+              description: <path> is invalid.
+              schema:
+                type: string
+            X-Timeout:
+              description: Command has finished with timeout signal
+              schema:
+                type: string
+            X-A-Directory:
+              description: <targetPath> is a directory, can't checksum directories
+              schema:
+                type: string
   '/compute/jobs/upload':
     parameters:
       - in: header
@@ -1882,6 +1941,20 @@ components:
     Upload-notok:
       type: object
       properties:
+        error:
+          type: string
+    Utilities-ok:
+      type: object
+      properties:
+        description:
+          type: string
+        output:
+          type: string
+    Utilities-notok:
+      type: object
+      properties:
+        description:
+          type: string
         error:
           type: string
 tags:
