@@ -37,7 +37,7 @@ case "$cert_type" in
     echo "Cert command: ${SSH_EXECUTE}" >> ${log_file}
     ;;
   *)
-    echo "Unknown certificate type" >> ${log_file}
+    echo "Unknown certificate type: $cert_type" >> ${log_file}
     exit 1
     ;;
 esac
@@ -45,7 +45,7 @@ esac
 command="${SSH_EXECUTE%% *}"    # remove all after first space
 
 case "$command" in
-    cat|rm|touch|true)
+    cat|rm|head|touch|true)
         ;;
     timeout)
         # sintax: timeout number command options
@@ -54,7 +54,7 @@ case "$command" in
         tmp2=${tmp1#* }
         command2=${tmp2%% *}   # remove options
         case "$command2" in
-            base64|chmod|chown|cp|file|ln|ls|mkdir|mv|rm|stat|tail|touch|sbatch|squeue|scontrol|wget)
+            base64|chmod|chown|cp|file|head|ln|ls|mkdir|mv|rm|sbatch|scontrol|sha256sum|squeue|stat|tail|wget)
                 ;;
             *)
                 echo "Unhandled timeout command: ${command2}" >> ${log_file}
