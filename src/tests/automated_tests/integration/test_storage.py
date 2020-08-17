@@ -42,7 +42,7 @@ def test_post_upload_request(headers):
     # request upload form
     data = { "sourcePath": "testsbatch.sh", "targetPath": USER_HOME }
     resp = requests.post(STORAGE_URL + "/xfer-external/upload", headers=headers, data=data)
-    assert resp.status_code == 200
+    assert resp.status_code == 201
 
     task_id = resp.json()["task_id"]
 

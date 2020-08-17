@@ -251,6 +251,39 @@ class Swift(ObjectStorage):
 
         return retval
 
+    def list_objects(self,containername,prefix=None):
+        # object_prefix = "{prefix}/{objectname}".format(prefix=prefix, objectname=objectname)
+
+        url = f"{self.url}/{containername}"
+        
+        try:
+            req = requests.get(url, headers={"X-Auth-Token": self.auth})
+            if req.ok:
+                
+                values = req.content.decode("utf-8")
+                object_list = values.split("\n")[0:-1] # last element on the list is a ''
+
+                if prefix:
+                    new_object_list = []
+                    for obj in object_list:
+                        
+                        key = obj.split("/")
+                        val = key[1]
+                        key = key[0]
+                        
+                        if key == prefix:
+                            new_object_list.append(val)
+
+                    #object_list = list(filter(lambda obj: obj.split("/")[0] == prefix, object_list))
+                return new_object_list
+            return None
+
+        except Exception as e:
+
+            logging.error(type(e))
+
+            return None
+
 
     # sets time to live (TTL) for an object in SWIFT
     def delete_object_after(self,containername,prefix,objectname,ttl):
@@ -277,8 +310,7 @@ class Swift(ObjectStorage):
 
     def delete_object(self,containername,prefix,objectname):
 
-        swift_account_url = "{swift_url}/{containername}/{prefix}/{objectname}".format(
-            swift_url=self.url, containername=containername, prefix=prefix, objectname=objectname)
+        swift_account_url = f"{self.url}/{containername}/{prefix}"
 
         header = {"X-Auth-Token": self.auth}
 

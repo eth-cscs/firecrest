@@ -371,12 +371,52 @@ def download_request():
         task_url = "{kong_url}/tasks/{task_id}".format(kong_url=KONG_URL, task_id=task_id)
 
         data = jsonify(success="Task created", task_url=task_url, task_id=task_id)
-        return data, 200
+        return data, 201
 
     except Exception as e:
         data = jsonify(error=e)
         return data, 400
 
+
+# invalidate temp URLs
+# parameters:
+# - X-Task-Id: task id of the transfer related to the URL that wants to be invalidated
+@app.route("/xfer-external/invalidate", methods=["POST"])
+@check_auth_header
+def invalidate_request():
+    try:
+
+        task_id = request.headers["X-Task-Id"]
+    except KeyError as e:
+        return jsonify(error="Header X-Task-Id missing"), 400
+
+    auth_header = request.headers[AUTH_HEADER_NAME]
+
+    # search if task belongs to the user
+    task_status = get_task_status(task_id, auth_header)
+    
+    if task_status == -1:
+        return jsonify(error="Invalid X-Task-Id"), 400
+    
+
+    containername = get_username(auth_header)
+    prefix        = task_id
+
+    objects = staging.list_objects(containername,prefix)
+
+    for objectname in objects:
+
+        error = staging.delete_object(containername,prefix,objectname)
+
+        if error == -1:
+            return jsonify(error="Could not invalidate URL"), 400
+
+    return jsonify(success="URL invalidated successfully"), 201
+
+
+
+
+    
 
 # async task for upload large files
 # user: user in the posix file system
@@ -539,7 +579,7 @@ def upload_request():
         task_url = "{kong_url}/tasks/{task_id}".format(kong_url=KONG_URL,task_id=task_id)
 
         data = jsonify(success="Task created",task_url=task_url,task_id=task_id)
-        return data, 200
+        return data, 201
 
     except Exception as e:
         data = jsonify(error=e.message)
