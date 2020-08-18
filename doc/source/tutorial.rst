@@ -329,6 +329,49 @@ In case the `targetPath` is wrong or the user doesn't have the right permissions
     <h1>Internal Server Error</h1>
     <p>The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.</p>
 
+You can see the steps for the upload in the slides that follow:
+
+.. raw:: html
+
+    <head>
+        <script>
+        function resizeIframe(obj) {
+            obj.style.height = obj.contentWindow.document.documentElement.scrollHeight + 'px';
+        }
+        </script>
+    </head>
+
+    <iframe id='utilities_upload-carousel' srcdoc='
+        <head>
+        <title>Bootstrap Example</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+        <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js" integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV" crossorigin="anonymous"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    </head>' width="100%"
+    frameborder="0" scrolling="no" onload="resizeIframe(this)"/></iframe>
+
+    <script>
+        var i;
+        var num_slides = 4;
+        var text = `<div id="carouselExampleControls" class="carousel slide" data-ride="carousel">`;
+        text += `<ol class="carousel-indicators" style="background-color: #999;"><li data-target="#carouselExampleControls" data-slide-to="0" class="active"></li>`;
+        for (i = 2; i <= num_slides; i++) {
+            text += `<li data-target="#carouselExampleControls" data-slide-to="` + (i-1).toString() + `"></li>`;
+        }
+        text += `</ol>`;
+        text += `<div class="carousel-inner"><div class="carousel-item active"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/tutorial/tutorial/images/utilities_upload/utilities_upload%201.jpeg" class="d-block w-100" alt="..."></div>`;
+        for (i = 2; i <= num_slides; i++) {
+            text += `<div class="carousel-item"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/tutorial/tutorial/images/utilities_upload/utilities_upload%20` + i.toString() + `.jpeg" class="d-block w-100" alt="..."></div>`;
+        }
+        text += `</div><a class="carousel-control-prev" href="#carouselExampleControls" role="button" data-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="sr-only">Previous</span></a><a class="carousel-control-next" href="#carouselExampleControls" role="button" data-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="sr-only">Next</span></a></div>`
+        document.getElementById('utilities_upload-carousel').srcdoc += text;
+    </script>
+
 
 Run a small simulation
 ======================
@@ -354,6 +397,41 @@ Before submitting our first job it is important to distinguish between two IDs, 
 On a job scheduler like Slurm, every job has a unique `job ID`, which is created when a job is submitted and can be used to track the state of the job.
 With calls like `squeue` and `sacct` the user can see the state of the job (`RUNNING`, `COMPLETED`, etc.) as well as get information for the job.
 Similarly, for every task FirecREST will assign a `task ID` with which the user can track the state of the request and get information about it.
+
+You can see the steps in the slides that follow:
+
+.. raw:: html
+
+    <iframe id='compute_sbatch-carousel' srcdoc='
+        <head>
+        <title>Bootstrap Example</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+        <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js" integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV" crossorigin="anonymous"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    </head>' width="100%"
+    frameborder="0" scrolling="no" onload="resizeIframe(this)"/></iframe>
+
+    <script>
+        var i;
+        var num_slides = 11;
+        var text = `<div id="carouselExampleControls" class="carousel slide" data-ride="carousel">`;
+        text += `<ol class="carousel-indicators" style="background-color: #999;"><li data-target="#carouselExampleControls" data-slide-to="0" class="active"></li>`;
+        for (i = 2; i <= num_slides; i++) {
+            text += `<li data-target="#carouselExampleControls" data-slide-to="` + (i-1).toString() + `"></li>`;
+        }
+        text += `</ol>`;
+        text += `<div class="carousel-inner"><div class="carousel-item active"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/tutorial/tutorial/images/compute_sbatch/compute_sbatch%201.jpeg" class="d-block w-100" alt="..."></div>`;
+        for (i = 2; i <= num_slides; i++) {
+            text += `<div class="carousel-item"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/tutorial/tutorial/images/compute_sbatch/compute_sbatch%20` + i.toString() + `.jpeg" class="d-block w-100" alt="..."></div>`;
+        }
+        text += `</div><a class="carousel-control-prev" href="#carouselExampleControls" role="button" data-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="sr-only">Previous</span></a><a class="carousel-control-next" href="#carouselExampleControls" role="button" data-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="sr-only">Next</span></a></div>`
+        document.getElementById('compute_sbatch-carousel').srcdoc += text;
+    </script>
 
 The first step to submit a job is to make a `POST` request in the `compute/jobs <reference.html#post--compute-jobs>`__  endpoint.
 Again, we have to pass the authorization token and the machine in the header.
@@ -450,6 +528,39 @@ Check for job status
 Now that we know the job's slurm ID we can use it to get more information on the progress of that job.
 The `/compute/jobs/{jobid} <reference.html#get--compute-jobs-jobid>`__  endpoint is going to start a FirecREST task for that purpose.
 The job ID is a path parameter, so part of the endpoint URL, and the authorization token and machine name are part of the header.
+
+.. raw:: html
+
+    <iframe id='compute_squeue-carousel' srcdoc='
+        <head>
+        <title>Bootstrap Example</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+        <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js" integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV" crossorigin="anonymous"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    </head>' width="100%"
+    frameborder="0" scrolling="no" onload="resizeIframe(this)"/></iframe>
+
+    <script>
+        var i;
+        var num_slides = 8;
+        var text = `<div id="carouselExampleControls" class="carousel slide" data-ride="carousel">`;
+        text += `<ol class="carousel-indicators" style="background-color: #999;"><li data-target="#carouselExampleControls" data-slide-to="0" class="active"></li>`;
+        for (i = 2; i <= num_slides; i++) {
+            text += `<li data-target="#carouselExampleControls" data-slide-to="` + (i-1).toString() + `"></li>`;
+        }
+        text += `</ol>`;
+        text += `<div class="carousel-inner"><div class="carousel-item active"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/tutorial/tutorial/images/compute_squeue/compute_squeue%201.jpeg" class="d-block w-100" alt="..."></div>`;
+        for (i = 2; i <= num_slides; i++) {
+            text += `<div class="carousel-item"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/tutorial/tutorial/images/compute_squeue/compute_squeue%20` + i.toString() + `.jpeg" class="d-block w-100" alt="..."></div>`;
+        }
+        text += `</div><a class="carousel-control-prev" href="#carouselExampleControls" role="button" data-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="sr-only">Previous</span></a><a class="carousel-control-next" href="#carouselExampleControls" role="button" data-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="sr-only">Next</span></a></div>`
+        document.getElementById('compute_squeue-carousel').srcdoc += text;
+    </script>
 
 .. tabs::
 
@@ -669,6 +780,39 @@ This task will be split into more steps but it will correspond to one FirecREST 
 The first step is to upload the file to a staging area.
 As soon as this finishes, we have to make a call to FirecREST in order for it to move the file from the staging area to the location in one of the eligible machines's filesystem.
 
+.. raw:: html
+
+    <iframe id='external_upload-carousel' srcdoc='
+        <head>
+        <title>Bootstrap Example</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+        <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js" integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV" crossorigin="anonymous"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    </head>' width="100%"
+    frameborder="0" scrolling="no" onload="resizeIframe(this)"/></iframe>
+
+    <script>
+        var i;
+        var num_slides = 15;
+        var text = `<div id="carouselExampleControls" class="carousel slide" data-ride="carousel">`;
+        text += `<ol class="carousel-indicators" style="background-color: #999;"><li data-target="#carouselExampleControls" data-slide-to="0" class="active"></li>`;
+        for (i = 2; i <= num_slides; i++) {
+            text += `<li data-target="#carouselExampleControls" data-slide-to="` + (i-1).toString() + `"></li>`;
+        }
+        text += `</ol>`;
+        text += `<div class="carousel-inner"><div class="carousel-item active"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/tutorial/tutorial/images/external_upload/external_upload%201.jpeg" class="d-block w-100" alt="..."></div>`;
+        for (i = 2; i <= num_slides; i++) {
+            text += `<div class="carousel-item"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/tutorial/tutorial/images/external_upload/external_upload%20` + i.toString() + `.jpeg" class="d-block w-100" alt="..."></div>`;
+        }
+        text += `</div><a class="carousel-control-prev" href="#carouselExampleControls" role="button" data-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="sr-only">Previous</span></a><a class="carousel-control-next" href="#carouselExampleControls" role="button" data-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="sr-only">Next</span></a></div>`
+        document.getElementById('external_upload-carousel').srcdoc += text;
+    </script>
+
 So the first step is to send a request to FirecREST, to the `/storage/xfer-external/upload <reference.html#post--storage-xfer-external-upload>`__ endpoint.
 Besides the authorization token, we have to include the local path of the file we are going to upload (`sourcePath`) and the target location of the transfer (`targetPath`).
 Both `sourcePath` and `targetPath` are form data parameters.
@@ -813,44 +957,6 @@ And a successful upload would look like this:
     The testbuild is using a `minio` Object Storage, which is different than `Swift`.
     When you are using FirecREST the command provided by the framework might be different, but the steps the user has to follow are the same.
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    **The last step is no longer necessary**
-    The last step of this task is to finish the transfer, from the staging area to the filesystem.
-    We have to make a `PUT` request to the `/storage/xfer-external/upload <reference.html#put--storage-xfer-external-upload>`__ endpoint.
-    In this call, we only have to include two arguments in the header, the authorization token and the FirecREST `task ID`.
-
-    .. tabs::
-
-        .. code-tab:: bash
-
-            $ curl -X PUT "${FIRECREST_IP}/storage/xfer-external/upload" \
-                   -H "Authorization: Bearer ${TOKEN}" \
-                   -H "X-Task-ID: 455c7c5f4910939fb502194a45d6914d"
-
-        .. code-tab:: python
-
-            taskid = '455c7c5f4910939fb502194a45d6914d'
-
-            response = requests.put(
-                url=f'{FIRECREST_IP}/storage/xfer-external/upload',
-                headers={'Authorization': f'Bearer {TOKEN}',
-                         'X-Task-ID': taskid}
-            )
-
-            print(json.dumps(response.json(), indent=4))
-
-    And the response should look like that:
-
-    .. code-block:: json
-
-        {
-            "success": "Starting download to File System"
-        }
-
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 If everything went okay the next step is optional, but useful.
 You can check the status of the FirecREST task; the `task id` remains the same.
 
@@ -904,7 +1010,41 @@ After succesfully running our jobs we should verify that the output is what we e
 In our case we can download the output, check the result of the `sha1sum` command against the result we get from the file in our local machine.
 
 The output is so small it would make sense to download it with the blocking call `utilities/download <reference.html#get--utilities-download>`__, but we will do a non-blocking through the `Storage microservice` just so we can see the workflow in that case.
-It follows a similar workflow, as the non-blocking uploading of a file.
+It follows a similar workflow, as the non-blocking uploading of a file, as you can see in the slides that follow.
+
+.. raw:: html
+
+    <iframe id='external_download-carousel' srcdoc='
+        <head>
+        <title>Bootstrap Example</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+        <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js" integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV" crossorigin="anonymous"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    </head>' width="100%"
+    frameborder="0" scrolling="no" onload="resizeIframe(this)"/></iframe>
+
+    <script>
+        var i;
+        var num_slides = 9;
+        var text = `<div id="carouselExampleControls" class="carousel slide" data-ride="carousel">`;
+        text += `<ol class="carousel-indicators" style="background-color: #999;"><li data-target="#carouselExampleControls" data-slide-to="0" class="active"></li>`;
+        for (i = 2; i <= num_slides; i++) {
+            text += `<li data-target="#carouselExampleControls" data-slide-to="` + (i-1).toString() + `"></li>`;
+        }
+        text += `</ol>`;
+        text += `<div class="carousel-inner"><div class="carousel-item active"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/tutorial/tutorial/images/external_download/external_download%201.jpeg" class="d-block w-100" alt="..."></div>`;
+        for (i = 2; i <= num_slides; i++) {
+            text += `<div class="carousel-item"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/tutorial/tutorial/images/external_download/external_download%20` + i.toString() + `.jpeg" class="d-block w-100" alt="..."></div>`;
+        }
+        text += `</div><a class="carousel-control-prev" href="#carouselExampleControls" role="button" data-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="sr-only">Previous</span></a><a class="carousel-control-next" href="#carouselExampleControls" role="button" data-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="sr-only">Next</span></a></div>`
+        document.getElementById('external_download-carousel').srcdoc += text;
+    </script>
+
 First, we have to ask FirecREST to transfer the file from the machine's filesystem to the staging area.
 As soon as the transfer is complete we have to ask FirecREST for the link from where we can download the file.
 
