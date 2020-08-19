@@ -58,6 +58,7 @@ case "$command" in
                 ;;
             *)
                 echo "Unhandled timeout command: ${command2}" >> ${log_file}
+                exit 1
                 ;;
         esac
         ;;
@@ -69,6 +70,7 @@ case "$command" in
         ;;
     *)
         echo "Unhandled command: ${command}" >> ${log_file}
+        exit 1
         ;;
 esac
 
