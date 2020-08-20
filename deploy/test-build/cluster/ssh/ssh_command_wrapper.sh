@@ -45,7 +45,7 @@ esac
 command="${SSH_EXECUTE%% *}"    # remove all after first space
 
 case "$command" in
-    cat|rm|touch|true)
+    cat|head|rm|touch|true)
         ;;
     timeout)
         # sintax: timeout number command options
@@ -54,10 +54,11 @@ case "$command" in
         tmp2=${tmp1#* }
         command2=${tmp2%% *}   # remove options
         case "$command2" in
-            base64|chmod|chown|cp|file|ln|ls|mkdir|mv|rm|stat|tail|touch|sbatch|squeue|scontrol|wget)
+            base64|chmod|chown|cp|file|head|ln|ls|mkdir|mv|rm|stat|tail|touch|sbatch|squeue|scontrol|wget)
                 ;;
             *)
                 echo "Unhandled timeout command: ${command2}" >> ${log_file}
+                exit 1
                 ;;
         esac
         ;;
@@ -69,6 +70,7 @@ case "$command" in
         ;;
     *)
         echo "Unhandled command: ${command}" >> ${log_file}
+        exit 1
         ;;
 esac
 
