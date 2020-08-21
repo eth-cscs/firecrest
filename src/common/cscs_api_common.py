@@ -682,7 +682,7 @@ def check_command_error(error_str, error_code, service_msg):
 
     if in_str(error_str,"cannot open"):
         header = {"X-Permission-Denied": "User does not have permissions to access path"}
-        return jsonify(description="Error listing contents of path"), 400, header
+        return {"description":service_msg, "status_code": 400, "header": header}
 
     if in_str(error_str,"No such file"):
         if in_str(error_str,"cannot stat"):
@@ -733,5 +733,5 @@ def check_command_error(error_str, error_code, service_msg):
     if in_str(error_str, "read permission"):
         header = {"X-Permission-Denied": "User does not have permissions to access path"}
         return {"description": service_msg, "status_code": 400, "header": header}
-
+    header = {"X-Error": error_str}
     return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
