@@ -904,6 +904,65 @@ paths:
               description: <targetPath> is a directory, can't checksum directories
               schema:
                 type: string
+  '/utilities/view':
+    parameters:
+      - in: header
+        name: X-Machine-Name
+        description: The system name
+        required: true
+        schema:
+          type: string
+    get:
+      summary: View the content of a given file
+      description: 'View the content of a specified file in {targetPath} on the {X-Machine-Name} filesystem.'
+      tags:
+        - Utilities
+      parameters: 
+        - name: targetPath
+          in: query
+          description: Path to the file to view
+          required: true
+          schema:
+            type: string
+          allowReserved: true
+      responses:
+        '200':
+          description: File content successfully returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilities-ok'
+        '400':
+          description: Failed to view file content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilities-notok'
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: string
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: string
+            X-Permission-Denied:
+              description: User does not have permissions to access machine or path
+              schema:
+                type: string
+            X-Invalid-Path:
+              description: <path> is invalid.
+              schema:
+                type: string
+            X-Timeout:
+              description: Command has finished with timeout signal
+              schema:
+                type: string
+            X-A-Directory:
+              description: <targetPath> is a directory, can't checksum directories
+              schema:
+                type: string
   '/compute/jobs/upload':
     parameters:
       - in: header
