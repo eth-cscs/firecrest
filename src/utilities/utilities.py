@@ -462,35 +462,7 @@ def view():
     if path == "":
         return jsonify(description="Failed to view file content",error="'targetPath' value is empty"), 400
 
-
-    # action = f"timeout {UTILITIES_TIMEOUT} file -b -- '{path}'"
-    # retval = exec_remote_command(auth_header, system_name, system_addr, action)
-    # # From manpage: https://linux.die.net/man/1/file
-    # # " Return Code
-    # #    file returns 0 on success, and non-zero on error.
-    # #    If the file named by the file operand does not exist, 
-    # #    cannot be read, or the type of the file named by the file 
-    # #    operand cannot be determined, this is not be considered an error 
-    # #    that affects the exit status. "
-    # # Therefore file almost never returns non 0 error code
-
-
-
-    # error_str   = retval["msg"]
-    # error_code  = retval["error"]
-    # service_msg = "Failed to view file content"
-
-    # ret_data = check_command_error(error_str, error_code, service_msg)
-
-    # # if generic "error" not in the dict
-    # try:
-    #     jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
-    # except:
-    #     return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
-
-    # if not in_str(retval["msg"], "ASCII"):
-    #     return jsonify(description="Failed to view file content",error="Not an ASCII file"), 400
-
+    # check file size
     action = f"timeout {UTILITIES_TIMEOUT} stat --dereference -c %s -- '{path}'"
     retval = exec_remote_command(auth_header, system_name, system_addr, action)
 
