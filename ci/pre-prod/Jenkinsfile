@@ -1,0 +1,144 @@
+#!groovy
+
+node {
+    
+    def gitHubUser = 'eth-cscs'
+    def gitHubRepo = 'firecrest'
+    
+    // will come from POST payload
+    def longCommit =  "${env.COMMITID}"
+    longCommit =  "testing"
+   
+	try {
+	    
+        stage('Checkout source code') {
+    	    echo "Checking out source code"
+    	    
+        	git branch: "master",
+                url: 'https://github.com/' + gitHubUser + '/' + gitHubRepo + '.git'
+
+            // checkout the specified commit
+            sh("git checkout " + longCommit)
+        }
+    
+    	stage('Print Env After source checkout') {
+    		echo "Branch Name: ${env.BRANCH_NAME}"
+    		echo "BUILD_NUMBER : ${env.BUILD_NUMBER}"
+    		echo "BUILD_ID : ${env.BUILD_ID}"
+    		echo "JOB_NAME: ${env.JOB_NAME}"
+    		echo "BUILD_TAG : ${env.BUILD_TAG}"
+    		echo "EXECUTOR_NUMBER : ${env.EXECUTOR_NUMBER}"
+    		echo "NODE_NAME: ${env.NODE_NAME}"
+    		echo "NODE_LABELS : ${env.NODE_LABELS}"
+    		echo "WORKSPACE : ${env.WORKSPACE}"
+    		echo "JENKINS_HOME : ${env.JENKINS_HOME}"
+    	}
+
+
+         stage('MyStage') {
+             
+            ansibleTowerProjectSync(
+                async: false,
+                importTowerLogs: true,
+                project: 'Pre-Prod Build',
+                removeColor: false,
+                throwExceptionWhenFail: true,
+                towerServer: 'awx-local',
+                verbose: false
+            )
+
+            ansibleTower(
+                templateType: 'job',
+                jobTemplate: 'Pre-Prod Registry Build',
+                towerLogLevel: 'full',
+                inventory: 'Demo Inventory',
+                jobTags: '',
+                skipJobTags: '',
+                limit: '',
+                removeColor: false,
+                verbose: true,
+                credential: '',
+                extraVars: """---
+                commit_id: \"${longCommit}\"""",
+                async: false
+            )
+
+            
+         }
+
+		
+    	/*stage('Build') {
+    	    
+    	    // create folder for logs
+    	    try {
+        	    sh "mkdir -p ${env.WORKSPACE}/deploy/test-build/logs/firecrest"
+    	    } catch(ex1) {
+    	        echo "Error creating logs/firecrest folder"
+    	    }
+    	    
+    	    // give write permissions to users in jenkins group (root user must belong to it)
+    	    try {
+    	        sh "chmod 775 ${env.WORKSPACE}/deploy/test-build/logs/firecrest"
+    	    } catch(ex2){
+    	        echo "Error: Can not change permissions of logs/firecrest folder"
+    	    }
+    	    
+    	    dir("deploy/test-build/environment/keys") {
+	            sh 'chmod 400 ca-key user-key'
+    	    }
+    	    
+    		echo "Build Stage Starting"
+            withEnv(["PATH=$PATH:/usr/local/bin"]) {   
+    		    dir("deploy/test-build") {
+                    sh "docker-compose up --build -d"
+                }
+            }
+            sh '''#!/bin/sh
+                    sleep 30
+                    echo "Waiting for containers to get ready..."
+                '''
+    		echo "Build Stage Finsihed"
+    	}
+
+
+		stage('Tests') {
+			
+			dir("src/tests/automated_tests") {
+                sh "pip3 install --user -r requirements.txt"
+                
+                withEnv(["PATH=$PATH:~/.local/bin"]) {  
+                    
+                    echo "Unit Tests Starting"
+                    sh "pytest -c test-build.ini unit"
+                    echo "Unit Tests Finished"
+                    
+                    echo "Integration Tests Starting"
+                    sh "pytest -c test-build.ini integration"
+                    echo "Integrations Tests Finished"
+    
+                }
+                
+                echo "Tests Finished"
+                
+            }
+		}*/
+                
+
+  	} 
+  	catch (e) {
+    	
+    	// If there was an exception thrown, the build failed
+    	currentBuild.result = "FAILED"
+    	throw e
+  
+  	}
+  	finally {
+  	    
+  	  
+	    
+  	}	
+
+}
+
+
+

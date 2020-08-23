@@ -1,0 +1,24 @@
+---
+- name: Build firecrest microservices images
+  gather_facts: No
+  hosts: all
+  tasks:
+    - name: create build directory
+      file:
+        path: /home/firecrest/awx-firecrest-build
+        state: directory
+        owner: firecrest
+        group: firecrest
+        mode: '0755'
+    - name: Clone firecrest git repository
+        git:
+          repo: 'https://github.com/eth-cscs/firecrest.git'
+          dest: /home/firecrest/awx-firecrest-build
+          version: '{{ commit_id }}'
+    - name: build container image
+      docker_image:
+        name: compute:{{ commit_id }}
+        build:
+          path: /home/firecrest/awx-firecrest-build/firecrest/deploy/docker/compute/Dockerfile
+          source: build
+        state: present
