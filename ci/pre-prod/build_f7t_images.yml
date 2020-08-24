@@ -20,5 +20,5 @@
         name: "compute:{{ build_tag }}"
         build:
           path: /home/firecrest/awx-firecrest-build/firecrest/deploy/docker/compute/Dockerfile
-          source: build
-          state: present
+        source: build
+        state: present
