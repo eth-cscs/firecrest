@@ -8,55 +8,53 @@ node {
     def longCommit = "$after"
 
     try {
-
         stage('Checkout source code') {
-            echo "Checking out source code"
+            echo 'Checking out source code'
 
             git branch: 'master',
             url: 'https://github.com/' + gitHubUser + '/' + gitHubRepo + '.git'
 
             // checkout the specified commit
-            sh("git checkout " + longCommit)
+            sh('git checkout ' + longCommit)
         }
 
         stage('Print Env After source checkout') {
-              echo "Branch Name: ${env.BRANCH_NAME}"
-              echo "BUILD_NUMBER : ${env.BUILD_NUMBER}"
-              echo "BUILD_ID : ${env.BUILD_ID}"
-              echo "JOB_NAME: ${env.JOB_NAME}"
-              echo "BUILD_TAG : ${env.BUILD_TAG}"
-              echo "EXECUTOR_NUMBER : ${env.EXECUTOR_NUMBER}"
-              echo "NODE_NAME: ${env.NODE_NAME}"
-              echo "NODE_LABELS : ${env.NODE_LABELS}"
-              echo "WORKSPACE : ${env.WORKSPACE}"
-              echo "JENKINS_HOME : ${env.JENKINS_HOME}"
+            echo "Branch Name: ${env.BRANCH_NAME}"
+            echo "BUILD_NUMBER : ${env.BUILD_NUMBER}"
+            echo "BUILD_ID : ${env.BUILD_ID}"
+            echo "JOB_NAME: ${env.JOB_NAME}"
+            echo "BUILD_TAG : ${env.BUILD_TAG}"
+            echo "EXECUTOR_NUMBER : ${env.EXECUTOR_NUMBER}"
+            echo "NODE_NAME: ${env.NODE_NAME}"
+            echo "NODE_LABELS : ${env.NODE_LABELS}"
+            echo "WORKSPACE : ${env.WORKSPACE}"
+            echo "JENKINS_HOME : ${env.JENKINS_HOME}"
         }
 
         stage('Build') {
-
-            echo "Build Stage Starting"
+            echo 'Build Stage Starting'
 
             // create folder for logs
             try {
                 sh "mkdir -p ${env.WORKSPACE}/deploy/test-build/logs/firecrest"
-            } catch(ex1) {
-                echo "Error creating logs/firecrest folder"
+            } catch (ex1) {
+                echo 'Error creating logs/firecrest folder'
             }
 
             // give write permissions to users in jenkins group (root user must belong to it)
             try {
                 sh "chmod 775 ${env.WORKSPACE}/deploy/test-build/logs/firecrest"
-            } catch(ex2){
-                echo "Error: Can not change permissions of logs/firecrest folder"
+            } catch (ex2) {
+                echo 'Error: Can not change permissions of logs/firecrest folder'
             }
 
-            dir("deploy/test-build/environment/keys") {
+            dir('deploy/test-build/environment/keys') {
                 sh 'chmod 400 ca-key user-key'
             }
 
             withEnv(["PATH=$PATH:/usr/local/bin"]) {
-                dir("deploy/test-build") {
-                    sh "docker-compose up --build -d"
+                dir('deploy/test-build') {
+                    sh 'docker-compose up --build -d'
                 }
             }
 
@@ -65,47 +63,40 @@ node {
             echo "Waiting for containers to get ready..."
             '''
 
-            echo "Build Stage Finsihed"
+            echo 'Build Stage Finsihed'
         }
-
 
         stage('Tests') {
-
-            dir("src/tests/automated_tests") {
-                sh "pip3 install --user -r requirements.txt"
+            dir('src/tests/automated_tests') {
+                sh 'pip3 install --user -r requirements.txt'
 
                 withEnv(["PATH=$PATH:~/.local/bin"]) {
+                    echo 'Unit Tests Starting'
+                    sh 'pytest -c test-build.ini unit'
+                    echo 'Unit Tests Finished'
 
-                      echo "Unit Tests Starting"
-                      sh "pytest -c test-build.ini unit"
-                      echo "Unit Tests Finished"
-
-                      echo "Integration Tests Starting"
-                      sh "pytest -c test-build.ini integration"
-                      echo "Integrations Tests Finished"
-
+                    echo 'Integration Tests Starting'
+                    sh 'pytest -c test-build.ini integration'
+                    echo 'Integrations Tests Finished'
                 }
 
-                echo "Tests Finished"
+                echo 'Tests Finished'
             }
         }
-
     }
     catch (e) {
-
         // If there was an exception, the build failed
-        currentBuild.result = "FAILED"
+        currentBuild.result = 'FAILED'
         throw e
     }
     finally {
-
         // Save Log files
-  	try {
+        try {
             sh "mkdir -p /var/log/jenkins/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}"
             sh "cp -r ${env.WORKSPACE}/deploy/test-build/logs/firecrest/* /var/log/jenkins/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}/."
-        } catch(errCpLogs) {
-            echo "Error while saving log files: " + errCpLogs.toString()
-  	}
+        } catch (errCpLogs) {
+            echo 'Error while saving log files: ' + errCpLogs.toString()
+        }
 
         sh '''#!/bin/sh
         sleep 30
@@ -114,9 +105,9 @@ node {
 
         // Remove containers
         withEnv(["PATH=$PATH:/usr/local/bin"]) {
-            dir("deploy/test-build") {
+            dir('deploy/test-build') {
                 // destroy containers and volumes
-                sh "docker-compose down -v"
+                sh 'docker-compose down -v'
             }
         }
 
@@ -124,14 +115,13 @@ node {
     }
 }
 
-
 def notifyBuildStatusToGitHub(String buildStatus, String gitHubUser, String gitHubRepo, String longCommit) {
     buildStatus = buildStatus ?: 'SUCCESS'
-    def status = ""
+    def status = ''
     if (buildStatus == 'SUCCESS') {
-        status = "success"
+        status = 'success'
     } else {
-        status = "failure"
+        status = 'failure'
     }
 
     withCredentials([string(credentialsId: 'firecrestci_access_token', variable: 'accessToken')]) {

@@ -1,0 +1,21 @@
+- name: create build directory
+  file:
+    path: /home/firecrest/awx-firecrest-build
+    state: directory
+    owner: firecrest
+    group: firecrest
+    mode: "0755"
+- name: Clone firecrest git repository
+  git:
+    repo: "https://github.com/eth-cscs/firecrest.git"
+    dest: /home/firecrest/awx-firecrest-build
+    version: "{{ '{{' }} commit_id {{ '}}' }}"
+- name: build container image
+  docker_image:
+    name: "{{ item.key }}:{{ '{{' }} build_tag {{ '}}' }}"
+    build:
+      path: /home/firecrest/awx-firecrest-build
+      dockerfile: ./deploy/docker/{{ item.key }}/Dockerfile
+    source: build
+    state: present
+  with_dict: "{{ image_definitions }}"
