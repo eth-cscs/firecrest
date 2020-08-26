@@ -451,12 +451,100 @@ class S3v4(ObjectStorage):
 
         canonical_querystring += '&X-Amz-Signature=' + signature
 
-        # print(f"Canonical request: \n{canonical_request}")
-        # print(f"String to Sign: \n{string_to_sign}")
-
         url = endpoint_url + canonical_uri + "?" + canonical_querystring
 
         return url
+
+    def list_objects(self,containername,prefix=None):
+        httpVerb = "GET"
+        algorithm = 'AWS4-HMAC-SHA256'
+        service = "s3"
+        aws_request = "aws4_request"
+        aws_access_key_id = self.user  
+        aws_secret_access_key = self.passwd  
+        endpoint_url = self.url  
+        host = self.url.split("/")[-1]  
+        region = "us-east-1"
+
+        # Create a date for headers and the credential string
+        t = datetime.utcnow()
+        amzdate = t.strftime('%Y%m%dT%H%M%SZ')
+        datestamp = t.strftime('%Y%m%d')  # Date w/o time, used in credential scope
+
+        canonical_uri = f"/{containername}" 
+
+        canonical_headers = 'host:' + host + "\n"  # + "x-amz-date:"+ amzdate + "\n"
+
+        signed_headers = "host"  # "host;x-amz-content-sha256;x-amz-date"
+
+        credential_scope = datestamp + '/' + region + '/' + service + '/' + aws_request
+
+        # canonical_querystring = bucket_name+"/"+object_name
+        canonical_querystring = 'X-Amz-Algorithm=AWS4-HMAC-SHA256'
+        canonical_querystring += '&X-Amz-Credential=' + urllib.parse.quote_plus(
+            aws_access_key_id + '/' + credential_scope)
+        canonical_querystring += '&X-Amz-Date=' + amzdate
+        canonical_querystring += '&X-Amz-Expires=' + str(120)
+        canonical_querystring += '&X-Amz-SignedHeaders=' + signed_headers
+
+        payload_hash = "UNSIGNED-PAYLOAD"  # ???????? hashlib.sha256(("").encode("utf-8")).hexdigest()
+
+        canonical_request = httpVerb + "\n" + canonical_uri + "\n" + canonical_querystring + "\n" + canonical_headers + '\n' + signed_headers + "\n" + payload_hash
+
+        string_to_sign = algorithm + "\n" + amzdate + "\n" + credential_scope + "\n" + hashlib.sha256(
+            canonical_request.encode("utf-8")).hexdigest()
+
+        # Create the signing key
+        signing_key = self.getSignatureKey(aws_secret_access_key, datestamp, region, service)
+
+        # Sign the string_to_sign using the signing_key
+        signature = hmac.new(signing_key, (string_to_sign).encode("utf-8"), hashlib.sha256).hexdigest()
+
+        canonical_querystring += '&X-Amz-Signature=' + signature
+
+        url = endpoint_url + canonical_uri + "?" + canonical_querystring
+
+        try:
+            resp = requests.get(url)
+
+            if resp.ok:
+                # logging.info(resp.content)
+                root = ElementTree.fromstring(resp.content)
+
+                for _, nsvalue in ElementTree.iterparse(BytesIO(resp.content), events=['start-ns']):
+                    namespace = nsvalue[1]
+
+                object_list = []
+
+                
+
+                for contents in root.findall("{{{}}}Contents".format(namespace)):
+                    key = contents.find("{{{}}}Key".format(namespace)).text
+
+                    
+                    if prefix != None:
+                        sep = key.split("/")
+                        if prefix == sep[0]:
+                            name = key.split("/")[-1]
+                            object_list.append(name)
+                            continue
+                    
+                    object_list.append(key)
+
+
+                    
+
+                return object_list
+            else:
+                return None
+        except requests.exceptions.ConnectionError as ce:
+            logging.error(ce.strerror)
+            return None
+
+        except Exception as e:
+            logging.error("Error: {}".format(e))
+            logging.error("Error: {}".format(type(e)))
+            return None
 
     def delete_object_after(self,containername,prefix,objectname,ttl):
 
@@ -472,10 +560,10 @@ class S3v4(ObjectStorage):
         algorithm = 'AWS4-HMAC-SHA256'
         service = "s3"
         aws_request = "aws4_request"
-        aws_access_key_id = self.user# "storage_access_key"
-        aws_secret_access_key = self.passwd #"storage_secret_key"
-        endpoint_url = self.url #"http://192.168.220.19:9000"
-        host = self.url.split("/")[-1] #192.168.220.19:9000"
+        aws_access_key_id = self.user
+        aws_secret_access_key = self.passwd 
+        endpoint_url = self.url 
+        host = self.url.split("/")[-1] 
         region = "us-east-1"
 
         # Create a date for headers and the credential string
@@ -484,7 +572,7 @@ class S3v4(ObjectStorage):
         datestamp = t.strftime('%Y%m%d')  # Date w/o time, used in credential scope
 
         canonical_uri = "/" + containername + "/" + prefix + "/" + objectname
-
+        
         canonical_headers = 'host:' + host + "\n"  # + "x-amz-date:"+ amzdate + "\n"
 
         signed_headers = "host"  # "host;x-amz-content-sha256;x-amz-date"
@@ -513,20 +601,15 @@ class S3v4(ObjectStorage):
         signature = hmac.new(signing_key, (string_to_sign).encode("utf-8"), hashlib.sha256).hexdigest()
 
         canonical_querystring += '&X-Amz-Signature=' + signature
-
-        # print(f"Canonical request: \n{canonical_request}")
-        # print(f"String to Sign: \n{string_to_sign}")
-
+        
         url = endpoint_url + canonical_uri + "?" + canonical_querystring
 
-        logging.info("Deleting {}/{}/{}".format(containername,prefix,objectname))
+        logging.info(f"Deleting {canonical_uri}")
         logging.info("URL: {}".format(url))
 
         try:
             resp = requests.delete(url)
-            # print(resp.status_code)
-            # print(resp.text)
-
+            
             if resp.ok:
                 logging.info("Object deleted succesfully")
 

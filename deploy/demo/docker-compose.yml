@@ -226,3 +226,13 @@ services:
       - "8181:8181"    
     volumes: 
       - ./opa:/opa-files
+
+  openapi:
+    # image: swaggerapi/swagger-ui:v3.22.0
+    build:
+      context: ../../
+      dockerfile: ./deploy/docker/openapi/Dockerfile
+    ports:
+      - "9090:8080"
+    environment:
+      SWAGGER_JSON: /tmp/openapi.yaml
