@@ -12,7 +12,7 @@
     version: "{{ commit_id }}"
 - name: build container image
   docker_image:
-    name: "{{ item.key }}:{{ '{{' }} build_tag {{ '}}' }}"
+    name: "{{ item.key }}:{{ build_tag }}"
     build:
       path: /home/firecrest/awx-firecrest-build
       dockerfile: ./deploy/docker/{{ item.key }}/Dockerfile
