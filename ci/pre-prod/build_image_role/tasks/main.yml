@@ -9,7 +9,7 @@
   git:
     repo: "https://github.com/eth-cscs/firecrest.git"
     dest: /home/firecrest/awx-firecrest-build
-    version: "{{ '{{' }} commit_id {{ '}}' }}"
+    version: "{{ commit_id }}"
 - name: build container image
   docker_image:
     name: "{{ item.key }}:{{ '{{' }} build_tag {{ '}}' }}"
