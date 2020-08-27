@@ -25,4 +25,8 @@ class DevConfig(Config):
     # machine for internal storage jobs, must be defined in MACHINES
     STORAGE_JOBS_MACHINE='cluster'
     HOME_DIR = '/home'
-    CLIENT_PORT = 5000
+    CLIENT_PORT = 7000
+    # SSL configuration
+    USE_SSL = False
+    SSL_PEM = '' 
+    SSL_KEY = ''
