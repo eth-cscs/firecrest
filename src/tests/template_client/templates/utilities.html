@@ -183,13 +183,17 @@ tr:nth-child(even) {
 	}
 
 	function fullPath(dirPath,fileName){
-	    var content = dirPath+"/"+fileName;
+		var targetPath = dirPath+"/"+fileName;
+		
+
 	    var textarea = $("<textarea>").val(content).appendTo("body").select();
 
 	    document.execCommand("copy");
 	    $(textarea).remove();
 	    alert("Path "+content+" has been copied to clipboard");
 	}
+
+	
 
 	function action(action,dirPath,fileName,machine){
 		/* action: copy, rename, */ 
@@ -199,7 +203,17 @@ tr:nth-child(even) {
 		console.log(fileName);
 		console.log(machine);
 
-		if (action == "copy" || action == "rename"){
+		if (action == "checksum"){
+
+			var url = "{{ request.url_root }}utilities/"+action;
+			console.log(url);
+			var data = {
+				"machine":machine,
+				"path": dirPath,
+				"targetPath": dirPath+"/"+fileName };				
+		}
+
+		else if (action == "copy" || action == "rename"){
 			var targetPath = prompt("Insert full target path to "+action+" file",dirPath);
 
 			if (targetPath == null || targetPath == "")
@@ -331,7 +345,8 @@ tr:nth-child(even) {
 			<a href="#" onclick="action('rm','{{ path }}','{{ row['name'] }}','{{ machine }}');">rm</a> | 
 			<a href="#" onclick="chown('{{ path }}','{{ row['name'] }}','{{ machine }}','{{ row['user'] }}','{{ row['group'] }}');">chown</a> | 
 			<a href="#" onclick="chmod('{{ path }}','{{ row['name'] }}','{{ machine }}', '{{ row['permissions'] }}');">chmod</a> |
-            <a href="#" onclick="fullPath('{{ path }}','{{ row['name'] }}');">copy path</a>
+			<a href="#" onclick="fullPath('{{ path }}','{{ row['name'] }}');">copy path</a> | 
+			<a href="#" onclick="action('checksum', '{{ path }}','{{ row['name'] }}', '{{ machine }}');">checksum</a>
 		</tr>
       {% endfor %}
 
