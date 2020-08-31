@@ -36,11 +36,7 @@ app.jinja_env.add_extension('jinja2.ext.loopcontrols')
 
 bootstrap = Bootstrap(app)
 
-demo_microservices = [ ("Status","status"),
-                       ("Utilities","utilities"),
-                       ("Compute","compute"),
-                       ("Storage","storage"),
-                       ("Tasks","tasks") ]
+demo_microservices = [ (m.title(),m) for m in app.config['MICROSERVICES'] ]
 
 oidc = OpenIDConnect(app)
 

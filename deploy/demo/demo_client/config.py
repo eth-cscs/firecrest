@@ -22,6 +22,7 @@ class DevConfig(Config):
     FIRECREST_IP='http://kong:8000'
     MACHINES=['cluster', 'cluster']
     PARTITIONS={'cluster':['part01','part02'], 'cluster':['part01','part02']}
+    MICROSERVICES=['status', 'compute', 'utilities', 'storage', 'tasks']
     # machine for internal storage jobs, must be defined in MACHINES
     STORAGE_JOBS_MACHINE='cluster'
     HOME_DIR = '/home'
