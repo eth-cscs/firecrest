@@ -7,23 +7,6 @@
 {% extends "demo_base.html" %}
 {% block title %}Cancel compute job{% endblock %}
 {% block content %}
-<style>
-table {
-  font-family: arial, sans-serif;
-  border-collapse: collapse;
-  width: 100%;
-}
-
-td, th {
-  border: 1px solid #dddddd;
-  text-align: left;
-  padding: 8px;
-}
-
-tr:nth-child(even) {
-  background-color: #dddddd;
-}
-</style>
 
 <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 
@@ -33,46 +16,36 @@ var stop_array = ["200","400"];
 
 function is_object(obj){
 
-  /*return obj == Object(obj);*/
-  /* if the length is undefined, is because it is a dictionary*/
   return ( typeof obj.length === "undefined");
 
 }
 
 function update_progress(task_url) {
 
-      $.ajax({
-        type: 'GET',
-        url: task_url,
-        success: function(data){
+  $.ajax({
+    type: 'GET',
+    url: task_url,
+    success: function(data){
 
-          var status = data["task"]["status"];
-          if (status == "200"){
-          	$(".task").css("border-color","green");
-          	$(".task").css("border-style","solid");
-
-          	var resp = data['task']['data'];
-          	$(".task").text(resp);
-	  }else if (status == "400"){
-		$(".task").css("border-color","red");
-                $(".task").css("border-style","solid");
-
-                var resp = data['task']['data'];
-                $(".task").text(resp);
-	  }
-
-          if(stop_array.indexOf(status) != -1)
-		clearInterval(checkProgress);
-
-       },
-
-	error: function(data){
-          $(".task").css("border-color","red");
-          $(".task").css("border-style","solid");
-          $( ".task" ).text("Error on cancelling job\n"+data['error']);
-
-          },
-      });
+      var status = data["task"]["status"];
+      if (status == "200"){
+        $(".task").addClass("bg-success");
+        var resp = data['task']['data'];
+        $(".task").text(resp);
+      }
+      else if (status == "400"){
+        $(".task").addClass("bg-danger");
+        var resp = data['task']['data'];
+        $(".task").text(resp);
+      }
+      if(stop_array.indexOf(status) != -1)
+        clearInterval(checkProgress);
+    },
+    error: function(data){
+      $(".task").addClass("bg-danger");
+      $( ".task" ).text("Error on cancelling job\n"+data['error']);
+    },
+  });
 }
 
 
@@ -86,18 +59,22 @@ function update_progress(task_url) {
     {% if response.status_code == 200 %}
       {# {{ response.json()['success'] }} #} 
       <br>
+      <div class="bg-info">
       You can check the details of this task <a href="{{ request.url_root }}tasks/{{ response.json()['task_id'] }}">here</a>
+    </div>
       <br><br>	
 
       <script>
         var checkProgress = setInterval(function() {
           update_progress("/tasks/{{ response.json()['task_id'] }}?data=1");
-        }, 2000);
+        }, 10000);
       </script>
-      <div class="task"></div><br>
+      <div class="task" id="task"></div><br>
 
     {% else %}
+      <div class="bg-danger">
       {{ response.json()['error'] }}
+    </div>
     {% endif %}
 {% endif %}
 

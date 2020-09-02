@@ -1,7 +1,6 @@
 FROM python:3.7-alpine
 
-ADD ./requirements.txt requirements.txt
-RUN pip install -r requirements.txt
+RUN pip install flask flask-WTF flask-bootstrap flask-oidc flask_sslify requests
 
 ADD ./ app
 
