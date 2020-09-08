@@ -6,6 +6,7 @@ node {
 
     // $after contains the commit id obtained trough github webhook
     def longCommit = "$after"
+    def shortCommit = longCommit.substring(0, 7)
 
     try {
         stage('Checkout source code') {
@@ -83,36 +84,6 @@ node {
                 echo 'Tests Finished'
             }
         }
-
-        stage('Build firecrest images in registry') {
-            // Sync project from github repo
-            ansibleTowerProjectSync(
-                towerServer: 'awx-local',
-                async: false,
-                importTowerLogs: true,
-                project: 'Pre-Prod Project',
-                removeColor: false,
-                throwExceptionWhenFail: true,
-                verbose: false
-            )
-
-            // Run template for image building
-            ansibleTower(
-                towerServer: 'awx-local',
-                templateType: 'job',
-                jobTemplate: 'Pre-Prod Docker Build',
-                towerLogLevel: 'full',
-                inventory: 'docker_registry',
-                removeColor: false,
-                verbose: true,
-                credential: 'docker_registry_credentials',
-                extraVars: """
-                build_tag: ${longCommit.substring(0, 7)}
-                commit_id: $longCommit
-                """,
-                async: false
-            )
-        }
     }
     catch (e) {
         // If there was an exception, the build failed
@@ -143,6 +114,77 @@ node {
 
         notifyBuildStatusToGitHub(currentBuild.result, gitHubUser, gitHubRepo, longCommit)
     }
+
+    if (currentBuild.result == 'FAILED') {
+        return
+    }
+
+    stage('Build firecrest images in registry') {
+        // Sync project from github repo
+        ansibleTowerProjectSync(
+            towerServer: 'awx-local',
+            async: false,
+            importTowerLogs: true,
+            project: 'Pre-Prod Project',
+            removeColor: false,
+            throwExceptionWhenFail: true,
+            verbose: false
+        )
+
+        // Run template for image building
+        ansibleTower(
+            towerServer: 'awx-local',
+            templateType: 'job',
+            jobTemplate: 'Pre-Prod Docker Build',
+            towerLogLevel: 'full',
+            inventory: 'docker_registry',
+            removeColor: false,
+            verbose: true,
+            credential: 'docker_registry_credentials',
+            extraVars: """
+            build_tag: $shortCommit
+            commit_id: $longCommit
+            """,
+            async: false
+        )
+    }
+
+    stage('Ask for commit promotion') {
+        
+        def INPUT_ID = 'Proceed1'
+        def msg = "<https://firecrest-ci.cscs.ch/job/${env.JOB_NAME}/${env.BUILD_NUMBER}/input|Request for promotion: commit $shortCommit>"
+        slackSend(color: 'good', message: msg)
+
+        def userInput = false
+        timeout(time: 7, unit: 'DAYS') {
+            userInput = input(id: INPUT_ID, message: "Promote commit $shortCommit", parameters: [[$class: 'BooleanParameterDefinition', defaultValue: false, description: '', name: 'Do you accept?']])
+        }
+
+        echo 'userInput: ' + userInput
+        if (userInput == true) {
+            echo 'Promotion accepted'
+            stage('Tag firecrest images to firecrest-preprod and firecrest-tds') {
+                // Run template to tag docker images
+                ansibleTower(
+                    towerServer: 'awx-local',
+                    templateType: 'job',
+                    jobTemplate: 'Tag docker images',
+                    towerLogLevel: 'full',
+                    inventory: 'docker_registry',
+                    removeColor: false,
+                    verbose: true,
+                    credential: 'docker_registry_credentials',
+                    extraVars: """
+                    commit_id: $shortCommit
+                    """,
+                    async: false
+                )
+            }
+        } else {
+            echo 'Promotion was rejected.'
+        }
+    }
+
 }
 
 def notifyBuildStatusToGitHub(String buildStatus, String gitHubUser, String gitHubRepo, String longCommit) {
