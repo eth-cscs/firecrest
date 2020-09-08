@@ -1,0 +1,16 @@
+
+- name: Add firecrest-tds tag to firecrest image
+  docker_image:
+    name: "{{ item.key }}:{{ commit_id }}"
+    repository: "{{ item.key }}:firecrest-tds"
+    force_tag: yes
+    source: local
+  with_dict: "{{ image_definitions }}"
+
+- name: Add firecrest-preprod tag to firecrest image
+  docker_image:
+    name: "{{ item.key }}:{{ commit_id }}"
+    repository: "{{ item.key }}:firecrest-preprod"
+    force_tag: yes
+    source: local
+  with_dict: "{{ image_definitions }}"
