@@ -1,7 +1,12 @@
 image_definitions:
-  certificator:
   compute:
   status:
   storage:
   tasks:
   utilities:
+  openapi:
+  client:
+  taskpersistence:
+  minio:
+
+  

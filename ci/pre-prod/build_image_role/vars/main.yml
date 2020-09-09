@@ -1,6 +1,4 @@
 image_definitions:
-  certificator:
-    build_path: /home/firecrest/awx-firecrest-build
   compute:
     build_path: /home/firecrest/awx-firecrest-build
   status:
@@ -10,4 +8,6 @@ image_definitions:
   tasks:
     build_path: /home/firecrest/awx-firecrest-build
   utilities:
+    build_path: /home/firecrest/awx-firecrest-build
+  openapi:
     build_path: /home/firecrest/awx-firecrest-build
