@@ -1,0 +1,146 @@
+{% extends "demo_base.html" %}
+{% block title %}Test API{% endblock %}
+{% block content %}
+<style>
+</style>
+
+<script>
+
+    function jsonPretty(json_obj, output_id) {
+        
+        var pretty = JSON.stringify(json_obj, undefined, 2);
+        document.getElementById(output_id).innerHTML = pretty;
+    }
+
+
+
+    function add_parameter(){
+
+        var params_table = document.getElementById("params-table");
+
+        var new_row = params_table.insertRow();
+        var cellParam = new_row.insertCell(0);
+        var cellValue = new_row.insertCell(1);
+        var cellBtns  = new_row.insertCell(2);
+
+        var param_name = document.createElement("input");
+        param_name.setAttribute("type", "text");
+        param_name.setAttribute("name","parameter");
+        param_name.setAttribute("class","form-control");
+        param_name.setAttribute("placeholder", "Parameter Name");
+        cellParam.appendChild(param_name);
+        
+
+        var param_value = document.createElement("input");
+        param_value.setAttribute("type", "text");
+        param_value.setAttribute("name","value");
+        param_value.setAttribute("class","form-control");
+        param_value.setAttribute("placeholder", "Parameter Value");
+        cellValue.appendChild(param_value);
+
+
+        var btn_add = document.createElement("a");
+        btn_add.setAttribute("class","btn btn-success");
+        var btn_add_text = document.createTextNode("+");
+        btn_add.appendChild(btn_add_text);
+        btn_add.addEventListener("click",add_parameter);
+        cellBtns.appendChild(btn_add);
+
+        var btn_sub = document.createElement("a");
+        btn_sub.setAttribute("class","btn btn-danger");
+        var btn_sub_text = document.createTextNode("-");
+        btn_sub.appendChild(btn_sub_text);
+        btn_sub.addEventListener("click", function() {sub_parameter(btn_sub);}, false);
+        cellBtns.appendChild(btn_sub);
+
+
+    }
+
+
+    function sub_parameter(element){
+
+        row_id = element.parentNode.parentNode.rowIndex;
+
+        console.log("delete row: "+row_id);
+
+        var params_table = document.getElementById("params-table");
+
+
+        if (params_table.rows.length == 3){
+
+            var value = document.getElementsByName("value")[0];
+            value.value = "";
+
+            var param = document.getElementsByName("parameter")[0];
+            param.value = "";
+
+            return;
+
+        }
+
+        params_table.deleteRow(row_id);
+
+    }
+
+
+</script>
+
+<h1>
+  Test FirecREST API
+</h1>
+
+<form class="form-group" method="POST" action="">
+
+    <table id="params-table" class="table table-hover">
+
+        <tr><td>Machine</td><td>{{ form.machine(class="form-control") }}</td>
+            <td>Method</td><td>{{ form.method(class="form-control") }}</td>
+            <td>Microservice</td><td>{{ form.microservice(class="form-control") }}</td>
+            <td>/</td><td>{{ form.query(class="form-control", size=10, placeholder="Query string") }}</td>
+            
+        
+        </tr>
+        <tr><td colspan="4">Parameters</td></tr>
+        <tr><td><input name="parameter" type="text" class="form-control" placeholder="Parameter Name"></td>
+            <td><input name="value" type="text" class="form-control" placeholder="Parameter Value"></td>
+            <td><a href="#" onclick="add_parameter();" class="btn btn-success">+</a>
+                 <a href="#" onclick="sub_parameter(this);" class="btn btn-danger">-</a></td>
+    </tr>
+                
+    </table>
+    
+     <h2>Response</h2>
+     {% if response != None %}
+     
+        <h4>
+        {% if response.ok %}
+        
+        
+            <div class="bg-success">
+                FirecREST request was successful
+            </div>
+        {% else %}
+        <div class="bg-danger">
+            FirecREST request was failed
+        {% endif %}
+        </h4>
+     {% endif %}
+     <h3>Status code</h3>
+     {{ response.status_code }}
+     <h3>Headers</h3>
+    {{ form.resp_headers(size=60, class="form-control") }}
+    <h3>JSON</h3>
+    <textarea style="width: 100%; max-width: 100%;" rows="10" id="resp_json"></textarea>
+    {% if response != None %}
+    <script>
+        jsonPretty( {{ response.json()|tojson }}, "resp_json" );
+    </script>
+    {% endif %}
+    
+
+    {{ form.submit(class="form-control") }}
+
+
+</form>
+
+{% endblock %}

@@ -10,7 +10,7 @@
 
 <script>
 
-var stop_array = ["200","400","111","114","115","117","118"];
+var stop_array = ["200","400","114","115","117","118"];
 
 
 function copyToClipboard(textarea_id){
@@ -46,8 +46,8 @@ function refresh(task_url){
             // DOWNLOAD received download URL:
             if (data['task']['status'].localeCompare("117") == 0){
 
-              $("#data").text("Use this link to download the file:");
-              $("#data").wrapInner("<a href='"+data['task']['data']+"'>download</a>");
+              /*$("#data").text("Use this link to download the file:");*/
+              $("#data").wrapInner("<a class=\"btn btn-success\" href=\""+data['task']['data']+"\">Download</a>");
 
             } else if (data['task']['status'].localeCompare("111") == 0){ /*UPLOAD: received temp url form*/
 
@@ -59,8 +59,8 @@ function refresh(task_url){
                $("<div id='curl_command'></div>").appendTo($("#data"));
                $("#curl_command").wrapInner("<textarea style='width: 100%; height:100%;' id='upload_command'>"+data['task']['data']['msg']['command']+"</textarea>");
 	       $("<div id='to-upload-finish'></div>").appendTo($("#data"));
-               $("<p>If upload to staging area has finished, start the process to transfer the file to CSCS:</p>").appendTo($("#to-upload-finish"));
-               $("#to-upload-finish").wrapInner("<a href='../storage/upload-finished/"+data['task']['hash_id']+"'>Finish the upload process</a>");
+               
+               $("#to-upload-finish").wrapInner("<a href='../storage/invalidate/"+data['task']['hash_id']+"'>Invalidate upload process</a>");
             }
 
           } else { /*service == "compute"*/
@@ -89,7 +89,7 @@ function refresh(task_url){
   <script>
     var refreshTask = setInterval(function() {
           refresh("/tasks/{{ response.json()['task']['hash_id'] }}?data=1");
-        }, 3000);
+        }, 10000);
   </script>
 {% elif response.json()['task']['status'] in ["200","111","114","115","117","118"] %}
     {% set style = "bg-success" %}
@@ -107,11 +107,11 @@ function refresh(task_url){
   <tr><td><b>Last Modify</b></td><td  id="last_modify">{{ response.json()['task']['last_modify'] }}</td></tr>
   <tr><td colspan="2"><b>Actions on the tasks</b></td></tr>
   <tr><td colspan="2" id="data">
-  {% if response.json()['task']['service'] != None %}
+  {% if response.json()['task']['service'] != None %} 
     {% if response.json()['task']['service'] == "storage" %} {# if is storage #}
       {% if response.json()['task']['status'] == "117" %} {# received temp url for download #}
         <div id="status-117">
-         Use this link to download the file: <a href="{{ response.json()['task']['data']  }}">download</a>
+         <a class="btn btn-success" href="{{ response.json()['task']['data']  }}">Download</a>
         </div>
       {% elif response.json()['task']['status'] == "111"  %} {# received temp url for upload #}
 
@@ -119,8 +119,8 @@ function refresh(task_url){
         <p>Use this command to upload your file to staging area</p>
         <input class="btn-primary" type="button" onclick="copyToClipboard('upload_command');" value="Copy to clipboard"/>
         <textarea style="width: 100%; height:100%;" id="upload_command">{{ response.json()['task']['data']['msg']['command'] }}</textarea>
-        <p>If upload to staging area has finished, start the process to transfer the file to CSCS:</p>
-        <a href="../storage/upload-finished/{{ response.json()['task']['hash_id'] }}">Finish the upload process</a>
+        
+        <a href="../storage/invalidate/{{ response.json()['task']['hash_id'] }}">Invalidate upload process</a>
       </div>
       {% else %}
         <div id="status-ready">
