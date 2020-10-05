@@ -484,7 +484,8 @@ def upload_task(auth_header,system_name, system_addr,targetPath,sourcePath,task_
     # create certificate for later download from OS to filesystem
     app.logger.info("Creating certificate for later download") 
     options = f"-q -O {targetPath}/{fileName} -- '{download_url}'"
-    certs = create_certificate(auth_header, system_name, system_addr, "wget", options)
+    exp_time = STORAGE_TEMPURL_EXP_TIME
+    certs = create_certificate(auth_header, system_name, system_addr, "wget", options, exp_time)
     # certs = create_certificates(auth_header,system,command="wget",options=urllib.parse.quote(options),exp_time=STORAGE_TEMPURL_EXP_TIME)
 
     if not certs[0]:
