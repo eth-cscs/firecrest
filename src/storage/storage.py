@@ -298,7 +298,7 @@ def download_task(auth_header,system_name, system_addr,sourcePath,task_id):
         error_str = res["msg"]
         if in_str(error_str,"OPENSSH"):
             error_str = "User does not have permissions to access machine"
-        msg += error_str
+        msg = f"{msg}. {error_str}"
 
         app.logger.error(msg)
         update_task(task_id, auth_header, async_task.ST_UPL_ERR, msg)
