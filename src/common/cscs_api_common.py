@@ -274,14 +274,14 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
         
 	# poll process status since directly using recv_exit_status() could result
         # in a permanent hang when remote output is larger than the current Transport or session’s window_size 
-        for i in range(0,10):
+        while True:
             if stderr.channel.exit_status_ready():
                 logging.info("stderr channel exit status ready") 
                 stderr_errno = stderr.channel.recv_exit_status()
                 endtime = time.time() + 30
                 eof_received = True
                 while not stderr.channel.eof_received:
-                    time.sleep(1)
+                    # time.sleep(0.5)
                     if time.time() > endtime:
                         stderr.channel.close()
                         eof_received = False
@@ -292,17 +292,18 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
                     # clean "tput: No ..." lines at error output
                     stderr_errda = clean_err_output(error)
                 break
-            else:
-                time.sleep(5)
+            # else:
+            #     time.sleep(5)
 
-        for i in range(0,10):
+        #for i in range(0,10):
+        while True:
             if stdout.channel.exit_status_ready():
                 logging.info("stdout channel exit status ready") 
                 stdout_errno = stdout.channel.recv_exit_status()
                 endtime = time.time() + 30
                 eof_received = True
                 while not stdout.channel.eof_received:
-                    time.sleep(1)
+                    # time.sleep(0.5)
                     if time.time() > endtime:
                         stdout.channel.close()
                         eof_received = False
@@ -313,8 +314,8 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
                     # clean "tput: No ..." lines at error output
                     stdout_errda = clean_err_output(output)
                 break
-            else:
-                time.sleep(5)
+            # else:
+            #     time.sleep(5)
 
 
         if file_transfer == "download":
