@@ -128,6 +128,6 @@ def notifyBuildStatusToGitHub(String buildStatus, String gitHubUser, String gitH
         sh 'curl -H "Authorization: token ' + "${accessToken}"  + '" "https://api.github.com/repos/' + gitHubUser + '/' + gitHubRepo + '/statuses/' + longCommit + '" \\' +
         '-H "Content-Type: application/json" \\' +
         '-X POST \\' +
-        '-d "{\\"state\\": \\"' + status + '\\",\\"context\\": \\"continuous-integration/jenkins\\", \\"description\\": \\"Jenkins\\", \\"target_url\\": \\"' + "${env.BUILD_URL}" + '/job/test-api/' + "${env.BUILD_NUMBER}" + '/console\\"}"'
+        '-d "{\\"state\\": \\"' + status + '\\",\\"context\\": \\"continuous-integration/jenkins\\", \\"description\\": \\"Jenkins\\", \\"target_url\\": \\"' + "${env.BUILD_URL}" + '/console\\"}"'
     }
 }
