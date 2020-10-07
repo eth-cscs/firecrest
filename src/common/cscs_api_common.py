@@ -451,35 +451,42 @@ def create_task(auth_header,service=None):
 
 
 # function to call update task entry API in Queue FS
-def update_task(task_id, auth_header, status, msg = None, is_json=False):
+def update_task(task_id, auth_header, service, status, msg = None, is_json=False):
 
-    logging.info(f"{TASKS_URL}/{task_id}")
+    logging.info(f"Update {TASKS_URL}/{task_id}")
 
     if is_json:
         data = {"status": status, "msg": msg}
         req = requests.put(f"{TASKS_URL}/{task_id}",
-                            json=data, headers={AUTH_HEADER_NAME: auth_header})
+                            json=data, headers={AUTH_HEADER_NAME: auth_header, "X-Firecrest-Service":service})
     else:
         data = {"status": status, "msg": msg}
         req = requests.put(f"{TASKS_URL}/{task_id}",
-                            data=data, headers={AUTH_HEADER_NAME: auth_header})
+                            data=data, headers={AUTH_HEADER_NAME: auth_header, "X-Firecrest-Service":service})
 
     resp = json.loads(req.content)
 
     return resp
 
 # function to call update task entry API in Queue FS
-def expire_task(task_id,auth_header):
+def expire_task(task_id,auth_header,service):
 
-    logging.info(f"{TASKS_URL}/task-expire/{task_id}")
+    logging.info(f"{TASKS_URL}/expire/{task_id}")
 
 
-    req = requests.post(f"{TASKS_URL}/task-expire/{task_id}",
-                            headers={AUTH_HEADER_NAME: auth_header})
+    req = requests.post(f"{TASKS_URL}/expire/{task_id}",
+                            headers={AUTH_HEADER_NAME: auth_header, "X-Firecrest-Service": service})
 
-    resp = json.loads(req.content)
+    # resp = json.loads(req.content)
 
-    return resp
+    if not req.ok:
+        logging.info(req.json())
+        return False
+
+    return True
+
+    
+    
 
 # function to check task status:
 def get_task_status(task_id,auth_header):
