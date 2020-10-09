@@ -144,7 +144,7 @@ def test_delete_task_id_not_exists(headers):
 def test_expire_task(headers):
 	resp = create_task(headers)
 	hash_id = resp.json()["hash_id"]
-	url = "{}/task-expire/{}".format(TASKS_URL, hash_id)
+	url = "{}/expire/{}".format(TASKS_URL, hash_id)
 	resp = requests.post(url, headers=headers)
 	assert resp.status_code == 200 and "success" in resp.json()
 
@@ -153,7 +153,7 @@ def test_expire_task(headers):
 @host_environment_test
 def test_expire_task_id_not_exists(headers):
 	hash_id = "IDONTEXIST"
-	url = "{}/task-expire/{}".format(TASKS_URL, hash_id)
+	url = "{}/expire/{}".format(TASKS_URL, hash_id)
 	resp = requests.post(url, headers=headers)
 	assert resp.status_code == 404 and "error" in resp.json()
 

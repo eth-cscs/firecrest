@@ -97,6 +97,17 @@ class AsyncTask():
             self.data = data
         self.timestamp = time.strftime("%Y-%m-%dT%H:%M:%S")
 
+    # return status for internal info (returns SSH "cert"ificate or "action")
+    def get_internal_status(self):
+
+        return {"hash_id":self.hash_id,
+                "user": self.user,
+                "status":self.status_code,
+                "description":self.status_desc,                
+                "data": self.data,
+                "service":self.service,
+                "last_modify":self.timestamp}
+
     # return status for public info, so task_id is discarded
     def get_status(self):
 
