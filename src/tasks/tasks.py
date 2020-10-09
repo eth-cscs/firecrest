@@ -29,8 +29,11 @@ PERSISTENCE_IP   = os.environ.get("F7T_PERSISTENCE_IP")
 PERSIST_PORT = os.environ.get("F7T_PERSIST_PORT")
 PERSIST_PWD  = os.environ.get("F7T_PERSIST_PWD")
 
-# expire time in seconds, for squeue or sacct tasks:
-TASK_EXP_TIME = 300
+# expire time in seconds, for squeue or sacct tasks: default: 24hours = 86400 secs
+COMPUTE_TASK_EXP_TIME = os.environ.get("F7T_COMPUTE_TASK_EXP_TIME", 86400)
+
+# expire time in seconds, for download/upload: default 30 days + 24 hours = 2678400 secs
+STORAGE_TASK_EXP_TIME = os.environ.get("F7T_STORAGE_TASK_EXP_TIME", 2678400)
 
 debug = os.environ.get("F7T_DEBUG_MODE", None)
 
@@ -134,7 +137,12 @@ def create_task():
     t = async_task.AsyncTask(task_id=str(task_id), user=username, service=service)
     tasks[t.hash_id] = t
 
-    persistence.save_task(r,id=task_id,task=t.get_status())
+    exp_time = STORAGE_TASK_EXP_TIME
+
+    if service == "compute":
+        exp_time = COMPUTE_TASK_EXP_TIME
+
+    persistence.save_task(r,id=task_id,task=t.get_status(),exp_time=exp_time)
 
     # {"id":task_id,
     #               "status":async_task.QUEUED,
@@ -143,7 +151,7 @@ def create_task():
     app.logger.info("New task created: {hash_id}".format(hash_id=t.hash_id))
     app.logger.info(t.get_status())
     task_url = "{KONG_URL}/tasks/{hash_id}".format(KONG_URL=KONG_URL,hash_id=t.hash_id)
-
+    
     data = jsonify(hash_id=t.hash_id, task_url=task_url)
 
     return data, 201
@@ -188,6 +196,16 @@ def update_task(id):
     if remote_addr not in [COMPUTE_IP, STORAGE_IP]:
         return jsonify(description="Invalid request address"), 403
 
+    # checks if request has service header
+    try:
+        service = request.headers["X-Firecrest-Service"]
+
+        if service not in ["storage","compute"]:
+            return jsonify(description="Service {} is unknown".format(service)), 403
+
+    except KeyError:
+        return jsonify(description="No service informed"), 403
+
     # checking data from JSON, need to do before check if auth_header
     # is needed (for download from SWIFT to filesystem).
     if request.is_json:
@@ -197,6 +215,7 @@ def update_task(id):
             app.logger.info(data)
             status=data["status"]
             msg=data["msg"]
+            
         except Exception as e:
             app.logger.error(type(e))
 
@@ -264,10 +283,15 @@ def update_task(id):
     tasks[hash_id].set_status(status=status, data=msg)
 
     global r
+    exp_time = STORAGE_TASK_EXP_TIME
+
+    if service == "compute":
+        exp_time = COMPUTE_TASK_EXP_TIME
+
     #update task in persistence server
-    if not persistence.save_task(r, id=tasks[hash_id].task_id, task=tasks[hash_id].get_status()):
+    if not persistence.save_task(r, id=tasks[hash_id].task_id, task=tasks[hash_id].get_internal_status(), exp_time=exp_time):
         app.logger.error("Error saving task")
-        app.logger.error(tasks[hash_id].get_status())
+        app.logger.error(tasks[hash_id].get_internal_status())
         return jsonify(description="Couldn't update task"), 400
 
     app.logger.info("New status for task {hash_id}: {status}".format(hash_id=hash_id,status=status))
@@ -318,7 +342,7 @@ def delete_task(id):
         return data, 400
 
 #set expiration for task, in case of Jobs list or account info:
-@app.route("/task-expire/<id>",methods=["POST"])
+@app.route("/expire/<id>",methods=["POST"])
 @check_auth_header
 def expire_task(id):
 
@@ -329,6 +353,16 @@ def expire_task(id):
     # checks if request comes from allowed microservices
     if remote_addr not in [COMPUTE_IP, STORAGE_IP]:
         return jsonify(description="Invalid request address"), 403
+
+    # checks if request has service header
+    try:
+        service = request.headers["X-Firecrest-Service"]
+
+        if service not in ["storage","compute"]:
+            return jsonify(description="Service {} is unknown".format(service)), 403
+
+    except KeyError:
+        return jsonify(description="No service informed"), 403
 
     # getting username from auth_header
     username = get_username(auth_header)
@@ -344,20 +378,28 @@ def expire_task(id):
         data = jsonify(error="Task {id} does not exist".format(id=id))
         return data, 404
 
+
+    exp_time = STORAGE_TASK_EXP_TIME
+
+    if service == "compute":
+        exp_time = COMPUTE_TASK_EXP_TIME
+    
+
     try:
         global r
 
-        app.logger.info("id: {id}".format(id=tasks[hash_id].task_id))
-        if not persistence.set_expire_task(r,id=tasks[hash_id].task_id,secs=TASK_EXP_TIME):
+        app.logger.info(f"Set expiration for task {tasks[hash_id].task_id} - {exp_time} secs")
+        if not persistence.set_expire_task(r,id=tasks[hash_id].task_id,secs=exp_time):
+            app.logger.warning(f"Task couldn't be marked as expired")
             return jsonify(error="Failed to set expiration time on task in persistence server"), 400
 
-        data = jsonify(success="Task expiration time set to {exp_time} secs.".format(exp_time=TASK_EXP_TIME))
+        data = jsonify(success="Task expiration time set to {exp_time} secs.".format(exp_time=exp_time))
         # tasks[hash_id].set_status(status=async_task.EXPIRED)
 
         return data, 200
 
     except Exception:
-        data = jsonify(Error="Failed to delete task")
+        data = jsonify(Error="Failed to set expiration time on task in persistence server")
         return data, 400
 
 
