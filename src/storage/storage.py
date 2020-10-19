@@ -188,10 +188,15 @@ def os_to_fs(task_id):
         if result["error"] == 0:
             update_task(task_id, None,"storage", async_task.ST_DWN_END)
             # delete upload request
-            del uploaded_files[task_id]
+            # del uploaded_files[task_id]
 
             # must be deleted after object is moved to storage
-            staging.delete_object(containername=username,prefix=task_id,objectname=objectname)
+            # staging.delete_object(containername=username,prefix=task_id,objectname=objectname)
+            # for big files delete_object consumes a long time and often gives a TimeOut error between system and staging area
+            # Therefore, using delete_object_after a few minutes (in this case 5 minutes) will trigger internal staging area 
+            # mechanism to delete the file automatically and without a need of a connection
+
+            staging.delete_object_after(containername=username,prefix=task_id,objectname=objectname, ttl = time.time()+600)
 
         # if error, should be prepared for try again
         else:
@@ -435,7 +440,9 @@ def invalidate_request():
 
     for objectname in objects:
 
-        error = staging.delete_object(containername,prefix,objectname)
+        # error = staging.delete_object(containername,prefix,objectname)
+        # replacing delete_object by delete_object_after 5 minutes
+        error = staging.delete_object_after(containername=containername, prefix=prefix, objectname=objectname, delete_at=time.time()+600)
 
         if error == -1:
             return jsonify(error="Could not invalidate URL"), 400
