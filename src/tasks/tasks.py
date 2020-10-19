@@ -418,31 +418,51 @@ def status():
     return jsonify(success="ack"), 200
 
 
-# entry point for storage service to recompile
-# tasks when initialize service
-# only used by STORAGE_URL otherwise forbidden
-
+# entry point for all tasks by all users (only used by internal)
+# used by storage for the upload tasks, but it can be used for all tasks status and services
 @app.route("/taskslist",methods=["GET"])
 def tasklist():
 
     global r
 
-    app.logger.info("Get Storage service tasks")
+    app.logger.info("Getting service tasks")
     app.logger.info("STORAGE_IP is {storage_ip}".format(storage_ip=STORAGE_IP))
 
     # reject if not STORAGE_IP remote address
     if request.remote_addr != STORAGE_IP:
         app.logger.warning("Invalid remote address: {addr}".format(addr=request.remote_addr))
         return jsonify(error="Invalid access"), 403
+        
+    json = request.json
 
+    if json == None:
+        app.logger.error("json attribute not passed to the service")
+        app.logger.error("Returning error to the microservice")
+        return jsonify(error="No json parameter"), 401
+    else:
+        app.logger.info(f"json = {json}")
 
-    storage_tasks = persistence.get_service_tasks(r, "storage")
+    try:
+
+        if json["service"] not in ["storage", "compute"]:
+            app.logger.error(f"Service parameter {json['service']} not valid")
+            return jsonify(error=f"Service parameter {json['service']} not valid"), 401
+        
+        _tasks = persistence.get_service_tasks(r, json["service"], json["status_code"])
+    
+    except KeyError as e:
+        app.logger.error(f"Key {e.args} in 'json' parameter is missing")
+        return jsonify(error=f"{e.args} parameter missing"), 401
 
     # app.logger.info(storage_tasks)
-    if storage_tasks == None:
-        return jsonify(error="Persistence server task retrieve error"), 404
+    if _tasks == None:
+        return jsonify(error=f"Persistence server task retrieve error for service {json['service']}"), 404
 
-    return jsonify(tasks=storage_tasks), 200
+    # return only the tasks that matches with the required status in json["status_code"] list
+
+
+
+    return jsonify(tasks=_tasks), 200
 
 
 
