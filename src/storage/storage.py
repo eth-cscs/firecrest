@@ -442,7 +442,7 @@ def invalidate_request():
 
         # error = staging.delete_object(containername,prefix,objectname)
         # replacing delete_object by delete_object_after 5 minutes
-        error = staging.delete_object_after(containername=containername, prefix=prefix, objectname=objectname, delete_at=time.time()+600)
+        error = staging.delete_object_after(containername=containername, prefix=prefix, objectname=objectname, ttl=time.time()+600)
 
         if error == -1:
             return jsonify(error="Could not invalidate URL"), 400

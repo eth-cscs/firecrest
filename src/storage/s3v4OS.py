@@ -588,7 +588,7 @@ class S3v4(ObjectStorage):
     # "The date value must conform to the ISO 8601 format. The time is always midnight UTC."
     # 
     #  therefore the expiration time will be managed to the midnigt of the next day and timezone is Z (UTC+0)
-    def delete_object_after(self,containername,prefix,objectname,delete_at):
+    def delete_object_after(self,containername,prefix,objectname,ttl):
         
         httpVerb = "PUT"
         algorithm = 'AWS4-HMAC-SHA256'
@@ -606,7 +606,7 @@ class S3v4(ObjectStorage):
         datestamp = t.strftime('%Y%m%d')  # Date w/o time, used in credential scope
 
         # since only midnight is allowed, deleting T%H:%M:%S
-        d1_str = datetime.utcfromtimestamp(delete_at).strftime("%Y-%m-%d")
+        d1_str = datetime.utcfromtimestamp(ttl).strftime("%Y-%m-%d")
         
         d1 = datetime.strptime(d1_str,"%Y-%m-%d") # convert to datetime        
         d2 = d1 + timedelta(days=1) # add 1 day        
