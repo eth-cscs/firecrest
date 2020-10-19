@@ -38,9 +38,9 @@
     push: yes
     source: pull
 
-- name: Pull minio and push to local registry
-  docker_image:
-    name: minio/minio
-    repository: "localhost:5000/minio:{{ build_tag }}"
-    push: yes
-    source: pull
+#- name: Pull minio and push to local registry
+#  docker_image:
+#    name: minio/minio
+#    repository: "localhost:5000/minio:{{ build_tag }}"
+#    push: yes
+#    source: pull

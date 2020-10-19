@@ -7,6 +7,6 @@ image_definitions:
   openapi:
   client:
   taskpersistence:
-  minio:
+  #minio:
 
   
