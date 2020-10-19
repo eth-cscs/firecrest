@@ -187,6 +187,9 @@ def os_to_fs(task_id):
         # if no error, then download is complete
         if result["error"] == 0:
             update_task(task_id, None,"storage", async_task.ST_DWN_END)
+            
+            # No need to delete the dictionary, it will be cleaned on next iteration
+
             # delete upload request
             # del uploaded_files[task_id]
 
@@ -200,10 +203,12 @@ def os_to_fs(task_id):
 
         # if error, should be prepared for try again
         else:
-            app.logger.error(result["msg"])
+            # app.logger.error(result["msg"])
             upl_file["status"] = async_task.ST_DWN_ERR
             uploaded_files[task_id] = upl_file
-            update_task(task_id,None,"storage",async_task.ST_DWN_ERR,result["msg"])
+
+            # update but conserv "msg" as the data for download to OS, to be used for retry in next iteration
+            update_task(task_id,None,"storage",async_task.ST_DWN_ERR, msg =  upl_file, is_json = True)
 
     except Exception as e:
         app.logger.error(e)
@@ -234,8 +239,9 @@ def check_upload_files():
             #checks if file is ready or not for download to FileSystem
             try:
 
+                
                 task_status = async_task.status_codes[upload['status']]
-
+                
                 app.logger.info(f"Status of {task_id}: {task_status}")
                 
                 #if upload["status"] in [async_task.ST_URL_REC,async_task.ST_DWN_ERR] :
@@ -243,7 +249,7 @@ def check_upload_files():
                     app.logger.info(f"Task {task_id} -> File ready to upload or already downloaded")
 
                     upl = uploaded_files[task_id]
-                    app.logger.info(upl)
+                    # app.logger.info(upl)
 
                     containername = upl["user"]
                     prefix = task_id
@@ -279,7 +285,8 @@ def check_upload_files():
                     os_to_fs_task = threading.Thread(target=os_to_fs,args=(task_id,))
                     os_to_fs_task.start()
             except Exception as e:
-                #app.logger.info("Not ready to upload file")
+                
+                app.logger.error(type(e), e)
                 continue
             
         time.sleep(STORAGE_POLLING_INTERVAL)
@@ -916,12 +923,16 @@ def get_upload_unfinished_tasks():
     
     try:
         # query Tasks microservice for previous tasks. Allow 30 seconds to answer
-        retval=requests.get("{tasks_url}/taskslist".format(tasks_url=TASKS_URL), timeout=30)
+
+        # only unfinished upload process
+        status_code = [async_task.ST_URL_ASK, async_task.ST_URL_REC, async_task.ST_UPL_CFM, async_task.ST_DWN_BEG, async_task.ST_DWN_ERR]
+        retval=requests.get(f"{TASKS_URL}/taskslist", json={"service": "storage", "status_code":status_code}, timeout=30)
 
         if not retval.ok:
             app.logger.error("Error getting tasks from Tasks microservice")
             app.logger.warning("TASKS microservice is down")
             app.logger.warning("STORAGE microservice will not be fully functional")
+            app.logger.warning(f"Next try in {STORAGE_POLLING_INTERVAL} seconds")
             return
 
         queue_tasks = retval.json()
@@ -936,7 +947,7 @@ def get_upload_unfinished_tasks():
         n_tasks = 0
 
         for key,task in queue_tasks.items():
-            app.logger.info(key)
+            
             task = json.loads(task)
 
             # iterating over queue_tasls
@@ -969,7 +980,7 @@ def get_upload_unfinished_tasks():
                 app.logger.error(e)
                 app.logger.error(type(e))
 
-            app.logger.info("Tasks saved: {n}".format(n=n_tasks))
+            app.logger.info("Tasks recovered from taskpersistance: {n}".format(n=n_tasks))
 
     except Exception as e:
         app.logger.warning("TASKS microservice is down")
