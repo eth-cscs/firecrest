@@ -1,0 +1,36 @@
+
+---
+- name: Deploy Firecrest
+  gather_facts: No
+  hosts: all
+
+  tasks:
+    - name: Taskpersistence
+      community.general.docker_container:
+        name: taskpersistence
+        #image: "{{ docker_registry_host }}/taskpersistence:{{version}}"
+        image: "redis:5"
+        volumes:
+          - ./taskpersistence/redis.conf:/redis.conf:ro # como uso el conf de demo
+          - ./taskpersistence-data:/data:delegated
+          - ./logs:/var/log:delegated
+        networks:
+              - name: firecrest-internal
+                ipv4_address: "192.168.220.13"
+
+    - name: Tasks
+      community.general.docker_container:
+        name: tasks
+        image: "{{ docker_registry_host }}/tasks:{{version}}"
+        env_file: ./common/common.env
+        env:
+          F7T_PERSIST_PORT: "6379"
+          F7T_PERSIST_PWD: "rediS2200"
+          F7T_DEBUG_MODE: "True"
+          F7T_COMPUTE_TASK_EXP_TIME: "86400"
+          F7T_STORAGE_TASK_EXP_TIME: "2678400"
+        volumes:
+          - ./logs/firecrest:/var/log:delegated
+        networks:
+              - name: firecrest-internal
+                ipv4_address: "192.168.220.6"
