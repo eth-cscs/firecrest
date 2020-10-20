@@ -5,6 +5,14 @@
   hosts: all
 
   tasks:
+
+    - name: Create containers network
+      community.general.docker_network:
+        name: firecrest-internal
+        driver: "bridge"
+        ipam_config:
+          subnet: "192.168.220.0/24"
+
     - name: Taskpersistence
       community.general.docker_container:
         name: taskpersistence
