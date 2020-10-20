@@ -49,6 +49,7 @@
       yum:
         name:
           - epel-release
+          - python2-pip
           - python3-pip
           - git
         state: present
