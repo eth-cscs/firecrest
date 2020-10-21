@@ -35,9 +35,9 @@
         #image: "{{ docker_registry_host }}/taskpersistence:{{commit_id}}"
         image: "redis:5"
         volumes:
-          - "{{ firecrest_dir }}/src/deploy/demo/taskpersistence/redis.conf:/redis.conf:ro"
-          - "{{ firecrest_dir }}/src/deploy/demo/taskpersistence-data:/data:delegated"
-          - "{{ firecrest_dir }}/src/deploy/demo/logs:/var/log:delegated"
+          - "{{ firecrest_dir }}/deploy/demo/taskpersistence/redis.conf:/redis.conf:ro"
+          - "{{ firecrest_dir }}/deploy/demo/taskpersistence-data:/data:delegated"
+          - "{{ firecrest_dir }}/deploy/demo/logs:/var/log:delegated"
         networks:
               - name: firecrest-internal
                 ipv4_address: "192.168.220.13"
@@ -54,7 +54,7 @@
           F7T_COMPUTE_TASK_EXP_TIME: "86400"
           F7T_STORAGE_TASK_EXP_TIME: "2678400"
         volumes:
-          - "{{ firecrest_dir }}/src/deploy/demo/logs/firecrest:/var/log:delegated"
+          - "{{ firecrest_dir }}/deploy/demo/logs/firecrest:/var/log:delegated"
         networks:
               - name: firecrest-internal
                 ipv4_address: "192.168.220.6"
