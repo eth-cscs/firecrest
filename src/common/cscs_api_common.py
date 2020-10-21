@@ -308,7 +308,7 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
                         stdout.channel.close()
                         eof_received = False
                         break
-                if eof_received:
+                if eof_received:                    
                     output = "".join(stdout.readlines())
                     # error = stderr.read() it hangs
                     # clean "tput: No ..." lines at error output
@@ -519,7 +519,7 @@ def get_task_status(task_id,auth_header):
 def is_valid_file(path, auth_header, system_name, system_addr):
 
     # checks user accessibility to path using head command with 0 bytes
-    action = f"head -c 1 -- {path}"
+    action = f"head -c 1 -- {path} > /dev/null"
 
     retval = exec_remote_command(auth_header,system_name, system_addr,action)
 
