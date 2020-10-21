@@ -69,8 +69,9 @@ def init_queue():
         status  = value["status"]
         user    = value["user"]
         data    = value["data"]
+        service = value["service"]
 
-        t = async_task.AsyncTask(task_id,user)
+        t = async_task.AsyncTask(task_id,user,service)
         t.set_status(status,data)
         tasks[t.hash_id] = t
 
