@@ -60,10 +60,11 @@ def init_queue():
     task_list = persistence.get_all_tasks(r)
     
     # key = task_id ; values = {status_code,user,data}
-    for id, value in task_list.items():
+    for rid, value in task_list.items():
+        
         # task_list has id with format task_id, ie: task_2
         # therefore it must be splitted by "_" char:
-        task_id = id.split("_")[1]
+        task_id = rid.split("_")[1]
 
         status  = value["status"]
         user    = value["user"]
@@ -87,8 +88,7 @@ def list_tasks():
     for task_id,task in tasks.items():
         if task.user == username:
             user_tasks[task_id] = task.get_status()
-
-
+    
     data = jsonify(tasks=user_tasks)
     return data, 200
 
@@ -196,23 +196,10 @@ def update_task(id):
     if remote_addr not in [COMPUTE_IP, STORAGE_IP]:
         return jsonify(description="Invalid request address"), 403
 
-    # checks if request has service header
-    try:
-        service = request.headers["X-Firecrest-Service"]
-
-        if service not in ["storage","compute"]:
-            return jsonify(description="Service {} is unknown".format(service)), 403
-
-    except KeyError:
-        return jsonify(description="No service informed"), 403
-
-    # checking data from JSON, need to do before check if auth_header
-    # is needed (for download from SWIFT to filesystem).
     if request.is_json:
 
         try:
             data = request.get_json(force=True)
-            app.logger.info(data)
             status=data["status"]
             msg=data["msg"]
             
@@ -222,8 +209,7 @@ def update_task(id):
     else:
 
         try:
-            msg  = request.form["msg"]
-            app.logger.info(msg)
+            msg  = request.form["msg"]            
         except Exception as e:
             msg = None
             # app.logger.error(e.message)
@@ -274,13 +260,13 @@ def update_task(id):
 
     # if no msg on request, default status msg:
     if msg == None:
-        app.logger.info(msg)
         msg = async_task.status_codes[status]
-        app.logger.info(msg)
-
-    app.logger.info(msg)
+    
     # update task in memory
     tasks[hash_id].set_status(status=status, data=msg)
+
+    # getting service from task, to set exp_time according to the service
+    service = tasks[hash_id].get_internal_status()["service"]
 
     global r
     exp_time = STORAGE_TASK_EXP_TIME

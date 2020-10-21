@@ -137,7 +137,7 @@ def submit_job_task(auth_header, system_name, system_addr, job_file, job_dir, ta
         app.logger.error(type(e))
         app.logger.error(e.args)
         errmsg = e.message
-        update_task(task_id, auth_header,"compute", async_task.ERROR, errmsg)
+        update_task(task_id, auth_header, async_task.ERROR, errmsg)
         return
 
     # -------------------
@@ -149,7 +149,7 @@ def submit_job_task(auth_header, system_name, system_addr, job_file, job_dir, ta
 
         if retval["error"] != 0:
             app.logger.error(f"(Error: {retval['msg']}")
-            update_task(task_id, auth_header,"compute", async_task.ERROR, retval["msg"])
+            update_task(task_id, auth_header, async_task.ERROR, retval["msg"])
             return
 
         if job_file['content']:
@@ -157,7 +157,7 @@ def submit_job_task(auth_header, system_name, system_addr, job_file, job_dir, ta
             retval = exec_remote_command(auth_header, system_name, system_addr, action, file_transfer="upload", file_content=job_file['content'])
             if retval["error"] != 0:
                 app.logger.error(f"(Error: {retval['msg']}")
-                update_task(task_id, auth_header,"compute", async_task.ERROR, "Failed to upload file")
+                update_task(task_id, auth_header, async_task.ERROR, "Failed to upload file")
                 return
 
         # execute sbatch
@@ -168,7 +168,7 @@ def submit_job_task(auth_header, system_name, system_addr, job_file, job_dir, ta
 
         if retval["error"] != 0:
             app.logger.error(f"(Error: {retval['msg']}")
-            update_task(task_id, auth_header, "compute",async_task.ERROR, retval["msg"])
+            update_task(task_id, auth_header,async_task.ERROR, retval["msg"])
             return
 
         outlines = retval["msg"]
@@ -187,16 +187,16 @@ def submit_job_task(auth_header, system_name, system_addr, job_file, job_dir, ta
         # now look for log and err files location
         job_extra_info = get_slurm_files(auth_header, system_name, system_addr, task_id, msg)
 
-        update_task(task_id, auth_header,"compute", async_task.SUCCESS, job_extra_info, True)
+        update_task(task_id, auth_header, async_task.SUCCESS, job_extra_info, True)
 
     except IOError as e:
         app.logger.error(e.filename)
         app.logger.error(e.strerror)
-        update_task(task_id, auth_header, "compute",async_task.ERROR, e.message)
+        update_task(task_id, auth_header,async_task.ERROR, e.message)
     except Exception as e:
         app.logger.error(type(e))
         app.logger.error(e)
-        update_task(task_id, auth_header, "compute",async_task.ERROR, e.message)
+        update_task(task_id, auth_header, async_task.ERROR, e.message)
 
     
 
@@ -312,17 +312,17 @@ def submit_job_path_task(auth_header,system_name, system_addr,fileName,job_dir, 
     # in case of error:
     if resp["error"] != 0:
         if resp["error"] == -2:
-            update_task(task_id, auth_header, "compute",async_task.ERROR,"Machine is not available")
+            update_task(task_id, auth_header, async_task.ERROR,"Machine is not available")
             return
 
         if resp["error"] == 1:
             err_msg = resp["msg"]
             if in_str(err_msg,"OPENSSH"):
                 err_msg = "User does not have permissions to access machine"
-            update_task(task_id, auth_header,"compute", async_task.ERROR ,err_msg)
+            update_task(task_id, auth_header, async_task.ERROR ,err_msg)
             return
         err_msg = resp["msg"]
-        update_task(task_id, auth_header, "compute",async_task.ERROR, err_msg)
+        update_task(task_id, auth_header, async_task.ERROR, err_msg)
         
 
     jobid = extract_jobid(resp["msg"])
@@ -333,7 +333,7 @@ def submit_job_path_task(auth_header,system_name, system_addr,fileName,job_dir, 
     # now looking for log and err files location
     job_extra_info = get_slurm_files(auth_header, system_name, system_addr, task_id,msg)
 
-    update_task(task_id, auth_header, "compute",async_task.SUCCESS, job_extra_info,True)
+    update_task(task_id, auth_header,async_task.SUCCESS, job_extra_info,True)
         
 
 ## error handler for files above SIZE_LIMIT -> app.config['MAX_CONTENT_LENGTH']
@@ -429,7 +429,7 @@ def submit_job_upload():
                              args=(auth_header, system_name, system_addr, job_file, job_dir, task_id))
 
         aTask.start()
-        retval = update_task(task_id, auth_header, "compute",async_task.QUEUED, TASKS_URL)
+        retval = update_task(task_id, auth_header,async_task.QUEUED, TASKS_URL)
 
         task_url = f"{KONG_URL}/tasks/{task_id}"
         data = jsonify(success="Task created", task_id=task_id, task_url=task_url)
@@ -516,7 +516,7 @@ def submit_job_path():
                              args=(auth_header, system_name, system_addr, targetPath, job_dir, task_id))
 
         aTask.start()
-        retval = update_task(task_id, auth_header,"compute", async_task.QUEUED, TASKS_URL)
+        retval = update_task(task_id, auth_header, async_task.QUEUED, TASKS_URL)
 
         task_url = "{KONG_URL}/tasks/{task_id}".format(KONG_URL=KONG_URL, task_id=task_id)
         data = jsonify(success="Task created", task_id=task_id, task_url=task_url)
@@ -616,7 +616,7 @@ def list_jobs():
         if task_id == -1:
             return jsonify(description="Failed to retrieve job information",error='Error creating task'), 400
             
-        update_task(task_id, auth_header,"compute", async_task.QUEUED)
+        update_task(task_id, auth_header, async_task.QUEUED)
 
         # asynchronous task creation
         aTask = threading.Thread(target=list_job_task,
@@ -643,19 +643,19 @@ def list_job_task(auth_header,system_name, system_addr,action,task_id,pageSize,p
 
     # in case of error:
     if resp["error"] == -2:
-        update_task(task_id, auth_header, "compute",async_task.ERROR,"Machine is not available")
+        update_task(task_id, auth_header,async_task.ERROR,"Machine is not available")
         return
 
     if resp["error"] == 1:
         err_msg = resp["msg"]
         if in_str(err_msg,"OPENSSH"):
             err_msg = "User does not have permissions to access machine"
-        update_task(task_id, auth_header,"compute", async_task.ERROR ,err_msg)
+        update_task(task_id, auth_header,async_task.ERROR ,err_msg)
         return
 
     if len(resp["msg"]) == 0:
          #update_task(task_id, auth_header, async_task.SUCCESS, "You don't have active jobs on {machine}".format(machine=machine))
-         update_task(task_id, auth_header,"compute", async_task.SUCCESS,{},True)
+         update_task(task_id, auth_header, async_task.SUCCESS,{},True)
          return
 
 
@@ -704,7 +704,7 @@ def list_job_task(auth_header,system_name, system_addr,action,task_id,pageSize,p
 
     data = jobs
 
-    update_task(task_id, auth_header,"compute", async_task.SUCCESS, data, True)
+    update_task(task_id, auth_header, async_task.SUCCESS, data, True)
    
 
 
@@ -764,7 +764,7 @@ def list_job(jobid):
         if task_id == -1:
             return jsonify(description="Failed to retrieve job information",error='Error creating task'), 400
             
-        update_task(task_id, auth_header, "compute",async_task.QUEUED)
+        update_task(task_id, auth_header, async_task.QUEUED)
 
         # asynchronous task creation
         aTask = threading.Thread(target=list_job_task,
@@ -794,18 +794,18 @@ def cancel_job_task(auth_header,system_name, system_addr,action,task_id):
     # in case of error:
     # permission denied, jobid to be canceled is owned by user without permission
     if resp["error"] == 210:
-        update_task(task_id,auth_header,"compute", async_task.ERROR, "User does not have permission to cancel job")
+        update_task(task_id,auth_header, async_task.ERROR, "User does not have permission to cancel job")
         return
 
     if resp["error"] == -2:
-        update_task(task_id,auth_header,"compute", async_task.ERROR, "Machine is not available")
+        update_task(task_id,auth_header, async_task.ERROR, "Machine is not available")
         return
 
     if resp["error"] != 0:
         err_msg = resp["msg"]
         if in_str(err_msg,"OPENSSH"):
             err_msg = "User does not have permissions to access machine"
-        update_task(task_id, auth_header,"compute", async_task.ERROR, err_msg)
+        update_task(task_id, auth_header,async_task.ERROR, err_msg)
         return
 
     # in specific scancel's case, this command doesn't give error code over
@@ -814,11 +814,11 @@ def cancel_job_task(auth_header,system_name, system_addr,action,task_id):
 
     # if "error" word appears:
     if in_str(data,"error"):
-        update_task(task_id, auth_header,"compute", async_task.ERROR, data)
+        update_task(task_id, auth_header, async_task.ERROR, data)
         return
 
     # otherwise
-    update_task(task_id,auth_header,"compute", async_task.SUCCESS,data)
+    update_task(task_id,auth_header, async_task.SUCCESS,data)
 
 
 # Cancel job from SLURM using scancel command
@@ -876,7 +876,7 @@ def cancel_job(jobid):
 
         aTask.start()
 
-        update_task(task_id, auth_header,"compute", async_task.QUEUED)
+        update_task(task_id, auth_header, async_task.QUEUED)
 
         task_url = f"{KONG_URL}/tasks/{task_id}"
 
@@ -898,7 +898,7 @@ def acct_task(auth_header, system_name, system_addr, action, task_id):
 
     # in case of error:
     if resp["error"] == -2:
-        update_task(task_id,auth_header,"compute", async_task.ERROR, "Machine is not available")
+        update_task(task_id,auth_header, async_task.ERROR, "Machine is not available")
         return
 
     # in case of error:
@@ -906,11 +906,11 @@ def acct_task(auth_header, system_name, system_addr, action, task_id):
         err_msg = resp["msg"]
         if in_str(err_msg,"OPENSSH"):
             err_msg = "User does not have permissions to access machine"
-        update_task(task_id, auth_header, "compute",async_task.ERROR, err_msg)
+        update_task(task_id, auth_header, async_task.ERROR, err_msg)
         return
 
     if len(resp["msg"]) == 0:
-        update_task(task_id,auth_header,"compute", async_task.SUCCESS, {},True)
+        update_task(task_id,auth_header, async_task.SUCCESS, {},True)
         return
 
     # on success:
@@ -927,7 +927,7 @@ def acct_task(auth_header, system_name, system_addr, action, task_id):
         jobs.append(jobinfo)
 
     # as it is a json data to be stored in Tasks, the is_json=True
-    update_task(task_id, auth_header, "compute",async_task.SUCCESS, jobs, is_json=True)
+    update_task(task_id, auth_header, async_task.SUCCESS, jobs, is_json=True)
 
 
 
@@ -1021,7 +1021,7 @@ def acct():
             return jsonify(description="Failed to retrieve account information",error='Error creating task'), 400
     
         
-        update_task(task_id, auth_header, "compute",async_task.QUEUED)
+        update_task(task_id, auth_header, async_task.QUEUED)
 
         # asynchronous task creation
         aTask = threading.Thread(target=acct_task,

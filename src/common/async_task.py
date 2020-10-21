@@ -8,6 +8,7 @@ from hashlib import md5
 import time
 import json
 import logging
+import copy
 
 
 # common status codes
@@ -113,20 +114,26 @@ class AsyncTask():
 
         # hide users certificate and action details
         # ["msg"]["certs"] & ["msg"]["action"]
+        
+                
+        # if dict, then a deepcopy is needed, otherwise the dict in "msg" will be shallow copied
+        if isinstance(self.data, dict):
+        
+            _data = copy.deepcopy(self.data)
+        
+            if len(_data) != 0:
 
-        _data = self.data
-
-        if len(_data) != 0:
-
-            try:
-                if _data["msg"]["cert"] != None:
-                    del _data["msg"]["cert"]
-                    del _data["msg"]["action"]
-                    del _data["msg"]["download_url"]
-            except KeyError as e:
-                logging.warning(e.args)
-            except Exception as e:
-                logging.warning(e.args)
+                try:
+                    if _data["msg"]["cert"] != None:
+                        del _data["msg"]["cert"]
+                        del _data["msg"]["action"]
+                        del _data["msg"]["download_url"]
+                except KeyError as e:
+                    logging.warning(e.args)
+                except Exception as e:
+                    logging.warning(e.args)
+        else:
+            _data = self.data
 
         return {"hash_id":self.hash_id,
                 "user": self.user,

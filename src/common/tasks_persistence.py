@@ -54,8 +54,7 @@ def save_task(r,id,task,exp_time=None):
 
     task_id = "task_{id}".format(id=id)
     # mapping = {"status":status, "user":user, "data":data}
-    logging.info("save_task {task_id} in REDIS".format(task_id=task_id))
-    # logging.info(task)
+    logging.info("save_task {task_id} in REDIS".format(task_id=task_id))    
 
     try:
         # serialize json from task:

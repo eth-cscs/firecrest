@@ -451,18 +451,18 @@ def create_task(auth_header,service=None):
 
 
 # function to call update task entry API in Queue FS
-def update_task(task_id, auth_header, service, status, msg = None, is_json=False):
+def update_task(task_id, auth_header, status, msg = None, is_json=False):
 
-    logging.info(f"Update {TASKS_URL}/{task_id}")
+    logging.info(f"Update {TASKS_URL}/{task_id} -> status: {status}")    
 
     if is_json:
         data = {"status": status, "msg": msg}
         req = requests.put(f"{TASKS_URL}/{task_id}",
-                            json=data, headers={AUTH_HEADER_NAME: auth_header, "X-Firecrest-Service":service})
+                            json=data, headers={AUTH_HEADER_NAME: auth_header})
     else:
         data = {"status": status, "msg": msg}
         req = requests.put(f"{TASKS_URL}/{task_id}",
-                            data=data, headers={AUTH_HEADER_NAME: auth_header, "X-Firecrest-Service":service})
+                            data=data, headers={AUTH_HEADER_NAME: auth_header})
 
     resp = json.loads(req.content)
 
