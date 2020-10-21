@@ -186,11 +186,11 @@ tr:nth-child(even) {
 		var targetPath = dirPath+"/"+fileName;
 		
 
-	    var textarea = $("<textarea>").val(content).appendTo("body").select();
+	    var textarea = $("<textarea>").val(targetPath).appendTo("body").select();
 
 	    document.execCommand("copy");
 	    $(textarea).remove();
-	    alert("Path "+content+" has been copied to clipboard");
+	    alert("Path "+targetPath+" has been copied to clipboard");
 	}
 
 	
