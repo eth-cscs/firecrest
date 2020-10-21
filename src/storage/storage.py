@@ -980,7 +980,7 @@ def get_upload_unfinished_tasks():
                 app.logger.error(e)
                 app.logger.error(type(e))
 
-            app.logger.info("Tasks recovered from taskpersistance: {n}".format(n=n_tasks))
+        app.logger.info("Not finished upload tasks recovered from taskpersistance: {n}".format(n=n_tasks))
 
     except Exception as e:
         app.logger.warning("TASKS microservice is down")
