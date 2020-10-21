@@ -3,8 +3,24 @@
 - name: Deploy Firecrest
   gather_facts: No
   hosts: all
+  vars:
+    firecrest_dir: "/home/centos/firecrest"
 
   tasks:
+
+    - name: create firecrest directory
+      file:
+        path: "{{ firecrest_dir }}"
+        state: directory
+        owner: centos
+        group: centos
+        mode: "0755"
+
+    - name: Clone firecrest git repository
+      git:
+        repo: "https://github.com/eth-cscs/firecrest.git"
+        dest: "{{ firecrest_dir }}"
+        version: "{{ commit_id }}"
 
     - name: Create containers network
       community.general.docker_network:
@@ -16,12 +32,12 @@
     - name: Taskpersistence
       community.general.docker_container:
         name: taskpersistence
-        #image: "{{ docker_registry_host }}/taskpersistence:{{version}}"
+        #image: "{{ docker_registry_host }}/taskpersistence:{{commit_id}}"
         image: "redis:5"
         volumes:
-          - ./taskpersistence/redis.conf:/redis.conf:ro # como uso el conf de demo
-          - ./taskpersistence-data:/data:delegated
-          - ./logs:/var/log:delegated
+          - "{{ firecrest_dir }}/src/deploy/demo/taskpersistence/redis.conf:/redis.conf:ro"
+          - "{{ firecrest_dir }}/src/deploy/demo/taskpersistence-data:/data:delegated"
+          - "{{ firecrest_dir }}/src/deploy/demo/logs:/var/log:delegated"
         networks:
               - name: firecrest-internal
                 ipv4_address: "192.168.220.13"
@@ -29,8 +45,8 @@
     - name: Tasks
       community.general.docker_container:
         name: tasks
-        image: "{{ docker_registry_host }}/tasks:{{version}}"
-        env_file: ./common/common.env
+        image: "{{ docker_registry_host }}/tasks:{{commit_id}}"
+        env_file: "{{ firecrest_dir }}/src/deploy/demo/common/common.env"
         env:
           F7T_PERSIST_PORT: "6379"
           F7T_PERSIST_PWD: "rediS2200"
@@ -38,7 +54,7 @@
           F7T_COMPUTE_TASK_EXP_TIME: "86400"
           F7T_STORAGE_TASK_EXP_TIME: "2678400"
         volumes:
-          - ./logs/firecrest:/var/log:delegated
+          - "{{ firecrest_dir }}/src/deploy/demo/logs/firecrest:/var/log:delegated"
         networks:
               - name: firecrest-internal
                 ipv4_address: "192.168.220.6"
