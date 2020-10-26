@@ -46,15 +46,173 @@
       community.general.docker_container:
         name: tasks
         image: "{{ docker_registry_host }}/tasks:{{commit_id}}"
-        env_file: "{{ firecrest_dir }}/src/deploy/demo/common/common.env"
+        env_file: "{{ firecrest_dir }}/deploy/demo/common/common.env"
         env:
           F7T_PERSIST_PORT: "6379"
           F7T_PERSIST_PWD: "rediS2200"
           F7T_DEBUG_MODE: "True"
           F7T_COMPUTE_TASK_EXP_TIME: "86400"
           F7T_STORAGE_TASK_EXP_TIME: "2678400"
-        volumes:
-          - "{{ firecrest_dir }}/deploy/demo/logs/firecrest:/var/log:delegated"
         networks:
               - name: firecrest-internal
                 ipv4_address: "192.168.220.6"
+        published_ports:
+          - "5003:5003"
+        volumes:
+          - "{{ firecrest_dir }}/deploy/demo/logs/firecrest:/var/log:delegated"
+
+    - name: Certificator
+      community.general.docker_container:
+        name: Certificator
+        image: "{{ docker_registry_host }}/certificator:{{commit_id}}"
+        env_file: "{{ firecrest_dir }}/deploy/demo/common/common.env"
+        networks:
+              - name: firecrest-internal
+                ipv4_address: "192.168.220.11"
+        published_ports:
+          - "5010:5010"
+        volumes:
+          - "{{ firecrest_dir }}/deploy/demo/logs/firecrest:/var/log:delegated"
+          - "{{ firecrest_dir }}/deploy/test-build/environment/keys/user-key.pub:/user-key.pub:ro"
+          - "{{ firecrest_dir }}/deploy/test-build/environment/keys/ca-key:/ca-key:ro"
+
+    - name: Compute
+      community.general.docker_container:
+        name: compute
+        image: "{{ docker_registry_host }}/compute:{{commit_id}}"
+        env_file: "{{ firecrest_dir }}/deploy/demo/common/common.env"
+        networks:
+              - name: firecrest-internal
+                ipv4_address: "192.168.220.9"
+        published_ports:
+          - "5006:5006"
+        volumes:
+          - "{{ firecrest_dir }}/deploy/demo/logs/firecrest:/var/log:delegated"
+          - "{{ firecrest_dir }}/deploy/test-build/environment/keys/user-key:/user-key:ro"
+
+    - name: Status
+      community.general.docker_container:
+        name: status
+        image: "{{ docker_registry_host }}/status:{{commit_id}}"
+        env_file: "{{ firecrest_dir }}/deploy/demo/common/common.env"
+        networks:
+              - name: firecrest-internal
+                ipv4_address: "192.168.220.4"
+        published_ports:
+          - "5001:5001"
+        volumes:
+          - "{{ firecrest_dir }}/deploy/demo/logs/firecrest:/var/log:delegated"
+
+    - name: Storage
+      community.general.docker_container:
+        name: storage
+        image: "{{ docker_registry_host }}/storage:{{commit_id}}"
+        env_file: "{{ firecrest_dir }}/deploy/demo/common/common.env"
+        env: 
+          F7T_S3_URL: "http://192.168.220.19:9000"
+          F7T_S3_ACCESS_KEY: "storage_access_key"
+          F7T_S3_SECRET_KEY: "storage_secret_key"
+          F7T_STORAGE_POLLING_INTERVAL: "60" 
+          F7T_CERT_CIPHER_KEY: 'Df6UZuoPoJ2u5yRwxNfFQ46Nwy8eW1OGTcuhlqn4ONo='
+        networks:
+              - name: firecrest-internal
+                ipv4_address: "192.168.220.5"
+        volumes:
+          - "{{ firecrest_dir }}/deploy/demo/logs/firecrest:/var/log:delegated"
+          - "{{ firecrest_dir }}/deploy/test-build/environment/keys/user-key:/user-key:ro"
+
+    - name: Utilities
+      community.general.docker_container:
+        name: utilities
+        image: "{{ docker_registry_host }}/utilities:{{commit_id}}"
+        env_file: "{{ firecrest_dir }}/deploy/demo/common/common.env"
+        networks:
+              - name: firecrest-internal
+                ipv4_address: "192.168.220.7"
+        published_ports:
+          - "5004:5004"
+        volumes:
+          - "{{ firecrest_dir }}/deploy/demo/logs/firecrest:/var/log:delegated"
+          - "{{ firecrest_dir }}/deploy/test-build/environment/keys/user-key:/user-key:ro"
+
+    - name: Build dummy cluster image
+      community.general.docker_image:
+        name: cluster
+        build:
+          path: "{{ firecrest_dir }}"
+          dockerfile: ./deploy/test-build/cluster/Dockerfile
+        source: build
+        state: present
+
+    - name: Run dummy cluster
+      community.general.docker_container:
+        name: cluster
+        image: "{{ docker_registry_host }}/cluster:{{commit_id}}"
+        networks:
+              - name: firecrest-internal
+                ipv4_address: "192.168.220.12"
+        hostname: cluster
+        volumes:
+          - "{{ firecrest_dir }}/deploy/demo/logs/cluster/:/var/log/slurm/:delegated"
+
+    - name: Keycloack
+      community.general.docker_container:
+        name: fckeycloak
+        image: "jboss/keycloak:4.8.3.Final"
+        env_file:  "{{ firecrest_dir }}/deploy/demo/keycloak/keycloak.env" 
+        env:
+          KEYCLOAK_IMPORT: "/var/tmp/config.json"
+          Dkeycloak.migration.realmName: "kcrealm"
+        networks:
+              - name: firecrest-internal
+                ipv4_address: "192.168.220.20"
+        published_ports:
+          - "{{ lookup('env', 'KEYCLOAK_PORT') | default('8080', True) }}:8080"
+
+        volumes:
+          - "{{ firecrest_dir }}/deploy/demo/keycloak/config.json:/var/tmp/config.json:ro"
+          - "{{ firecrest_dir }}/deploy/demo/logs/keycloak:/opt/jboss/keycloak/standalone/log/:delegated"
+        
+    - name: Kong
+      community.general.docker_container:
+        name: kong
+        image: "kong:latest"
+        env:
+          KONG_DATABASE: "off"
+          KONG_DECLARATIVE_CONFIG: "/kong.yml"
+        networks:
+              - name: firecrest-internal
+                ipv4_address: "192.168.220.21"
+        published_ports:
+          - "8000:8000"
+        volumes:
+          - "{{ firecrest_dir }}/deploy/demo/kong/kong.yml:/kong.yml:ro"
+
+    - name: Minio
+      community.general.docker_container:
+        name: minio
+        image: "minio/minio"
+        command: minio server /data
+        env:
+          MINIO_ACCESS_KEY: "storage_access_key"
+          MINIO_SECRET_KEY: "storage_secret_key"
+        networks:
+              - name: firecrest-internal
+                ipv4_address: "192.168.220.19"
+        published_ports:
+          - "9000:9000"
+        volumes:
+          - "{{ firecrest_dir }}/deploy/demo/minio:/data:delegated"  
+
+    - name: Opa
+      community.general.docker_container:
+        name: opa
+        image: "openpolicyagent/opa:0.22.0"
+        command: run --server --log-level=debug --log-format=json-pretty  /opa-files/data.json /opa-files/policy.rego
+        networks:
+              - name: firecrest-internal
+                ipv4_address: "192.168.220.40"
+        published_ports:
+          - "8181:8181"
+        volumes:
+          - "{{ firecrest_dir }}/deploy/demo/opa:/opa-files"  
