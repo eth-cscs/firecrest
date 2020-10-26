@@ -168,7 +168,8 @@ def test_status():
 @host_environment_test
 def test_taskslist():
 	url = "{}/taskslist".format(TASKS_URL)
-	resp = requests.get(url)
+	json = {"service": "storage", "status_code":[]}
+	resp = requests.get(url, json=json)
 	assert resp.status_code == 200
 
 

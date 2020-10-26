@@ -14,9 +14,7 @@
 <table class="table table-hover">
 <tr><th>Task ID</th> <th>Description</th><th>Service</th><th>Status</th><th colspan="2">Last modify</th></tr>
 {% for taskid in response.json()['tasks'] %}
-  {% if response.json()['tasks'][taskid]['service'] == None %}
-	{% continue %}
- {% endif %}
+  
  <tr>
 	<td>{{ response.json()['tasks'][taskid]['hash_id'] }}</td>
 	<td>{{ response.json()['tasks'][taskid]['description'] }}</td>

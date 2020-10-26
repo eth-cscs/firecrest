@@ -54,8 +54,7 @@ def save_task(r,id,task,exp_time=None):
 
     task_id = "task_{id}".format(id=id)
     # mapping = {"status":status, "user":user, "data":data}
-    logging.info("save_task {task_id} in REDIS".format(task_id=task_id))
-    # logging.info(task)
+    logging.info("save_task {task_id} in REDIS".format(task_id=task_id))    
 
     try:
         # serialize json from task:
@@ -135,7 +134,7 @@ def get_all_tasks(r):
         return None
 
 # returns all task from specific service:
-def get_service_tasks(r,service):
+def get_service_tasks(r,service,status_code=None):
     task_dict = {}
 
     try:
@@ -168,13 +167,16 @@ def get_service_tasks(r,service):
 
             # if service is the requested one
             if serv == service:
+                
+                # if status_code is required to be filtered
+                if status_code != None:
+                    # if the status doesn't match the list, then is skipped
+                    if task["status"] not in status_code:
+                        continue
+
                 d = r.get(task_id)
                 d = d.decode('latin-1')
-                # if d is empty, task_id was removed
-                # this should be fixed with r.expire
-                # if len(d) == 0:
-                #    continue
-
+                
                 task_dict[task_id] = d
 
         return task_dict

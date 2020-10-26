@@ -308,7 +308,7 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
                         stdout.channel.close()
                         eof_received = False
                         break
-                if eof_received:
+                if eof_received:                    
                     output = "".join(stdout.readlines())
                     # error = stderr.read() it hangs
                     # clean "tput: No ..." lines at error output
@@ -451,18 +451,18 @@ def create_task(auth_header,service=None):
 
 
 # function to call update task entry API in Queue FS
-def update_task(task_id, auth_header, service, status, msg = None, is_json=False):
+def update_task(task_id, auth_header, status, msg = None, is_json=False):
 
-    logging.info(f"Update {TASKS_URL}/{task_id}")
+    logging.info(f"Update {TASKS_URL}/{task_id} -> status: {status}")    
 
     if is_json:
         data = {"status": status, "msg": msg}
         req = requests.put(f"{TASKS_URL}/{task_id}",
-                            json=data, headers={AUTH_HEADER_NAME: auth_header, "X-Firecrest-Service":service})
+                            json=data, headers={AUTH_HEADER_NAME: auth_header})
     else:
         data = {"status": status, "msg": msg}
         req = requests.put(f"{TASKS_URL}/{task_id}",
-                            data=data, headers={AUTH_HEADER_NAME: auth_header, "X-Firecrest-Service":service})
+                            data=data, headers={AUTH_HEADER_NAME: auth_header})
 
     resp = json.loads(req.content)
 
@@ -519,7 +519,7 @@ def get_task_status(task_id,auth_header):
 def is_valid_file(path, auth_header, system_name, system_addr):
 
     # checks user accessibility to path using head command with 0 bytes
-    action = f"head -c 1 -- {path}"
+    action = f"head -c 1 -- {path} > /dev/null"
 
     retval = exec_remote_command(auth_header,system_name, system_addr,action)
 
