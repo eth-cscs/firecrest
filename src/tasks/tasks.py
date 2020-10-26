@@ -60,16 +60,18 @@ def init_queue():
     task_list = persistence.get_all_tasks(r)
     
     # key = task_id ; values = {status_code,user,data}
-    for id, value in task_list.items():
+    for rid, value in task_list.items():
+        
         # task_list has id with format task_id, ie: task_2
         # therefore it must be splitted by "_" char:
-        task_id = id.split("_")[1]
+        task_id = rid.split("_")[1]
 
         status  = value["status"]
         user    = value["user"]
         data    = value["data"]
+        service = value["service"]
 
-        t = async_task.AsyncTask(task_id,user)
+        t = async_task.AsyncTask(task_id,user,service)
         t.set_status(status,data)
         tasks[t.hash_id] = t
 
@@ -87,8 +89,7 @@ def list_tasks():
     for task_id,task in tasks.items():
         if task.user == username:
             user_tasks[task_id] = task.get_status()
-
-
+    
     data = jsonify(tasks=user_tasks)
     return data, 200
 
@@ -196,23 +197,10 @@ def update_task(id):
     if remote_addr not in [COMPUTE_IP, STORAGE_IP]:
         return jsonify(description="Invalid request address"), 403
 
-    # checks if request has service header
-    try:
-        service = request.headers["X-Firecrest-Service"]
-
-        if service not in ["storage","compute"]:
-            return jsonify(description="Service {} is unknown".format(service)), 403
-
-    except KeyError:
-        return jsonify(description="No service informed"), 403
-
-    # checking data from JSON, need to do before check if auth_header
-    # is needed (for download from SWIFT to filesystem).
     if request.is_json:
 
         try:
             data = request.get_json(force=True)
-            app.logger.info(data)
             status=data["status"]
             msg=data["msg"]
             
@@ -222,8 +210,7 @@ def update_task(id):
     else:
 
         try:
-            msg  = request.form["msg"]
-            app.logger.info(msg)
+            msg  = request.form["msg"]            
         except Exception as e:
             msg = None
             # app.logger.error(e.message)
@@ -274,13 +261,13 @@ def update_task(id):
 
     # if no msg on request, default status msg:
     if msg == None:
-        app.logger.info(msg)
         msg = async_task.status_codes[status]
-        app.logger.info(msg)
-
-    app.logger.info(msg)
+    
     # update task in memory
     tasks[hash_id].set_status(status=status, data=msg)
+
+    # getting service from task, to set exp_time according to the service
+    service = tasks[hash_id].get_internal_status()["service"]
 
     global r
     exp_time = STORAGE_TASK_EXP_TIME
@@ -418,31 +405,51 @@ def status():
     return jsonify(success="ack"), 200
 
 
-# entry point for storage service to recompile
-# tasks when initialize service
-# only used by STORAGE_URL otherwise forbidden
-
+# entry point for all tasks by all users (only used by internal)
+# used by storage for the upload tasks, but it can be used for all tasks status and services
 @app.route("/taskslist",methods=["GET"])
 def tasklist():
 
     global r
 
-    app.logger.info("Get Storage service tasks")
+    app.logger.info("Getting service tasks")
     app.logger.info("STORAGE_IP is {storage_ip}".format(storage_ip=STORAGE_IP))
 
     # reject if not STORAGE_IP remote address
     if request.remote_addr != STORAGE_IP:
         app.logger.warning("Invalid remote address: {addr}".format(addr=request.remote_addr))
         return jsonify(error="Invalid access"), 403
+        
+    json = request.json
 
+    if json == None:
+        app.logger.error("json attribute not passed to the service")
+        app.logger.error("Returning error to the microservice")
+        return jsonify(error="No json parameter"), 401
+    else:
+        app.logger.info(f"json = {json}")
 
-    storage_tasks = persistence.get_service_tasks(r, "storage")
+    try:
+
+        if json["service"] not in ["storage", "compute"]:
+            app.logger.error(f"Service parameter {json['service']} not valid")
+            return jsonify(error=f"Service parameter {json['service']} not valid"), 401
+        
+        _tasks = persistence.get_service_tasks(r, json["service"], json["status_code"])
+    
+    except KeyError as e:
+        app.logger.error(f"Key {e.args} in 'json' parameter is missing")
+        return jsonify(error=f"{e.args} parameter missing"), 401
 
     # app.logger.info(storage_tasks)
-    if storage_tasks == None:
-        return jsonify(error="Persistence server task retrieve error"), 404
+    if _tasks == None:
+        return jsonify(error=f"Persistence server task retrieve error for service {json['service']}"), 404
 
-    return jsonify(tasks=storage_tasks), 200
+    # return only the tasks that matches with the required status in json["status_code"] list
+
+
+
+    return jsonify(tasks=_tasks), 200
 
 
 
