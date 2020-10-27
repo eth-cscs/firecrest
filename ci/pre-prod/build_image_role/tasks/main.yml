@@ -20,6 +20,7 @@
       dockerfile: ./deploy/docker/{{ item.key }}/Dockerfile
     source: build
     state: present
+    push: yes
   with_dict: "{{ image_definitions }}"
 
 - name: build client image
@@ -30,6 +31,7 @@
       dockerfile: ./Dockerfile
     source: build
     state: present
+    push: yes
 
 - name: Pull redis and push to local registry
   docker_image:
