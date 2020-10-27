@@ -418,6 +418,8 @@ def parse_io_error(retval, operation, path):
     elif retval["error"] == -2:
         # IOError -2: name or service not known
         header = {"X-Machine-Not-Available": "Machine is not available"}
+    elif retval["error"] == 118:
+        header = {"X-Permission-Denied": "Internal SSH error"}
     elif in_str(retval["msg"],"Permission") or in_str(retval["msg"],"OPENSSH"):
         header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
 
