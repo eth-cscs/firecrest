@@ -61,10 +61,36 @@
         volumes:
           - "{{ firecrest_dir }}/deploy/demo/logs/firecrest:/var/log:delegated"
 
+    ## Pull certificator image
+    #- name: Certificator
+    #  community.general.docker_container:
+    #    name: Certificator
+    #    image: "{{ docker_registry_host }}/certificator:{{commit_id}}"
+    #    env_file: "{{ firecrest_dir }}/deploy/demo/common/common.env"
+    #    networks:
+    #          - name: firecrest-internal
+    #            ipv4_address: "192.168.220.11"
+    #    published_ports:
+    #      - "5010:5010"
+    #    volumes:
+    #      - "{{ firecrest_dir }}/deploy/demo/logs/firecrest:/var/log:delegated"
+    #      - "{{ firecrest_dir }}/deploy/test-build/environment/keys/user-key.pub:/user-key.pub:ro"
+    #      - "{{ firecrest_dir }}/deploy/test-build/environment/keys/ca-key:/ca-key:ro"
+
+
+    - name: Build Certificator
+      community.general.docker_image:
+        name: demo_certificator
+        build:
+          path: "{{ firecrest_dir }}"
+          dockerfile: ./deploy/docker/certificator/Dockerfile
+        source: build
+        state: present
+
     - name: Certificator
       community.general.docker_container:
-        name: Certificator
-        image: "{{ docker_registry_host }}/certificator:{{commit_id}}"
+        name: certificator
+        image: "demo_certificator"
         env_file: "{{ firecrest_dir }}/deploy/demo/common/common.env"
         networks:
               - name: firecrest-internal
@@ -137,7 +163,7 @@
 
     - name: Build dummy cluster image
       community.general.docker_image:
-        name: cluster
+        name: demo_cluster
         build:
           path: "{{ firecrest_dir }}"
           dockerfile: ./deploy/test-build/cluster/Dockerfile
@@ -147,7 +173,7 @@
     - name: Run dummy cluster
       community.general.docker_container:
         name: cluster
-        image: "{{ docker_registry_host }}/cluster:{{commit_id}}"
+        image: "demo_cluster"
         networks:
               - name: firecrest-internal
                 ipv4_address: "192.168.220.12"
