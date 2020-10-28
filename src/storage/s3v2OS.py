@@ -16,6 +16,8 @@ import base64
 import hmac
 import hashlib
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 class S3v2(ObjectStorage):
 
@@ -111,13 +113,13 @@ class S3v2(ObjectStorage):
 
         string_to_sign = "GET\n\n\n%s\n/" % (expires)
 
-        # to be used in hmac.new(key,msg,digestmode), the strings key (passwd) and msg (strin_to_sign) need to be byte type
+        # to be used in hmac.new(key,msg,digestmode), the strings key (passwd) and msg (string_to_sign) need to be byte type
         string_to_sign = string_to_sign.encode('latin-1')
         _passwd = bytes(self.passwd,'latin1')
 
         sig = base64.b64encode(hmac.new(_passwd, string_to_sign, hashlib.sha1).digest())
 
-        # signature will be Bytes type in Pytho3, so it needs to be decoded to str again
+        # signature will be Bytes type in Python3, so it needs to be decoded to str again
         sig = sig.decode('latin-1')
 
         url = "{url}?AWSAccessKeyId={awsAccessKeyId}&Expires={expires}&Signature={signature}".format(
@@ -160,6 +162,76 @@ class S3v2(ObjectStorage):
 
                 return bucket_list
 
+            return None
+
+        except Exception as e:
+            logging.error("Error: {}".format(e))
+            logging.error("Error: {}".format(type(e)))
+            return None
+
+    def list_objects(self,containername,prefix=None):
+            # by default just 120 secs, since is done instantly
+        
+        expires = 120 + int(time.time())
+        httpVerb = "GET"
+        contentMD5 = ""
+        contentType = ""
+        canonicalizedAmzHeaders = ""
+        canonicalizedResource = f"/{containername}/"
+
+        string_to_sign = httpVerb + "\n" + contentMD5 + "\n" + contentType + "\n" + \
+                         str(expires) + "\n" + canonicalizedAmzHeaders + canonicalizedResource
+
+        # string_to_sign = f"GET\n\n\n{str(expires)}\n/"
+
+        # to be used in hmac.new(key,msg,digestmode), the strings key (passwd) and msg (strin_to_sign) need to be byte type
+        string_to_sign = string_to_sign.encode('latin-1')
+        _passwd = bytes(self.passwd,'latin1')
+
+        sig = base64.b64encode(hmac.new(_passwd, string_to_sign, hashlib.sha1).digest())
+
+        # signature will be Bytes type in Pytho3, so it needs to be decoded to str again
+        sig = sig.decode('latin-1')
+
+        url = "{url}/{containername}/?AWSAccessKeyId={awsAccessKeyId}&Expires={expires}&Signature={signature}".format(
+            containername=containername,url=self.url, awsAccessKeyId=self.user, signature=urllib.parse.quote(sig), expires=expires)
+
+        logging.info("URL: {}".format(url))
+        try:
+            resp = requests.get(url)
+
+            logging.info(resp.status_code)
+
+            if resp.ok:
+                # logging.info(resp.content)
+                root = ElementTree.fromstring(resp.content)
+
+                for _, nsvalue in ElementTree.iterparse(BytesIO(resp.content), events=['start-ns']):
+                    namespace = nsvalue[1]
+
+                object_list = []
+
+                
+
+                for contents in root.findall("{{{}}}Contents".format(namespace)):
+                    key = contents.find("{{{}}}Key".format(namespace)).text
+
+                    
+                    if prefix != None:
+                        sep = key.split("/")
+                        if prefix == sep[0]:
+                            name = key.split("/")[-1]
+                            object_list.append(name)
+                            continue
+                    
+                    object_list.append(key)
+
+
+                    
+
+                return object_list
+
+            logging.error(resp.content)
             return None
 
         except Exception as e:
@@ -343,6 +415,7 @@ class S3v2(ObjectStorage):
 
                 return 0
             # TODO: not working for some reason
+            logging.error(resp.content)
             logging.error("Object couldn't be deleted "+url)
             return -1
         except Exception as e:

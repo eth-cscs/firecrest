@@ -1,137 +1,24 @@
 openapi: 3.0.0
 servers:
-  - url: 'http://127.0.0.1/api'
-  - url: 'https://127.0.0.1/api'
+  - url: 'http://FIRECREST_URL'
+  - url: 'https://FIRECREST_URL'
 info:
-  version: 0.9.9
-  title: FirecREST API
+  version: 1.0.0-RC1
+  title: FirecREST Developers API
   description: >
-    FirecREST platform, a RESTful Services Gateway to HPC resources, is a
-    high-performance and reusable framework that integrates with existing HPC
-    infrastructure, thus enabling the access to HPC resources to web-enabled
-    services.
-    
-    
-    FirecREST provides a REST API that defines a set of functions through which
-    developers can interact with using the HTTP/REST protocol architecture.
-    Calls to the REST API received by the services gateway are translated into
-    the appropriate infrastructure requests. Among the most prominent services
-    that FirecREST exposes we find authentication and authorization, system
-    status, file-system access, data mover, execution of parallel jobs,
-    accounting information, etc.
+    This API specification is intended for FirecREST developers only. There're some endpoints that are not available in the public version for client developers.
 paths:
-  /aai/login:
-    post:
-      summary: Login
-      tags:
-        - AAI
-      responses:
-        '200':
-          description: Login successful
-        '400':
-          description: Login error
-  /aai/logout:
-    get:
-      summary: Logout
-      tags:
-        - AAI
-      responses:
-        '200':
-          description: Logout completed
-        '400':
-          description: Logout failed
-  /aai/status:
-    get:
-      summary: Authorization status
-      tags:
-        - AAI
-      responses:
-        '200':
-          description: Current auth status and information
-          content:
-            application/JSON:
-              schema:
-                $ref: '#/components/schemas/Session'
-  '/aai/TTS/ssh/keys/{user}':
-    parameters:
-      - name: user
-        in: path
-        description: user that is related to the current keys
-        required: true
-        schema:
-          type: string
-    get:
-      summary: Obtain the ssh keys related to the user
-      description: Keys stored in
-      tags:
-        - AAI
-        - TTS
-      responses:
-        '200':
-          description: Return ssh key pair
-    post:
-      summary: Create a new pair of ssh keys for the user
-      tags:
-        - AAI
-        - TTS
-      responses:
-        '201':
-          description: resource created at location
-    delete:
-      summary: Detele ssh keys related to the user
-      tags:
-        - AAI
-        - TTS
-      responses:
-        '200':
-          description: keys deleted
-  /aai/TTS/ssh/certificate:
-    get:
-      summary: Obtain a ssh-certificate from authorization token
-      tags:
-        - AAI
-        - TTS
-      parameters:
-        - name: user
-          in: query
-          description: user on the system
-          required: true
-          schema:
-            type: string
-          allowReserved: false
-        - name: duration
-          in: query
-          description: 'time duration (in seconds) of certificate, starting at request time'
-          required: true
-          schema:
-            type: string
-          allowReserved: false
-        - name: system
-          in: query
-          description: Target system to which access is required
-          required: true
-          schema:
-            type: string
-          allowReserved: true
-      responses:
-        '200':
-          description: Returns SSH certificate generated
-          content:
-            application/octet-stream:
-              schema:
-                type: string
-                format: binary
-  /status/services:
+  '/status/services':
     get:
       summary: List of services
       description: >-
         Returns a list containing all available micro services with a name,
-        description, status, and endpoint.
+        description, and status.
       tags:
         - Status
-      parameters:
-        - $ref: '#/components/parameters/pageSize'
-        - $ref: '#/components/parameters/pageNumber'
+      # parameters:
+      #   - $ref: '#/components/parameters/pageSize'
+      #   - $ref: '#/components/parameters/pageNumber'
       responses:
         '200':
           description: List of services with status and description.
@@ -152,8 +39,7 @@ paths:
     get:
       summary: Get service information
       description: >-
-        Returns a single service descriptor (name, description, status, and
-        endpoint) from its name
+        Returns a single service descriptor (name, description and status) from its name.
       tags:
         - Status
       responses:
@@ -165,18 +51,18 @@ paths:
                 $ref: '#/components/schemas/Service'
         '404':
           description: Service does not exists
-  /status/systems:
+  '/status/systems':
     get:
       summary: List of systems
-      description: Returns a list containing all available systems and response status
+      description: Returns a list containing all available systems and response status.
       tags:
         - Status
-      parameters:
-        - $ref: '#/components/parameters/pageSize'
-        - $ref: '#/components/parameters/pageNumber'
+      # parameters:
+      #   - $ref: '#/components/parameters/pageSize'
+      #   - $ref: '#/components/parameters/pageNumber'
       responses:
         '200':
-          description: List of systems with status and description.
+          description: List of systems with status and description
           content:
             '*/*':
               schema:
@@ -194,7 +80,7 @@ paths:
         schema:
           type: string
     get:
-      summary: Get system information.
+      summary: Get system information
       description: Returns a single system from its name.
       tags:
         - Status
@@ -207,10 +93,24 @@ paths:
                 $ref: '#/components/schemas/System'
         '404':
           description: System does not exists
-  '/utilities/{machinename}/ls':
+  '/status/parameters':
+    get:
+      summary: List of API parameters
+      description: Returns list of parameters that can be configured in environment files.
+      tags:
+        - Status
+      responses:
+        '200':
+          description: List of parameters and values
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/Parameters'
+
+  '/utilities/ls':
     parameters:
-      - name: machinename
-        in: path
+      - in: header
+        name: X-Machine-Name
         description: The system name
         required: true
         schema:
@@ -218,25 +118,25 @@ paths:
     get:
       summary: List directory contents
       description: >-
-        Returns a list of contents at the specified path on the {machine}
+        Returns a list of contents at the specified path on the {X-Machine-Name}
         filesystem.
       tags:
         - Utilities
       parameters:
-        - name: path
+        - name: targetPath
           in: query
-          description: Absolute filesystem path
+          description: Absolute path to destination
           required: true
           schema:
             type: string
           allowReserved: true
         - name: showhidden
           in: query
-          description: do not ignore entries starting with '.'
+          description: Show entries starting with '.'
           schema:
             type: boolean
-        - $ref: '#/components/parameters/pageSize'
-        - $ref: '#/components/parameters/pageNumber'
+        # - $ref: '#/components/parameters/pageSize'
+        # - $ref: '#/components/parameters/pageNumber'
       responses:
         '200':
           description: List of contents of path
@@ -254,48 +154,56 @@ paths:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
               schema:
-                type: integer
+                type: string
             X-Machine-Not-Available:
               description: Machine is not available
               schema:
-                type: integer
+                type: string
             X-Permission-Denied:
               description: User does not have permissions to access machine or path
               schema:
-                type: integer
+                type: string
             X-Invalid-Path:
               description: <path> is an invalid path
               schema:
-                type: integer
-  '/utilities/{machinename}/mkdir':
+                type: string
+            X-Timeout:
+              description: Command has finished with timeout signal
+              schema:
+                type: string
+  '/utilities/mkdir':
     parameters:
-      - name: machinename
-        in: path
+      - in: header
+        name: X-Machine-Name
         description: The system name
         required: true
         schema:
           type: string
     post:
       summary: Creates a directory
-      description: 'Create a directory at the specified path on the {machine} filesystem'
+      description: 'Create a directory at the specified path on the {X-Machine-Name} filesystem.'
       tags:
         - Utilities
-      parameters:
-        - name: path
-          in: query
-          description: Filesystem path
-          required: true
-          schema:
-            type: string
-          allowReserved: true
-        - name: p
-          in: query
-          description: 'No error if existing, make parent directories as needed'
-          allowEmptyValue: true
-          schema:
-            type: string
+      requestBody:
+        required: true
+        content:
+          'multipart/form-data':
+            schema:
+              type: object
+              properties:
+                targetPath:
+                  type: string
+                  description: Absolute path to destination
+                p:
+                  type: string
+                  description: No error if existing, make parent directories as needed
+              required:
+                - targetPath
+              example:
+                targetPath: /home/user/newdir
+                p:
       responses:
-        '200':
+        '201':
           description: Directory created
         '400':
           description: Error creating directory
@@ -307,53 +215,61 @@ paths:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
               schema:
-                type: integer
+                type: string
             X-Machine-Not-Available:
               description: Machine is not available
               schema:
-                type: integer
+                type: string
             X-Permission-Denied:
               description: User does not have permissions to access machine or path
               schema:
-                type: integer
+                type: string
             X-Exists:
               description: <path> already exists
               schema:
-                type: integer
+                type: string
             X-Invalid-Path:
               description: <path> is an invalid path
               schema:
-                type: integer
-  '/utilities/{machinename}/rename':
+                type: string
+            X-Timeout:
+              description: Command has finished with timeout signal
+              schema:
+                type: string
+  '/utilities/rename':
     parameters:
-      - name: machinename
-        in: path
+      - in: header
+        name: X-Machine-Name
         description: The system name
         required: true
         schema:
           type: string
-    post:
+    put:
       summary: 'Rename/move a file, directory, or symlink'
       description: >-
-        Rename/move a file, directory, or symlink at the specified old path to
-        the new path on the {machine} filesystem
+        Rename/move a file, directory, or symlink at the sourcePath to
+        the targetPath on the {X-Machine-Name} filesystem.
       tags:
         - Utilities
-      parameters:
-        - name: source
-          in: query
-          description: Absolute path to source
-          required: true
-          schema:
-            type: string
-          allowReserved: true
-        - name: dest
-          in: query
-          description: Absolute path to destination
-          required: true
-          schema:
-            type: string
-          allowReserved: true
+      requestBody:
+        required: true
+        content:
+          'multipart/form-data': # FIXME: this doesn't work for put requests
+            schema:
+              type: object
+              properties:
+                sourcePath:
+                  type: string
+                  description: Absolute path to source
+                targetPath:
+                  type: string
+                  description: Absolute path to destination
+              required:
+                - sourcePath
+                - targetPath
+              example:
+                sourcePath: /home/user/file
+                targetPath: /home/user/file-renamed
       responses:
         '200':
           description: Success to rename file or directory
@@ -367,56 +283,63 @@ paths:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
               schema:
-                type: integer
+                type: string
             X-Machine-Not-Available:
               description: Machine is not available
               schema:
-                type: integer
+                type: string
             X-Permission-Denied:
               description: User does not have permissions to access machine or paths
               schema:
-                type: integer
+                type: string
             X-Not-Found:
               description: <oldpath> not found
               schema:
-                type: integer
+                type: string
             X-Exists:
               description: <newpath> already exists
               schema:
-                type: integer
+                type: string
             X-Invalid-Path:
               description: <oldpath> and/or <newpath> are invalid paths
               schema:
-                type: integer
-  '/utilities/{machinename}/chmod':
+                type: string
+            X-Timeout:
+              description: Command has finished with timeout signal
+              schema:
+                type: string
+  '/utilities/chmod':
     parameters:
-      - name: machinename
-        in: path
+      - in: header
+        name: X-Machine-Name
         description: The system name
         required: true
         schema:
           type: string
-    post:
+    put:
       summary: Change file mode bits
-      description: Change the file mod bits of a given file according to the specified mode
+      description: Change the file mod bits of a given file according to the specified mode.
       tags:
         - Utilities
-      parameters:
-        - name: path
-          in: query
-          description: Absolute filesystem path to file
-          required: true
-          allowEmptyValue: false
-          schema:
-            type: string
-          allowReserved: true
-        - name: mode
-          in: query
-          description: Same as numeric mode of linux chmod tool
-          required: true
-          allowEmptyValue: false
-          schema:
-            type: string
+      requestBody:
+        required: true
+        content:
+          'multipart/form-data': # FIXME: this doesn't work for put requests
+            schema:
+              type: object
+              properties:
+                targetPath:
+                  type: string
+                  description: Absolute path to destination
+                mode:
+                  type: string
+                  description: Same as numeric mode of linux chmod tool
+              required:
+                - targetPath
+                - mode
+              example:
+                targetPath: /home/user/file
+                mode: "700"
       responses:
         '200':
           description: Operation completed
@@ -424,42 +347,74 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Application-output'
-  '/utilities/{machinename}/chown':
+        '400':
+          description: Error in chmod operation
+          content:
+            text/plain:
+              schema:
+                type: string
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: string
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: string
+            X-Permission-Denied:
+              description: User does not have permissions to access machine or paths
+              schema:
+                type: string
+            X-Invalid-Path:
+              description: <path> is an invalid path
+              schema:
+                type: string
+            X-Timeout:
+              description: Command has finished with timeout signal
+              schema:
+                type: string
+            X-Invalid-Mode:
+              description: <mode> is an invalid mode
+              schema:
+                type: string
+  '/utilities/chown':
     parameters:
-      - name: machinename
-        in: path
+      - in: header
+        name: X-Machine-Name
         description: The system name
         required: true
         schema:
           type: string
-    post:
+    put:
       summary: Change file owner and group
       description: >-
         Changes the user and/or group ownership of a given file. If only owner
         or group information is passed, only that information will be updated.
       tags:
         - Utilities
-      parameters:
-        - name: path
-          in: query
-          description: Absolute filesystem path to file
-          required: true
-          allowEmptyValue: false
-          schema:
-            type: string
-          allowReserved: true
-        - name: owner
-          in: query
-          required: false
-          allowEmptyValue: false
-          schema:
-            type: string
-        - name: group
-          in: query
-          required: false
-          allowEmptyValue: false
-          schema:
-            type: string
+      requestBody:
+        required: true
+        content:
+          'multipart/form-data':
+            schema:
+              type: object
+              properties:
+                targetPath:
+                  type: string
+                  description: Absolute path to destination
+                owner:
+                  type: string
+                  description: Owner username for target
+                group:
+                  type: string
+                  description: group username for target
+              required:
+                - targetPath
+              example:
+                targetPath: /home/user/file
+                owner: newOwner
+                group: newGroup
       responses:
         '200':
           description: Operation completed
@@ -467,21 +422,132 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Application-output'
-  '/utilities/{machinename}/file':
+        '400':
+          description: Error in chwon operation
+          content:
+            text/plain:
+              schema:
+                type: string
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: string
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: string
+            X-Permission-Denied:
+              description: User does not have permissions to access machine or paths
+              schema:
+                type: string
+            X-Invalid-Path:
+              description: <path> is an invalid path
+              schema:
+                type: string
+            X-Timeout:
+              description: Command has finished with timeout signal
+              schema:
+                type: string
+            X-Invalid-Owner:
+              description: <owner> is an invalid user
+              schema:
+                type: string
+            X-Invalid-Group:
+              description: <group> is an invalid group
+              schema:
+                type: string
+  '/utilities/copy':
     parameters:
-      - name: machinename
-        in: path
-        description: The system name.
+      - in: header
+        name: X-Machine-Name
+        description: The system name
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Copy file from a filesystem path to another
+      description: >-
+        Copies file from {sourcePath} to {targetPath}.
+      tags:
+        - Utilities
+      requestBody:
+        required: true
+        content:
+          'multipart/form-data':
+            schema:
+              type: object
+              properties:
+                sourcePath:
+                  type: string
+                  description: Absolute filesystem path to file to be copied
+                targetPath:
+                  type: string
+                  description: Absolute filesystem path where the {sourcePath} is copied
+              required:
+                - sourcePath
+                - targetPath
+              example:
+                sourcePath: /home/user/file
+                targetPath: /home/user/file-copied
+      responses:
+        '201':
+          description: Object copy succesful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application-output'
+        '400':
+          description: Error in copy operation
+          content:
+            text/plain:
+              schema:
+                type: string
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: string
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: string
+            X-Permission-Denied:
+              description: User does not have permissions to access machine or paths
+              schema:
+                type: string
+            X-Invalid-Path:
+              description: <path> is an invalid path
+              schema:
+                type: string
+            X-Timeout:
+              description: Command has finished with timeout signal
+              schema:
+                type: string
+            X-Exists:
+              description: <targetPath> already exists
+              schema:
+                type: string
+            X-Not-Found:
+              description: <sourcePath> not found
+              schema:
+                type: string
+  '/utilities/file':
+    parameters:
+      - in: header
+        name: X-Machine-Name
+        description: The system name
         required: true
         schema:
           type: string
     get:
       summary: determine file type
-      description: Uses the file linux application to determine the type of a file
+      description: Uses the file linux application to determine the type of a file on the
+        {X-Machine-Name} filesystem.
       tags:
         - Utilities
       parameters:
-        - name: path
+        - name: targetPath
           in: query
           description: Absolute filesystem path
           required: true
@@ -496,36 +562,75 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Application-output'
-  '/utilities/{machinename}/symlink':
+        '400':
+          description: Error in file operation
+          content:
+            text/plain:
+              schema:
+                type: string
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: string
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: string
+            X-Permission-Denied:
+              description: User does not have permissions to access machine or paths
+              schema:
+                type: string
+            X-Invalid-Path:
+              description: <path> is an invalid path
+              schema:
+                type: string
+            X-Timeout:
+              description: Command has finished with timeout signal
+              schema:
+                type: string
+        '401':
+          description: No auth header given
+          content:
+            text/plain:
+              schema:
+                type: string
+  '/utilities/symlink':
     parameters:
-      - name: machinename
-        in: path
+      - in: header
+        name: X-Machine-Name
         description: The system name
         required: true
         schema:
           type: string
     post:
       summary: Create a symlink
-      description: Create a symbolic link (symlink) on a machine filesystem
+      description: Create a symbolic link (symlink) on the
+        {X-Machine-Name} filesystem.
       tags:
         - Utilities
-      parameters:
-        - name: target
-          in: query
-          description: path to target that the symlink will point to
-          required: true
-          schema:
-            type: string
-          allowReserved: true
-        - name: source
-          in: query
-          description: absolute path to the new symlink
-          required: true
-          schema:
-            type: string
-          allowReserved: true
+      requestBody:
+        required: true
+        content:
+          'multipart/form-data':
+            schema:
+              type: object
+              properties:
+                linkPath:
+                  type: string
+                  description: Absolute path to the new symlink
+                targetPath:
+                  type: string
+                  description: Absolute filesystem path to target that the symlink will point to
+              required:
+                - linkPath
+                - targetPath
+              example:
+                targetPath: /home/user/file
+                linkPath: /home/user/file-linked
+
       responses:
-        '200':
+        '201':
           description: Success create the symlink
         '400':
           description: Failed to create symlink
@@ -537,42 +642,46 @@ paths:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
               schema:
-                type: integer
+                type: string
             X-Machine-Not-Available:
               description: Machine is not available
               schema:
-                type: integer
+                type: string
             X-Permission-Denied:
               description: User does not have permissions to access machine or paths
               schema:
-                type: integer
+                type: string
             X-Exists:
               description: <source> already exists
               schema:
-                type: integer
+                type: string
             X-Invalid-Path:
               description: <target> and/or <source> are invalid paths
               schema:
-                type: integer
-  '/utilities/{machinename}/download':
+                type: string
+            X-Timeout:
+              description: Command has finished with timeout signal
+              schema:
+                type: string
+  '/utilities/download':
     parameters:
-      - name: machinename
-        in: path
-        description: The system name.
+      - in: header
+        name: X-Machine-Name
+        description: The system name
         required: true
         schema:
           type: string
     get:
       summary: Download a small file
       description: >-
-        'Blocking call that returns the file from the specified path on the
-        {machine} filesystem.'
+        Blocking call that returns the file from the specified path on the
+        {X-Machine-Name} filesystem.
       tags:
         - Utilities
       parameters:
-        - name: path
+        - name: sourcePath
           in: query
-          description: path to the file to download
+          description: Path to the file to download
           required: true
           schema:
             type: string
@@ -595,55 +704,54 @@ paths:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
               schema:
-                type: integer
+                type: string
             X-Machine-Not-Available:
               description: Machine is not available
               schema:
-                type: integer
+                type: string
             X-Permission-Denied:
               description: User does not have permissions to access machine or path
               schema:
-                type: integer
+                type: string
             X-Invalid-Path:
               description: <path> is invalid
               schema:
-                type: integer
-  '/utilities/{machinename}/upload':
+                type: string
+  '/utilities/upload':
     parameters:
-      - name: machinename
-        in: path
+      - in: header
+        name: X-Machine-Name
         description: The system name
         required: true
         schema:
           type: string
     post:
       summary: Uploads a small file
-      description: 'Uploads a file to the specified path on the {machine} filesystem.'
+      description: 'Uploads a file to the specified path on the {X-Machine-Name} filesystem.'
       tags:
         - Utilities
-      parameters:
-        - name: path
-          in: query
-          description: >-
-            target path to the location where file will be uploaded to on the
-            {machine} filesystem
-          required: true
-          schema:
-            type: string
-          allowReserved: true
       requestBody:
-        description: File to be uploaded
         required: true
         content:
-          '*/*':
+          'multipart/form-data':
             schema:
               type: object
               properties:
                 file:
                   type: string
                   format: binary
+                  description: File to be uploaded
+                targetPath:
+                  type: string
+                  description: Absolute path to destination
+              required:
+                - file
+                - targetPath
+              example:
+                file: "@/home/local/file"
+                targetPath: /home/user/remotefile
       responses:
-        '200':
+        '201':
           description: File upload successful
         '400':
           description: Failed to upload file
@@ -655,29 +763,204 @@ paths:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
               schema:
-                type: integer
+                type: string
             X-Machine-Not-Available:
               description: Machine is not available
               schema:
-                type: integer
+                type: string
             X-Permission-Denied:
               description: User does not have permissions to access machine or path
               schema:
-                type: integer
+                type: string
             X-Invalid-Path:
               description: <path> is invalid.
               schema:
-                type: integer
-  '/jobs/{machine}':
+                type: string
+  '/utilities/rm':
     parameters:
-      - name: machine
-        in: path
+      - in: header
+        name: X-Machine-Name
+        description: The system name
+        required: true
+        schema:
+          type: string
+    delete:
+      summary: Delete a small file
+      description: 'Delete a file to the specified path on the {X-Machine-Name} filesystem.'
+      tags:
+        - Utilities
+      requestBody:
+        required: true
+        content:
+          'multipart/form-data': # FIXME
+            schema:
+              type: object
+              properties:
+                targetPath:
+                  type: string
+                  description: Absolute path to destination
+              required:
+                - targetPath
+              example:
+                targetPath: /home/user/remotefile
+      responses:
+        '204':
+          description: File deletion successful
+        '400':
+          description: Failed to delete file
+          content:
+            text/plain:
+              schema:
+                type: string
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: string
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: string
+            X-Permission-Denied:
+              description: User does not have permissions to access machine or path
+              schema:
+                type: string
+            X-Invalid-Path:
+              description: <path> is invalid.
+              schema:
+                type: string
+            X-Timeout:
+              description: Command has finished with timeout signal
+              schema:
+                type: string
+  '/utilities/checksum':
+    parameters:
+      - in: header
+        name: X-Machine-Name
+        description: The system name
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Calculate the checksum of a given file
+      description: 'Calculate the SHA256 (256-bit) checksum of a specified file in {targetPath} on the {X-Machine-Name} filesystem.'
+      tags:
+        - Utilities
+      parameters: 
+        - name: targetPath
+          in: query
+          description: Path to the file to calculate checksum
+          required: true
+          schema:
+            type: string
+          allowReserved: true
+      responses:
+        '200':
+          description: Checksum successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilities-ok'
+        '400':
+          description: Error obatining checksum
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilities-notok'
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: string
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: string
+            X-Permission-Denied:
+              description: User does not have permissions to access machine or path
+              schema:
+                type: string
+            X-Invalid-Path:
+              description: <path> is invalid.
+              schema:
+                type: string
+            X-Timeout:
+              description: Command has finished with timeout signal
+              schema:
+                type: string
+            X-A-Directory:
+              description: <targetPath> is a directory, can't checksum directories
+              schema:
+                type: string
+  '/utilities/view':
+    parameters:
+      - in: header
+        name: X-Machine-Name
+        description: The system name
+        required: true
+        schema:
+          type: string
+    get:
+      summary: View the content of a given file
+      description: 'View the content of a specified file in {targetPath} on the {X-Machine-Name} filesystem.'
+      tags:
+        - Utilities
+      parameters: 
+        - name: targetPath
+          in: query
+          description: Path to the file to view
+          required: true
+          schema:
+            type: string
+          allowReserved: true
+      responses:
+        '200':
+          description: File content successfully returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilities-ok'
+        '400':
+          description: Failed to view file content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilities-notok'
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: string
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: string
+            X-Permission-Denied:
+              description: User does not have permissions to access machine or path
+              schema:
+                type: string
+            X-Invalid-Path:
+              description: <path> is invalid.
+              schema:
+                type: string
+            X-Timeout:
+              description: Command has finished with timeout signal
+              schema:
+                type: string
+            X-A-Directory:
+              description: <targetPath> is a directory, can't checksum directories
+              schema:
+                type: string
+  '/compute/jobs/upload':
+    parameters:
+      - in: header
+        name: X-Machine-Name
         description: The system name
         required: true
         schema:
           type: string
     post:
-      summary: Submit Job
+      summary: Submit Job by uploading a local sbatch file
       description: >-
         Non-blocking call. Submits a batch script to SLURM on the target system.
         The batch script is uploaded as a file to the microservice which then
@@ -688,36 +971,31 @@ paths:
       tags:
         - Compute
       requestBody:
-        description: SBATCH script file to be submitted to SLURM
         required: true
         content:
-          '*/*':
+          'multipart/form-data':
             schema:
               type: object
               properties:
                 file:
                   type: string
                   format: binary
+                  description: SBATCH script file to be submitted to SLURM
+              required:
+                - file
       responses:
-        '200':
+        '201':
           description: Task for job creation queued successfully
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  id:
-                    type: string
-                    description: Related task id
-                  url:
-                    type: string
-                    description: url to task
+                $ref: '#/components/schemas/Upload-ok'
         '400':
           description: Failed to submit job file
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/Upload-notok'
           headers:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
@@ -735,9 +1013,78 @@ paths:
               description: sbatch returned error
               schema:
                 type: integer
+  '/compute/jobs/path':
+    parameters:
+      - in: header
+        name: X-Machine-Name
+        description: The system name
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Submit Job by a given remote sbatch file
+      description: >-
+        Non-blocking call. Submits a batch script to SLURM on the target system.
+        The batch script is uploaded as a file to the microservice which then
+        stores it in a temporal directory in preparation to be submitted to the
+        workload manager. The operation returns the task id associated to the
+        Task microservice that will contain information of the SLURM job once
+        it is created.
+      tags:
+        - Compute
+      requestBody:
+        required: true
+        content:
+          'multipart/form-data':
+            schema:
+              type: object
+              properties:
+                targetPath:
+                  type: string
+                  description: path to the SBATCH script file stored in {X-Machine-Name} machine to be submitted to SLURM
+              required:
+                - targetPath
+      responses:
+        '201':
+          description: Task for job creation queued successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Upload-ok'
+        '400':
+          description: Failed to submit job file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Upload-notok'
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: integer
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: integer
+            X-Permission-Denied:
+              description: User does not have permissions to access machine
+              schema:
+                type: integer
+            X-sbatch-error:
+              description: sbatch returned error
+              schema:
+                type: integer
+  '/compute/jobs':
+    parameters:
+      - in: header
+        name: X-Machine-Name
+        description: The system name
+        required: true
+        schema:
+          type: string
     get:
       summary: Retrieves information from all jobs
-      description: Information about jobs on the SLURM scheduling queue (squeue)
+      description: Information about jobs on the SLURM scheduling queue. This call uses the `squeue` command.
       tags:
         - Compute
       parameters:
@@ -756,9 +1103,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/jobs'
+                $ref: '#/components/schemas/Jobs'
         '400':
           description: Failed to retrieve job information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Upload-notok'
           headers:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
@@ -772,10 +1123,10 @@ paths:
               description: User does not have permissions to access machine
               schema:
                 type: integer
-  '/jobs/{machine}/{jobid}':
+  '/compute/jobs/{jobid}':
     parameters:
-      - name: machine
-        in: path
+      - in: header
+        name: X-Machine-Name
         description: The system name
         required: true
         schema:
@@ -788,7 +1139,7 @@ paths:
           type: string
     get:
       summary: Retrieves information from a job
-      description: Information about a jobs on the SLURM scheduling queue (squeue)
+      description: Information about a job on the SLURM scheduling queue. This call uses the `squeue` command.
       tags:
         - Compute
       responses:
@@ -797,9 +1148,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/job'
+                $ref: '#/components/schemas/Job'
         '400':
-          description: Failed to retrieve job information
+          description: Failed to retrieve jobs information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Upload-notok'
           headers:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
@@ -815,28 +1170,39 @@ paths:
                 type: integer
     delete:
       summary: Delete Job
-      description: Cancel job from SLURM using scancel command
+      description: Cancel job from SLURM, using the `scancel` command.
       tags:
         - Compute
-      parameters:
-        - name: jobs
-          in: query
-          description: Job id to delete.
-          schema:
-            type: string
       responses:
-        '200':
+        '204':
           description: Job deleted
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/jobs'
+                $ref: '#/components/schemas/Jobs'
         '400':
           description: Failed to delete job
-  '/jobs/{machine}/sacct':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Upload-notok'
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: integer
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: integer
+            X-Permission-Denied:
+              description: User does not have permissions to access machine
+              schema:
+                type: integer
+  '/compute/acct':
     parameters:
-      - name: machine
-        in: path
+      - in: header
+        name: X-Machine-Name
         description: The system name
         required: true
         schema:
@@ -845,13 +1211,13 @@ paths:
       summary: Job account information
       description: >-
         Reports accounting data of job in the SLURM job accounting log, this
-        include information from completed jobs
+        includes information from completed jobs. This call uses the `sacct` command.
       tags:
         - Compute
       parameters:
         - name: jobs
           in: query
-          description: Comma-separated list of job IDs to retrieve.
+          description: Comma-separated list of job IDs to retrieve
           schema:
             type: array
             items:
@@ -865,17 +1231,17 @@ paths:
             MM/DD[/YY]-HH:MM[:SS]
             YYYY-MM-DD[THH:MM[:SS]]
           required: false
-          schema: 
+          schema:
             type: string
         - name: endtime
           in: query
-          description: End time (and/or date) of sacct query. Allowed formats are 
+          description: End time (and/or date) of sacct query. Allowed formats are
             HH:MM[:SS] [AM|PM]
             MMDD[YY] or MM/DD[/YY] or MM.DD[.YY]
             MM/DD[/YY]-HH:MM[:SS]
             YYYY-MM-DD[THH:MM[:SS]]
           required: false
-          schema: 
+          schema:
             type: string
       responses:
         '200':
@@ -883,67 +1249,88 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/jobs'
-  /storage/xfer-internal/rsync:
-    get:
+                $ref: '#/components/schemas/Jobs'
+        '400':
+          description: Failed to retrieve account information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Upload-notok'
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: integer
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: integer
+            X-Permission-Denied:
+              description: User does not have permissions to access machine
+              schema:
+                type: integer
+  '/storage/xfer-internal/rsync':
+    post:
       summary: rsync
       description: >-
         Data transfer between internal CSCS file systems. To transfer files and
-        folders from /users, /project or /store to the /scratch file systems for
+        folders from `/users`, `/project` or `/store` to the `/scratch` file systems for
         stage-in or stage-out jobs. Reference:
         https://user.cscs.ch/storage/transfer/internal/
       tags:
         - Storage
-      parameters:
-        - name: sourcePath
-          in: query
-          description: source path to the location filesystem
-          required: true
-          schema:
-            type: string
-          allowReserved: true
-        - name: targetPath
-          in: query
-          description: target path to the location filesystem
-          required: true
-          schema:
-            type: string
-          allowReserved: true
-        - name: jobName
-          in: query
-          description: job name the rsync operation
-          schema:
-            type: string
-        - name: time
-          in: query
-          description: >-
-            'Limit on the total run time of the rsync. Acceptable time formats 
-            \'minutes\',   \'minutes:seconds\',   \'hours:minutes:seconds\',
-            \'days-hours\', \'days-hours:minutes\' and
-            \'days-hours:minutes:seconds\'. Note: for stage-in queue a slurm
-            xfer job.'
-          schema:
-            type: string
-            default: '02:00:00'
-        - name: stageOutJobId
-          in: query
-          description: Move data after job with id 'stageOutJobId' is completed
-          schema:
-            type: string
+      requestBody:
+        required: true
+        content:
+          'multipart/form-data':
+            schema:
+              type: object
+              properties:
+                sourcePath:
+                  type: string
+                  description: Source path to the location filesystem
+                targetPath:
+                  type: string
+                  description: Absolute path to destination
+                jobName:
+                  type: string
+                  description: job name the rsync operation
+                  default: rsync-job
+                time:
+                  type: string
+                  description: >-
+                    Limit on the total run time of the rsync. Acceptable time formats
+                    \'minutes\',   \'minutes:seconds\',   \'hours:minutes:seconds\',
+                    \'days-hours\', \'days-hours:minutes\' and
+                    \'days-hours:minutes:seconds\'. Note: for stage-in queue a slurm
+                    xfer job.
+                  default: '02:00:00'
+                stageOutJobId:
+                  type: string
+                  description: Move data after job with id {stageOutJobId} is completed
+                  default: null
+              required:
+                - sourcePath
+                - targetPath
+              example:
+                sourcePath: /home/user/origin
+                targetPath: /home/user/destination
+                jobName: rsync-firecrest-job
+                stageOutJobId: "123456"
+                time: "2-03:00:00"
       responses:
-        '200':
-          description: rsync operation queued. Job Id returned.
+        '201':
+          description: operation queued. Task Id returned.
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
-                description: Job id
+                $ref: '#/components/schemas/Upload-ok'
         '400':
-          description: Error on rsync operation
+          description: Error on operation
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/Upload-notok'
           headers:
             X-Permission-Denied:
               description: User does not have permissions to access paths
@@ -961,8 +1348,8 @@ paths:
               description: sourcePath and/or targetPath are invalid paths.
               schema:
                 type: integer
-  /storage/xfer-internal/mv:
-    get:
+  '/storage/xfer-internal/mv':
+    post:
       summary: move (rename) files
       description: >-
         'Move files between internal CSCS file systems. Rename sourcePath to
@@ -972,56 +1359,58 @@ paths:
         https://user.cscs.ch/storage/data_transfer/internal_transfer/'
       tags:
         - Storage
-      parameters:
-        - name: sourcePath
-          in: query
-          description: source path to the location filesystem
-          required: true
-          schema:
-            type: string
-          allowReserved: true
-        - name: targetPath
-          in: query
-          description: target path to the location filesystem
-          required: true
-          schema:
-            type: string
-          allowReserved: true
-        - name: jobName
-          in: query
-          description: job name the operation
-          schema:
-            type: string
-        - name: time
-          in: query
-          description: >-
-            'Limit on the total run time of the rsync. Acceptable time formats 
-            \'minutes\',   \'minutes:seconds\',   \'hours:minutes:seconds\',
-            \'days-hours\', \'days-hours:minutes\' and
-            \'days-hours:minutes:seconds\'. Note: for stage-in queue a slurm
-            xfer job.'
-          schema:
-            type: string
-            default: '02:00:00'
-        - name: stageOutJobId
-          in: query
-          description: Perform operation after job with id 'stageOutJobId' is completed
-          schema:
-            type: string
+      requestBody:
+        required: true
+        content:
+          'multipart/form-data':
+            schema:
+              type: object
+              properties:
+                sourcePath:
+                  type: string
+                  description: source path to the location filesystem
+                targetPath:
+                  type: string
+                  description: Absolute path to destination
+                jobName:
+                  type: string
+                  description: job name the rename operation
+                  default: mv-job
+                time:
+                  type: string
+                  description: >-
+                    'Limit on the total run time of the rename. Acceptable time formats
+                    \'minutes\',   \'minutes:seconds\',   \'hours:minutes:seconds\',
+                    \'days-hours\', \'days-hours:minutes\' and
+                    \'days-hours:minutes:seconds\'. Note: for stage-in queue a slurm
+                    xfer job.'
+                  default: '02:00:00'
+                stageOutJobId:
+                  type: string
+                  description: Move data after job with id {stageOutJobId} is completed
+                  default: null
+              required:
+                - sourcePath
+                - targetPath
+              example:
+                sourcePath: /home/user/origin
+                targetPath: /home/user/destination
+                jobName: mv-firecrest-job
+                stageOutJobId: "123456"
+                time: "2-03:00:00"
       responses:
-        '200':
-          description: operation queued. Job Id returned.
+        '201':
+          description: operation queued. Task Id returned.
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
-                description: Job id
+                $ref: '#/components/schemas/Upload-ok'
         '400':
           description: Error on operation
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/Upload-notok'
           headers:
             X-Permission-Denied:
               description: User does not have permissions to access paths
@@ -1039,8 +1428,8 @@ paths:
               description: sourcePath and/or targetPath are invalid paths.
               schema:
                 type: integer
-  /storage/xfer-internal/cp:
-    get:
+  '/storage/xfer-internal/cp':
+    post:
       summary: copy files and directories
       description: >-
         'Copy files and directories between internal CSCS file systems. Copy
@@ -1050,56 +1439,58 @@ paths:
         https://user.cscs.ch/storage/data_transfer/internal_transfer/'
       tags:
         - Storage
-      parameters:
-        - name: sourcePath
-          in: query
-          description: source path to the filesystem
-          required: true
-          schema:
-            type: string
-          allowReserved: true
-        - name: targetPath
-          in: query
-          description: target path to the filesystem
-          required: true
-          schema:
-            type: string
-          allowReserved: true
-        - name: jobName
-          in: query
-          description: job name the operation
-          schema:
-            type: string
-        - name: time
-          in: query
-          description: >-
-            'Limit on the total run time of the rsync. Acceptable time formats 
-            \'minutes\',   \'minutes:seconds\',   \'hours:minutes:seconds\',
-            \'days-hours\', \'days-hours:minutes\' and
-            \'days-hours:minutes:seconds\'. Note: for stage-in queue a slurm
-            xfer job.'
-          schema:
-            type: string
-            default: '02:00:00'
-        - name: stageOutJobId
-          in: query
-          description: Perform operation after job with id 'stageOutJobId' is completed
-          schema:
-            type: string
+      requestBody:
+        required: true
+        content:
+          'multipart/form-data':
+            schema:
+              type: object
+              properties:
+                sourcePath:
+                  type: string
+                  description: source path to the location filesystem
+                targetPath:
+                  type: string
+                  description: Absolute path to destination
+                jobName:
+                  type: string
+                  description: job name the copy operation
+                  default: cp-job
+                time:
+                  type: string
+                  description: >-
+                    'Limit on the total run time of the copy. Acceptable time formats
+                    \'minutes\',   \'minutes:seconds\',   \'hours:minutes:seconds\',
+                    \'days-hours\', \'days-hours:minutes\' and
+                    \'days-hours:minutes:seconds\'. Note: for stage-in queue a slurm
+                    xfer job.'
+                  default: '02:00:00'
+                stageOutJobId:
+                  type: string
+                  description: Copy data after job with id {stageOutJobId} is completed
+                  default: null
+              required:
+                - sourcePath
+                - targetPath
+              example:
+                sourcePath: /home/user/origin
+                targetPath: /home/user/destination
+                jobName: cp-firecrest-job
+                stageOutJobId: "123456"
+                time: "2-03:00:00"
       responses:
-        '200':
-          description: operation queued. Job Id returned.
+        '201':
+          description: operation queued. Task Id returned.
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
-                description: Job id
+                $ref: '#/components/schemas/Upload-ok'
         '400':
           description: Error on operation
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/Upload-notok'
           headers:
             X-Permission-Denied:
               description: User does not have permissions to access paths
@@ -1117,8 +1508,8 @@ paths:
               description: sourcePath and/or targetPath are invalid paths.
               schema:
                 type: integer
-  /storage/xfer-internal/rm:
-    get:
+  '/storage/xfer-internal/rm':
+    post:
       summary: remove files or directories
       description: >-
         'Remove files or directories in the internal CSCS file systems, with
@@ -1128,49 +1519,53 @@ paths:
         https://user.cscs.ch/storage/data_transfer/internal_transfer/'
       tags:
         - Storage
-      parameters:
-        - name: targetPath
-          in: query
-          description: target path to the filesystem
-          required: true
-          schema:
-            type: string
-          allowReserved: true
-        - name: jobName
-          in: query
-          description: job name the operation
-          schema:
-            type: string
-        - name: time
-          in: query
-          description: >-
-            'Limit on the total run time of the rsync. Acceptable time formats 
-            \'minutes\',   \'minutes:seconds\',   \'hours:minutes:seconds\',
-            \'days-hours\', \'days-hours:minutes\' and
-            \'days-hours:minutes:seconds\'. Note: for stage-in queue a slurm
-            xfer job.'
-          schema:
-            type: string
-            default: '02:00:00'
-        - name: stageOutJobId
-          in: query
-          description: Perform operation after job with id 'stageOutJobId' is completed
-          schema:
-            type: string
+      requestBody:
+        required: true
+        content:
+          'multipart/form-data':
+            schema:
+              type: object
+              properties:
+                targetPath:
+                  type: string
+                  description: Absolute path to destination
+                jobName:
+                  type: string
+                  description: job name the remove operation
+                  default: rm-job
+                time:
+                  type: string
+                  description: >-
+                    'Limit on the total run time of the rm. Acceptable time formats
+                    \'minutes\',   \'minutes:seconds\',   \'hours:minutes:seconds\',
+                    \'days-hours\', \'days-hours:minutes\' and
+                    \'days-hours:minutes:seconds\'. Note: for stage-in queue a slurm
+                    xfer job.'
+                  default: '02:00:00'
+                stageOutJobId:
+                  type: string
+                  description: Delete data after job with id {stageOutJobId} is completed
+                  default: null
+              required:
+                - targetPath
+              example:
+                targetPath: /home/user/file-to-delete
+                jobName: rm-firecrest-job
+                stageOutJobId: "123456"
+                time: "2-03:00:00"
       responses:
-        '200':
-          description: operation queued. Job Id returned.
+        '201':
+          description: operation queued. Task Id returned.
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
-                description: Job id
+                $ref: '#/components/schemas/Upload-ok'
         '400':
           description: Error on operation
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/Upload-notok'
           headers:
             X-Permission-Denied:
               description: User does not have permissions to access paths
@@ -1184,8 +1579,8 @@ paths:
               description: targetPath is an invalid path.
               schema:
                 type: integer
-  /storage/xfer-external/upload:
-    get:
+  '/storage/xfer-external/upload':
+    post:
       summary: Upload a file
       description: >-
         Starts an asynchronous upload to a specific path, the upload workflow is
@@ -1193,27 +1588,42 @@ paths:
         task that will provide a persisten URL at which the target file can be
         uploaded to, the persistent URL is encoded with a random hash and is
         available for an extended period of time (it does not depend on the
-        lifetime of the OIDC token). Once the file has been uploaded to the file server, user must call /upload-finished with task id provided by Task microservice.
-        
+        lifetime of the OIDC token).
+
       tags:
         - Storage
-      parameters:
-        - name: targetPath
-          in: query
-          description: target path to the filesystem
-          required: true
-          schema:
-            type: string
-          allowReserved: true
+      requestBody:
+        required: true
+        content:
+          'multipart/form-data':
+            schema:
+              type: object
+              properties:
+                sourcePath:
+                  type: string
+                  description: source path to the file in local machine
+                targetPath:
+                  type: string
+                  description: Absolute path to destination
+              required:
+                - sourcePath
+                - targetPath
+              example:
+                sourcePath: /home/local_user/origin
+                targetPath: /home/user/destination
       responses:
-        '300':
-          description: operation queued.
+        '201':
+          description: operation queued. Task Id returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Upload-ok'
         '400':
           description: Error on operation
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/Upload-notok'
           headers:
             X-Permission-Denied:
               description: User does not have permissions to access path
@@ -1227,30 +1637,16 @@ paths:
               description: targetPath is an invalid path.
               schema:
                 type: integer
-  /storage/xfer-external/upload-finished/{task_id}:
-    get:
-      summary: Upload to Object Storage finished notification
-      description: >-
-        Once upload to file server has completed, user must notify this to Storage microservice in order to move file to targetPath.
-      tags:
-        - Storage
-      parameters:
-        - name: task_id
-          in: path
-          description: id of related task created on upload
-          required: true
-          schema:
-            type: string
-      responses:
-        '404':
-          description: task_id not found
-        '400':
-          description: object does not exist on file server.
-        '200':
-          description: object start to move to targetPath
-        
-  /storage/xfer-external/download:
-    get:
+            X-Not-A-Directory:
+              description: targetPath is not a directory
+              schema:
+                type: string
+            X-Error:
+              description: Error
+              schema:
+                type: string
+  '/storage/xfer-external/download':
+    post:
       summary: Download a file
       description: >-
         Start an asynchronous download by creating a new task in the Tasks
@@ -1261,88 +1657,291 @@ paths:
         the lifetime of the OIDC token).
       tags:
         - Storage
-      parameters:
-        - name: sourcePath
-          in: query
-          description: source path to the filesystem
-          required: true
-          schema:
-            type: string
-          allowReserved: true
+      requestBody:
+        required: true
+        content:
+          'multipart/form-data':
+            schema:
+              type: object
+              properties:
+                sourcePath:
+                  type: string
+                  description: source path to the file in remote filesystem
+              required:
+                - sourcePath
+              example:
+                sourcePath: /home/user/file
       responses:
-        '300':
-          description: operation queued.
+        '201':
+          description: operation queued. Task Id returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Upload-ok'
         '400':
           description: Error on operation
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/Upload-notok'
           headers:
             X-Permission-Denied:
               description: User does not have permissions to access path
               schema:
-                type: integer
+                type: string
             X-Not-Found:
               description: targetPath not found
               schema:
-                type: integer
+                type: string
             X-Invalid-Path:
               description: targetPath is an invalid path.
               schema:
-                type: integer
-  /tasks/tasks:
+                type: string
+            X-A-Directory:
+              description: targetPath is a directory, can't download directories
+              schema:
+                type: string
+            X-Error:
+              description: Error
+              schema:
+                type: string
+  '/storage/xfer-external/invalidate':
+    post:
+      summary: Invalidate temporary URL
+      description: >-
+        Remove a temporary URL attached to a given Task Id
+      tags:
+        - Storage
+      parameters:
+        - in: header
+          name: X-Task-Id
+          description: Task Id associated to the upload/download task
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: operation queued. Task Id returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invalidate-ok'
+        '400':
+          description: Error on operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Upload-notok'
+  '/tasks':
     get:
-      summary: returns all tasks
-      description: List all recorded tasks and their status
+      summary: Returns all tasks
+      description: List all recorded tasks and their status.
       tags:
         - Tasks
       responses:
         '200':
           description: tasks in queue
-    put:
-      summary: Creates a task
-      description: Create a new task entry to keep track and link to resources
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tasks'
+    post:
+      summary: Creates a new task
+      description: Creates a new task.
+      parameters:         
+      - in: header
+        name: X-Firecrest-Service
+        description: Name of the service for which the task will be created ("compute" or "storage")
+        required: true
+        schema:
+          type: string
       tags:
         - Tasks
-      responses:
-        '200':
-          description: task id
-  '/tasks/tasks/{id}':
+      responses:        
+        '201':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task-Post-Ok'
+        '400':
+          description: Error creating task
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expiration-400'
+        '401':
+          description: Not authorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expiration-400'
+        '403':
+          description: Parameters error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expiration-403'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expiration-404'
+  '/tasks/{taskid}':
     parameters:
-      - name: id
+      - name: taskid
         in: path
         description: id of task
         required: true
         schema:
           type: string
     get:
-      summary: task status information
-      description: A long running task progress and result is tracked through a task id
+      summary: Task status information
+      description: A long running task progress and result is tracked through a {taskid}.
       tags:
         - Tasks
       responses:
         '200':
           description: task in Tasks
-    post:
-      summary: Updates a task
-      description: Updates a task entry that keeps track of progress
-      tags:
-        - Tasks
-      responses:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+    
+    put:
+     summary: Updates a task
+     description: Updates a task entry that keeps track of progress
+     parameters:         
+      - in: header
+        name: X-Firecrest-Service
+        description: Name of the service for which the task will be created ("compute"/"storage")
+        required: true
+        schema:
+          type: string
+     tags:
+       - Tasks
+     responses:
         '200':
-          description: created task
-    delete:
-      summary: Delete task
-      description: Delete a already existing task
-      tags:
-        - Tasks
-      responses:
-        '200':
-          description: Task deleted
+          description: Task updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expiration-ok'
         '400':
-          description: Failed to delete task
+          description: Error updating task
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expiration-400'
+        '403':
+          description: Parameters error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expiration-403'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expiration-404'
+    delete:
+     summary: Delete task
+     description: Delete a already existing task
+     tags:
+       - Tasks
+     responses:
+        '204':
+          description: Task deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expiration-ok'
+        '400':
+          description: Error deleting task
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expiration-400'
+        '403':
+          description: Parameters error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expiration-403'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expiration-404'
+
+  '/tasks/expire/{task_id}':
+    post:
+      summary: Marks tasks with an expiration time
+      description: Marks tasks with an expiration time. After that the tasks will be removed.
+      tags:
+        - Tasks
+      responses:
+        '200':
+          description: Task marked for expiration successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expiration-ok'
+        '400':
+          description: Error marking task for expiration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expiration-400'
+        '403':
+          description: Parameters error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expiration-403'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expiration-404'
+
+        
+
+    
+
+
+  '/certificator':
+    post:
+      summary: Creates SSH certificates
+      description: creates an SSH certificate to be used for system command execution
+      tags:
+        - 'Certificator'
+      responses:
+        '200':
+          description: certificate created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Certificator-ok'
+
+        '404':
+          description: Error creating certificate.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Certificator-notok'
+        
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT    # optional, arbitrary value for documentation purposes
   parameters:
     machinename:
       name: machineName
@@ -1437,6 +2036,18 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/System'
+    Parameters:
+      type: object
+      properties:
+        microservice-name:
+          type: object
+          properties:
+            name:
+              type: string
+            value:
+              type: string
+            unit:
+              type: string
     Error:
       properties:
         code:
@@ -1448,8 +2059,6 @@ components:
         - service
       properties:
         service:
-          type: string
-        endpoint:
           type: string
         status:
           type: string
@@ -1487,10 +2096,59 @@ components:
           type: string
         nodelist:
           type: string
+    Certificator-ok:
+      type: object
+      properties:
+          certificate:
+            type: string
+            description: SSH certificate
+    Certificator-notok:
+      type: object
+      properties:
+          description:
+            type: string
+            description: Error description.
+          error:
+            type: string
+            description: Error description.
+    Expiration-ok:
+      type: object
+      properties:
+        success:
+          type: string
+          description: Success description    
+    Expiration-400:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error description           
+    Expiration-403:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Operation not permitted
+    Expiration-404:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Task not found
+    Task-Post-Ok:
+      type: object
+      properties:
+          hash_id:
+            type: string
+            description: unique task ID
+          task_url:
+            type: string
+            description: URL for querying the task
+
     Jobs:
       type: array
       items:
-        $ref: '#/components/schemas/job'
+        $ref: '#/components/schemas/Job'
     Session:
       properties:
         authenticated:
@@ -1512,6 +2170,63 @@ components:
         stderr:
           type: string
           description: Standard error returned by application.
+    Task:
+      type: object
+      required:
+        - hash_id
+      properties:
+        hash_id:
+          type: string
+        description:
+          type: string
+        data:
+          type: object
+        last_modify:
+          type: string
+        user:
+          type: string
+        status:
+          type: string
+        service:
+          type: string
+        task_url:
+          type: string
+    Tasks:
+      type: array
+      items:
+        $ref: '#/components/schemas/Task'
+    Upload-ok:
+      type: object
+      properties:
+        success:
+          type: string
+        task_url:
+          type: string
+        task_id:
+          type: string
+    Upload-notok:
+      type: object
+      properties:
+        error:
+          type: string
+    Utilities-ok:
+      type: object
+      properties:
+        description:
+          type: string
+        output:
+          type: string
+    Utilities-notok:
+      type: object
+      properties:
+        description:
+          type: string
+        error:
+    Invalidate-ok:
+      type: object
+      properties:
+        success:
+          type: string
 tags:
   - name: Status
     description: Status information of infrastructure and services.
@@ -1531,3 +2246,5 @@ tags:
       state of the request.
   - name: Tasks
     description: Access status and response of compute and storage tasks.
+security:
+  - bearerAuth: []

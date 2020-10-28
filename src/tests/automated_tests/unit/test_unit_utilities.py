@@ -22,11 +22,57 @@ DATA = [ (SERVER_UTILITIES, 200) , ("someservernotavailable", 400)]
 DATA_201 = [ (SERVER_UTILITIES, 201) , ("someservernotavailable", 400)]  
 
 # test data for ls command
-DATA_LS = [ (SERVER_UTILITIES, USER_HOME + "/testsbatch.sh", 200), 
+DATA_LS = [ (SERVER_UTILITIES, "/srv/f7t/test_sbatch.sh", 200), 
 (SERVER_UTILITIES, USER_HOME + "/dontexist/", 400),
 (SERVER_UTILITIES, "/etc/binfmt.d/", 200), # empty folder
 (SERVER_UTILITIES, USER_HOME + "/", 200),
 ("someservernotavailable", USER_HOME + "/" ,400)]  
+
+# test data for checksum API
+DATA_CK = [ (SERVER_UTILITIES, "/srv/f7t/test_sbatch.sh", 200), 
+(SERVER_UTILITIES, "/srv/f7t/test_sbatch_forbidden.sh", 400), 
+(SERVER_UTILITIES, USER_HOME + "/dontexist/", 400),
+(SERVER_UTILITIES, "/etc/binfmt.d/", 400), # empty folder
+(SERVER_UTILITIES, USER_HOME + "/", 400),
+("someservernotavailable", USER_HOME + "/" ,400)]  
+
+# test data for checksum API
+DATA_VIEW = [ (SERVER_UTILITIES, "/srv/f7t/test_sbatch.sh", 200), 
+(SERVER_UTILITIES, "/bin/wc", 400), # non ASCII file
+(SERVER_UTILITIES, "/lib64/libz.so", 400), # non ASCII file
+(SERVER_UTILITIES, "/srv/f7t/test_sbatch_forbidden.sh", 400), 
+(SERVER_UTILITIES, USER_HOME + "/dontexist/", 400),
+(SERVER_UTILITIES, "/slurm-19.05.4.tar.bz2", 400), # > MAX_SIZE file
+(SERVER_UTILITIES, USER_HOME + "/", 400),
+("someservernotavailable", USER_HOME + "/" ,400)]
+
+@pytest.mark.parametrize("machine, targetPath, expected_response_code", DATA_VIEW)
+def test_view(machine, targetPath, expected_response_code, headers):
+	params = {"targetPath": targetPath}
+	url = f"{UTILITIES_URL}/view"
+
+	headers.update({ "X-Machine-Name": machine })
+
+	resp = requests.get(url=url, headers=headers, params=params)
+
+	print(resp.json())
+	print(resp.headers)
+
+	assert expected_response_code == resp.status_code
+
+@pytest.mark.parametrize("machine, targetPath, expected_response_code", DATA_CK)
+def test_checksum(machine, targetPath, expected_response_code, headers):
+	params = {"targetPath": targetPath}
+	url = f"{UTILITIES_URL}/checksum"
+
+	headers.update({ "X-Machine-Name": machine })
+
+	resp = requests.get(url=url, headers=headers, params=params)
+
+	print(resp.json())
+	print(resp.headers)
+
+	assert expected_response_code == resp.status_code
 
 
 

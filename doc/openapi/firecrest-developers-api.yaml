@@ -845,7 +845,125 @@ paths:
               description: Command has finished with timeout signal
               schema:
                 type: string
-  '/compute/jobs':
+  '/utilities/checksum':
+    parameters:
+      - in: header
+        name: X-Machine-Name
+        description: The system name
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Calculate the checksum of a given file
+      description: 'Calculate the SHA256 (256-bit) checksum of a specified file in {targetPath} on the {X-Machine-Name} filesystem.'
+      tags:
+        - Utilities
+      parameters: 
+        - name: targetPath
+          in: query
+          description: Path to the file to calculate checksum
+          required: true
+          schema:
+            type: string
+          allowReserved: true
+      responses:
+        '200':
+          description: Checksum successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilities-ok'
+        '400':
+          description: Error obatining checksum
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilities-notok'
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: string
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: string
+            X-Permission-Denied:
+              description: User does not have permissions to access machine or path
+              schema:
+                type: string
+            X-Invalid-Path:
+              description: <path> is invalid.
+              schema:
+                type: string
+            X-Timeout:
+              description: Command has finished with timeout signal
+              schema:
+                type: string
+            X-A-Directory:
+              description: <targetPath> is a directory, can't checksum directories
+              schema:
+                type: string
+  '/utilities/view':
+    parameters:
+      - in: header
+        name: X-Machine-Name
+        description: The system name
+        required: true
+        schema:
+          type: string
+    get:
+      summary: View the content of a given file
+      description: 'View the content of a specified file in {targetPath} on the {X-Machine-Name} filesystem.'
+      tags:
+        - Utilities
+      parameters: 
+        - name: targetPath
+          in: query
+          description: Path to the file to view
+          required: true
+          schema:
+            type: string
+          allowReserved: true
+      responses:
+        '200':
+          description: File content successfully returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilities-ok'
+        '400':
+          description: Failed to view file content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilities-notok'
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: string
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: string
+            X-Permission-Denied:
+              description: User does not have permissions to access machine or path
+              schema:
+                type: string
+            X-Invalid-Path:
+              description: <path> is invalid.
+              schema:
+                type: string
+            X-Timeout:
+              description: Command has finished with timeout signal
+              schema:
+                type: string
+            X-A-Directory:
+              description: <targetPath> is a directory, can't checksum directories
+              schema:
+                type: string
+  '/compute/jobs/upload':
     parameters:
       - in: header
         name: X-Machine-Name
@@ -854,7 +972,7 @@ paths:
         schema:
           type: string
     post:
-      summary: Submit Job
+      summary: Submit Job by uploading a local sbatch file
       description: >-
         Non-blocking call. Submits a batch script to SLURM on the target system.
         The batch script is uploaded as a file to the microservice which then
@@ -907,6 +1025,75 @@ paths:
               description: sbatch returned error
               schema:
                 type: integer
+  '/compute/jobs/path':
+    parameters:
+      - in: header
+        name: X-Machine-Name
+        description: The system name
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Submit Job by a given remote sbatch file
+      description: >-
+        Non-blocking call. Submits a batch script to SLURM on the target system.
+        The batch script is uploaded as a file to the microservice which then
+        stores it in a temporal directory in preparation to be submitted to the
+        workload manager. The operation returns the task id associated to the
+        Task microservice that will contain information of the SLURM job once
+        it is created.
+      tags:
+        - Compute
+      requestBody:
+        required: true
+        content:
+          'multipart/form-data':
+            schema:
+              type: object
+              properties:
+                targetPath:
+                  type: string
+                  description: path to the SBATCH script file stored in {X-Machine-Name} machine to be submitted to SLURM
+              required:
+                - targetPath
+      responses:
+        '201':
+          description: Task for job creation queued successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Upload-ok'
+        '400':
+          description: Failed to submit job file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Upload-notok'
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: integer
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: integer
+            X-Permission-Denied:
+              description: User does not have permissions to access machine
+              schema:
+                type: integer
+            X-sbatch-error:
+              description: sbatch returned error
+              schema:
+                type: integer
+  '/compute/jobs':
+    parameters:
+      - in: header
+        name: X-Machine-Name
+        description: The system name
+        required: true
+        schema:
+          type: string
     get:
       summary: Retrieves information from all jobs
       description: Information about jobs on the SLURM scheduling queue. This call uses the `squeue` command.
@@ -1530,7 +1717,33 @@ paths:
               description: Error
               schema:
                 type: string
-
+  '/storage/xfer-external/invalidate':
+    post:
+      summary: Invalidate temporary URL
+      description: >-
+        Remove a temporary URL attached to a given Task Id
+      tags:
+        - Storage
+      parameters:
+        - in: header
+          name: X-Task-Id
+          description: Task Id associated to the upload/download task
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: operation queued. Task Id returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invalidate-ok'
+        '400':
+          description: Error on operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Upload-notok'
   '/tasks/':
     get:
       summary: Returns all tasks
@@ -1814,6 +2027,24 @@ components:
       type: object
       properties:
         error:
+          type: string
+    Utilities-ok:
+      type: object
+      properties:
+        description:
+          type: string
+        output:
+          type: string
+    Utilities-notok:
+      type: object
+      properties:
+        description:
+          type: string
+        error:
+    Invalidate-ok:
+      type: object
+      properties:
+        success:
           type: string
 tags:
   - name: Status

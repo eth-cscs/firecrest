@@ -7,23 +7,7 @@
 {% extends "demo_base.html" %}
 {% block title %}List single job{% endblock %}
 {% block content %}
-<style>
-/*table {
-  font-family: arial, sans-serif;
-  border-collapse: collapse;
-  width: 100%;
-}
 
-td, th {
-  border: 1px solid #dddddd;
-  text-align: left;
-  padding: 8px;
-}
-
-tr:nth-child(even) {
-  background-color: #dddddd;
-}*/
-</style>
 
 <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 
@@ -49,78 +33,81 @@ function update_progress(task_url) {
           $(".task").css("border-style","solid");*/
 
           var resp = data['task']['data'];
+          var status = data["task"]["status"];
 
-          if (data["task"]["status"] == "200"){
+          if ( status == "200"){
             $(".task").addClass("bg-success");
 
           }
-          else{
+          else if (status == "400") {
             $(".task").addClass("bg-danger");
           }
+          else
+            return;
 
           console.log(resp.length);
           console.log(resp);
           
           if(is_object(resp)){
             
-		      $(".task").text("You have active jobs");
-		
-                var row_number = 1; /*starts with 1, because 0 is table header*/
-                for (var key in resp){
-			if(resp.hasOwnProperty(key)){
-				var table = document.getElementById("job_table");
+            $(".task").text("You have active jobs");
+      
+            var row_number = 1; /*starts with 1, because 0 is table header*/
+            for (var key in resp){
+              if(resp.hasOwnProperty(key)){
+                var table = document.getElementById("job_table");
 
-				var row = table.insertRow(row_number);
+                var row = table.insertRow(row_number);
 
- 				var jobid = row.insertCell(0);
-				jobid.innerHTML = resp[key]["jobid"];
- 				var name = row.insertCell(1);
-				name.innerHTML = resp[key]["name"];
-				
- 				var nodelist = row.insertCell(2);
-				nodelist.innerHTML = resp[key]["nodelist"];
- 				var nodes = row.insertCell(3);
-				nodes.innerHTML = resp[key]["nodes"];
- 				var partition = row.insertCell(4);
-				partition.innerHTML = resp[key]["partition"];
- 				var start_time = row.insertCell(5);
-				start_time.innerHTML = resp[key]["start_time"];
- 				var state = row.insertCell(6);
-				state.innerHTML = resp[key]["state"];				
- 				var time = row.insertCell(7);
-				time.innerHTML = resp[key]["time"];				
- 				var time_left = row.insertCell(8);
-				time_left.innerHTML = resp[key]["time_left"];
-				
-				var actions = row.insertCell(9);
-        actions.innerHTML = "<a href='{{ request.url_root }}compute/cancel/"+resp[key]["jobid"]+"?machine={{ request.args.get("machine") }}'>Cancel</a>";	
-        
-        
-        var log_file_path = document.getElementById("td_log_file");
-        var err_file_path = document.getElementById("td_err_file");
+                var jobid = row.insertCell(0);
+                jobid.innerHTML = resp[key]["jobid"];
+                var name = row.insertCell(1);
+                name.innerHTML = resp[key]["name"];
+                
+                var nodelist = row.insertCell(2);
+                nodelist.innerHTML = resp[key]["nodelist"];
+                var nodes = row.insertCell(3);
+                nodes.innerHTML = resp[key]["nodes"];
+                var partition = row.insertCell(4);
+                partition.innerHTML = resp[key]["partition"];
+                var start_time = row.insertCell(5);
+                start_time.innerHTML = resp[key]["start_time"];
+                var state = row.insertCell(6);
+                state.innerHTML = resp[key]["state"];				
+                var time = row.insertCell(7);
+                time.innerHTML = resp[key]["time"];				
+                var time_left = row.insertCell(8);
+                time_left.innerHTML = resp[key]["time_left"];
+                
+                var actions = row.insertCell(9);
+                actions.innerHTML = "<a href='{{ request.url_root }}compute/cancel/"+resp[key]["jobid"]+"?machine={{ request.args.get("machine") }}'>Cancel</a>";	
+                
+                
+                var log_file_path = document.getElementById("td_log_file");
+                var err_file_path = document.getElementById("td_err_file");
 
-        log_file_path.innerHTML = resp[key]["StdOut"];
-        err_file_path.innerHTML = resp[key]["StdErr"];
+                log_file_path.innerHTML = resp[key]["job_file_out"];
+                err_file_path.innerHTML = resp[key]["job_file_err"];
 
-        var text_log_file = document.getElementById("text_log_file");
-        var text_err_file = document.getElementById("text_err_file");
+                var text_log_file = document.getElementById("text_log_file");
+                var text_err_file = document.getElementById("text_err_file");
 
-        var out_data = resp[key]["StdOutData"].replace("$", '<br>');
+                var out_data = resp[key]["job_data_out"].replace("$", '<br>');
 
-        text_log_file.innerText = out_data;
-        text_err_file.innerText = resp[key]["StdErrData"];
-        
+                text_log_file.innerText = out_data;
+                text_err_file.innerText = resp[key]["job_data_err"];
+                
 
-				row_number+=1;
-			}
-		}
-	   }
-           else{
-		$(".task").text(resp);
-           }
+                row_number+=1;
+              }
+		        }
+	        }
+          else{
+		        $(".task").text(resp);
+          }
 
-	   if(stop_array.indexOf(data["task"]["status"]) != -1)
-		clearInterval(checkProgress);
+	        if(stop_array.indexOf(data["task"]["status"]) != -1)
+		        clearInterval(checkProgress);
 
        },
 
@@ -146,15 +133,17 @@ function update_progress(task_url) {
     {% if response.status_code == 200 %}
       {# {{ response.json()['success'] }} #} 
       <br>
+      <div class="bg-info">
       You can check the details of this task <a href="{{ request.url_root }}tasks/{{ response.json()['task_id'] }}">here</a>
+      </div>
       <br><br>	
 
       <script>
         var checkProgress = setInterval(function() {
           update_progress("/tasks/{{ response.json()['task_id'] }}?data=1");
-        }, 2000);
+        }, 10000);
       </script>
-      <div class="task"></div><br>
+      <div class="task" id="task"></div><br>
 
       <div class="job_list">
            	<table class="table table-hover" id="job_table">
@@ -170,7 +159,9 @@ function update_progress(task_url) {
     </table>
       </div>
     {% else %}
+    <div class="bg-danger">
       {{ response.json()['error'] }}
+    </div>
     {% endif %}
 {% endif %}
 

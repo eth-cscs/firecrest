@@ -95,6 +95,9 @@ services:
     environment:
       - F7T_PERSIST_PORT=6379
       - F7T_PERSIST_PWD=rediS2200
+      - F7T_DEBUG_MODE=True
+      - F7T_COMPUTE_TASK_EXP_TIME=86400
+      - F7T_STORAGE_TASK_EXP_TIME=2678400
     depends_on:
       - "taskpersistence"
     networks:
@@ -226,3 +229,13 @@ services:
       - "8181:8181"    
     volumes: 
       - ./opa:/opa-files
+
+  openapi:
+    # image: swaggerapi/swagger-ui:v3.22.0
+    build:
+      context: ../../
+      dockerfile: ./deploy/docker/openapi/Dockerfile
+    ports:
+      - "9090:8080"
+    environment:
+      SWAGGER_JSON: /tmp/openapi.yaml

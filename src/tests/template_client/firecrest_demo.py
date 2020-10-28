@@ -36,19 +36,29 @@ app.jinja_env.add_extension('jinja2.ext.loopcontrols')
 
 bootstrap = Bootstrap(app)
 
-demo_microservices = [ ("Status","status"),
-                       ("Utilities","utilities"),
-                       ("Compute","compute"),
-                       ("Storage","storage"),
-                       ("Tasks","tasks") ]
+demo_microservices = [ (m.title(),m) for m in app.config['MICROSERVICES'] ]
 
 oidc = OpenIDConnect(app)
-
 
 class MachineSelectForm(FlaskForm):
     '''A class to support selection of machine'''
     machine = SelectField('machine',
                           choices=[(m, m) for m in app.config['MACHINES']])
+    submit = SubmitField('Submit')
+
+class TestAPIForm(FlaskForm):
+    machine = SelectField('machine',
+                          choices=[(m, m) for m in app.config['MACHINES']])
+
+    microservice = SelectField('microservice',
+                          choices=[(value,name) for (name,value) in demo_microservices])
+
+    query = StringField('query')
+
+    method = SelectField('method', choices=[("DELETE","DELETE"), ("GET","GET"),
+                            ("POST","POST"), ("PUT","PUT")])
+    resp_headers = TextAreaField("Response Headers")
+    # resp_json = TextAreaField("JSON Response")
     submit = SubmitField('Submit')
 
 
@@ -204,14 +214,9 @@ def index():
 # @oidc.require_login
 def status():
     '''View function for the status of services and systems'''
-    # response = requests.get(
-    #     url=f"{app.config['FIRECREST_IP']}/status/systems",
-    #     headers={'Authorization': f'Bearer {oidc.get_access_token()}'})
-    #return render_template('status.html', response=response)
+    
     actions = [("Query all services", "allservices"),
-               #("Query specific service", "service"),
                ("Query all systems","allsystems"),
-               #("Query specific system","system"),
                ("View available parameters", "parameters")]
     return render_template('status.html',actions=actions,microservices=demo_microservices)
 
@@ -280,18 +285,11 @@ def task(taskid):
 @app.route('/storage')
 def storage():
     '''View function for listing the FirecREST tasks'''
-    # response = requests.get(
-    #     url=f"{app.config['FIRECREST_IP']}/tasks/tasks",
-    #     headers={'Authorization': f'Bearer {oidc.get_access_token()}'})
-    # return render_template('tasks.html', response=response)
+    
     actions = [("External upload","upload"),
-               ("Finish an external upload","upload-finished"),
                ("External download","download"),
-               #("Internal move", "int-mv"),
                ("Internal Transfer", "internal"),
-               #("Internal rsync", "int-rsync"),
-               #("Internal delete", "int-rm")
-              ]
+                  ]
     return render_template('storage.html',actions=actions,microservices=demo_microservices)
 
 @app.route('/storage/upload', methods=['GET', 'POST'])
@@ -351,68 +349,6 @@ def storage_download():
 
     return render_template('storage/download.html', form=form, response=response, microservices=demo_microservices)
 
-@app.route('/storage/upload-finished/<taskid>', methods=['GET', 'POST'])
-@oidc.require_login
-def upload_finished(taskid):
-    '''View function for finishing uploading large files'''
-    form = UploadFinishedForm()
-    response = None
-    form.taskid.data=taskid
-    if form.validate_on_submit():
-        taskid = form.taskid.data
-        response = requests.put(
-            url=f"{app.config['FIRECREST_IP']}/storage/xfer-external/upload",
-            headers={'Authorization': f'Bearer {oidc.get_access_token()}',
-                     'X-Task-ID': taskid}
-            )
-
-        if response.ok:
-
-            response = requests.get(
-                url="{firecrest_url}/tasks/{taskid}".format(firecrest_url=app.config['FIRECREST_IP'], taskid=taskid),
-                headers={'Authorization': f'Bearer {oidc.get_access_token()}'})
-
-            return render_template("tasks/task.html", response=response, microservices=demo_microservices)
-
-
-    return render_template('storage/upload-finished.html', form=form, response=response, taskid=taskid, microservices=demo_microservices)
-
-@app.route('/storage/upload-finished', methods=['GET', 'POST'])
-@oidc.require_login
-def upload_finished_empty():
-    '''View function for finishing uploading large files on demand'''
-    form = UploadFinishedForm()
-    response = None
-    taskid = None
-    if form.validate_on_submit():
-        taskid = form.taskid.data
-        
-        response = requests.put(
-            url=f"{app.config['FIRECREST_IP']}/storage/xfer-external/upload",
-            headers={'Authorization': f'Bearer {oidc.get_access_token()}',
-                     'X-Task-ID': taskid}
-            )
-
-        if response.ok:
-
-            response = requests.get(
-                url="{firecrest_url}/tasks/{taskid}".format(firecrest_url=app.config['FIRECREST_IP'], taskid=taskid),
-                headers={'Authorization': f'Bearer {oidc.get_access_token()}'})
-
-            return render_template("tasks/task.html", response=response, microservices=demo_microservices)
-
-    return render_template('storage/upload-finished.html', form=form, response=response, taskid=taskid, microservices=demo_microservices)
-
-@app.route('/storage/upload-to-os/<taskid>', methods=['GET'])
-@oidc.require_login
-def upload_to_os(taskid):
-    '''View function for uploading large files to SWIFT NOT EXPOSED'''
-    # form = ExternalUploadForm()
-    response = request.get("{firecrest_url}/tasks/{taskid}".format(firecrest_url=app.config['FIRECREST_IP'],taskid=taskid),
-                headers={'Authorization': 'Bearer {token}'.format(token=oidc.get_access_token())})
-
-    return render_template("storage/upload-to-os",response=response, microservices=demo_microservices)
-
 @app.route('/storage/internal', methods=['GET', 'POST'])
 @oidc.require_login
 def internal_transfer():
@@ -455,16 +391,11 @@ def internal_transfer():
 @app.route('/compute')
 def compute():
     '''View function for listing the FirecREST tasks'''
-    # response = requests.get(
-    #     url=f"{app.config['FIRECREST_IP']}/tasks/tasks",
-    #     headers={'Authorization': f'Bearer {oidc.get_access_token()}'})
-    # return render_template('tasks.html', response=response)
+    
     actions = [ ("Submit a job", "submit"),
-               #("Query an active job", "job"),
-               ("Query all active jobs", "jobs"),
-               #("Cancel an active job","cancel-job"),
-               ("Account information", "acct")
-                ]
+                ("Query all active jobs", "jobs"),
+                ("Account information", "acct")
+              ]
     return render_template('compute.html',actions=actions,microservices=demo_microservices)
 
 @app.route('/compute/jobs', methods=['GET', 'POST'])
@@ -475,17 +406,13 @@ def alljobs():
     form = ListJobsForm()
     response = None
     machine = None
-    # submit = False
-
+    
     if request.method == "POST":
         machine = request.args.get("machinename")
         if machine == None:
             #submit = True
             machine = form.machine.data
-
-    #if form.validate_on_submit() or submit:
-        #flash(f'Querying jobs on: {form.machine.data}')
-        #machine = form.machine.data
+    
         response = requests.get(
             url=f"{app.config['FIRECREST_IP']}/compute/jobs",
             headers={'Authorization': f'Bearer {oidc.get_access_token()}',
@@ -502,8 +429,6 @@ def job(jobid):
     response = None
     form.jobid.data = jobid
 
-    # if form.validate_on_submit():
-    # flash(f'Querying jobs on: {form.machine.data}')
     machine = request.args.get("machine")
 
     if machine == None:
@@ -601,7 +526,7 @@ def submitjob():
 
             machine = form.machine.data
             response = requests.post(
-                url=f"{app.config['FIRECREST_IP']}/compute/jobs",
+                url=f"{app.config['FIRECREST_IP']}/compute/jobs/upload",
                 headers={'Authorization': f'Bearer {oidc.get_access_token()}',
                      'X-Machine-Name': machine},
                 files=files)
@@ -610,12 +535,11 @@ def submitjob():
             
         else:
             filename = secure_filename(form.upload.data.filename)
-            app.logger.info(filename)
             data = form.upload.data            
 
             machine = form.machine.data
             response = requests.post(
-                url=f"{app.config['FIRECREST_IP']}/compute/jobs",
+                url=f"{app.config['FIRECREST_IP']}/compute/jobs/upload",
                 headers={'Authorization': f'Bearer {oidc.get_access_token()}',
                      'X-Machine-Name': machine},
                 files={"file":(filename,data.stream)})
@@ -1084,6 +1008,112 @@ def mkdir():
         except Exception as e:
             app.logger.error(e)
 
+@app.route('/utilities/checksum', methods=['GET', 'POST'])
+@oidc.require_login
+def checksum():
+    '''View function for listing the files of the user'''
+    form = PathForm()
+    result = None
+    error_headers = None
+
+    if request.method == "POST":
+        try:
+            machine = request.form["machine"]
+            targetPath = request.form["targetPath"]
+            path = request.form["path"]
+            
+
+            response = requests.get(
+                url=f"{app.config['FIRECREST_IP']}/utilities/checksum",
+                headers={'Authorization': f'Bearer {oidc.get_access_token()}',
+                         'X-Machine-Name': machine},
+                params={'targetPath': targetPath}
+            )
+
+            if not response.ok:
+                result = "error"
+                error_headers = ["X-Exists","X-Not-Found","X-Machine-Does-Not-Exist","X-Machine-Not-Available","X-Permission-Denied","X-Invalid-Path","X-Timeout", "X-Invalid-Group","X-Invalid-Owner"]
+                description = response.json()["description"]
+                for header,value in response.headers.items():
+                    if header in error_headers:
+                        description = value
+                        break
+                        
+                        
+            else:
+                result = "success"
+                description = f"{response.json()['description']}: {response.json()['output']}"
+
+
+            response = requests.get(
+                url=f"{app.config['FIRECREST_IP']}/utilities/ls",
+                headers={'Authorization': f'Bearer {oidc.get_access_token()}',
+                         'X-Machine-Name': machine},
+                params={'targetPath': path})
+           
+
+            return render_template('utilities.html', machine=machine, path=path, response=response, form=form,result=result,description=description, microservices=demo_microservices)
+        except Exception as e:
+            app.logger.error(e)
+
+@app.route('/api', methods=['GET', 'POST'])
+@oidc.require_login
+def api():
+    form = TestAPIForm()
+
+    if request.method == "POST":
+        service = form.microservice.data
+        query   = form.query.data
+        machine = form.machine.data
+        method  = form.method.data
+
+        param_names = request.form.getlist("parameter")
+        param_values= request.form.getlist("value")
+
+        
+
+        url = f"{app.config['FIRECREST_IP']}/{service}/{query}"
+        headers = {"X-Machine-Name": machine, "Authorization": f"Bearer {oidc.get_access_token()}"}
+
+
+        if method == "DELETE":
+            
+            data = {}
+
+            for i in range(len(param_names)):
+                data[param_names[i]] = param_values[i]
+
+            response=requests.delete(url=url, headers=headers, data=data)
+        elif method == "POST":
+            data = {}
+
+            for i in range(len(param_names)):
+                data[param_names[i]] = param_values[i]
+
+            response=requests.post(url=url, headers=headers, data=data)
+        elif method == "PUT":
+            data = {}
+
+            for i in range(len(param_names)):
+                data[param_names[i]] = param_values[i]
+
+            response=requests.put(url=url, headers=headers, data=data)
+
+        elif method == "GET":
+            params = {}
+
+            for i in range(len(param_names)):
+                params[param_names[i]] = param_values[i]
+
+            response=requests.get(url=url, headers=headers,params=params)
+            
+        # form.resp_json.data = response.text
+        form.resp_headers.data = response.headers
+
+        return render_template('api.html', form=form, microservices=demo_microservices, response=response)
+
+    return render_template('api.html', form=form, microservices=demo_microservices, response = None)
+
 
 @app.route("/login")
 @oidc.require_login
@@ -1112,4 +1142,12 @@ if __name__ == '__main__':
 
     logger.addHandler(logHandler)
 
-    app.run(host='0.0.0.0', port=app.config['CLIENT_PORT'])
+    USE_SSL = app.config['USE_SSL']
+    SSL_PEM = app.config['SSL_PEM']
+    SSL_KEY = app.config['SSL_KEY']
+
+    if not USE_SSL:
+        app.run(host='0.0.0.0')
+    else:
+        app.run(host='0.0.0.0', ssl_context=(SSL_PEM, SSL_KEY))
+

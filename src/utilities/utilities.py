@@ -13,7 +13,7 @@ from werkzeug.exceptions import BadRequestKeyError
 
 from math import ceil
 
-from cscs_api_common import check_auth_header, get_username,exec_remote_command, parse_io_error
+from cscs_api_common import check_auth_header, get_username,exec_remote_command, parse_io_error, check_command_error, in_str
 import base64
 import io
 
@@ -40,20 +40,6 @@ MAX_FILE_SIZE=int(os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE"))
 app = Flask(__name__)
 # max content lenght for upload in bytes
 app.config['MAX_CONTENT_LENGTH'] = int(MAX_FILE_SIZE) * 1024 * 1024
-
-
-# function to check if pattern is in string
-def in_str(stringval,words):
-    try:
-        stringval.index(words)
-        return True
-    except AttributeError: #if is not str, then is byte encoding
-        stringval = stringval.decode('latin-1')
-        stringval.index(words)
-        return True
-    except ValueError:
-        return False # if words never found
-
 
 ## file: determines the type of file of path
 ## params:
@@ -96,30 +82,17 @@ def file_type():
     error_str = retval["msg"]
 
     if retval["error"] != 0:
-        if retval["error"] == -2:
-            header = {"X-Machine-Not-Available": "Machine is not available"}
-            return jsonify(description="Error in file operation"), 400, header
+        error_str   = retval["msg"]
+        error_code  = retval["error"]
+        service_msg = "Error in file operation"
 
-        if retval["error"] == 124:
-            header = {"X-Timeout": "Command has finished with timeout signal"}
-            return jsonify(description="Error in file operation"), 400, header
+        ret_data = check_command_error(error_str, error_code, service_msg)
 
-        #in case of permission for other user
-        if in_str(error_str,"Permission") or in_str(retval["msg"],"OPENSSH"):
-            header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
-            return jsonify(description="Error in file operation"), 404, header
-
-        # otherwise, generic error
-        return jsonify(description="Error in file operation", error=error_str), 404
-
-    # for file, is not an error (echo $? = 0) if the file doesn't exist or user has not permissions
-    if in_str(error_str, "cannot open"):
-        header = {"X-Invalid-Path": "{path} is an invalid path".format(path=path)}
-        return jsonify(description="Error in file operation"), 400, header
-
-    if in_str(error_str, "read permission"):
-        header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
-        return jsonify(description="Error in file operation"), 400, header
+        # if generic "error" not in the dict
+        try:
+            jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
+        except:
+            return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
 
     return jsonify(description="Operation completed", out=retval["msg"]), 200
 
@@ -173,30 +146,17 @@ def chmod():
     retval = exec_remote_command(auth_header, system_name, system_addr, action)
 
     if retval["error"] != 0:
-        if retval["error"] == -2:
-            header = {"X-Machine-Not-Available": "Machine is not available"}
-            return jsonify(description="Error in chmod operation"), 400, header
+        error_str   = retval["msg"]
+        error_code  = retval["error"]
+        service_msg = "Error in chmod operation"
 
-        if retval["error"] == 124:
-            header = {"X-Timeout": "Command has finished with timeout signal"}
-            return jsonify(description="Error in chmod operation"), 400, header
+        ret_data = check_command_error(error_str, error_code, service_msg)
 
-        error_str = retval["msg"]
-
-        if in_str(error_str, "cannot access"):
-            header = {"X-Invalid-Path": "{path} is an invalid path".format(path=path)}
-            return jsonify(description="Error in chmod operation"), 400, header
-
-        if in_str(error_str, "not permitted") or in_str(retval["msg"],"OPENSSH"):
-            header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
-            return jsonify(description="Error in chmod operation"), 400, header
-
-        if in_str(error_str, "invalid mode"):
-            header = {"X-Invalid-Mode": "{mode} is an invalid mode".format(mode=mode)}
-            return jsonify(description="Error in chmod operation"), 400, header
-
-        #otherwise, generic error
-        return jsonify(description="Error in chmod operation", error=error_str), 404
+        # if generic "error" not in the dict
+        try:
+            jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
+        except:
+            return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
 
     return jsonify(description="Operation completed", out=retval["msg"]), 200
 
@@ -257,35 +217,19 @@ def chown():
     retval = exec_remote_command(auth_header, system_name, system_addr, action)
 
     if retval["error"] != 0:
-        if retval["error"] == -2:
-            header = {"X-Machine-Not-Available": "Machine is not available"}
-            return jsonify(description="Error in chown operation"), 400, header
+        error_str   = retval["msg"]
+        error_code  = retval["error"]
+        service_msg = "Error in chown operation"
 
-        if retval["error"] == 124:
-            header = {"X-Timeout": "Command has finished with timeout signal"}
-            return jsonify(description="Error in chown operation"), 400, header
+        ret_data = check_command_error(error_str, error_code, service_msg)
 
-        error_str = retval["msg"]
+        # if generic "error" not in the dict
+        try:
+            jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
+        except:
+            return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
 
-        if in_str(error_str,"cannot access"):
-            header={"X-Invalid-Path":"{path} is an invalid path".format(path=path)}
-            return jsonify(description="Error in chown operation"), 400, header
-
-        if in_str(error_str,"not permitted") or in_str(retval["msg"],"OPENSSH"):
-            header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
-            return jsonify(description="Error in chown operation"), 400, header
-
-        if in_str(error_str,"invalid group"):
-            header = {"X-Invalid-Group": "{group} is an invalid group".format(group=group)}
-            return jsonify(description="Error in chown operation"), 400, header
-
-        if in_str(error_str,"invalid user"):
-            header = {"X-Invalid-Owner": "{owner} is an invalid user".format(owner=owner)}
-            return jsonify(description="Error in chown operation"), 400, header
-
-        return jsonify(description="Error in chown operation", error=error_str), 404
-
-
+        
     return jsonify(description="Operation completed", out=retval["msg"]), 200
 
 
@@ -339,29 +283,18 @@ def list_directory():
     retval = exec_remote_command(auth_header, system_name, system_addr, action)
 
     if retval["error"] != 0:
-        error_str=retval["msg"]
+        error_str   = retval["msg"]
+        error_code  = retval["error"]
+        service_msg = "Error listing contents of path"
 
-        if retval["error"] == 113:
-            header = {"X-Machine-Not-Available":"Machine is not available"}
-            return jsonify(description="Error listing contents of path"), 400, header
+        ret_data = check_command_error(error_str, error_code, service_msg)
 
-        if retval["error"] == 124:
-            header = {"X-Timeout": "Command has finished with timeout signal"}
-            return jsonify(description="Error listing contents of path"), 400, header
-
-        if in_str(error_str,"cannot access"):
-
-            header={"X-Invalid-Path":"{path} is an invalid path".format(path=path)}
-            return jsonify(description="Error listing contents of path"), 400, header
-
-        if in_str(error_str,"cannot open") or in_str(retval["msg"],"OPENSSH"):
-            header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
-            return jsonify(description="Error listing contents of path"), 400, header
-
-        # generic not caught error
-        return jsonify(description="Error listing contents of path",error=retval["msg"]), 400
-
-
+        # if generic "error" not in the dict
+        try:
+            jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
+        except:
+            return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
+        
     # file List is retorned as a string separated for a $ character
     fileList = []
     if len(retval["msg"].split("$")) == 1:
@@ -482,33 +415,161 @@ def make_directory():
     retval = exec_remote_command(auth_header, system_name, system_addr, action)
 
     if retval["error"] != 0:
-        error_str=retval["msg"]
+        error_str   = retval["msg"]
+        error_code  = retval["error"]
+        service_msg = "Error creating directory"
 
-        if retval["error"] == 113:
-            header = {"X-Machine-Not-Available":"Machine is not available"}
-            return jsonify(description="Error creating directory"), 400, header
+        ret_data = check_command_error(error_str, error_code, service_msg)
 
-        if retval["error"] == 124:
-            header = {"X-Timeout": "Command has finished with timeout signal"}
-            return jsonify(description="Error creating directory"), 400, header
-
-        if in_str(error_str,"No such file"):
-            header={"X-Invalid-Path":"{path} is an invalid path".format(path=path)}
-            return jsonify(description="Error creating directory"), 400, header
-
-        if in_str(error_str,"Permission denied") or in_str(retval["msg"],"OPENSSH"):
-            header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
-            return jsonify(description="Error creating directory"), 400, header
-
-        if in_str(error_str,"File exists"):
-            header = {"X-Exists": "{path} already exists".format(path=path)}
-            return jsonify(description="Error creating directory"), 400, header
-
-        return jsonify(description="Error creating directory",error=retval["msg"]), 400
-
-
+        # if generic "error" not in the dict
+        try:
+            jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
+        except:
+            return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
+        
     return jsonify(description="Directory created", output=""), 201
 
+## Returns the content from the specified path on the {machine} filesystem
+## params:
+##  - path: path to the file to download *required
+##  - machinename: str *required
+
+@app.route("/view", methods=["GET"])
+@check_auth_header
+def view():
+
+    auth_header = request.headers[AUTH_HEADER_NAME]
+
+    try:
+        system_name = request.headers["X-Machine-Name"]
+    except KeyError as e:
+        app.logger.error("No machinename given")
+        return jsonify(description="No machine name given"), 400
+
+    # PUBLIC endpoints from Kong to users
+    if system_name not in SYSTEMS_PUBLIC:
+        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
+        return jsonify(description="Failed to view file content", error="Machine does not exist"), 400, header
+
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
+
+    path = request.args.get("targetPath")
+
+    if path == None:
+        return jsonify(description="Failed to view file content",error="'targetPath' query string missing"), 400
+    if path == "":
+        return jsonify(description="Failed to view file content",error="'targetPath' value is empty"), 400
+
+    # check file size
+    action = f"timeout {UTILITIES_TIMEOUT} stat --dereference -c %s -- '{path}'"
+    retval = exec_remote_command(auth_header, system_name, system_addr, action)
+
+    if retval["error"] != 0:
+
+        error_str   = retval["msg"]
+        error_code  = retval["error"]
+        service_msg = "Failed to view file content"
+
+        ret_data = check_command_error(error_str, error_code, service_msg)
+
+        # if generic "error" not in the dict
+        try:
+            jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
+        except:
+            return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
+
+    
+    file_size = int(retval["msg"]) # in bytes
+    max_file_size = MAX_FILE_SIZE*(1024*1024) 
+
+
+    if file_size > max_file_size:
+        app.logger.warning("File size exceeds limit")
+        # custom error raises when file size > SIZE_LIMIT env var
+        header = {"X-Size-Limit": "File exceeds size limit"}
+        return jsonify(description="Failed to view file content"), 400, header
+
+    # download with base64 to avoid encoding conversion and string processing
+    action = f"timeout {UTILITIES_TIMEOUT} head -c {max_file_size} -- '{path}'"
+    retval = exec_remote_command(auth_header, system_name, system_addr, action)
+    if retval["error"] != 0:
+
+        error_str   = retval["msg"]
+        error_code  = retval["error"]
+        service_msg = "Failed to view file content"
+
+        ret_data = check_command_error(error_str, error_code, service_msg)
+
+        # if generic "error" not in the dict
+        try:
+            return jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
+        except:
+            return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
+
+    content = retval["msg"].replace("$","\n")
+
+    return jsonify(description="File content successfully returned", output=content), 200
+    
+
+## checksum: Print or check SHA256 (256-bit) checksums
+## params:
+##  - targetPath: Filesystem path (Str) *required##  
+##  - machinename: str *required
+
+@app.route("/checksum",methods=["GET"])
+@check_auth_header
+def checksum():
+
+    auth_header = request.headers[AUTH_HEADER_NAME]
+    
+    try:
+        system_name = request.headers["X-Machine-Name"]
+    except KeyError as e:
+        app.logger.error("No machinename given")
+        return jsonify(description="No machine name given"), 400
+
+    # PUBLIC endpoints from Kong to users
+    if system_name not in SYSTEMS_PUBLIC:
+        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
+        return jsonify(description="Error obatining checksum", error="Machine does not exist"), 400, header
+
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
+
+    try:
+        path = request.args.get("targetPath")
+        if path == "":
+            return jsonify(description="Error obatining checksum",error="'targetPath' value is empty"), 400
+        
+    except BadRequestKeyError:
+        return jsonify(description="Error obatining checksum", error="'targetPath' query string missing"), 400
+
+    action = f"timeout {UTILITIES_TIMEOUT} sha256sum -- '{path}'"
+
+    retval = exec_remote_command(auth_header, system_name, system_addr, action)
+
+    if retval["error"] != 0:
+
+        error_str   = retval["msg"]
+        error_code  = retval["error"]
+        service_msg = "Error obtaining checksum"
+
+        ret_data = check_command_error(error_str, error_code, service_msg)
+
+        # if generic "error" not in the dict
+        try:
+            jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
+        except:
+            return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
+
+    # on success: retval["msg"] = "checksum  /path/to/file"
+    output = retval["msg"].split()[0]
+    
+
+    return jsonify(description="Checksum successfully retrieved", output=output), 200
 
 ## rename/move
 ## params:
@@ -583,39 +644,18 @@ def common_operation(request, command, method):
     retval = exec_remote_command(auth_header,system_name ,system_addr, action)
 
     if retval["error"] != 0:
-        error_str=retval["msg"]
+        error_str   = retval["msg"]
+        error_code  = retval["error"]
+        service_msg = f"Error on {command} operation"
 
-        if retval["error"] == 113:
-            header = {"X-Machine-Not-Available":"Machine is not available"}
-            return jsonify(description="Error on " + command + " operation"), 400, header
+        ret_data = check_command_error(error_str, error_code, service_msg)
 
-        if retval["error"] == 124:
-            header = {"X-Timeout": "Command has finished with timeout signal"}
-            return jsonify(description="Error on " + command + " operation"), 400, header
-
-        # error no such file
-        if in_str(error_str,"No such file"):
-            if in_str(error_str,"cannot stat"):
-                header={"X-Not-Found":"{sourcePath} not found.".format(sourcePath=sourcePath)}
-                return jsonify(description="Error on " + command + " operation"), 400, header
-
-            # copy: cannot create, rename: cannot move
-            if in_str(error_str, "cannot create") or in_str(error_str,"cannot move"):
-                header = {"X-Invalid-Path": "{sourcePath} and/or {targetPath} are invalid paths.".format(sourcePath=sourcePath, targetPath=targetPath)}
-                return jsonify(description="Error on " + command + " operation"), 400, header
-
-        # permission denied
-        if in_str(error_str,"Permission denied") or in_str(retval["msg"],"OPENSSH"):
-            header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
-            return jsonify(description="Error on " + command + " operation"), 400, header
-
-        # if already exists, not overwrite (-i)
-        if in_str(error_str,"overwrite"):
-            header = {"X-Exists": "{targetPath} already exists".format(targetPath=targetPath)}
-            return jsonify(description="Error on " + command + " operation"), 400, header
-
-        return jsonify(description="Error on copy operation"), 400
-
+        # if generic "error" not in the dict
+        try:
+            jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
+        except:
+            return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
+        
     return jsonify(description="Success to " + command + " file or directory.", output=""), success_code
 
 
@@ -660,30 +700,18 @@ def rm():
     retval = exec_remote_command(auth_header, system_name, system_addr, action)
 
     if retval["error"] != 0:
-        error_str=retval["msg"]
+        error_str   = retval["msg"]
+        error_code  = retval["error"]
+        service_msg = "Error on delete operation"
 
-        if retval["error"] == 113:
-            header = {"X-Machine-Not-Available":"Machine is not available"}
-            return jsonify(description="Error on delete operation"), 400, header
+        ret_data = check_command_error(error_str, error_code, service_msg)
 
-        if retval["error"] == 124:
-            header = {"X-Timeout": "Command has finished with timeout signal"}
-            return jsonify(description="Error on delete operation"), 400, header
-
-        # error no such file
-        if in_str(error_str,"No such file"):
-            if in_str(error_str,"cannot remove"):
-                header = {"X-Invalid-Path": "{path} is an invalid path.".format(path=path)}
-                return jsonify(description="Error on delete operation"), 400, header
-
-        # permission denied
-        if in_str(error_str,"Permission denied") or in_str(retval["msg"],"OPENSSH"):
-            header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
-            return jsonify(description="Error on delete operation"), 400, header
-
-        return jsonify(description="Error on delete operation"), 400
-
-
+        # if generic "error" not in the dict
+        try:
+            jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
+        except:
+            return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
+       
     return jsonify(description="Success to delete file or directory.", output=""), 204
 
 
@@ -734,35 +762,18 @@ def symlink():
     retval = exec_remote_command(auth_header, system_name, system_addr, action)
 
     if retval["error"] != 0:
-        error_str=retval["msg"]
+        error_str   = retval["msg"]
+        error_code  = retval["error"]
+        service_msg = "Failed to create symlink"
 
-        if retval["error"] == 113:
-            header = {"X-Machine-Not-Available":"Machine is not available"}
-            return jsonify(description="Failed to create symlink"), 400, header
+        ret_data = check_command_error(error_str, error_code, service_msg)
 
-        if retval["error"] == 124:
-            header = {"X-Timeout": "Command has finished with timeout signal"}
-            return jsonify(description="Failed to create symlink"), 400, header
-
-        # error no such file
-        if in_str(error_str,"No such file"):
-            header = {"X-Invalid-Path": "{targetPath} and/or {linkPath} are invalid paths.".format(targetPath=targetPath,linkPath=linkPath)}
-            return jsonify(description="Failed to create symlink"), 400, header
-
-        # permission denied
-        if in_str(error_str,"Permission denied") or in_str(retval["msg"],"OPENSSH"):
-            header = {"X-Permission-Denied": "User does not have permissions to access machine or paths"}
-            return jsonify(description="Failed to create symlink"), 400, header
-
-        # if already exists
-        if in_str(error_str,"File exists"):
-            header = {"X-Exists": "{linkPath} already exists".format(linkPath=linkPath)}
-            return jsonify(description="Failed to create symlink"), 400, header
-
-
-        return jsonify(description="Failed to create symlink"), 400
-
-
+        # if generic "error" not in the dict
+        try:
+            jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
+        except:
+            return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
+        
     return jsonify(description="Success create the symlink"), 201
 
 

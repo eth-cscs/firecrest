@@ -166,7 +166,7 @@ function update_progress(task_url) {
       <script>
         var checkProgress = setInterval(function() {
           update_progress("/tasks/{{ response.json()['task_id'] }}?data=1");
-        }, 2000);
+        }, 10000);
       </script>
       <div id="task"></div><br>
 

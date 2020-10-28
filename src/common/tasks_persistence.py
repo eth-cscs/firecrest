@@ -50,17 +50,19 @@ def incr_last_task_id(r):
 # save task status in redis server
 # if success, returns True, otherwise, False
 # task is the result of AsynkTask.get_status(), that's a dictionary with all fields
-def save_task(r,id,task):
+def save_task(r,id,task,exp_time=None):
 
     task_id = "task_{id}".format(id=id)
     # mapping = {"status":status, "user":user, "data":data}
-    logging.info("save_task {task_id} in REDIS".format(task_id=task_id))
-    # logging.info(task)
+    logging.info("save_task {task_id} in REDIS".format(task_id=task_id))    
 
     try:
         # serialize json from task:
         jtask = json.dumps(task)
-        r.set(task_id,jtask)
+        if exp_time:
+            r.setex(task_id,exp_time,jtask)
+        else:
+            r.set(task_id,jtask)
         return True
     except Exception as e:
         logging.error(e)
@@ -70,16 +72,17 @@ def save_task(r,id,task):
 
 # set task expiration
 def set_expire_task(r,id,secs):
-    task_id = "task_{id}".format(id=id)
+    task_id = f"task_{id}"
     try:
         # change to expire, because delete mantain deleted keys in redis
         # and iterate over them
         # r.delete(task_id)
         # redis.expire (key, seconds_to_live_from_now)
-        r.expire(task_id,secs)
-        return True
+        logging.info(f"Marking as expired task {task_id} with TTL={secs} secs")
+        return r.expire(task_id,secs)
+        
     except Exception as e:
-        logging.error("Error on del_task")
+        logging.error("Error on expire task")
         logging.error(e)
         return False
 
@@ -131,7 +134,7 @@ def get_all_tasks(r):
         return None
 
 # returns all task from specific service:
-def get_service_tasks(r,service):
+def get_service_tasks(r,service,status_code=None):
     task_dict = {}
 
     try:
@@ -164,13 +167,16 @@ def get_service_tasks(r,service):
 
             # if service is the requested one
             if serv == service:
+                
+                # if status_code is required to be filtered
+                if status_code != None:
+                    # if the status doesn't match the list, then is skipped
+                    if task["status"] not in status_code:
+                        continue
+
                 d = r.get(task_id)
                 d = d.decode('latin-1')
-                # if d is empty, task_id was removed
-                # this should be fixed with r.expire
-                # if len(d) == 0:
-                #    continue
-
+                
                 task_dict[task_id] = d
 
         return task_dict

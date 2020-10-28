@@ -21,15 +21,11 @@ class ObjectStorage:
     @abstractmethod
     def create_container(self,containername):
          pass
-    #
-    # @abstractmethod
-    # def remove_object(self):
-    #     pass
-    #
+   
     @abstractmethod
     def get_users(self):
          pass
-    #
+    
     @abstractmethod
     def delete_object_after(self,containername,prefix,objectname,ttl):
          pass
@@ -56,6 +52,10 @@ class ObjectStorage:
 
     @abstractmethod
     def create_upload_form(self,sourcepath,containername,prefix,ttl,max_file_size):
+        pass
+
+    @abstractmethod
+    def list_objects(self,containername,prefix):
         pass
 
 

@@ -8,6 +8,8 @@ import logging
 import os
 import jwt
 import stat
+import datetime
+import hashlib
 import tempfile
 import json
 import functools
@@ -21,6 +23,7 @@ import time
 debug = os.environ.get("F7T_DEBUG_MODE", None)
 
 AUTH_HEADER_NAME = 'Authorization'
+
 realm_pubkey=os.environ.get("F7T_REALM_RSA_PUBLIC_KEY", '')
 if realm_pubkey != '':
     # headers are inserted here, must not be present
@@ -244,7 +247,7 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
                        allow_agent=False,
                        look_for_keys=False,
                        timeout=10)
-
+        logging.info(f"F7T_SSH_CERTIFICATE_WRAPPER: {F7T_SSH_CERTIFICATE_WRAPPER}")
         if F7T_SSH_CERTIFICATE_WRAPPER:
             # read cert to send it as a command to the server
             with open(pub_cert, 'r') as cert_file:
@@ -271,14 +274,14 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
         
 	# poll process status since directly using recv_exit_status() could result
         # in a permanent hang when remote output is larger than the current Transport or session’s window_size 
-        for i in range(0,10):
+        while True:
             if stderr.channel.exit_status_ready():
                 logging.info("stderr channel exit status ready") 
                 stderr_errno = stderr.channel.recv_exit_status()
                 endtime = time.time() + 30
                 eof_received = True
                 while not stderr.channel.eof_received:
-                    time.sleep(1)
+                    # time.sleep(0.5)
                     if time.time() > endtime:
                         stderr.channel.close()
                         eof_received = False
@@ -289,29 +292,30 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
                     # clean "tput: No ..." lines at error output
                     stderr_errda = clean_err_output(error)
                 break
-            else:
-                time.sleep(5)
+            # else:
+            #     time.sleep(5)
 
-        for i in range(0,10):
+        #for i in range(0,10):
+        while True:
             if stdout.channel.exit_status_ready():
                 logging.info("stdout channel exit status ready") 
                 stdout_errno = stdout.channel.recv_exit_status()
                 endtime = time.time() + 30
                 eof_received = True
                 while not stdout.channel.eof_received:
-                    time.sleep(1)
+                    # time.sleep(0.5)
                     if time.time() > endtime:
                         stdout.channel.close()
                         eof_received = False
                         break
-                if eof_received:
+                if eof_received:                    
                     output = "".join(stdout.readlines())
                     # error = stderr.read() it hangs
                     # clean "tput: No ..." lines at error output
                     stdout_errda = clean_err_output(output)
                 break
-            else:
-                time.sleep(5)
+            # else:
+            #     time.sleep(5)
 
 
         if file_transfer == "download":
@@ -449,7 +453,7 @@ def create_task(auth_header,service=None):
 # function to call update task entry API in Queue FS
 def update_task(task_id, auth_header, status, msg = None, is_json=False):
 
-    logging.info(f"{TASKS_URL}/{task_id}")
+    logging.info(f"Update {TASKS_URL}/{task_id} -> status: {status}")    
 
     if is_json:
         data = {"status": status, "msg": msg}
@@ -465,17 +469,24 @@ def update_task(task_id, auth_header, status, msg = None, is_json=False):
     return resp
 
 # function to call update task entry API in Queue FS
-def expire_task(task_id,auth_header):
+def expire_task(task_id,auth_header,service):
 
-    logging.info(f"{TASKS_URL}/task-expire/{task_id}")
+    logging.info(f"{TASKS_URL}/expire/{task_id}")
 
 
-    req = requests.post(f"{TASKS_URL}/task-expire/{task_id}",
-                            headers={AUTH_HEADER_NAME: auth_header})
+    req = requests.post(f"{TASKS_URL}/expire/{task_id}",
+                            headers={AUTH_HEADER_NAME: auth_header, "X-Firecrest-Service": service})
 
-    resp = json.loads(req.content)
+    # resp = json.loads(req.content)
 
-    return resp
+    if not req.ok:
+        logging.info(req.json())
+        return False
+
+    return True
+
+    
+    
 
 # function to check task status:
 def get_task_status(task_id,auth_header):
@@ -502,6 +513,99 @@ def get_task_status(task_id,auth_header):
         logging.error(type(e), exc_info=True)
         logging.error(e)
         return -1
+
+
+# checks if {path} is a valid file (exists and user in {auth_header} has read permissions)
+def is_valid_file(path, auth_header, system_name, system_addr):
+
+    # checks user accessibility to path using head command with 0 bytes
+    action = f"head -c 1 -- {path} > /dev/null"
+
+    retval = exec_remote_command(auth_header,system_name, system_addr,action)
+
+    logging.info(retval)
+
+    if retval["error"] != 0:
+        error_str=retval["msg"]
+
+        if retval["error"] == 113:
+            return {"result":False, "headers":{"X-Machine-Not-Available":"Machine is not available"} }
+            
+
+        if retval["error"] == 124:
+            return {"result":False, "headers":{"X-Timeout": "Command has finished with timeout signal"}}
+            
+
+        # error no such file
+        if in_str(error_str,"No such file"):
+            return {"result":False, "headers":{"X-Invalid-Path": "{path} is an invalid path.".format(path=path)}}
+                
+
+        # permission denied
+        if in_str(error_str,"Permission denied") or in_str(error_str,"OPENSSH"):
+            return {"result":False, "headers":{"X-Permission-Denied": "User does not have permissions to access machine or path"}}
+
+        if in_str(error_str, "directory"):
+            return {"result":False, "headers":{"X-A-Directory": "{path} is a directory".format(path=path)}}  
+
+        return {"result":False, "headers":{"X-Error": retval["msg"]}}
+
+    return {"result":True}
+
+
+    
+# checks if {path} is a valid directory
+# 'path' should exists and be accesible to the user (write permissions)
+#
+def is_valid_dir(path, auth_header, system_name, system_addr):
+
+    # create an empty file for testing path accesibility
+    # test file is a hidden file and has a timestamp in order to not overwrite other files created by user
+    # after this, file should be deleted
+
+    
+    timestamp = datetime.datetime.today().strftime("%Y-%m-%dT%H:%M:%S.%f")
+    # using a hash 
+    hashedTS  =  hashlib.md5()
+    hashedTS.update(timestamp.encode("utf-8"))
+
+    tempFileName = f".firecrest.{hashedTS.hexdigest()}"
+
+    action = f"touch -- {path}/{tempFileName}"
+
+    retval = exec_remote_command(auth_header,system_name, system_addr,action)
+
+    logging.info(retval)
+
+    if retval["error"] != 0:
+        error_str=retval["msg"]
+
+        if retval["error"] == 113:
+            return {"result":False, "headers":{"X-Machine-Not-Available":"Machine is not available"} }
+
+        if retval["error"] == 124:
+            return {"result":False, "headers":{"X-Timeout": "Command has finished with timeout signal"}}
+
+        # error no such file
+        if in_str(error_str,"No such file"):
+            return {"result":False, "headers":{"X-Invalid-Path": "{path} is an invalid path.".format(path=path)}}
+
+        # permission denied
+        if in_str(error_str,"Permission denied") or in_str(error_str,"OPENSSH"):
+            return {"result":False, "headers":{"X-Permission-Denied": "User does not have permissions to access machine or path"}}
+
+        # not a directory
+        if in_str(error_str,"Not a directory"):
+            return {"result":False, "headers":{"X-Not-A-Directory": "{path} is not a directory".format(path=path)}}
+
+        return {"result":False, "headers":{"X-Error": retval["msg"]}}    
+
+    # delete test file created
+    action = f"rm -- {path}/{tempFileName}"
+    retval = exec_remote_command(auth_header,system_name, system_addr,action)
+
+
+    return {"result":True}
 
 
 # wrapper to check if AUTH header is correct
@@ -555,4 +659,87 @@ def check_user_auth(username,system):
             return {"allow": False, "description":"Authorization server error", "status_code": 404} 
     
     return {"allow": True, "description":"Authorization method not active", "status_code": 200 }
-            
+
+
+# Checks each paramiko command output on a error execution
+# error_str: strerr (or strout) of the command
+# error_code: errno of the command
+# service_msg: service output in the "description" json response
+def check_command_error(error_str, error_code, service_msg):
+
+    if error_code == -2:
+        header = {"X-Machine-Not-Available": "Machine is not available"}
+        return {"description": service_msg, "status_code": 400, "header": header}
+
+    if error_code == 113:
+        header = {"X-Machine-Not-Available":"Machine is not available"}
+        return {"description": service_msg, "status_code": 400, "header": header}
+
+    if error_code == 124:
+        header = {"X-Timeout": "Command has finished with timeout signal"}
+        return {"description": service_msg, "status_code": 400, "header": header}
+
+    # When certificate doesn't match SSH configuration
+    if in_str(error_str,"OPENSSH"):
+        header = {"X-Permission-Denied": "User does not have permissions to access machine"}
+        return {"description": service_msg, "status_code": 400, "header": header}
+
+    if in_str(error_str,"cannot access"):
+        header={"X-Invalid-Path":"path is an invalid path"}
+        return {"description": service_msg, "status_code": 400, "header": header}
+
+    if in_str(error_str,"cannot open"):
+        header = {"X-Permission-Denied": "User does not have permissions to access path"}
+        return {"description":service_msg, "status_code": 400, "header": header}
+
+    if in_str(error_str,"No such file"):
+        if in_str(error_str,"cannot stat"):
+            header={"X-Not-Found":"sourcePath not found"}
+            return {"description": service_msg, "status_code": 400, "header": header}
+
+        # copy: cannot create, rename: cannot move
+        if in_str(error_str, "cannot create") or in_str(error_str,"cannot move"):
+            header = {"X-Invalid-Path": "sourcePath and/or targetPath are invalid paths"}
+            return {"description": service_msg, "status_code": 400, "header": header}
+
+        if in_str(error_str,"cannot remove"):
+            header = {"X-Invalid-Path": "path is an invalid path."}
+            return {"description": service_msg, "status_code": 400, "header": header}
+
+        header={"X-Invalid-Path":"path is an invalid path"}
+        return {"description": service_msg, "status_code": 400, "header": header}
+
+    if in_str(error_str,"Permission denied"):
+        header = {"X-Permission-Denied": "User does not have permissions to access path"}
+        return {"description": service_msg, "status_code": 400, "header": header}
+
+    if in_str(error_str,"directory"):
+        header = {"X-A-Directory": "path is a directory, can't checksum directories"}
+        return {"description": service_msg, "status_code": 400, "header": header}
+    
+    # if already exists, not overwrite (-i)
+    if in_str(error_str,"overwrite"):
+        header = {"X-Exists": "targetPath already exists"}
+        return {"description": service_msg, "status_code": 400, "header": header}
+
+    if in_str(error_str,"not permitted"):
+        header = {"X-Permission-Denied": "User does not have permissions to access path"}
+        return {"description": service_msg, "status_code": 400, "header": header}
+
+    if in_str(error_str,"invalid group"):
+        header = {"X-Invalid-Group": "group is an invalid group"}
+        return {"description": service_msg, "status_code": 400, "header": header}
+
+    if in_str(error_str,"invalid user"):
+        header = {"X-Invalid-Owner": "owner is an invalid user"}
+        return {"description": service_msg, "status_code": 400, "header": header}
+    
+    if in_str(error_str, "invalid mode"):
+        header = {"X-Invalid-Mode": "mode is an invalid mode"}
+        return {"description": service_msg, "status_code": 400, "header": header}
+
+    if in_str(error_str, "read permission"):
+        header = {"X-Permission-Denied": "User does not have permissions to access path"}
+        return {"description": service_msg, "status_code": 400, "header": header}
+    header = {"X-Error": error_str}
+    return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
