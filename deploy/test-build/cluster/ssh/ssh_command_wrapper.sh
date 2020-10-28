@@ -16,10 +16,9 @@ log_file=/tmp/firecrest-ssh-$UID.log
 
 SOC="${SSH_ORIGINAL_COMMAND}"
 
-#set -eu  # -e (abort on command error),  -u (undefined var are errors), -o pipefail (pipe errors)
+set -u  # -e (abort on command error),  -u (undefined var are errors), -o pipefail (pipe errors)
 
-date >> ${log_file}
-echo "${SOC}" >> ${log_file}
+msg="$(date +%Y-%m-%dT%H:%M:%S) - "${UID}" -"
 
 cert_type=${SOC%%-cert-v01@openssh.com *}    # remove all after first space
 
@@ -28,51 +27,53 @@ case "$cert_type" in
     tmp1=$(ssh-keygen -Lf - <<< "${SOC}")
     tmp2=$(grep "^ *${CA_signature}" <<< "$tmp1")
     sig="Signing CA:"${tmp2## *Signing CA:} # remove left spaces
-    if [ "$sig" != "$CA_signature" ]; then 
-      echo "Wrong CA: ${sig}" >> ${log_file}
-      exit 1;
+    if [ "$sig" != "$CA_signature" ]; then
+      echo "${msg} error - Wrong CA: ${sig}" >> ${log_file}
+      exit 118
     fi
     c=$(grep "^ *force-command " <<< "$tmp1")
-    SSH_EXECUTE=${c#*force-command *} # remove " force-command " and any spaces
-    echo "Cert command: ${SSH_EXECUTE}" >> ${log_file}
+    SSH_EXECUTE=${c#*force-command *} # remove " force-command " and spaces
     ;;
   *)
-    echo "Unknown certificate type: $cert_type" >> ${log_file}
-    exit 1
+    echo "${msg} error - Unknown certificate type: $cert_type" >> ${log_file}
+    exit 118
     ;;
 esac
 
 command="${SSH_EXECUTE%% *}"    # remove all after first space
 
 case "$command" in
-    cat|head|rm|touch|true)
+  cat|head|rm|touch|true)
+    ;;
+  timeout)
+    # sintax: timeout number command options
+    tmp1=${SSH_EXECUTE#* }  # remove after first space
+    duration=${tmp1%% *}    # remove all after first space
+    tmp2=${tmp1#* }
+    command2=${tmp2%% *}   # remove options
+    case "$command2" in
+      base64|chmod|chown|cp|file|head|ln|ls|mkdir|mv|rm|sbatch|scontrol|sha256sum|squeue|stat|tail|wget)
         ;;
-    timeout)
-        # sintax: timeout number command options
-        tmp1=${SSH_EXECUTE#* }  # remove after first space
-        duration=${tmp1%% *}    # remove all after first space
-        tmp2=${tmp1#* }
-        command2=${tmp2%% *}   # remove options
-        case "$command2" in
-            base64|chmod|chown|cp|file|head|ln|ls|mkdir|mv|rm|sbatch|scontrol|sha256sum|squeue|stat|tail|wget)
-                ;;
-            *)
-                echo "Unhandled timeout command: ${command2}" >> ${log_file}
-                exit 1
-                ;;
-        esac
+      *)
+        echo "${msg} error - Unhandled timeout command: ${command2}" >> ${log_file}
+        exit 118
         ;;
-    sacct|sbatch|scancel|scontrol|squeue)
-        # valid Slurm commands
-        ;;
-    wget)
-        # from object storage
-        ;;
-    *)
-        echo "Unhandled command: ${command}" >> ${log_file}
-        exit 1
-        ;;
+    esac
+    ;;
+  sacct|sbatch|scancel|scontrol|squeue)
+    # valid Slurm commands
+    ;;
+  wget)
+    # from object storage
+    ;;
+  *)
+    echo "${msg} error - Unhandled command: ${command}" >> ${log_file}
+    exit 118
+    ;;
 esac
+
+# all ok, log command
+echo "${msg} ok - ${SSH_EXECUTE}" >> ${log_file}
 
 # execute command
 eval ${SSH_EXECUTE}
