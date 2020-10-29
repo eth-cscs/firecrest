@@ -278,7 +278,7 @@ if __name__ == "__main__":
     logHandler = TimedRotatingFileHandler('/var/log/certificator.log', when='D', interval=1)
 
     logFormatter = logging.Formatter('%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
-                                     '%Y-%m-%d:%H:%M:%S')
+                                     '%Y-%m-%dT%H:%M:%S')
     logHandler.setFormatter(logFormatter)
     logHandler.setLevel(logging.DEBUG)
 
