@@ -39,6 +39,7 @@
         name: taskpersistence
         #image: "{{ docker_registry_host }}/taskpersistence:{{commit_id}}"
         image: "redis:5"
+        command: redis-server /redis.conf
         volumes:
           - "{{ firecrest_dir }}/deploy/demo/taskpersistence/redis.conf:/redis.conf:ro"
           - "{{ firecrest_dir }}/deploy/demo/taskpersistence-data:/data:delegated"
