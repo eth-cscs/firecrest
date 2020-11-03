@@ -5,7 +5,7 @@
   vars:
     firecrest_tests_dir: "/home/centos/firecrest/src/tests/automated_tests"
   environment:
-    PATH: "{{ ansible_env.PATH }}:~/.local/bin"
+    PATH: "{{ ansible_env.PATH }}:/home/centos/.local/bin"
 
   tasks:
     - name: Install pytest modules
