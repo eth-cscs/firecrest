@@ -22,6 +22,11 @@
         dest: "{{ firecrest_dir }}"
         version: "{{ commit_id }}"
 
+    - name: Set ssh keys permissions
+      shell: chmod 400 ca-key user-key
+      args:
+        chdir: "{{ firecrest_dir }}/deploy/test-build/environment/keys"
+
     - name: Create containers network
       community.general.docker_network:
         name: firecrest-internal
