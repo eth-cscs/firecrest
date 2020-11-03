@@ -1,24 +1,24 @@
 ---
-- name: Install docker
-  gather_facts: No
+- name: Run tests
+  gather_facts: no
   hosts: all
   vars:
     firecrest_tests_dir: "/home/centos/firecrest/src/tests/automated_tests"
 
-- tasks:
-  - name: Install pytest modules
-    shell: pip3 install --user -r requirements.txt
-    args:
-      chdir: "{{ firecrest_tests_dir }}"
+  tasks:
+    - name: Install pytest modules
+      shell: pip3 install --user -r requirements.txt
+      args:
+        chdir: "{{ firecrest_tests_dir }}"
 
-  - name: Run unit tests
-    shell: pytest -c demo.ini unit
-    args:
-      chdir: "{{ firecrest_tests_dir }}"
+    - name: Run unit tests
+      shell: pytest -c demo.ini unit
+      args:
+        chdir: "{{ firecrest_tests_dir }}"
 
-  - name: Run unit tests
-    shell: pytest -c demo.ini unit
-    args:
-      chdir: "{{ firecrest_tests_dir }}"
+    - name: Run unit tests
+      shell: pytest -c demo.ini unit
+      args:
+        chdir: "{{ firecrest_tests_dir }}"
 
     
