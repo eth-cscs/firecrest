@@ -4,23 +4,29 @@
   hosts: all
   vars:
     firecrest_tests_dir: "/home/centos/firecrest/src/tests/automated_tests"
-  environment:
-    PATH: "{{ ansible_env.PATH }}:/home/centos/.local/bin"
-
+    pytest_bin: "/home/centos/.local/bin"
+  
+  # This is not working for shell command tasks
+  #environment:
+  #  PATH: "{{ ansible_env.PATH }}:/home/centos/.local/bin"
   tasks:
     - name: Install pytest modules
       shell: pip3 install --user -r requirements.txt
       args:
         chdir: "{{ firecrest_tests_dir }}"
+      
+    - name: Run unit tests
+      shell: pytest -c demo.ini unit
+      args:
+        chdir: "{{ firecrest_tests_dir }}"
+      environment:
+        PATH: "{{ ansible_env.PATH }}:{{ pytest_bin }}"
 
     - name: Run unit tests
       shell: pytest -c demo.ini unit
       args:
         chdir: "{{ firecrest_tests_dir }}"
-
-    - name: Run unit tests
-      shell: pytest -c demo.ini unit
-      args:
-        chdir: "{{ firecrest_tests_dir }}"
+      environment:
+        PATH: "{{ ansible_env.PATH }}:{{ pytest_bin }}"
 
     
