@@ -165,8 +165,8 @@
       community.general.docker_image:
         name: demo_cluster
         build:
-          path: "{{ firecrest_dir }}"
-          dockerfile: ./deploy/test-build/cluster/Dockerfile
+          path: "{{ firecrest_dir }}/deploy/test-build"
+          dockerfile: ./cluster/Dockerfile
         source: build
         state: present
 
