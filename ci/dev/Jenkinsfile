@@ -34,6 +34,13 @@ node {
         stage('Build') {
             echo 'Build Stage Starting'
 
+            // delete folder log if exists
+            try {
+                sh "rm -rf ${env.WORKSPACE}/deploy/test-build/logs/firecrest"
+            } catch (ex0) {
+                echo 'Error: Can not delete logs/firecrest folder'
+            }
+
             // create folder for logs
             try {
                 sh "mkdir -p ${env.WORKSPACE}/deploy/test-build/logs/firecrest"
