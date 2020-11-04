@@ -34,7 +34,7 @@ node {
         stage('Build') {
             echo 'Build Stage Starting'
 
-            // delete folder log if exists
+            // delete log folder if exists
             try {
                 sh "rm -rf ${env.WORKSPACE}/deploy/test-build/logs/firecrest"
             } catch (ex0) {
