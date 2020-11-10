@@ -6,12 +6,23 @@
     firecrest_dir: "/home/centos/firecrest"
   
   tasks:
-    #- fetch:
+
+    - name: fetch log files
+      fetch:
+        src: "{{ firecrest_dir }}/deploy/demo/logs/firecrest/{{ item }}.log"
+        dest: "/home/centos/fetched"
+      register: fetch_output
+      loop:
+        - compute
+        - utilities
+        - certificator
+        - status
+        - tasks
+        - storage
+
+    # Synchronizes: src an dest are folders in the remote host
+    #- name: Synchronization
+    #  ansible.posix.synchronize:
+    #    mode: pull
     #    src: "{{ firecrest_dir }}/deploy/demo/logs/firecrest"
     #    dest: "/home/centos/tmp/"
-
-    - name: Synchronization
-      ansible.posix.synchronize:
-        mode: pull
-        src: "{{ firecrest_dir }}/deploy/demo/logs/firecrest"
-        dest: "/home/centos/tmp/"
