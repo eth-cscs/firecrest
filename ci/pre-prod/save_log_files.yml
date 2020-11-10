@@ -10,7 +10,8 @@
     #    src: "{{ firecrest_dir }}/deploy/demo/logs/firecrest"
     #    dest: "/home/centos/tmp/"
 
-    - ansible.posix.synchronize:
-      mode: pull
-      src: "{{ firecrest_dir }}/deploy/demo/logs/firecrest"
-      dest: "/home/centos/tmp/"
+    - name: Synchronization
+      ansible.posix.synchronize:
+        mode: pull
+        src: "{{ firecrest_dir }}/deploy/demo/logs/firecrest"
+        dest: "/home/centos/tmp/"
