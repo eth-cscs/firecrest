@@ -1,0 +1,26 @@
+
+
+---
+- name: Remove firecrest containers
+  gather_facts: No
+  hosts: all
+  vars:
+    firecrest_dir: "/home/centos/firecrest"
+
+  tasks:
+    - name: Stop and remove container
+      docker_container:
+        name: "{{ item }}"
+        state: absent
+      with_items:
+        - taskpersistence
+        - tasks
+        - certificator
+        - compute
+        - status
+        - storage
+        - utilities
+        - cluster
+        - fckeycloak
+        - kong
+        - opa
