@@ -8,14 +8,6 @@
   
   tasks:
 
-    - name: create firecrest logs directory in master node
-      file:
-        path: "{{ logs_dest_dir }}"
-        state: directory
-        owner: centos
-        group: centos
-        mode: "0755"
-
 
     # This copy log files from test server to a folder located at master node (the awx container)
     - name: fetch log files
