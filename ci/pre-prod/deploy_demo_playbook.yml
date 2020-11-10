@@ -7,6 +7,11 @@
     firecrest_dir: "/home/centos/firecrest"
 
   tasks:
+  
+    - name: Clean firecrest deploy directory
+      file:
+        state: absent
+        path: "{{ firecrest_dir }}/"
 
     - name: create firecrest directory
       file:
