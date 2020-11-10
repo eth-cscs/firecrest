@@ -6,6 +6,11 @@
     firecrest_dir: "/home/centos/firecrest"
   
   tasks:
-    - fetch:
-        src: "{{ firecrest_dir }}/deploy/demo/logs/firecrest"
-        dest: "/home/centos/tmp/"
+    #- fetch:
+    #    src: "{{ firecrest_dir }}/deploy/demo/logs/firecrest"
+    #    dest: "/home/centos/tmp/"
+
+    - synchronize:
+      mode: pull
+      src: "{{ firecrest_dir }}/deploy/demo/logs/firecrest"
+      dest: "/home/centos/tmp/"
