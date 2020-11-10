@@ -1,0 +1,10 @@
+---
+- name: Save log files of firecrest demo deploy
+  gather_facts: No
+  hosts: all
+  vars:
+  firecrest_dir: "/home/centos/firecrest"
+  tasks:
+    - fetch:
+        src: "{{ firecrest_dir }}/deploy/demo/logs/firecrest"
+        dest: "/home/centos/tmp/"
