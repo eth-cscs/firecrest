@@ -4,13 +4,25 @@
   hosts: all
   vars:
     firecrest_dir: "/home/centos/firecrest"
+    logs_dest_dir: "/var/lib/awx/projects/firecrest/logs"
   
   tasks:
 
+    - name: create firecrest logs directory in master node
+      file:
+        path: "{{ logs_dest_dir }}"
+        state: directory
+        owner: centos
+        group: centos
+        mode: "0755"
+
+
+    # This copy log files from test server to a folder located at master node (the awx container)
     - name: fetch log files
       fetch:
         src: "{{ firecrest_dir }}/deploy/demo/logs/firecrest/{{ item }}.log"
-        dest: "/home/centos/fetched"
+        # dest: "/home/centos/fetched"
+        dest: "{{ logs_dest_dir }}"
       register: fetch_output
       loop:
         - compute
@@ -19,6 +31,8 @@
         - status
         - tasks
         - storage
+
+    - debug: var=fetch_output
 
     # Synchronizes: src an dest are folders in the remote host
     #- name: Synchronization
