@@ -33,6 +33,12 @@ STATUS_PORT = os.environ.get("F7T_STATUS_PORT", 5000)
 
 SERVICES_DICT = {}
 
+### SSL parameters
+USE_SSL = os.environ.get("F7T_USE_SSL", False)
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
+
+
 ### parameters
 UTILITIES_MAX_FILE_SIZE = os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE")
 UTILITIES_TIMEOUT = os.environ.get("F7T_UTILITIES_TIMEOUT")
@@ -63,7 +69,7 @@ def test_service(servicename, status_list):
     try:
         serviceurl = SERVICES_DICT[servicename]
         #timeout set to 5 seconds
-        req = requests.get("{url}/status".format(url=serviceurl), timeout=5)
+        req = requests.get("{url}/status".format(url=serviceurl), timeout=5, verify= (SSL_CRT if USE_SSL else False))
 
         app.logger.info("Return code: {status_code}".format(status_code=req.status_code))
 
@@ -379,4 +385,7 @@ if __name__ == "__main__":
     logger.addHandler(logHandler)
 
     # run app
-    app.run(debug=debug, host='0.0.0.0', port=STATUS_PORT)
+    if USE_SSL:        
+        app.run(debug=debug, host='0.0.0.0', port=STATUS_PORT, ssl_context=(SSL_CRT, SSL_KEY))        
+    else:
+        app.run(debug=debug, host='0.0.0.0', port=STATUS_PORT)

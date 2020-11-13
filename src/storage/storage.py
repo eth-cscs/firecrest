@@ -91,6 +91,12 @@ STORAGE_MAX_FILE_SIZE *= 1024*1024
 STORAGE_POLLING_INTERVAL = int(os.environ.get("F7T_STORAGE_POLLING_INTERVAL", "60").strip('\'"'))
 CERT_CIPHER_KEY = os.environ.get("F7T_CERT_CIPHER_KEY", "").strip('\'"').encode('utf-8')
 
+### SSL parameters
+USE_SSL = os.environ.get("F7T_USE_SSL", False)
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
+# verify signed SSL certificates
+SSL_SIGNED = os.environ.get("F7T_SSL_SIGNED", False)
 
 # aynchronous tasks: upload & download --> http://TASKS_URL
 # {task_id : AsyncTask}
@@ -833,7 +839,7 @@ def create_xfer_job(machine,auth_header,fileName):
     try:
         req = requests.post("{compute_url}/jobs/upload".
                             format(compute_url=COMPUTE_URL),
-                            files=files, headers={AUTH_HEADER_NAME: auth_header, "X-Machine-Name":machine})
+                            files=files, headers={AUTH_HEADER_NAME: auth_header, "X-Machine-Name":machine}, verify= (SSL_CRT if USE_SSL else False))
 
         retval = json.loads(req.text)
         if not req.ok:
@@ -926,7 +932,7 @@ def get_upload_unfinished_tasks():
 
         # only unfinished upload process
         status_code = [async_task.ST_URL_ASK, async_task.ST_URL_REC, async_task.ST_UPL_CFM, async_task.ST_DWN_BEG, async_task.ST_DWN_ERR]
-        retval=requests.get(f"{TASKS_URL}/taskslist", json={"service": "storage", "status_code":status_code}, timeout=30)
+        retval=requests.get(f"{TASKS_URL}/taskslist", json={"service": "storage", "status_code":status_code}, timeout=30, verify=(SSL_CRT if USE_SSL else False))
 
         if not retval.ok:
             app.logger.error("Error getting tasks from Tasks microservice")
@@ -1021,4 +1027,7 @@ if __name__ == "__main__":
     upload_check.start()
 
 
-    app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=STORAGE_PORT)
+    if USE_SSL:        
+        app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=STORAGE_PORT, ssl_context=(SSL_CRT, SSL_KEY))        
+    else:
+        app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=STORAGE_PORT)

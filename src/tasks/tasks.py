@@ -29,6 +29,11 @@ PERSISTENCE_IP   = os.environ.get("F7T_PERSISTENCE_IP")
 PERSIST_PORT = os.environ.get("F7T_PERSIST_PORT")
 PERSIST_PWD  = os.environ.get("F7T_PERSIST_PWD")
 
+### SSL parameters
+USE_SSL = os.environ.get("F7T_USE_SSL", False)
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
+
 # expire time in seconds, for squeue or sacct tasks: default: 24hours = 86400 secs
 COMPUTE_TASK_EXP_TIME = os.environ.get("F7T_COMPUTE_TASK_EXP_TIME", 86400)
 
@@ -472,4 +477,7 @@ if __name__ == "__main__":
     init_queue()
 
     # set to debug = False, so stderr and stdout go to log file
-    app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=TASKS_PORT)
+    if USE_SSL:        
+        app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=TASKS_PORT, ssl_context=(SSL_CRT, SSL_KEY))        
+    else:
+        app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=TASKS_PORT)

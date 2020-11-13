@@ -37,6 +37,11 @@ KONG_URL        = os.environ.get("F7T_KONG_URL")
 
 COMPUTE_PORT    = os.environ.get("F7T_COMPUTE_PORT", 5000)
 
+### SSL parameters
+USE_SSL = os.environ.get("F7T_USE_SSL", False)
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
+
 
 # SYSTEMS_PUBLIC: list of allowed systems
 # remove quotes and split into array
@@ -1069,4 +1074,7 @@ if __name__ == "__main__":
     logger.addHandler(logHandler)
 
     # set debug = False, so output goes to log files
-    app.run(debug=debug, host='0.0.0.0', port=COMPUTE_PORT)
+    if USE_SSL:        
+        app.run(debug=debug, host='0.0.0.0', port=COMPUTE_PORT, ssl_context=(SSL_CRT, SSL_KEY))        
+    else:
+        app.run(debug=debug, host='0.0.0.0', port=COMPUTE_PORT)
