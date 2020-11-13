@@ -481,7 +481,11 @@ def submit_job_path():
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Failed to submit job"), 404, header
 
-    targetPath = request.form["targetPath"]
+    try:
+        targetPath = request.form["targetPath"]
+    except Exception as e:
+        data = jsonify(description="Failed to submit job", error="'targetPath' parameter not set in request")
+        return data, 400
     
     if targetPath == None:
         data = jsonify(description="Failed to submit job", error="'targetPath' parameter not set in request")
