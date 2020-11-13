@@ -58,10 +58,11 @@ def check_user_auth(username,system):
     if OPA_USE:
         try: 
             input = {"input":{"user": f"{username}", "system": f"{system}"}}
+            
             #resp_opa = requests.post(f"{OPA_URL}/{POLICY_PATH}", json=input)
             logging.info(f"{OPA_URL}/{POLICY_PATH}")
 
-            resp_opa = requests.post(f"{OPA_URL}/{POLICY_PATH}", json=input)
+            resp_opa = requests.post(f"{OPA_URL}/{POLICY_PATH}", json=input, verify= (SSL_CRT if USE_SSL else False))
 
             logging.info(resp_opa.content)
 
@@ -70,8 +71,18 @@ def check_user_auth(username,system):
                 return {"allow": True, "description":f"User {username} authorized", "status_code": 200 }
             else:
                 logging.error(f"User {username} NOT authorized by OPA")
-                return {"allow": False, "description":f"Permission denied for user {username} in {system}", "status_code": 401}                
+                return {"allow": False, "description":f"Permission denied for user {username} in {system}", "status_code": 401} 
+        except requests.exceptions.SSLError as e:
+            logging.error(e.args)               
+            return {"allow": False, "description":"Authorization server error: SSL error.", "status_code": 404} 
         except requests.exceptions.RequestException as e:
+            logging.error(e.args)
+            return {"allow": False, "description":"Authorization server error", "status_code": 404} 
+        
+        except Exception as e:
+            logging.error(type(e))
+            logging.error(e)
+            
             logging.error(e.args)
             return {"allow": False, "description":"Authorization server error", "status_code": 404} 
     
