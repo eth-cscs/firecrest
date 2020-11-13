@@ -30,6 +30,11 @@ OPA_USE = os.environ.get("F7T_OPA_USE",False)
 OPA_URL = os.environ.get("F7T_OPA_URL","http://localhost:8181").strip('\'"')
 POLICY_PATH = os.environ.get("F7T_POLICY_PATH","v1/data/f7t/authz").strip('\'"')
 
+### SSL parameters
+USE_SSL = os.environ.get("F7T_USE_SSL", False)
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
+
 realm_pubkey=os.environ.get("F7T_REALM_RSA_PUBLIC_KEY", '')
 if realm_pubkey != '':
     # headers are inserted here, must not be present
@@ -303,5 +308,9 @@ if __name__ == "__main__":
 
     # run app
     # debug = False, so output redirects to log files
-    app.run(debug=debug, host='0.0.0.0', port=CERTIFICATOR_PORT)
+    if USE_SSL:        
+        app.run(debug=debug, host='0.0.0.0', port=CERTIFICATOR_PORT, ssl_context=(SSL_CRT, SSL_KEY))        
+    else:
+        app.run(debug=debug, host='0.0.0.0', port=CERTIFICATOR_PORT)
+    
 
