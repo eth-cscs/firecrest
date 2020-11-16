@@ -24,3 +24,8 @@
         - fckeycloak
         - kong
         - opa
+
+    - name: Clean firecrest deploy folder
+      file:
+        state: absent
+        path: "{{ firecrest_dir }}/"
