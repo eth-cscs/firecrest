@@ -8,7 +8,7 @@
   hosts: all
   vars:
     firecrest_dir: "/home/centos/firecrest"
-    logs_dest_dir: "/home/centos/fetched/firecrest_demo_deploy_logs"
+    logs_dest_dir: "/tmp/firecrest_demo_deploy_logs" #temp folder in awx_tasks container
   
   tasks:
     - name: fetch log files
