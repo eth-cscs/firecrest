@@ -42,7 +42,7 @@
     - name: Taskpersistence
       community.general.docker_container:
         name: taskpersistence
-        #image: "{{ docker_registry_host }}/taskpersistence:{{commit_id}}"
+        #image: "{{ docker_registry_host }}/taskpersistence:{{build_tag}}"
         image: "redis:5"
         command: redis-server /redis.conf
         volumes:
@@ -56,7 +56,7 @@
     - name: Tasks
       community.general.docker_container:
         name: tasks
-        image: "{{ docker_registry_host }}/tasks:{{commit_id}}"
+        image: "{{ docker_registry_host }}/tasks:{{build_tag}}"
         env_file: "{{ firecrest_dir }}/deploy/demo/common/common.env"
         env:
           F7T_PERSIST_PORT: "6379"
@@ -77,7 +77,7 @@
     #- name: Certificator
     #  community.general.docker_container:
     #    name: Certificator
-    #    image: "{{ docker_registry_host }}/certificator:{{commit_id}}"
+    #    image: "{{ docker_registry_host }}/certificator:{{build_tag}}"
     #    env_file: "{{ firecrest_dir }}/deploy/demo/common/common.env"
     #    networks:
     #          - name: firecrest-internal
@@ -118,7 +118,7 @@
     - name: Compute
       community.general.docker_container:
         name: compute
-        image: "{{ docker_registry_host }}/compute:{{commit_id}}"
+        image: "{{ docker_registry_host }}/compute:{{build_tag}}"
         env_file: "{{ firecrest_dir }}/deploy/demo/common/common.env"
         networks:
               - name: firecrest-internal
@@ -133,7 +133,7 @@
     - name: Status
       community.general.docker_container:
         name: status
-        image: "{{ docker_registry_host }}/status:{{commit_id}}"
+        image: "{{ docker_registry_host }}/status:{{build_tag}}"
         env_file: "{{ firecrest_dir }}/deploy/demo/common/common.env"
         networks:
               - name: firecrest-internal
@@ -147,7 +147,7 @@
     - name: Storage
       community.general.docker_container:
         name: storage
-        image: "{{ docker_registry_host }}/storage:{{commit_id}}"
+        image: "{{ docker_registry_host }}/storage:{{build_tag}}"
         env_file: "{{ firecrest_dir }}/deploy/demo/common/common.env"
         env: 
           F7T_S3_URL: "http://192.168.220.19:9000"
@@ -166,7 +166,7 @@
     - name: Utilities
       community.general.docker_container:
         name: utilities
-        image: "{{ docker_registry_host }}/utilities:{{commit_id}}"
+        image: "{{ docker_registry_host }}/utilities:{{build_tag}}"
         env_file: "{{ firecrest_dir }}/deploy/demo/common/common.env"
         networks:
               - name: firecrest-internal
