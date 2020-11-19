@@ -8,7 +8,7 @@
     firecrest_dir: "/home/centos/firecrest"
 
   tasks:
-    - name: Stop and remove container
+    - name: Stop and remove containers
       docker_container:
         name: "{{ item }}"
         state: absent
@@ -24,6 +24,7 @@
         - fckeycloak
         - kong
         - opa
+        - minio
 
     - name: Clean firecrest deploy folder
       file:
