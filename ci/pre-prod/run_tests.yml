@@ -25,8 +25,8 @@
       #environment:
       #  PATH: "{{ ansible_env.PATH }}:{{ pytest_bin }}"
 
-    - name: Run unit tests
-      shell:  "{{ pytest_bin }}/pytest -c demo.ini unit"
+    - name: Run integration tests
+      shell:  "{{ pytest_bin }}/pytest -c demo.ini integration"
       args:
         chdir: "{{ firecrest_tests_dir }}"
       #environment:
