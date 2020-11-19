@@ -31,6 +31,12 @@
         name: demo_firecrest-internal
         state: absent
         force: yes
+
+    - name: Delete network firecrest-internal
+      community.general.docker_network:
+        name: firecrest-internal
+        state: absent
+        force: yes
     
     - name: Delete network demo_default
       community.general.docker_network:
