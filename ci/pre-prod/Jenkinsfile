@@ -32,58 +32,101 @@ node {
             echo "JENKINS_HOME : ${env.JENKINS_HOME}"
         }
 
-        stage('Build') {
-            echo 'Build Stage Starting'
 
-            // create folder for logs
-            try {
-                sh "mkdir -p ${env.WORKSPACE}/deploy/test-build/logs/firecrest"
-            } catch (ex1) {
-                echo 'Error creating logs/firecrest folder'
-            }
+        stage('Sync ansible playbooks from github repo') {
+            
+            // Sync Pre-Prod Project project
+            ansibleTowerProjectSync(
+                towerServer: 'awx-local',
+                async: false,
+                importTowerLogs: true,
+                project: 'Pre-Prod Project',
+                removeColor: false,
+                throwExceptionWhenFail: true,
+                verbose: false
+            )
+        }
 
-            // give write permissions to users in jenkins group (root user must belong to it)
-            try {
-                sh "chmod 775 ${env.WORKSPACE}/deploy/test-build/logs/firecrest"
-            } catch (ex2) {
-                echo 'Error: Can not change permissions of logs/firecrest folder'
-            }
 
-            dir('deploy/test-build/environment/keys') {
-                sh 'chmod 400 ca-key user-key'
-            }
+        stage('Build firecrest images in registry') {
+            
+            // Run template for image building
+            ansibleTower(
+                towerServer: 'awx-local',
+                templateType: 'job',
+                jobTemplate: 'Pre-Prod Docker Build',
+                towerLogLevel: 'full',
+                removeColor: false,
+                verbose: true,
+                extraVars: """
+                build_tag: $shortCommit
+                commit_id: $longCommit
+                """,
+                async: false,
+                throwExceptionWhenFail: true
+            )
+        }
 
-            withEnv(["PATH=$PATH:/usr/local/bin"]) {
-                dir('deploy/test-build') {
-                    sh 'docker-compose up --build -d'
-                }
-            }
 
-            sh '''#!/bin/sh
-            sleep 60
+        /*
+        // This should be executed once from awx itself
+        // since the test server is a permanent host (not dynamically created)
+        stage('Provisioning of test environment') {
+
+            // Install docker, python etc
+            ansibleTower(
+                towerServer: 'awx-local',
+                templateType: 'job',
+                jobTemplate: 'Test server provisioning',
+                towerLogLevel: 'full',
+                removeColor: false,
+                verbose: true
+                async: false
+            )
+        }*/
+
+        stage('Deploy firecrest in test environment') {
+            //run firecrest
+           
+            ansibleTower(
+                towerServer: 'awx-local',
+                templateType: 'job',
+                jobTemplate: 'Deploy firecrest demo',
+                towerLogLevel: 'full',
+                removeColor: false,
+                verbose: true,
+                extraVars: """
+                docker_registry_host: 148.187.97.229:5000
+                build_tag: $shortCommit
+                commit_id: $longCommit
+                """,
+                async: false,
+                throwExceptionWhenFail: true
+            )
+        }
+
+        sh '''#!/bin/sh
+            sleep 120
             echo "Waiting for containers to get ready..."
             '''
 
-            echo 'Build Stage Finsihed'
+        stage('Run tests against test environment') {
+
+            ansibleTower(
+                towerServer: 'awx-local',
+                templateType: 'job',
+                jobTemplate: 'Run firecrest automated tests',
+                towerLogLevel: 'full',
+                removeColor: false,
+                verbose: true,
+                async: false,
+                throwExceptionWhenFail: true
+            )
+
         }
 
-        stage('Tests') {
-            dir('src/tests/automated_tests') {
-                sh 'pip3 install --user -r requirements.txt'
 
-                withEnv(["PATH=$PATH:~/.local/bin"]) {
-                    echo 'Unit Tests Starting'
-                    sh 'pytest -c test-build.ini unit'
-                    echo 'Unit Tests Finished'
 
-                    echo 'Integration Tests Starting'
-                    sh 'pytest -c test-build.ini integration'
-                    echo 'Integrations Tests Finished'
-                }
-
-                echo 'Tests Finished'
-            }
-        }
     }
     catch (e) {
         // If there was an exception, the build failed
@@ -91,25 +134,62 @@ node {
         throw e
     }
     finally {
+
+
+        //cleanTestEnvironment()
+        stage('Fetch firecrest log files') {
+
+            ansibleTower(
+                towerServer: 'awx-local',
+                templateType: 'job',
+                jobTemplate: 'Save firecrest demo deploy log files',
+                towerLogLevel: 'full',
+                removeColor: false,
+                verbose: true,
+                async: false,
+                throwExceptionWhenFail: false
+            )
+
+        }
+
+
+        // docker cp log files
         // Save Log files
         try {
             sh "mkdir -p /var/log/jenkins/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}"
-            sh "cp -r ${env.WORKSPACE}/deploy/test-build/logs/firecrest/* /var/log/jenkins/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}/."
+            //sh "cp -r ${env.WORKSPACE}/deploy/test-build/logs/firecrest/* /var/log/jenkins/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}/."
+
+            // retrieve the full path of logs folder inside awx_container
+            // since docker cp does not allow wildcards
+            LOGS_PATH_INSIDE_AWX_CONTAINER = sh (
+                script: 'docker exec awx_task bash -c "echo /tmp/firecrest_demo_deploy_logs/*/home/centos/firecrest/deploy/demo/logs/firecrest/."',
+                returnStdout: true
+            ).trim()
+            echo "Logs path inside awx_task container: ${LOGS_PATH_INSIDE_AWX_CONTAINER}"
+
+            // copy log files from awx_task container to the job log folder
+            sh "docker cp awx_task:${LOGS_PATH_INSIDE_AWX_CONTAINER} /var/log/jenkins/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}/."
+
+            // remove log files
+            sh "docker exec awx_task rm -rf ${LOGS_PATH_INSIDE_AWX_CONTAINER.substring(0, LOGS_PATH_INSIDE_AWX_CONTAINER.length()-2)}"
+
         } catch (errCpLogs) {
             echo 'Error while saving log files: ' + errCpLogs.toString()
         }
 
-        sh '''#!/bin/sh
-        sleep 30
-        echo "Waiting 30 seconds before containers removal..."
-        '''
+        stage('Stop and remove firecrest containers in test server') {
 
-        // Remove containers
-        withEnv(["PATH=$PATH:/usr/local/bin"]) {
-            dir('deploy/test-build') {
-                // destroy containers and volumes
-                sh 'docker-compose down -v'
-            }
+            ansibleTower(
+                towerServer: 'awx-local',
+                templateType: 'job',
+                jobTemplate: 'Stop and remove firecrest containers',
+                towerLogLevel: 'full',
+                removeColor: false,
+                verbose: true,
+                async: false,
+                throwExceptionWhenFail: false
+            )
+
         }
 
         notifyBuildStatusToGitHub(currentBuild.result, gitHubUser, gitHubRepo, longCommit)
@@ -119,35 +199,6 @@ node {
         return
     }
 
-    stage('Build firecrest images in registry') {
-        // Sync project from github repo
-        ansibleTowerProjectSync(
-            towerServer: 'awx-local',
-            async: false,
-            importTowerLogs: true,
-            project: 'Pre-Prod Project',
-            removeColor: false,
-            throwExceptionWhenFail: true,
-            verbose: false
-        )
-
-        // Run template for image building
-        ansibleTower(
-            towerServer: 'awx-local',
-            templateType: 'job',
-            jobTemplate: 'Pre-Prod Docker Build',
-            towerLogLevel: 'full',
-            inventory: 'docker_registry',
-            removeColor: false,
-            verbose: true,
-            credential: 'docker_registry_credentials',
-            extraVars: """
-            build_tag: $shortCommit
-            commit_id: $longCommit
-            """,
-            async: false
-        )
-    }
 
     stage('Ask for commit promotion') {
         
