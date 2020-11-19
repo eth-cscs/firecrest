@@ -37,6 +37,11 @@ debug = os.environ.get("F7T_DEBUG_MODE", None)
 #max file size for upload/download in MB
 MAX_FILE_SIZE=int(os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE"))
 
+### SSL parameters
+USE_SSL = os.environ.get("F7T_USE_SSL", False)
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
+
 app = Flask(__name__)
 # max content lenght for upload in bytes
 app.config['MAX_CONTENT_LENGTH'] = int(MAX_FILE_SIZE) * 1024 * 1024
@@ -952,4 +957,7 @@ if __name__ == "__main__":
 
     # run app
     # debug = False, so output redirects to log files
-    app.run(debug=debug, host='0.0.0.0', port=UTILITIES_PORT)
+    if USE_SSL:        
+        app.run(debug=debug, host='0.0.0.0', port=UTILITIES_PORT, ssl_context=(SSL_CRT, SSL_KEY))        
+    else:
+        app.run(debug=debug, host='0.0.0.0', port=UTILITIES_PORT)

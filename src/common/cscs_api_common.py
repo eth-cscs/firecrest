@@ -48,6 +48,11 @@ OPA_USE = os.environ.get("F7T_OPA_USE",False)
 OPA_URL = os.environ.get("F7T_OPA_URL","http://localhost:8181").strip('\'"')
 POLICY_PATH = os.environ.get("F7T_POLICY_PATH","v1/data/f7t/authz").strip('\'"')
 
+### SSL parameters
+USE_SSL = os.environ.get("F7T_USE_SSL", False)
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
+
 logging.getLogger().setLevel(logging.INFO)
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',datefmt='%Y-%m-%d:%H:%M:%S',level=logging.INFO)
 
@@ -165,7 +170,7 @@ def create_certificate(auth_header, cluster_name, cluster_addr,  command=None, o
     logging.info(f"Request: {reqURL}")
 
     try:
-        resp = requests.get(reqURL, headers={AUTH_HEADER_NAME: auth_header})
+        resp = requests.get(reqURL, headers={AUTH_HEADER_NAME: auth_header}, verify= (SSL_CRT if USE_SSL else False) )
 
         if not resp.ok:
             return [None, resp.status_code, resp.json()["description"]]
@@ -185,9 +190,9 @@ def create_certificate(auth_header, cluster_name, cluster_addr,  command=None, o
 
         # keys: [pub_cert, pub_key, priv_key, temp_dir]
         return [td + "/user-key-cert.pub", td + "/user-key.pub", td + "/user-key", td]
-    except URLError as ue:
-        logging.error(f"({ue.errno}) -> {ue.strerror}", exc_info=True)
-        return [None, ue.errno, ue.strerror]
+    except requests.exceptions.SSLError as ssle:
+        logging.error(f"(-2) -> {ssle.strerror}")
+        return [None, -2, ssle.strerror]
     except IOError as ioe:
         logging.error(f"({ioe.errno}) -> {ioe.strerror}", exc_info=True)
         return [None, ioe.errno, ioe.strerror]
@@ -435,7 +440,7 @@ def create_task(auth_header,service=None):
     try:
         # X-Firecrest-Service: service that created the task
         req = requests.post(f"{TASKS_URL}/",
-                           headers={AUTH_HEADER_NAME: auth_header, "X-Firecrest-Service":service})
+                           headers={AUTH_HEADER_NAME: auth_header, "X-Firecrest-Service":service}, verify=(SSL_CRT if USE_SSL else False))
 
     except requests.exceptions.ConnectionError as e:
         logging.error(type(e), exc_info=True)
@@ -460,11 +465,11 @@ def update_task(task_id, auth_header, status, msg = None, is_json=False):
     if is_json:
         data = {"status": status, "msg": msg}
         req = requests.put(f"{TASKS_URL}/{task_id}",
-                            json=data, headers={AUTH_HEADER_NAME: auth_header})
+                            json=data, headers={AUTH_HEADER_NAME: auth_header}, verify=(SSL_CRT if USE_SSL else False))
     else:
         data = {"status": status, "msg": msg}
         req = requests.put(f"{TASKS_URL}/{task_id}",
-                            data=data, headers={AUTH_HEADER_NAME: auth_header})
+                            data=data, headers={AUTH_HEADER_NAME: auth_header}, verify=(SSL_CRT if USE_SSL else False))
 
     resp = json.loads(req.content)
 
@@ -477,7 +482,7 @@ def expire_task(task_id,auth_header,service):
 
 
     req = requests.post(f"{TASKS_URL}/expire/{task_id}",
-                            headers={AUTH_HEADER_NAME: auth_header, "X-Firecrest-Service": service})
+                            headers={AUTH_HEADER_NAME: auth_header, "X-Firecrest-Service": service}, verify=(SSL_CRT if USE_SSL else False))
 
     # resp = json.loads(req.content)
 
@@ -497,7 +502,7 @@ def get_task_status(task_id,auth_header):
 
     try:
         retval = requests.get(f"{TASKS_URL}/{task_id}",
-                           headers={AUTH_HEADER_NAME: auth_header})
+                           headers={AUTH_HEADER_NAME: auth_header}, verify=(SSL_CRT if USE_SSL else False))
 
         if retval.status_code != 200:
             return -1

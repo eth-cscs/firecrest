@@ -30,6 +30,11 @@ OPA_USE = os.environ.get("F7T_OPA_USE",False)
 OPA_URL = os.environ.get("F7T_OPA_URL","http://localhost:8181").strip('\'"')
 POLICY_PATH = os.environ.get("F7T_POLICY_PATH","v1/data/f7t/authz").strip('\'"')
 
+### SSL parameters
+USE_SSL = os.environ.get("F7T_USE_SSL", False)
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
+
 realm_pubkey=os.environ.get("F7T_REALM_RSA_PUBLIC_KEY", '')
 if realm_pubkey != '':
     # headers are inserted here, must not be present
@@ -53,10 +58,11 @@ def check_user_auth(username,system):
     if OPA_USE:
         try: 
             input = {"input":{"user": f"{username}", "system": f"{system}"}}
+            
             #resp_opa = requests.post(f"{OPA_URL}/{POLICY_PATH}", json=input)
             logging.info(f"{OPA_URL}/{POLICY_PATH}")
 
-            resp_opa = requests.post(f"{OPA_URL}/{POLICY_PATH}", json=input)
+            resp_opa = requests.post(f"{OPA_URL}/{POLICY_PATH}", json=input, verify= (SSL_CRT if USE_SSL else False))
 
             logging.info(resp_opa.content)
 
@@ -65,8 +71,18 @@ def check_user_auth(username,system):
                 return {"allow": True, "description":f"User {username} authorized", "status_code": 200 }
             else:
                 logging.error(f"User {username} NOT authorized by OPA")
-                return {"allow": False, "description":f"Permission denied for user {username} in {system}", "status_code": 401}                
+                return {"allow": False, "description":f"Permission denied for user {username} in {system}", "status_code": 401} 
+        except requests.exceptions.SSLError as e:
+            logging.error(e.args)               
+            return {"allow": False, "description":"Authorization server error: SSL error.", "status_code": 404} 
         except requests.exceptions.RequestException as e:
+            logging.error(e.args)
+            return {"allow": False, "description":"Authorization server error", "status_code": 404} 
+        
+        except Exception as e:
+            logging.error(type(e))
+            logging.error(e)
+            
             logging.error(e.args)
             return {"allow": False, "description":"Authorization server error", "status_code": 404} 
     
@@ -303,5 +319,9 @@ if __name__ == "__main__":
 
     # run app
     # debug = False, so output redirects to log files
-    app.run(debug=debug, host='0.0.0.0', port=CERTIFICATOR_PORT)
+    if USE_SSL:        
+        app.run(debug=debug, host='0.0.0.0', port=CERTIFICATOR_PORT, ssl_context=(SSL_CRT, SSL_KEY))        
+    else:
+        app.run(debug=debug, host='0.0.0.0', port=CERTIFICATOR_PORT)
+    
 
