@@ -10,6 +10,11 @@ if FIRECREST_URL:
 else:
     TASKS_URL = os.environ.get("F7T_TASKS_URL")
 
+### SSL parameters
+USE_SSL = os.environ.get("F7T_USE_SSL", False)
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_PATH = "../../../deploy/test-build"
+
 INVALID_CODE1 = "9999"
 INVALID_CODE2 = "47777"
 
@@ -47,7 +52,7 @@ STATUS_CODES = [(QUEUED, "queued", 200), (PROGRESS, "progress", 200), (SUCCESS, 
 # helper function to create a task
 def create_task(headers):
 	url = "{}".format(TASKS_URL)
-	resp = requests.post(url, headers=headers)
+	resp = requests.post(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False) )
 	print(resp.content)
 	print(url)
 	return resp
@@ -56,7 +61,7 @@ def create_task(headers):
 # Test list all tasks
 def test_list_tasks(headers):
 	url = "{}/".format(TASKS_URL)
-	resp = requests.get(url, headers=headers)
+	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(json.dumps(resp.json(),indent=2))
 	print(url)
 	assert resp.status_code == 200
@@ -75,7 +80,7 @@ def test_get_task(headers):
 	resp = create_task(headers)
 	hash_id = resp.json()["hash_id"]	
 	url = "{}/{}".format(TASKS_URL, hash_id)
-	resp = requests.get(url, headers=headers)
+	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(json.dumps(resp.json(),indent=2))
 	assert resp.status_code == 200
 
@@ -84,7 +89,7 @@ def test_get_task(headers):
 def test_get_task_not_exists(headers):
 	hash_id = "IDONTEXIST"
 	url = "{}/{}".format(TASKS_URL, hash_id)
-	resp = requests.get(url, headers=headers)
+	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
 	assert resp.status_code == 404
 
@@ -100,7 +105,7 @@ def test_update_task_formdata(headers, status, msg, expected_response_code):
 	url = "{}/{}".format(TASKS_URL, hash_id)
 
 	#FORM data	
-	resp = requests.put(url, headers=headers, data={'status': status, 'msg': msg})
+	resp = requests.put(url, headers=headers, data={'status': status, 'msg': msg}, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	assert resp.status_code == expected_response_code 
 
 
@@ -116,7 +121,7 @@ def test_update_task_jsondata(headers, status, msg, expected_response_code):
 
 	#JSON data
 	json={"status": status, "msg": msg}
-	resp = requests.put(url, headers=headers, json=json)
+	resp = requests.put(url, headers=headers, json=json, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	assert resp.status_code == expected_response_code
 
 
@@ -126,7 +131,7 @@ def test_delete_task_id_exists(headers):
 	resp = create_task(headers)
 	hash_id = resp.json()["hash_id"]
 	url = "{}/{}".format(TASKS_URL, hash_id)
-	resp = requests.delete(url, headers=headers)
+	resp = requests.delete(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	assert resp.status_code == 204
 
 
@@ -135,7 +140,7 @@ def test_delete_task_id_exists(headers):
 def test_delete_task_id_not_exists(headers):
 	hash_id = "IDONTEXIST"
 	url = "{}/{}".format(TASKS_URL, hash_id)
-	resp = requests.delete(url, headers=headers)
+	resp = requests.delete(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	assert resp.status_code == 404 and "error" in resp.json()
 
 
@@ -145,7 +150,7 @@ def test_expire_task(headers):
 	resp = create_task(headers)
 	hash_id = resp.json()["hash_id"]
 	url = "{}/expire/{}".format(TASKS_URL, hash_id)
-	resp = requests.post(url, headers=headers)
+	resp = requests.post(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	assert resp.status_code == 200 and "success" in resp.json()
 
 
@@ -154,14 +159,14 @@ def test_expire_task(headers):
 def test_expire_task_id_not_exists(headers):
 	hash_id = "IDONTEXIST"
 	url = "{}/expire/{}".format(TASKS_URL, hash_id)
-	resp = requests.post(url, headers=headers)
+	resp = requests.post(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	assert resp.status_code == 404 and "error" in resp.json()
 
 
 @host_environment_test
 def test_status():
 	url = "{}/status".format(TASKS_URL)
-	resp = requests.get(url)
+	resp = requests.get(url, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	assert resp.status_code == 200
 
 
@@ -169,7 +174,7 @@ def test_status():
 def test_taskslist():
 	url = "{}/taskslist".format(TASKS_URL)
 	json = {"service": "storage", "status_code":[]}
-	resp = requests.get(url, json=json)
+	resp = requests.get(url, json=json, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	assert resp.status_code == 200
 
 

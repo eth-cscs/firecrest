@@ -12,6 +12,7 @@ services:
       - "./environment/keys/ca-key:/ca-key:ro"
       - "./environment/keys/user-key.pub:/user-key.pub:ro"
       - ./logs/firecrest:/var/log:delegated
+      - ./ssl:/ssl
 
   compute:
     build:
@@ -23,6 +24,7 @@ services:
     volumes:
       - "./environment/keys/user-key:/user-key:ro"
       - ./logs/firecrest:/var/log:delegated
+      - ./ssl:/ssl
 
   status:
     build:
@@ -33,6 +35,7 @@ services:
     network_mode: "host"
     volumes:
       - ./logs/firecrest:/var/log:delegated
+      - ./ssl:/ssl
 
   storage:
     build:
@@ -50,6 +53,7 @@ services:
       # custom host file
       - "./environment/hosts:/etc/hosts:ro"
       - ./logs/firecrest:/var/log:delegated
+      - ./ssl:/ssl
 
   tasks:
     build: 
@@ -68,6 +72,7 @@ services:
     network_mode: "host"
     volumes: 
       - ./logs/firecrest:/var/log:delegated
+      - ./ssl:/ssl
 
   utilities:
     build: 
@@ -79,6 +84,7 @@ services:
     volumes:
       - "./environment/keys/user-key:/user-key:ro"
       - ./logs/firecrest:/var/log:delegated
+      - ./ssl:/ssl
 
   # auxiliary containers
   cluster:
@@ -111,12 +117,13 @@ services:
 
   opa:
     image: openpolicyagent/opa:0.22.0
-    command: run --server --log-level=debug --log-format=json-pretty  /opa-files/data.json /opa-files/policy.rego
+    command: run --server --log-level=debug --log-format=json-pretty --tls-cert-file=/ssl/f7t_internal.crt --tls-private-key-file=/ssl/f7t_internal.key /opa-files/data.json /opa-files/policy.rego
     network_mode: "host"
     ports: 
       - "8181:8181"    
     volumes: 
       - ./opa:/opa-files
+      - ./ssl:/ssl
 
   openapi:
     # image: swaggerapi/swagger-ui:v3.22.0

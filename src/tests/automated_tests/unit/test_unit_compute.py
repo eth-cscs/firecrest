@@ -13,6 +13,11 @@ else:
 JOBS_URL = COMPUTE_URL + "/jobs"
 SERVER_COMPUTE = os.environ.get("F7T_SYSTEMS_PUBLIC").split(";")[0]
 
+### SSL parameters
+USE_SSL = os.environ.get("F7T_USE_SSL", False)
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_PATH = "../../../deploy/test-build"
+
 
 # test data: (server name, expected response code)
 DATA = [ (SERVER_COMPUTE, 200) , ("someservernotavailable", 400)]
@@ -23,7 +28,7 @@ def submit_job_upload(machine, headers):
 	print(f"COMPUTE_URL {COMPUTE_URL}")
 	files = {'file': ('upload.txt', open('testsbatch.sh', 'rb'))}
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.post(f"{JOBS_URL}/upload", headers=headers, files=files)
+	resp = requests.post(f"{JOBS_URL}/upload", headers=headers, files=files, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	return resp
 
 
@@ -48,7 +53,7 @@ def test_submit_job_upload(machine, expected_response_code, headers):
 def test_submit_job_path(machine, targetPath, expected_response_code, headers):
 	data = {"targetPath" : targetPath}
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.post(f"{JOBS_URL}/path", headers=headers, data=data)
+	resp = requests.post(f"{JOBS_URL}/path", headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
 	print(resp.headers)
 	assert resp.status_code == expected_response_code
@@ -59,7 +64,7 @@ def test_submit_job_path(machine, targetPath, expected_response_code, headers):
 def test_list_jobs(machine, expected_response_code, headers):
 	url = "{}".format(JOBS_URL)
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.get(url, headers=headers)
+	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
 	assert resp.status_code == expected_response_code
 
@@ -71,7 +76,7 @@ def test_list_job(machine, expected_response_code, headers):
 	jobid = -1
 	url = "{}/{}".format(JOBS_URL, jobid)
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.get(url, headers=headers)
+	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
 	assert resp.status_code == expected_response_code
 
@@ -83,7 +88,7 @@ def test_cancel_job(machine, expected_response_code, headers):
 	jobid = 1
 	url = "{}/{}".format(JOBS_URL, jobid)
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.delete(url, headers=headers)
+	resp = requests.delete(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
 	assert resp.status_code == expected_response_code
 
@@ -95,7 +100,7 @@ def test_acct(machine, expected_response_code, headers):
 	url = "{}/acct".format(COMPUTE_URL)
 	headers.update({"X-Machine-Name": machine})
 	params = {"jobs":jobid}
-	resp = requests.get(url, headers=headers, params=params)
+	resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
 	assert resp.status_code == expected_response_code
 
@@ -104,7 +109,7 @@ def test_acct(machine, expected_response_code, headers):
 @host_environment_test
 def test_status(headers):
 	url = "{}/status".format(COMPUTE_URL)
-	resp = requests.get(url, headers=headers)
+	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
 	assert resp.status_code == 200
 

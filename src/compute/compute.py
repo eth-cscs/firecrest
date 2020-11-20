@@ -37,6 +37,11 @@ KONG_URL        = os.environ.get("F7T_KONG_URL")
 
 COMPUTE_PORT    = os.environ.get("F7T_COMPUTE_PORT", 5000)
 
+### SSL parameters
+USE_SSL = os.environ.get("F7T_USE_SSL", False)
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
+
 
 # SYSTEMS_PUBLIC: list of allowed systems
 # remove quotes and split into array
@@ -476,7 +481,11 @@ def submit_job_path():
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Failed to submit job"), 404, header
 
-    targetPath = request.form["targetPath"]
+    try:
+        targetPath = request.form["targetPath"]
+    except Exception as e:
+        data = jsonify(description="Failed to submit job", error="'targetPath' parameter not set in request")
+        return data, 400
     
     if targetPath == None:
         data = jsonify(description="Failed to submit job", error="'targetPath' parameter not set in request")
@@ -1069,4 +1078,7 @@ if __name__ == "__main__":
     logger.addHandler(logHandler)
 
     # set debug = False, so output goes to log files
-    app.run(debug=debug, host='0.0.0.0', port=COMPUTE_PORT)
+    if USE_SSL:        
+        app.run(debug=debug, host='0.0.0.0', port=COMPUTE_PORT, ssl_context=(SSL_CRT, SSL_KEY))        
+    else:
+        app.run(debug=debug, host='0.0.0.0', port=COMPUTE_PORT)
