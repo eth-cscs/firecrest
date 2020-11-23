@@ -2,7 +2,7 @@ import pytest
 import requests
 import os
 from markers import host_environment_test
-
+from test_globals import *
 
 FIRECREST_URL = os.environ.get("FIRECREST_URL")
 if FIRECREST_URL:
@@ -19,19 +19,38 @@ DATA = [ (SERVER_COMPUTE, 200) , ("someservernotavailable", 400)]
 
 
 # Helper function for job submittings
-def submit_job(machine, headers):
+def submit_job_upload(machine, headers):
 	print(f"COMPUTE_URL {COMPUTE_URL}")
 	files = {'file': ('upload.txt', open('testsbatch.sh', 'rb'))}
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.post(JOBS_URL, headers=headers, files=files)
+	resp = requests.post(f"{JOBS_URL}/upload", headers=headers, files=files)
 	return resp
 
 
 # Test send a job to the systems
 @pytest.mark.parametrize("machine, expected_response_code", [ (SERVER_COMPUTE, 201) , ("someservernotavailable", 400)])
-def test_submit_job(machine, expected_response_code, headers):
-	resp = submit_job(machine, headers)
+def test_submit_job_upload(machine, expected_response_code, headers):
+	resp = submit_job_upload(machine, headers)
 	print(resp.content)
+	assert resp.status_code == expected_response_code
+
+# Test send a job to the systems
+@pytest.mark.parametrize("machine, targetPath, expected_response_code", [ 
+(SERVER_COMPUTE, "/srv/f7t/test_sbatch.sh", 201), 
+(SERVER_COMPUTE, "/srv/f7t/test_sbatch_forbidden.sh", 400),
+(SERVER_COMPUTE, "/srv/f7t", 400),
+(SERVER_COMPUTE, "notexists", 400),
+(SERVER_COMPUTE, "", 400),
+(SERVER_COMPUTE, None, 400),
+("someservernotavailable", "/srv/f7t/test_sbatch.sh", 400)]
+
+)
+def test_submit_job_path(machine, targetPath, expected_response_code, headers):
+	data = {"targetPath" : targetPath}
+	headers.update({"X-Machine-Name": machine})
+	resp = requests.post(f"{JOBS_URL}/path", headers=headers, data=data)
+	print(resp.content)
+	print(resp.headers)
 	assert resp.status_code == expected_response_code
 
 

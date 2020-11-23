@@ -11,7 +11,7 @@ import threading
 import async_task
 
 from cscs_api_common import check_auth_header, get_username, \
-    exec_remote_command, create_task, update_task, expire_task, clean_err_output, in_str
+    exec_remote_command, create_task, update_task, clean_err_output, in_str, is_valid_file
 
 from job_time import check_sacctTime
 
@@ -168,7 +168,7 @@ def submit_job_task(auth_header, system_name, system_addr, job_file, job_dir, ta
 
         if retval["error"] != 0:
             app.logger.error(f"(Error: {retval['msg']}")
-            update_task(task_id, auth_header, async_task.ERROR, retval["msg"])
+            update_task(task_id, auth_header,async_task.ERROR, retval["msg"])
             return
 
         outlines = retval["msg"]
@@ -192,11 +192,13 @@ def submit_job_task(auth_header, system_name, system_addr, job_file, job_dir, ta
     except IOError as e:
         app.logger.error(e.filename)
         app.logger.error(e.strerror)
-        update_task(task_id, auth_header, async_task.ERROR, e.message)
+        update_task(task_id, auth_header,async_task.ERROR, e.message)
     except Exception as e:
         app.logger.error(type(e))
         app.logger.error(e)
         update_task(task_id, auth_header, async_task.ERROR, e.message)
+
+    
 
     #app.logger.info(result)
     return
@@ -270,6 +272,69 @@ def get_slurm_files(auth_header, system_name, system_addr, task_id,job_info,outp
     # update_task(task_id, auth_header, async_task.SUCCESS, control_info,True)
     return control_info
 
+def submit_job_path_task(auth_header,system_name, system_addr,fileName,job_dir, task_id):
+    
+    try:
+        # get scopes from token
+        decoded = jwt.decode(auth_header[7:], verify=False)
+        # scope: "openid profile email firecrest-tds.cscs.ch/storage/something"
+        scopes = decoded['scope'].split(' ')
+        scopes_parameters = ''
+
+        # SCOPES sintax: id_service/microservice/parameter
+        for s in scopes:
+            s2 = s.split('/')
+            if s2[0] == FIRECREST_SERVICE:
+                if s2[1] == 'storage':
+                    if scopes_parameters != '':
+                        scopes_parameters = scopes_parameters + ','
+
+                    scopes_parameters = scopes_parameters + s2[2]
+
+        if scopes_parameters != '':
+            scopes_parameters = '--firecrest=' + scopes_parameters
+
+        app.logger.info("scope parameters: " + scopes_parameters)
+
+    
+    except Exception as e:
+        app.logger.error(type(e))
+        
+        app.logger.error(e.args)
+        
+
+    action=f"sbatch --chdir={job_dir} {scopes_parameters} -- {fileName}"
+
+    resp = exec_remote_command(auth_header, system_name, system_addr, action)
+
+    app.logger.info(resp)
+
+    # in case of error:
+    if resp["error"] != 0:
+        if resp["error"] == -2:
+            update_task(task_id, auth_header, async_task.ERROR,"Machine is not available")
+            return
+
+        if resp["error"] == 1:
+            err_msg = resp["msg"]
+            if in_str(err_msg,"OPENSSH"):
+                err_msg = "User does not have permissions to access machine"
+            update_task(task_id, auth_header, async_task.ERROR ,err_msg)
+            return
+        err_msg = resp["msg"]
+        update_task(task_id, auth_header, async_task.ERROR, err_msg)
+        
+
+    jobid = extract_jobid(resp["msg"])
+
+    msg = {"result":"Job submitted", "jobid":jobid}
+
+    
+    # now looking for log and err files location
+    job_extra_info = get_slurm_files(auth_header, system_name, system_addr, task_id,msg)
+
+    update_task(task_id, auth_header,async_task.SUCCESS, job_extra_info,True)
+        
 
 ## error handler for files above SIZE_LIMIT -> app.config['MAX_CONTENT_LENGTH']
 @app.errorhandler(413)
@@ -279,9 +344,10 @@ def request_entity_too_large(error):
 
 # Submit a batch script to SLURM on the target system.
 # The batch script is uploaded as a file
-@app.route("/jobs",methods=["POST"])
+
+@app.route("/jobs/upload",methods=["POST"])
 @check_auth_header
-def submit_job():
+def submit_job_upload():
     
     auth_header = request.headers[AUTH_HEADER_NAME]
     
@@ -363,7 +429,7 @@ def submit_job():
                              args=(auth_header, system_name, system_addr, job_file, job_dir, task_id))
 
         aTask.start()
-        retval = update_task(task_id, auth_header, async_task.QUEUED, TASKS_URL)
+        retval = update_task(task_id, auth_header,async_task.QUEUED, TASKS_URL)
 
         task_url = f"{KONG_URL}/tasks/{task_id}"
         data = jsonify(success="Task created", task_id=task_id, task_url=task_url)
@@ -373,7 +439,92 @@ def submit_job():
         data = jsonify(description="Failed to submit job",error=e)
         return data, 400
 
+# Submit a batch script to SLURM on the target system.
+# The batch script is into the target system
+@app.route("/jobs/path",methods=["POST"])
+@check_auth_header
+def submit_job_path():
+    auth_header = request.headers[AUTH_HEADER_NAME]
 
+    try:
+        system_name = request.headers["X-Machine-Name"]
+    except KeyError as e:
+        app.logger.error("No machinename given")
+        return jsonify(description="Failed to submit job", error="No machine name given"), 400
+
+    # public endpoints from Kong to users
+    if system_name not in SYSTEMS_PUBLIC:
+        header={"X-Machine-Does-Not-Exists":"Machine does not exists"}
+        return jsonify(description="Failed to submit job",error="Machine does not exists"), 400, header
+
+    # iterate over SYSTEMS_PUBLIC list and find the endpoint matching same order
+
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
+
+    # check if machine is accessible by user:
+    # exec test remote command
+    resp = exec_remote_command(auth_header, system_name, system_addr, "true")
+
+    if resp["error"] != 0:
+        error_str = resp["msg"]
+        if resp["error"] == -2:
+            header = {"X-Machine-Not-Available": "Machine is not available"}
+            return jsonify(description="Failed to submit job"), 400, header
+        if in_str(error_str,"Permission") or in_str(error_str,"OPENSSH"):
+            header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
+            return jsonify(description="Failed to submit job"), 404, header
+
+    targetPath = request.form["targetPath"]
+    
+    if targetPath == None:
+        data = jsonify(description="Failed to submit job", error="'targetPath' parameter not set in request")
+        return data, 400
+
+    if targetPath == "":
+        data = jsonify(description="Failed to submit job", error="'targetPath' parameter value is empty")
+        return data, 400
+
+    
+    # checks if targetPath is a valid path for this user in this machine
+    check = is_valid_file(targetPath, auth_header, system_name, system_addr)
+
+    if not check["result"]:
+        return jsonify(description="Failed to submit job"), 400, check["headers"]
+
+    # creates the async task related to the job submission
+    task_id = create_task(auth_header,service="compute")
+    # if error in creating task:
+    if task_id == -1:
+        return jsonify(description="Failed to submit job",error='Error creating task'), 400
+        
+    # if targetPath = "/home/testuser/test/sbatch.sh/"
+    # split by / and discard last element (the file name): ['', 'home', 'testuser', 'test']
+    job_dir_splitted = targetPath.split("/")[:-1]
+    # in case the targetPath ends with /, like: "/home/testuser/test/sbatch.sh/"
+    # =>  ['', 'home', 'testuser', 'test', ''], then last element of the list is discarded
+    if job_dir_splitted[-1] == "":
+        job_dir_splitted = job_dir_splitted[:-1]
+
+    job_dir = "/".join(job_dir_splitted)
+    
+
+    try:
+        # asynchronous task creation
+        aTask = threading.Thread(target=submit_job_path_task,
+                             args=(auth_header, system_name, system_addr, targetPath, job_dir, task_id))
+
+        aTask.start()
+        retval = update_task(task_id, auth_header, async_task.QUEUED, TASKS_URL)
+
+        task_url = "{KONG_URL}/tasks/{task_id}".format(KONG_URL=KONG_URL, task_id=task_id)
+        data = jsonify(success="Task created", task_id=task_id, task_url=task_url)
+        return data, 201
+
+    except Exception as e:
+        data = jsonify(description="Failed to submit job",error=e)
+        return data, 400
 
 # Retrieves information from all jobs (squeue)
 @app.route("/jobs",methods=["GET"])
@@ -460,6 +611,11 @@ def list_jobs():
 
     try:
         task_id = create_task(auth_header,service="compute")
+
+        # if error in creating task:
+        if task_id == -1:
+            return jsonify(description="Failed to retrieve job information",error='Error creating task'), 400
+            
         update_task(task_id, auth_header, async_task.QUEUED)
 
         # asynchronous task creation
@@ -487,14 +643,14 @@ def list_job_task(auth_header,system_name, system_addr,action,task_id,pageSize,p
 
     # in case of error:
     if resp["error"] == -2:
-        update_task(task_id, auth_header, async_task.ERROR,"Machine is not available")
+        update_task(task_id, auth_header,async_task.ERROR,"Machine is not available")
         return
 
     if resp["error"] == 1:
         err_msg = resp["msg"]
         if in_str(err_msg,"OPENSSH"):
             err_msg = "User does not have permissions to access machine"
-        update_task(task_id, auth_header, async_task.ERROR ,err_msg)
+        update_task(task_id, auth_header,async_task.ERROR ,err_msg)
         return
 
     if len(resp["msg"]) == 0:
@@ -541,7 +697,7 @@ def list_job_task(auth_header,system_name, system_addr,action,task_id,pageSize,p
                    "nodes": jobaux[8], "nodelist": jobaux[9]}
 
         # now looking for log and err files location
-        jobinfo = get_slurm_files(auth_header, machine, task_id,jobinfo,True)
+        jobinfo = get_slurm_files(auth_header, system_name, system_addr, task_id,jobinfo,True)
 
         # add jobinfo to the array
         jobs[str(job_index)]=jobinfo
@@ -549,11 +705,7 @@ def list_job_task(auth_header,system_name, system_addr,action,task_id,pageSize,p
     data = jobs
 
     update_task(task_id, auth_header, async_task.SUCCESS, data, True)
-
-    # set expiration:
-    expire_task(task_id, auth_header)
-
-
+   
 
 
 # Retrieves information from a jobid
@@ -607,6 +759,11 @@ def list_job(jobid):
     try:
         # obtain new task from Tasks microservice
         task_id = create_task(auth_header,service="compute")
+
+        # if error in creating task:
+        if task_id == -1:
+            return jsonify(description="Failed to retrieve job information",error='Error creating task'), 400
+            
         update_task(task_id, auth_header, async_task.QUEUED)
 
         # asynchronous task creation
@@ -648,7 +805,7 @@ def cancel_job_task(auth_header,system_name, system_addr,action,task_id):
         err_msg = resp["msg"]
         if in_str(err_msg,"OPENSSH"):
             err_msg = "User does not have permissions to access machine"
-        update_task(task_id, auth_header, async_task.ERROR, err_msg)
+        update_task(task_id, auth_header,async_task.ERROR, err_msg)
         return
 
     # in specific scancel's case, this command doesn't give error code over
@@ -661,10 +818,7 @@ def cancel_job_task(auth_header,system_name, system_addr,action,task_id):
         return
 
     # otherwise
-    update_task(task_id,auth_header,async_task.SUCCESS,data)
-
-
-
+    update_task(task_id,auth_header, async_task.SUCCESS,data)
 
 
 # Cancel job from SLURM using scancel command
@@ -712,6 +866,10 @@ def cancel_job(jobid):
         # obtain new task from TASKS microservice
         task_id = create_task(auth_header,service="compute")
 
+        # if error in creating task:
+        if task_id == -1:
+            return jsonify(description="Failed to delete job",error='Error creating task'), 400
+            
         # asynchronous task creation
         aTask = threading.Thread(target=cancel_job_task,
                              args=(auth_header, system_name, system_addr, action, task_id))
@@ -771,8 +929,6 @@ def acct_task(auth_header, system_name, system_addr, action, task_id):
     # as it is a json data to be stored in Tasks, the is_json=True
     update_task(task_id, auth_header, async_task.SUCCESS, jobs, is_json=True)
 
-    # set expiration:
-    expire_task(task_id, auth_header)
 
 
 # Job account information
@@ -860,6 +1016,11 @@ def acct():
         # obtain new task from Tasks microservice
         task_id = create_task(auth_header,service="compute")
 
+        # if error in creating task:
+        if task_id == -1:
+            return jsonify(description="Failed to retrieve account information",error='Error creating task'), 400
+    
+        
         update_task(task_id, auth_header, async_task.QUEUED)
 
         # asynchronous task creation
@@ -896,7 +1057,7 @@ if __name__ == "__main__":
     logHandler = TimedRotatingFileHandler('/var/log/compute.log', when='D', interval=1)
 
     logFormatter = logging.Formatter('%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
-                                     '%Y-%m-%d:%H:%M:%S')
+                                     '%Y-%m-%dT%H:%M:%S')
     logHandler.setFormatter(logFormatter)
     logHandler.setLevel(logging.DEBUG)
 

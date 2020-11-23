@@ -15,7 +15,7 @@ else:
 def test_post_upload_request(headers):
     data = { "sourcePath": "testsbatch.sh", "targetPath": USER_HOME }
     resp = requests.post(STORAGE_URL + "/xfer-external/upload", headers=headers, data=data)
-    assert resp.status_code == 200
+    assert resp.status_code == 201
 
 def test_download_file_not_exist(headers):
     data = { "sourcePath": "no-existing-file" }
@@ -25,7 +25,14 @@ def test_download_file_not_exist(headers):
     assert resp.status_code == 400
 
 def test_download_file_not_allowed(headers):
-    data = { "sourcePath": "/etc/hosts" }
+    data = { "sourcePath": "/srv/f7t/test_sbatch_forbidden.sh" }
+    resp = requests.post(STORAGE_URL + "/xfer-external/download", headers=headers, data=data) 
+    print(resp.json())  
+    print(resp.headers)
+    assert resp.status_code == 400
+
+def test_download_dir_not_allowed(headers):
+    data = { "sourcePath": "/srv/f7t" }
     resp = requests.post(STORAGE_URL + "/xfer-external/download", headers=headers, data=data) 
     print(resp.json())  
     print(resp.headers)
