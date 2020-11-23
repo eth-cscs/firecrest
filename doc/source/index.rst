@@ -19,7 +19,7 @@ Among the most prominent services that FirecREST exposes we find authentication 
 Latest Release
 ==============
 
-ReFrame is being actively developed at `CSCS <http://www.cscs.ch/>`__.
+FirecREST is being actively developed at `CSCS <http://www.cscs.ch/>`__.
 You can always find the latest release `here <https://github.com/eth-cscs/firecrest/releases/latest>`__.
 
 Publications
