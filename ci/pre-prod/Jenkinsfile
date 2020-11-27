@@ -106,7 +106,7 @@ node {
         }
 
         sh '''#!/bin/sh
-            sleep 120
+            sleep 300
             echo "Waiting for containers to get ready..."
             '''
 
