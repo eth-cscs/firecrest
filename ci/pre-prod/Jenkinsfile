@@ -32,10 +32,8 @@ node {
             echo "JENKINS_HOME : ${env.JENKINS_HOME}"
         }
 
-
         stage('Sync ansible playbooks from github repo') {
-            
-            // Sync Pre-Prod Project project
+
             ansibleTowerProjectSync(
                 towerServer: 'awx-local',
                 async: false,
@@ -47,10 +45,8 @@ node {
             )
         }
 
-
         stage('Build firecrest images in registry') {
             
-            // Run template for image building
             ansibleTower(
                 towerServer: 'awx-local',
                 templateType: 'job',
@@ -66,7 +62,6 @@ node {
                 throwExceptionWhenFail: true
             )
         }
-
 
         /*
         // This should be executed once from awx itself
@@ -86,8 +81,7 @@ node {
         }*/
 
         stage('Deploy firecrest in test environment') {
-            //run firecrest
-           
+
             ansibleTower(
                 towerServer: 'awx-local',
                 templateType: 'job',
@@ -122,10 +116,7 @@ node {
                 async: false,
                 throwExceptionWhenFail: true
             )
-
         }
-
-
 
     }
     catch (e) {
@@ -135,8 +126,6 @@ node {
     }
     finally {
 
-
-        //cleanTestEnvironment()
         stage('Fetch firecrest log files') {
 
             ansibleTower(
@@ -149,18 +138,14 @@ node {
                 async: false,
                 throwExceptionWhenFail: false
             )
-
         }
 
-
-        // docker cp log files
         // Save Log files
         try {
             sh "mkdir -p /var/log/jenkins/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}"
-            //sh "cp -r ${env.WORKSPACE}/deploy/test-build/logs/firecrest/* /var/log/jenkins/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}/."
 
-            // retrieve the full path of logs folder inside awx_container
-            // since docker cp does not allow wildcards
+            // retrieve the full path of logs folder inside awx container
+            // since 'docker cp' command does not allow wildcards
             LOGS_PATH_INSIDE_AWX_CONTAINER = sh (
                 script: 'docker exec awx_task bash -c "echo /tmp/firecrest_demo_deploy_logs/*/home/centos/firecrest/deploy/demo/logs/firecrest/."',
                 returnStdout: true
@@ -170,7 +155,7 @@ node {
             // copy log files from awx_task container to the job log folder
             sh "docker cp awx_task:${LOGS_PATH_INSIDE_AWX_CONTAINER} /var/log/jenkins/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}/."
 
-            // remove log files
+            // remove log files in awx container
             sh "docker exec awx_task rm -rf ${LOGS_PATH_INSIDE_AWX_CONTAINER.substring(0, LOGS_PATH_INSIDE_AWX_CONTAINER.length()-2)}"
 
         } catch (errCpLogs) {
@@ -189,7 +174,6 @@ node {
                 async: false,
                 throwExceptionWhenFail: false
             )
-
         }
 
         notifyBuildStatusToGitHub(currentBuild.result, gitHubUser, gitHubRepo, longCommit)
@@ -198,7 +182,6 @@ node {
     if (currentBuild.result == 'FAILED') {
         return
     }
-
 
     stage('Ask for commit promotion') {
         
