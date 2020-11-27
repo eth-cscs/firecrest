@@ -5,7 +5,7 @@ import os
 CURRENT_USER = ""
 
 if os.environ.get("F7T_SA_LOGIN", "").lower() != 'true':
-    CURRENT_USER = os.environ.get("F7T_TEST_USER")
+    CURRENT_USER = os.environ.get("TEST_USER")
 else:
     CURRENT_USER = 'service-account-' + os.environ.get("F7T_SA_CLIENT_ID")
 

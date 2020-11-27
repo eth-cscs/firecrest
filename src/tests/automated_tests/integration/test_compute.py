@@ -21,7 +21,7 @@ SERVER_COMPUTE = os.environ.get("F7T_SYSTEMS_PUBLIC").split(";")[0]
 def submit_job(machine, headers, file='testsbatch.sh'):
 	files = {'file': ('upload.txt', open(file, 'rb'))}
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.post(JOBS_URL, headers=headers, files=files)
+	resp = requests.post(f"{JOBS_URL}/upload", headers=headers, files=files)
 	print(resp.content)
 	assert resp.status_code == 201
 	return resp
@@ -82,9 +82,9 @@ def test_list_job(machine, headers):
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.get(url, headers=headers)
 	print(resp.content)
-	assert resp.status_code == 200
-	task_id = resp.json()["task_id"]
-	check_task_status(task_id, headers, 400)
+	assert resp.status_code == 400
+	# task_id = resp.json()["task_id"]
+	# check_task_status(task_id, headers, 400)
 
 # Test cancel job from slurm
 @pytest.mark.parametrize("machine", [SERVER_COMPUTE])
@@ -92,10 +92,8 @@ def test_cancel_job(machine, headers):
 
 	resp = submit_job(machine, headers)
 	task_id = resp.json()["task_id"]
-
-	time.sleep(10) # wait until task is running
 	job_id = get_job_id(task_id, headers)
-
+		
 	# cancel job
 	url = "{}/{}".format(JOBS_URL, job_id)
 	headers.update({"X-Machine-Name": machine})
@@ -113,8 +111,6 @@ def test_acct_job(machine, headers):
 
 	resp = submit_job(machine, headers)
 	task_id = resp.json()["task_id"]
-
-	time.sleep(10) # wait until task is running
 	job_id = get_job_id(task_id, headers)
 
 	# cancel job
