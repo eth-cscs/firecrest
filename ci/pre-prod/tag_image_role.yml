@@ -1,0 +1,6 @@
+---
+- name: tag firecrest microservices images
+  hosts: all
+  gather_facts: No
+  roles:
+    - { role: tag_image_role }

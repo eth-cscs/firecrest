@@ -1,0 +1,6 @@
+---
+- name: Build firecrest microservices images
+  hosts: all
+  gather_facts: No
+  roles:
+    - { role: build_image_role }
