@@ -4,7 +4,7 @@ metadata:
   name: utilities
 spec:
   selector:
-    firecrest.subservice: utilities # will match pods with this label
+    run: utilities # will match pods with this label
   ports:
   - port: 5004 # the service listen on
     targetPort: 5004 # the pods listen on

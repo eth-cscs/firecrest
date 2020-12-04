@@ -13,8 +13,10 @@ spec:
         run: utilities
       generateName: firecrest.utilities-1-
     spec:
+      nodeSelector: 
+          kubernetes.io/hostname: starlex3
       containers:
-      - image: utilities:v1
+      - image: 148.187.97.229:5000/utilities:428a7f7
         imagePullPolicy: IfNotPresent
         name: utilities
         ports:
@@ -26,9 +28,11 @@ spec:
         - mountPath: /var/log
           name: logs-endpoint
         - mountPath: /user-key
+          subPath: user-key
           name: user-key-public
       volumes:
       - emptyDir: {}
         name: logs-endpoint
       - name: user-key-public
-        emptyDir: {}
+        configMap:
+          name: f7t-user-ssh-keys
