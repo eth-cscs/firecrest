@@ -19,6 +19,9 @@ spec:
         name: utilities
         ports:
         - containerPort: 5004
+        envFrom:
+        - configMapRef:
+            name: common-env-file
         volumeMounts:
         - mountPath: /var/log
           name: logs-endpoint
