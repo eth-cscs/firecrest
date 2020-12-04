@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: utilities-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: utilities
+  template:
+    metadata:
+      labels:
+        run: utilities
+      generateName: firecrest.utilities-1-
+    spec:
+      containers:
+      - image: utilities:v1
+        imagePullPolicy: IfNotPresent
+        name: utilities
+        ports:
+        - containerPort: 5004
+        volumeMounts:
+        - mountPath: /var/log
+          name: logs-endpoint
+        - mountPath: /user-key
+          name: user-key-public
+      volumes:
+      - emptyDir: {}
+        name: logs-endpoint
+      - name: user-key-public
+        emptyDir: {}
