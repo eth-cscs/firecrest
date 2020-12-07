@@ -21,7 +21,7 @@ from cscs_api_common import create_task, update_task, get_task_status
 from cscs_api_common import exec_remote_command
 from cscs_api_common import create_certificate
 from cscs_api_common import in_str
-from cscs_api_common import is_valid_file, is_valid_dir
+from cscs_api_common import is_valid_file, is_valid_dir, check_command_error
 
 # job_time_checker for correct SLURM job time in /xfer-internal tasks
 import job_time
@@ -65,6 +65,9 @@ OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE", "").strip('\'"')
 
 # Scheduller partition used for internal transfers
 XFER_PARTITION = os.environ.get("F7T_XFER_PARTITION", "").strip('\'"')
+
+# --account parameter needed in sbatch?
+USE_SLURM_ACCOUNT = os.environ.get("F7T_USE_SLURM_ACCOUNT", False)
 
 # Machine used for external transfers
 
@@ -665,7 +668,8 @@ def get_file_from_storage(auth_header,system_name, system_addr,path,download_url
 # jobName = --job-name parameter to be used on sbatch command
 # jobTime = --time  parameter to be used on sbatch command
 # stageOutJobId = value to set in --dependency:afterok parameter
-def exec_internal_command(auth_header,command,sourcePath, targetPath, jobName, jobTime, stageOutJobId):
+# account = valute to set in --account parameter
+def exec_internal_command(auth_header,command,sourcePath, targetPath, jobName, jobTime, stageOutJobId, account):
 
 
     action = "{command} {sourcePath} {targetPath}".\
@@ -687,6 +691,9 @@ def exec_internal_command(auth_header,command,sourcePath, targetPath, jobName, j
 
         if stageOutJobId != None:
             sbatch_file.write("#SBATCH --dependency=afterok:{stageOutJobId}\n".format(stageOutJobId=stageOutJobId))
+        if account != None:
+            app.logger.info(account)
+            sbatch_file.write(f"#SBATCH --account={account}")
 
         sbatch_file.write("\n")
         sbatch_file.write("echo -e \"$SLURM_JOB_NAME started on $(date): {action}\"\n".format(action=action))
@@ -799,6 +806,25 @@ def internal_operation(request, command):
     system_idx = SYSTEMS_PUBLIC.index(STORAGE_JOBS_MACHINE)
     system_addr = SYS_INTERNALS[system_idx]
 
+    app.logger.info(f"USE_SLURM_ACCOUNT: {USE_SLURM_ACCOUNT}")
+    # get "account" parameter, if not found, it is obtained from "id" command
+    try:
+        account = request.form["account"] 
+    except:
+        if USE_SLURM_ACCOUNT:
+            username = get_username(auth_header)
+
+            id_command = f"id -gn -- {username}"
+            resp = exec_remote_command(auth_header, STORAGE_JOBS_MACHINE, system_addr, id_command)
+            if resp["error"] != 0:
+                retval = check_command_error(resp["msg"], resp["error"], f"{command} job")
+    
+                return jsonify(description=f"Failed to submit {command} job", error=retval["description"]), retval["status_code"], retval["header"]
+
+            account = resp["msg"]
+        else:
+            account = None
+
     # check if machine is accessible by user:
     # exec test remote command
     resp = exec_remote_command(auth_header, STORAGE_JOBS_MACHINE, system_addr, "true")
@@ -812,7 +838,7 @@ def internal_operation(request, command):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description=f"Failed to submit {command} job"), 404, header
 
-    retval = exec_internal_command(auth_header, actual_command, sourcePath, targetPath, jobName, jobTime, stageOutJobId)
+    retval = exec_internal_command(auth_header, actual_command, sourcePath, targetPath, jobName, jobTime, stageOutJobId, account)
 
     # returns "error" key or "success" key
     try:
