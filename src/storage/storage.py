@@ -742,6 +742,10 @@ def internal_rm():
 def internal_operation(request, command):
 
     auth_header = request.headers[AUTH_HEADER_NAME]
+
+    system_idx = SYSTEMS_PUBLIC.index(STORAGE_JOBS_MACHINE)
+    system_addr = SYS_INTERNALS[system_idx]    
+    system_name = STORAGE_JOBS_MACHINE
     
     try:
         targetPath = request.form["targetPath"]  # path to save file in cluster
@@ -751,6 +755,7 @@ def internal_operation(request, command):
         app.logger.error("targetPath not specified")
         return jsonify(error="targetPath not specified"), 400
 
+    
     # using actual_command to add options to check sanity of the command to be executed
     actual_command = ""
     if command in ['cp', 'mv', 'rsync']:
@@ -761,6 +766,30 @@ def internal_operation(request, command):
         except:
             app.logger.error("sourcePath not specified")
             return jsonify(error="sourcePath not specified"), 400
+
+        # checks if file to copy, move or rsync (targetPath) is a valid path
+        # remove the last part of the path (after last "/" char) to check if the dir can be written by user        
+
+        _targetPath = targetPath.split("/")[:-1]
+        _targetPath = "/".join(_targetPath)
+
+        app.logger.info(f"_targetPath={_targetPath}")
+
+        
+        check_dir  = is_valid_dir(_targetPath, auth_header, system_name, system_addr)
+
+        if not check_dir["result"]:
+            return jsonify(description="targetPath error"), 400, check_dir["headers"]
+
+        check_file = is_valid_file(sourcePath, auth_header, system_name, system_addr)
+                
+        if not check_file["result"]:
+            check_dir  = is_valid_dir(sourcePath, auth_header, system_name, system_addr)
+
+            if not check_dir["result"]:
+                return jsonify(description="sourcePath error"), 400, check_dir["headers"]
+        
+
         if command == "cp":
             actual_command = "cp --force -dR --preserve=all -- "
         elif command == "mv":
@@ -769,6 +798,15 @@ def internal_operation(request, command):
             actual_command = "rsync -av -- "
     elif command == "rm":
         # for 'rm' there's no source, set empty to call exec_internal_command(...)
+        # checks if file or dir to delete (targetPath) is a valid path or valid directory
+        check_file = is_valid_file(targetPath, auth_header, system_name, system_addr)
+                
+        if not check_file["result"]:
+            check_dir  = is_valid_dir(targetPath, auth_header, system_name, system_addr)
+
+            if not check_dir["result"]:
+                return jsonify(description="targetPath error"), 400, check_dir["headers"]
+
         sourcePath = ""
         actual_command = "rm -rf -- "
     else:
