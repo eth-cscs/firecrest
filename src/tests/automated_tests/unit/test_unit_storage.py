@@ -77,6 +77,14 @@ def test_internal_rm(headers):
     resp = requests.post(url, headers=headers,data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
     assert resp.status_code == 201   
 
+def test_internal_rm_err(headers):
+    # jobName, time, stageOutJobId
+    data = {"targetPath": "/srv/f7t/test_sbatch_forbidden.sh"}
+    
+    url = "{}/xfer-internal/rm".format(STORAGE_URL)
+    resp = requests.post(url, headers=headers,data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+    assert resp.status_code == 400
+
 
 # Test storage microservice status
 @host_environment_test
