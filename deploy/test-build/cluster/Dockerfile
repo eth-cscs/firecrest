@@ -82,8 +82,12 @@ RUN chmod 555 /ssh_command_wrapper.sh
 RUN mkdir /srv/f7t
 ADD cluster/test_sbatch.sh /srv/f7t/.
 ADD cluster/test_sbatch.sh /srv/f7t/test_sbatch_forbidden.sh
+ADD cluster/test_sbatch.sh /srv/f7t/test_sbatch_rm.sh
+ADD cluster/test_sbatch.sh /srv/f7t/test_sbatch_mv.sh
 RUN chmod 777 /srv/f7t
 RUN chmod 555 /srv/f7t/test_sbatch.sh
+RUN chmod 777 /srv/f7t/test_sbatch_rm.sh
+RUN chmod 777 /srv/f7t/test_sbatch_mv.sh
 RUN chmod 700 /srv/f7t/test_sbatch_forbidden.sh
 
 ENTRYPOINT ["/usr/bin/supervisord"]
