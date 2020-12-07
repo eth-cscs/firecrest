@@ -1,0 +1,48 @@
+- name: create build directory
+  file:
+    path: /home/firecrest/awx-firecrest-build
+    state: directory
+    owner: firecrest
+    group: firecrest
+    mode: "0755"
+
+- name: Clone firecrest git repository
+  git:
+    repo: "https://github.com/eth-cscs/firecrest.git"
+    dest: /home/firecrest/awx-firecrest-build
+    version: "{{ commit_id }}"
+
+- name: build container image
+  docker_image:
+    name: "localhost:5000/{{ item.key }}:{{ build_tag }}"
+    build:
+      path: /home/firecrest/awx-firecrest-build
+      dockerfile: ./deploy/docker/{{ item.key }}/Dockerfile
+    source: build
+    state: present
+    push: yes
+  with_dict: "{{ image_definitions }}"
+
+- name: build client image
+  docker_image:
+    name: "localhost:5000/client:{{ build_tag }}"
+    build:
+      path: /home/firecrest/awx-firecrest-build/src/tests/template_client
+      dockerfile: ./Dockerfile
+    source: build
+    state: present
+    push: yes
+
+- name: Pull redis and push to local registry
+  docker_image:
+    name: redis:5
+    repository: "localhost:5000/taskpersistence:{{ build_tag }}"
+    push: yes
+    source: pull
+
+#- name: Pull minio and push to local registry
+#  docker_image:
+#    name: minio/minio
+#    repository: "localhost:5000/minio:{{ build_tag }}"
+#    push: yes
+#    source: pull
