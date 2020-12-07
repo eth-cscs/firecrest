@@ -63,7 +63,7 @@ case "$command" in
   sacct|sbatch|scancel|scontrol|squeue)
     # valid Slurm commands
     ;;
-  wget)
+  /usr/bin/wget|curl)
     # from object storage
     ;;
   *)
