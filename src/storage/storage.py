@@ -91,6 +91,8 @@ STORAGE_MAX_FILE_SIZE = int(os.environ.get("F7T_STORAGE_MAX_FILE_SIZE", "5120").
 # for use on signature of URL it must be in bytes (MB*1024*1024 = Bytes)
 STORAGE_MAX_FILE_SIZE *= 1024*1024
 
+UTILITIES_TIMEOUT = int(os.environ.get("F7T_UTILITIES_TIMEOUT", "5").strip('\'"'))
+
 STORAGE_POLLING_INTERVAL = int(os.environ.get("F7T_STORAGE_POLLING_INTERVAL", "60").strip('\'"'))
 CERT_CIPHER_KEY = os.environ.get("F7T_CERT_CIPHER_KEY", "").strip('\'"').encode('utf-8')
 
@@ -814,7 +816,7 @@ def internal_operation(request, command):
         if USE_SLURM_ACCOUNT:
             username = get_username(auth_header)
 
-            id_command = f"id -gn -- {username}"
+            id_command = f"timeout {UTILITIES_TIMEOUT} id -gn -- {username}"
             resp = exec_remote_command(auth_header, STORAGE_JOBS_MACHINE, system_addr, id_command)
             if resp["error"] != 0:
                 retval = check_command_error(resp["msg"], resp["error"], f"{command} job")
