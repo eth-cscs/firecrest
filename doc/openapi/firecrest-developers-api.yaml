@@ -3,7 +3,7 @@ servers:
   - url: 'http://FIRECREST_URL'
   - url: 'https://FIRECREST_URL'
 info:
-  version: 1.0.0-RC1
+  version: 1.7.0-beta1
   title: FirecREST API
   description: >
     FirecREST platform, a RESTful Services Gateway to HPC resources, is a
@@ -1321,6 +1321,10 @@ paths:
                   type: string
                   description: Move data after job with id {stageOutJobId} is completed
                   default: null
+                account:
+                  type: string
+                  description: Name of the bank account to be used in SLURM. If not set, system default is taken.
+                  default: null
               required:
                 - sourcePath
                 - targetPath
@@ -1400,6 +1404,10 @@ paths:
                 stageOutJobId:
                   type: string
                   description: Move data after job with id {stageOutJobId} is completed
+                  default: null
+                account:
+                  type: string
+                  description: Name of the bank account to be used in SLURM. If not set, system default is taken.
                   default: null
               required:
                 - sourcePath
@@ -1481,6 +1489,10 @@ paths:
                   type: string
                   description: Copy data after job with id {stageOutJobId} is completed
                   default: null
+                account:
+                  type: string
+                  description: Name of the bank account to be used in SLURM. If not set, system default is taken.
+                  default: null
               required:
                 - sourcePath
                 - targetPath
@@ -1558,6 +1570,10 @@ paths:
                   type: string
                   description: Delete data after job with id {stageOutJobId} is completed
                   default: null
+                account:
+                  type: string
+                  description: Name of the bank account to be used in SLURM. If not set, system default is taken.
+                  default: null
               required:
                 - targetPath
               example:
@@ -1616,7 +1632,7 @@ paths:
                   description: source path to the file in local machine
                 targetPath:
                   type: string
-                  description: Absolute path to destination
+                  description: Absolute path to destination                
               required:
                 - sourcePath
                 - targetPath
