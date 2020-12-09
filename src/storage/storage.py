@@ -670,7 +670,7 @@ def get_file_from_storage(auth_header,system_name, system_addr,path,download_url
 # jobName = --job-name parameter to be used on sbatch command
 # jobTime = --time  parameter to be used on sbatch command
 # stageOutJobId = value to set in --dependency:afterok parameter
-# account = valute to set in --account parameter
+# account = value to set in --account parameter
 def exec_internal_command(auth_header,command,sourcePath, targetPath, jobName, jobTime, stageOutJobId, account):
 
 
