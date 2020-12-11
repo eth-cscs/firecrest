@@ -526,11 +526,10 @@ def upload_task(auth_header,system_name, system_addr,targetPath,sourcePath,task_
 
     # create certificate for later download from OS to filesystem
     app.logger.info("Creating certificate for later download") 
-    options = f"-q -O {targetPath}/{fileName} -- '{download_url}'"
+    options = f"-s -G -o {targetPath}/{fileName} -- '{download_url}'"
     exp_time = STORAGE_TEMPURL_EXP_TIME
-    certs = create_certificate(auth_header, system_name, system_addr, "wget", options, exp_time)
-    # certs = create_certificates(auth_header,system,command="wget",options=urllib.parse.quote(options),exp_time=STORAGE_TEMPURL_EXP_TIME)
-
+    certs = create_certificate(auth_header, system_name, system_addr, "curl", options, exp_time)
+    
     if not certs[0]:
         data = uploaded_files[task_id]
         msg="Could not create credentials for download from Staging Area to filesystem"
@@ -554,7 +553,7 @@ def upload_task(auth_header,system_name, system_addr,targetPath,sourcePath,task_
 
 
     resp["download_url"] = download_url
-    resp["action"] = f"wget {options}"
+    resp["action"] = f"curl {options}"
     resp["cert"] =  [cert_pub_enc, temp_dir]
 
     data["msg"] = resp
