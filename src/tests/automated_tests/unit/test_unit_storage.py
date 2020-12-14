@@ -47,7 +47,7 @@ def test_download_dir_not_allowed(headers):
 
 def test_internal_cp(headers):
     # jobName, time, stageOutJobId
-    data = {"sourcePath": USER_HOME + "/testsbatch.sh", "targetPath": USER_HOME + "/testsbatch2.sh", "account": "test"}
+    data = {"sourcePath":  "/srv/f7t/test_sbatch.sh", "targetPath": USER_HOME + "/testsbatch2.sh", "account": "test"}
     url = "{}/xfer-internal/cp".format(STORAGE_URL)
     resp = requests.post(url, headers=headers,data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
     assert resp.status_code == 201
