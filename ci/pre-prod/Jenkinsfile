@@ -197,7 +197,7 @@ node {
         echo 'userInput: ' + userInput
         if (userInput == true) {
             echo 'Promotion accepted'
-            stage('Tag firecrest images to firecrest-preprod and firecrest-tds') {
+            stage('Tag & Push firecrest images to firecrest-preprod and firecrest-tds') {
                 // Run template to tag docker images
                 ansibleTower(
                     towerServer: 'awx-local',
@@ -213,7 +213,7 @@ node {
                     """,
                     async: false
                 )
-            }
+            }            
         } else {
             echo 'Promotion was rejected.'
         }
