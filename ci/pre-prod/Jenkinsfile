@@ -1,0 +1,239 @@
+#!groovy
+
+node {
+    def gitHubUser = 'eth-cscs'
+    def gitHubRepo = 'firecrest'
+
+    // $after contains the commit id obtained trough github webhook
+    def longCommit = "$after"
+    def shortCommit = longCommit.substring(0, 7)
+
+    try {
+        stage('Checkout source code') {
+            echo 'Checking out source code'
+
+            git branch: 'master',
+            url: 'https://github.com/' + gitHubUser + '/' + gitHubRepo + '.git'
+
+            // checkout the specified commit
+            sh('git checkout ' + longCommit)
+        }
+
+        stage('Print Env After source checkout') {
+            echo "Branch Name: ${env.BRANCH_NAME}"
+            echo "BUILD_NUMBER : ${env.BUILD_NUMBER}"
+            echo "BUILD_ID : ${env.BUILD_ID}"
+            echo "JOB_NAME: ${env.JOB_NAME}"
+            echo "BUILD_TAG : ${env.BUILD_TAG}"
+            echo "EXECUTOR_NUMBER : ${env.EXECUTOR_NUMBER}"
+            echo "NODE_NAME: ${env.NODE_NAME}"
+            echo "NODE_LABELS : ${env.NODE_LABELS}"
+            echo "WORKSPACE : ${env.WORKSPACE}"
+            echo "JENKINS_HOME : ${env.JENKINS_HOME}"
+        }
+
+        stage('Sync ansible playbooks from github repo') {
+
+            ansibleTowerProjectSync(
+                towerServer: 'awx-local',
+                async: false,
+                importTowerLogs: true,
+                project: 'Pre-Prod Project',
+                removeColor: false,
+                throwExceptionWhenFail: true,
+                verbose: false
+            )
+        }
+
+        stage('Build firecrest images in registry') {
+            
+            ansibleTower(
+                towerServer: 'awx-local',
+                templateType: 'job',
+                jobTemplate: 'Pre-Prod Docker Build',
+                towerLogLevel: 'full',
+                removeColor: false,
+                verbose: true,
+                extraVars: """
+                build_tag: $shortCommit
+                commit_id: $longCommit
+                """,
+                async: false,
+                throwExceptionWhenFail: true
+            )
+        }
+
+        /*
+        // This should be executed once from awx itself
+        // since the test server is a permanent host (not dynamically created)
+        stage('Provisioning of test environment') {
+
+            // Install docker, python etc
+            ansibleTower(
+                towerServer: 'awx-local',
+                templateType: 'job',
+                jobTemplate: 'Test server provisioning',
+                towerLogLevel: 'full',
+                removeColor: false,
+                verbose: true
+                async: false
+            )
+        }*/
+
+        stage('Deploy firecrest in test environment') {
+
+            ansibleTower(
+                towerServer: 'awx-local',
+                templateType: 'job',
+                jobTemplate: 'Deploy firecrest demo',
+                towerLogLevel: 'full',
+                removeColor: false,
+                verbose: true,
+                extraVars: """
+                docker_registry_host: 148.187.97.229:5000
+                build_tag: $shortCommit
+                commit_id: $longCommit
+                """,
+                async: false,
+                throwExceptionWhenFail: true
+            )
+        }
+
+        sh '''#!/bin/sh
+            sleep 300
+            echo "Waiting for containers to get ready..."
+            '''
+
+        stage('Run tests against test environment') {
+
+            ansibleTower(
+                towerServer: 'awx-local',
+                templateType: 'job',
+                jobTemplate: 'Run firecrest automated tests',
+                towerLogLevel: 'full',
+                removeColor: false,
+                verbose: true,
+                async: false,
+                throwExceptionWhenFail: true
+            )
+        }
+
+    }
+    catch (e) {
+        // If there was an exception, the build failed
+        currentBuild.result = 'FAILED'
+        throw e
+    }
+    finally {
+
+        stage('Fetch firecrest log files') {
+
+            ansibleTower(
+                towerServer: 'awx-local',
+                templateType: 'job',
+                jobTemplate: 'Save firecrest demo deploy log files',
+                towerLogLevel: 'full',
+                removeColor: false,
+                verbose: true,
+                async: false,
+                throwExceptionWhenFail: false
+            )
+        }
+
+        // Save Log files
+        try {
+            sh "mkdir -p /var/log/jenkins/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}"
+
+            // retrieve the full path of logs folder inside awx container
+            // since 'docker cp' command does not allow wildcards
+            LOGS_PATH_INSIDE_AWX_CONTAINER = sh (
+                script: 'docker exec awx_task bash -c "echo /tmp/firecrest_demo_deploy_logs/*/home/centos/firecrest/deploy/demo/logs/firecrest/."',
+                returnStdout: true
+            ).trim()
+            echo "Logs path inside awx_task container: ${LOGS_PATH_INSIDE_AWX_CONTAINER}"
+
+            // copy log files from awx_task container to the job log folder
+            sh "docker cp awx_task:${LOGS_PATH_INSIDE_AWX_CONTAINER} /var/log/jenkins/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}/."
+
+            // remove log files in awx container
+            sh "docker exec awx_task rm -rf ${LOGS_PATH_INSIDE_AWX_CONTAINER.substring(0, LOGS_PATH_INSIDE_AWX_CONTAINER.length()-2)}"
+
+        } catch (errCpLogs) {
+            echo 'Error while saving log files: ' + errCpLogs.toString()
+        }
+
+        stage('Stop and remove firecrest containers in test server') {
+
+            ansibleTower(
+                towerServer: 'awx-local',
+                templateType: 'job',
+                jobTemplate: 'Stop and remove firecrest containers',
+                towerLogLevel: 'full',
+                removeColor: false,
+                verbose: true,
+                async: false,
+                throwExceptionWhenFail: false
+            )
+        }
+
+        notifyBuildStatusToGitHub(currentBuild.result, gitHubUser, gitHubRepo, longCommit)
+    }
+
+    if (currentBuild.result == 'FAILED') {
+        return
+    }
+
+    stage('Ask for commit promotion') {
+        
+        def INPUT_ID = 'Proceed1'
+        def msg = "<https://firecrest-ci.cscs.ch/job/${env.JOB_NAME}/${env.BUILD_NUMBER}/input|Request for promotion: commit $shortCommit>"
+        slackSend(color: 'good', message: msg)
+
+        def userInput = false
+        timeout(time: 7, unit: 'DAYS') {
+            userInput = input(id: INPUT_ID, message: "Promote commit $shortCommit", parameters: [[$class: 'BooleanParameterDefinition', defaultValue: false, description: '', name: 'Do you accept?']])
+        }
+
+        echo 'userInput: ' + userInput
+        if (userInput == true) {
+            echo 'Promotion accepted'
+            stage('Tag & Push firecrest images to firecrest-preprod and firecrest-tds') {
+                // Run template to tag docker images
+                ansibleTower(
+                    towerServer: 'awx-local',
+                    templateType: 'job',
+                    jobTemplate: 'Tag docker images',
+                    towerLogLevel: 'full',
+                    inventory: 'docker_registry',
+                    removeColor: false,
+                    verbose: true,
+                    credential: 'docker_registry_credentials',
+                    extraVars: """
+                    commit_id: $shortCommit
+                    """,
+                    async: false
+                )
+            }            
+        } else {
+            echo 'Promotion was rejected.'
+        }
+    }
+
+}
+
+def notifyBuildStatusToGitHub(String buildStatus, String gitHubUser, String gitHubRepo, String longCommit) {
+    buildStatus = buildStatus ?: 'SUCCESS'
+    def status = ''
+    if (buildStatus == 'SUCCESS') {
+        status = 'success'
+    } else {
+        status = 'failure'
+    }
+
+    withCredentials([string(credentialsId: 'firecrestci_access_token', variable: 'accessToken')]) {
+        sh 'curl -H "Authorization: token ' + "${accessToken}"  + '" "https://api.github.com/repos/' + gitHubUser + '/' + gitHubRepo + '/statuses/' + longCommit + '" \\' +
+        '-H "Content-Type: application/json" \\' +
+        '-X POST \\' +
+        '-d "{\\"state\\": \\"' + status + '\\",\\"context\\": \\"continuous-integration/jenkins\\", \\"description\\": \\"Jenkins\\", \\"target_url\\": \\"' + "${env.BUILD_URL}" + '/console\\"}"'
+    }
+}

@@ -1,0 +1,140 @@
+#!groovy
+
+node {
+    def gitHubUser = 'eth-cscs'
+    def gitHubRepo = 'firecrest'
+
+    // $after contains the commit id obtained trough github webhook
+    def longCommit = "$after"
+
+    try {
+        stage('Checkout source code') {
+            echo 'Checking out source code'
+
+            git branch: 'master',
+            url: 'https://github.com/' + gitHubUser + '/' + gitHubRepo + '.git'
+
+            // checkout the specified commit
+            sh('git checkout ' + longCommit)
+        }
+
+        stage('Print Env After source checkout') {
+            echo "Branch Name: ${env.BRANCH_NAME}"
+            echo "BUILD_NUMBER : ${env.BUILD_NUMBER}"
+            echo "BUILD_ID : ${env.BUILD_ID}"
+            echo "JOB_NAME: ${env.JOB_NAME}"
+            echo "BUILD_TAG : ${env.BUILD_TAG}"
+            echo "EXECUTOR_NUMBER : ${env.EXECUTOR_NUMBER}"
+            echo "NODE_NAME: ${env.NODE_NAME}"
+            echo "NODE_LABELS : ${env.NODE_LABELS}"
+            echo "WORKSPACE : ${env.WORKSPACE}"
+            echo "JENKINS_HOME : ${env.JENKINS_HOME}"
+        }
+
+        stage('Build') {
+            echo 'Build Stage Starting'
+
+            // delete log folder if exists
+            try {
+                sh "rm -rf ${env.WORKSPACE}/deploy/test-build/logs/firecrest"
+            } catch (ex0) {
+                echo 'Error: Can not delete logs/firecrest folder'
+            }
+
+            // create folder for logs
+            try {
+                sh "mkdir -p ${env.WORKSPACE}/deploy/test-build/logs/firecrest"
+            } catch (ex1) {
+                echo 'Error creating logs/firecrest folder'
+            }
+
+            // give write permissions to users in jenkins group (root user must belong to it)
+            try {
+                sh "chmod 775 ${env.WORKSPACE}/deploy/test-build/logs/firecrest"
+            } catch (ex2) {
+                echo 'Error: Can not change permissions of logs/firecrest folder'
+            }
+
+            dir('deploy/test-build/environment/keys') {
+                sh 'chmod 400 ca-key user-key'
+            }
+
+            withEnv(["PATH=$PATH:/usr/local/bin"]) {
+                dir('deploy/test-build') {
+                    sh 'docker-compose up --build -d'
+                }
+            }
+
+            sh '''#!/bin/sh
+            sleep 60
+            echo "Waiting for containers to get ready..."
+            '''
+
+            echo 'Build Stage Finsihed'
+        }
+
+        stage('Tests') {
+            dir('src/tests/automated_tests') {
+                sh 'pip3 install --user -r requirements.txt'
+
+                withEnv(["PATH=$PATH:~/.local/bin"]) {
+                    echo 'Unit Tests Starting'
+                    sh 'pytest -c test-build.ini unit'
+                    echo 'Unit Tests Finished'
+
+                    echo 'Integration Tests Starting'
+                    sh 'pytest -c test-build.ini integration'
+                    echo 'Integrations Tests Finished'
+                }
+
+                echo 'Tests Finished'
+            }
+        }
+    }
+    catch (e) {
+        // If there was an exception, the build failed
+        currentBuild.result = 'FAILED'
+        throw e
+    }
+    finally {
+        // Save Log files
+        try {
+            sh "mkdir -p /var/log/jenkins/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}"
+            sh "cp -r ${env.WORKSPACE}/deploy/test-build/logs/firecrest/* /var/log/jenkins/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}/."
+        } catch (errCpLogs) {
+            echo 'Error while saving log files: ' + errCpLogs.toString()
+        }
+
+        sh '''#!/bin/sh
+        sleep 30
+        echo "Waiting 30 seconds before containers removal..."
+        '''
+
+        // Remove containers
+        withEnv(["PATH=$PATH:/usr/local/bin"]) {
+            dir('deploy/test-build') {
+                // destroy containers and volumes
+                sh 'docker-compose down -v'
+            }
+        }
+
+        notifyBuildStatusToGitHub(currentBuild.result, gitHubUser, gitHubRepo, longCommit)
+    }
+}
+
+def notifyBuildStatusToGitHub(String buildStatus, String gitHubUser, String gitHubRepo, String longCommit) {
+    buildStatus = buildStatus ?: 'SUCCESS'
+    def status = ''
+    if (buildStatus == 'SUCCESS') {
+        status = 'success'
+    } else {
+        status = 'failure'
+    }
+
+    withCredentials([string(credentialsId: 'firecrestci_access_token', variable: 'accessToken')]) {
+        sh 'curl -H "Authorization: token ' + "${accessToken}"  + '" "https://api.github.com/repos/' + gitHubUser + '/' + gitHubRepo + '/statuses/' + longCommit + '" \\' +
+        '-H "Content-Type: application/json" \\' +
+        '-X POST \\' +
+        '-d "{\\"state\\": \\"' + status + '\\",\\"context\\": \\"continuous-integration/jenkins\\", \\"description\\": \\"Jenkins\\", \\"target_url\\": \\"' + "${env.BUILD_URL}" + '/console\\"}"'
+    }
+}

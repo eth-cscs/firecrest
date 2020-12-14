@@ -1,0 +1,34 @@
+---
+- name: Run tests
+  gather_facts: no
+  hosts: all
+  vars:
+    firecrest_tests_dir: "/home/centos/firecrest/src/tests/automated_tests"
+    pytest_bin: "/home/centos/.local/bin"
+  
+  # Shell module always looks for commands at /bin/sh
+  # We have to set the full path for pytest in shell tasks.
+  # Setting PATH variable doesn't work in this case...
+  #environment:
+  #  PATH: "{{ ansible_env.PATH }}:/home/centos/.local/bin"
+  tasks:
+    - name: Install pytest modules
+      shell: pip3 install --user -r requirements.txt
+      args:
+        chdir: "{{ firecrest_tests_dir }}"
+      
+    - name: Run unit tests
+      shell: "{{ pytest_bin }}/pytest -c demo.ini unit"
+      args:
+        chdir: "{{ firecrest_tests_dir }}"
+      #environment:
+      #  PATH: "{{ ansible_env.PATH }}:{{ pytest_bin }}"
+
+    - name: Run integration tests
+      shell:  "{{ pytest_bin }}/pytest -c demo.ini integration"
+      args:
+        chdir: "{{ firecrest_tests_dir }}"
+      #environment:
+      #  PATH: "{{ ansible_env.PATH }}:{{ pytest_bin }}"
+
+    

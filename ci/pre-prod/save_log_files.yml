@@ -1,0 +1,34 @@
+---
+
+# Log files will be copied from testing server to the logs_dest_dir folder located 
+# at master node (the awx container)
+
+- name: Save log files of firecrest demo deploy
+  gather_facts: No
+  hosts: all
+  vars:
+    firecrest_dir: "/home/centos/firecrest"
+    logs_dest_dir: "/tmp/firecrest_demo_deploy_logs" #temp folder in awx_tasks container
+  
+  tasks:
+    - name: fetch log files
+      fetch:
+        src: "{{ firecrest_dir }}/deploy/demo/logs/firecrest/{{ item }}.log"
+        dest: "{{ logs_dest_dir }}"
+      register: fetch_output
+      loop:
+        - compute
+        - utilities
+        - certificator
+        - status
+        - tasks
+        - storage
+
+    - debug: var=fetch_output
+
+    # Synchronizes: src an dest are folders in the remote host
+    #- name: Synchronization
+    #  ansible.posix.synchronize:
+    #    mode: pull
+    #    src: "{{ firecrest_dir }}/deploy/demo/logs/firecrest"
+    #    dest: "/home/centos/tmp/"
