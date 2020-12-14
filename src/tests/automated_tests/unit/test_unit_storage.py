@@ -3,10 +3,11 @@ import requests
 import os
 from markers import host_environment_test
 from test_globals import *
+import time
 
 FIRECREST_URL = os.environ.get("FIRECREST_URL")
 if FIRECREST_URL:
-	STORAGE_URL = os.environ.get("FIRECREST_URL") + "/storage"
+	STORAGE_URL = os.environ.get("FIRECREST_URL") + "/storage"    
 else:
     STORAGE_URL = os.environ.get("F7T_STORAGE_URL")
 
@@ -52,9 +53,9 @@ def test_internal_cp(headers):
     assert resp.status_code == 201
 
 
-def test_internal_mv(headers):
+def test_internal_mv(headers):    
     # jobName, time, stageOutJobId
-    data = {"sourcePath": USER_HOME + "/testsbatch2.sh", "targetPath": USER_HOME + "/testsbatch3.sh"}
+    data = {"sourcePath": "/srv/f7t/test_sbatch_mv.sh", "targetPath": USER_HOME + "/testsbatch3.sh"}
     url = "{}/xfer-internal/mv".format(STORAGE_URL)
     resp = requests.post(url, headers=headers,data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
     assert resp.status_code == 201
@@ -70,10 +71,19 @@ def test_internal_rsync(headers):
 
 def test_internal_rm(headers):
     # jobName, time, stageOutJobId
-    data = {"targetPath": USER_HOME + "/testsbatch3.sh"}
+    data = {"targetPath": "/srv/f7t/test_sbatch_rm.sh"}
+    
     url = "{}/xfer-internal/rm".format(STORAGE_URL)
     resp = requests.post(url, headers=headers,data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
     assert resp.status_code == 201   
+
+def test_internal_rm_err(headers):
+    # jobName, time, stageOutJobId
+    data = {"targetPath": "/srv/f7t/test_sbatch_forbidden.sh"}
+    
+    url = "{}/xfer-internal/rm".format(STORAGE_URL)
+    resp = requests.post(url, headers=headers,data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+    assert resp.status_code == 400
 
 
 # Test storage microservice status
