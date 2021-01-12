@@ -218,10 +218,8 @@ def receive():
 
         # Check if user is authorized in OPA
         cluster = request.args.get("cluster","")
-            
         if not cluster:
             return jsonify(description='No cluster specified'), 404
-
 
         auth_result = check_user_auth(username,cluster)
         if not auth_result["allow"]:
@@ -234,10 +232,8 @@ def receive():
         force_command = base64.urlsafe_b64decode(request.args.get("command", '')).decode("utf-8")
         if force_command:
             force_opt = base64.urlsafe_b64decode(request.args.get("option", '')).decode("utf-8")
-            if force_command == 'wget':
-                force_command = '/usr/bin/wget'
-                ssh_expire = "+30m" #change to '+7d'
-                exp_time = request.args.get("exptime",'')
+            if force_command == 'curl':
+                exp_time = request.args.get("exptime", '')
                 if exp_time:
                     ssh_expire = f"+{exp_time}s"
         else:
