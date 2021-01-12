@@ -14,6 +14,11 @@ else:
 
 SERVER_UTILITIES = os.environ.get("F7T_SYSTEMS_PUBLIC").split(";")[0]
 
+### SSL parameters
+USE_SSL = os.environ.get("F7T_USE_SSL", False)
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_PATH = "../../../deploy/test-build"
+
 
 # test data for rename, chmod,chown, file, download,upload
 DATA = [ (SERVER_UTILITIES, 200) , ("someservernotavailable", 400)]  
@@ -53,7 +58,7 @@ def test_view(machine, targetPath, expected_response_code, headers):
 
 	headers.update({ "X-Machine-Name": machine })
 
-	resp = requests.get(url=url, headers=headers, params=params)
+	resp = requests.get(url=url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 
 	print(resp.json())
 	print(resp.headers)
@@ -67,7 +72,7 @@ def test_checksum(machine, targetPath, expected_response_code, headers):
 
 	headers.update({ "X-Machine-Name": machine })
 
-	resp = requests.get(url=url, headers=headers, params=params)
+	resp = requests.get(url=url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 
 	print(resp.json())
 	print(resp.headers)
@@ -83,8 +88,10 @@ def test_upload(machine, expected_response_code, headers):
 	files = {'file': ('testsbatch.sh', open('testsbatch.sh', 'rb'))}
 	url = "{}/upload".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.post(url, headers=headers, data=data, files=files)
+	print(machine)
+	resp = requests.post(url, headers=headers, data=data, files=files, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
+	print(resp.headers)
 	assert resp.status_code == expected_response_code 
 
 
@@ -94,7 +101,7 @@ def test_file_type(machine, expected_response_code, headers):
 	url = "{}/file".format(UTILITIES_URL)
 	params = {"targetPath": ".bashrc"}
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.get(url, headers=headers, params=params)
+	resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
 	assert resp.status_code == expected_response_code  
 	 
@@ -103,7 +110,7 @@ def test_file_type(machine, expected_response_code, headers):
 def exec_chmod(machine, headers, data):
 	url = "{}/chmod".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.put(url, headers=headers, data=data)
+	resp = requests.put(url, headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	return resp
 
 
@@ -132,7 +139,7 @@ def test_chown(machine, expected_response_code, headers):
 	data = {"targetPath": USER_HOME + "/testsbatch.sh", "owner" : CURRENT_USER , "group": CURRENT_USER}
 	url = "{}/chown".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.put(url, headers=headers, data=data)
+	resp = requests.put(url, headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
 	assert resp.status_code == expected_response_code  
 
@@ -142,7 +149,7 @@ def test_list_directory(machine, targetPath, expected_response_code, headers):
 	params = {"targetPath": targetPath, "showhidden" : "true"}
 	url = "{}/ls".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.get(url, headers=headers, params=params)
+	resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(json.dumps(resp.json(),indent=2))
 	print(resp.headers)
 	assert resp.status_code == expected_response_code
@@ -154,7 +161,7 @@ def test_make_directory(machine, expected_response_code, headers):
 	data = {"targetPath": USER_HOME + "/samplefolder/samplesubfolder", "p" : "true"}
 	url = "{}/mkdir".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.post(url, headers=headers, data=data)
+	resp = requests.post(url, headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
 	assert resp.status_code == expected_response_code  
 
@@ -165,7 +172,7 @@ def test_rename(machine, expected_response_code, headers):
 	data = {"sourcePath": USER_HOME + "/samplefolder/", "targetPath" : USER_HOME + "/sampleFolder/"}
 	url = "{}/rename".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.put(url, headers=headers, data=data)
+	resp = requests.put(url, headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
 	assert resp.status_code == expected_response_code  
 
@@ -177,7 +184,7 @@ def test_copy(machine, expected_response_code, headers):
 	data = {"sourcePath": USER_HOME + "/sampleFolder", "targetPath" : USER_HOME + "/sampleFoldercopy"}
 	url = "{}/copy".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.post(url, headers=headers, data=data)
+	resp = requests.post(url, headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
 	assert resp.status_code == expected_response_code  
 
@@ -188,7 +195,7 @@ def test_symlink(machine, expected_response_code, headers):
 	data = {"targetPath": USER_HOME + "/testsbatch.sh", "linkPath" : USER_HOME + "/sampleFolder/testlink"}
 	url = "{}/symlink".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.post(url, headers=headers, data=data)
+	resp = requests.post(url, headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
 	print(machine)
 	assert resp.status_code == expected_response_code
@@ -201,7 +208,7 @@ def test_rm(machine, expected_response_code, headers):
 	data = {"targetPath": USER_HOME + "/sampleFolder/"}
 	url = "{}/rm".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.delete(url, headers=headers, data=data)
+	resp = requests.delete(url, headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
 	assert resp.status_code == expected_response_code 
 
@@ -212,7 +219,7 @@ def test_download(machine, expected_response_code, headers):
 	params = {"sourcePath": USER_HOME + "/testsbatch.sh"}
 	url = "{}/download".format(UTILITIES_URL)
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.get(url, headers=headers, params=params)
+	resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	assert resp.status_code == expected_response_code
 
 
@@ -220,7 +227,9 @@ def test_download(machine, expected_response_code, headers):
 @host_environment_test
 def test_status():
 	url = "{}/status".format(UTILITIES_URL)
-	resp = requests.get(url)
+	resp = requests.get(url, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	print(resp.content)
+	print(resp.headers)
 	assert resp.status_code == 200
 
 

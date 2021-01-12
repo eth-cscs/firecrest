@@ -21,7 +21,7 @@ from cscs_api_common import create_task, update_task, get_task_status
 from cscs_api_common import exec_remote_command
 from cscs_api_common import create_certificate
 from cscs_api_common import in_str
-from cscs_api_common import is_valid_file, is_valid_dir
+from cscs_api_common import is_valid_file, is_valid_dir, check_command_error
 
 # job_time_checker for correct SLURM job time in /xfer-internal tasks
 import job_time
@@ -66,6 +66,9 @@ OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE", "").strip('\'"')
 # Scheduller partition used for internal transfers
 XFER_PARTITION = os.environ.get("F7T_XFER_PARTITION", "").strip('\'"')
 
+# --account parameter needed in sbatch?
+USE_SLURM_ACCOUNT = os.environ.get("F7T_USE_SLURM_ACCOUNT", False)
+
 # Machine used for external transfers
 
 EXT_TRANSFER_MACHINE_PUBLIC=os.environ.get("F7T_EXT_TRANSFER_MACHINE_PUBLIC", "").strip('\'"')
@@ -88,9 +91,17 @@ STORAGE_MAX_FILE_SIZE = int(os.environ.get("F7T_STORAGE_MAX_FILE_SIZE", "5120").
 # for use on signature of URL it must be in bytes (MB*1024*1024 = Bytes)
 STORAGE_MAX_FILE_SIZE *= 1024*1024
 
+UTILITIES_TIMEOUT = int(os.environ.get("F7T_UTILITIES_TIMEOUT", "5").strip('\'"'))
+
 STORAGE_POLLING_INTERVAL = int(os.environ.get("F7T_STORAGE_POLLING_INTERVAL", "60").strip('\'"'))
 CERT_CIPHER_KEY = os.environ.get("F7T_CERT_CIPHER_KEY", "").strip('\'"').encode('utf-8')
 
+### SSL parameters
+USE_SSL = os.environ.get("F7T_USE_SSL", False)
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
+# verify signed SSL certificates
+SSL_SIGNED = os.environ.get("F7T_SSL_SIGNED", False)
 
 # aynchronous tasks: upload & download --> http://TASKS_URL
 # {task_id : AsyncTask}
@@ -641,7 +652,8 @@ def upload_request():
 # jobName = --job-name parameter to be used on sbatch command
 # jobTime = --time  parameter to be used on sbatch command
 # stageOutJobId = value to set in --dependency:afterok parameter
-def exec_internal_command(auth_header,command,sourcePath, targetPath, jobName, jobTime, stageOutJobId):
+# account = value to set in --account parameter
+def exec_internal_command(auth_header,command,sourcePath, targetPath, jobName, jobTime, stageOutJobId, account):
 
 
     action = "{command} {sourcePath} {targetPath}".\
@@ -663,6 +675,9 @@ def exec_internal_command(auth_header,command,sourcePath, targetPath, jobName, j
 
         if stageOutJobId != None:
             sbatch_file.write("#SBATCH --dependency=afterok:{stageOutJobId}\n".format(stageOutJobId=stageOutJobId))
+        if account != None:
+            app.logger.info(account)
+            sbatch_file.write(f"#SBATCH --account={account}")
 
         sbatch_file.write("\n")
         sbatch_file.write("echo -e \"$SLURM_JOB_NAME started on $(date): {action}\"\n".format(action=action))
@@ -718,6 +733,10 @@ def internal_rm():
 def internal_operation(request, command):
 
     auth_header = request.headers[AUTH_HEADER_NAME]
+
+    system_idx = SYSTEMS_PUBLIC.index(STORAGE_JOBS_MACHINE)
+    system_addr = SYS_INTERNALS[system_idx]    
+    system_name = STORAGE_JOBS_MACHINE
     
     try:
         targetPath = request.form["targetPath"]  # path to save file in cluster
@@ -727,6 +746,7 @@ def internal_operation(request, command):
         app.logger.error("targetPath not specified")
         return jsonify(error="targetPath not specified"), 400
 
+    
     # using actual_command to add options to check sanity of the command to be executed
     actual_command = ""
     if command in ['cp', 'mv', 'rsync']:
@@ -737,6 +757,30 @@ def internal_operation(request, command):
         except:
             app.logger.error("sourcePath not specified")
             return jsonify(error="sourcePath not specified"), 400
+
+        # checks if file to copy, move or rsync (targetPath) is a valid path
+        # remove the last part of the path (after last "/" char) to check if the dir can be written by user        
+
+        _targetPath = targetPath.split("/")[:-1]
+        _targetPath = "/".join(_targetPath)
+
+        app.logger.info(f"_targetPath={_targetPath}")
+
+        
+        check_dir  = is_valid_dir(_targetPath, auth_header, system_name, system_addr)
+
+        if not check_dir["result"]:
+            return jsonify(description="targetPath error"), 400, check_dir["headers"]
+
+        check_file = is_valid_file(sourcePath, auth_header, system_name, system_addr)
+                
+        if not check_file["result"]:
+            check_dir  = is_valid_dir(sourcePath, auth_header, system_name, system_addr)
+
+            if not check_dir["result"]:
+                return jsonify(description="sourcePath error"), 400, check_dir["headers"]
+        
+
         if command == "cp":
             actual_command = "cp --force -dR --preserve=all -- "
         elif command == "mv":
@@ -745,6 +789,15 @@ def internal_operation(request, command):
             actual_command = "rsync -av -- "
     elif command == "rm":
         # for 'rm' there's no source, set empty to call exec_internal_command(...)
+        # checks if file or dir to delete (targetPath) is a valid path or valid directory
+        check_file = is_valid_file(targetPath, auth_header, system_name, system_addr)
+                
+        if not check_file["result"]:
+            check_dir  = is_valid_dir(targetPath, auth_header, system_name, system_addr)
+
+            if not check_dir["result"]:
+                return jsonify(description="targetPath error"), 400, check_dir["headers"]
+
         sourcePath = ""
         actual_command = "rm -rf -- "
     else:
@@ -775,6 +828,25 @@ def internal_operation(request, command):
     system_idx = SYSTEMS_PUBLIC.index(STORAGE_JOBS_MACHINE)
     system_addr = SYS_INTERNALS[system_idx]
 
+    app.logger.info(f"USE_SLURM_ACCOUNT: {USE_SLURM_ACCOUNT}")
+    # get "account" parameter, if not found, it is obtained from "id" command
+    try:
+        account = request.form["account"] 
+    except:
+        if USE_SLURM_ACCOUNT:
+            username = get_username(auth_header)
+
+            id_command = f"timeout {UTILITIES_TIMEOUT} id -gn -- {username}"
+            resp = exec_remote_command(auth_header, STORAGE_JOBS_MACHINE, system_addr, id_command)
+            if resp["error"] != 0:
+                retval = check_command_error(resp["msg"], resp["error"], f"{command} job")
+    
+                return jsonify(description=f"Failed to submit {command} job", error=retval["description"]), retval["status_code"], retval["header"]
+
+            account = resp["msg"]
+        else:
+            account = None
+
     # check if machine is accessible by user:
     # exec test remote command
     resp = exec_remote_command(auth_header, STORAGE_JOBS_MACHINE, system_addr, "true")
@@ -788,7 +860,7 @@ def internal_operation(request, command):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description=f"Failed to submit {command} job"), 404, header
 
-    retval = exec_internal_command(auth_header, actual_command, sourcePath, targetPath, jobName, jobTime, stageOutJobId)
+    retval = exec_internal_command(auth_header, actual_command, sourcePath, targetPath, jobName, jobTime, stageOutJobId, account)
 
     # returns "error" key or "success" key
     try:
@@ -815,7 +887,7 @@ def create_xfer_job(machine,auth_header,fileName):
     try:
         req = requests.post("{compute_url}/jobs/upload".
                             format(compute_url=COMPUTE_URL),
-                            files=files, headers={AUTH_HEADER_NAME: auth_header, "X-Machine-Name":machine})
+                            files=files, headers={AUTH_HEADER_NAME: auth_header, "X-Machine-Name":machine}, verify= (SSL_CRT if USE_SSL else False))
 
         retval = json.loads(req.text)
         if not req.ok:
@@ -908,7 +980,7 @@ def get_upload_unfinished_tasks():
 
         # only unfinished upload process
         status_code = [async_task.ST_URL_ASK, async_task.ST_URL_REC, async_task.ST_UPL_CFM, async_task.ST_DWN_BEG, async_task.ST_DWN_ERR]
-        retval=requests.get(f"{TASKS_URL}/taskslist", json={"service": "storage", "status_code":status_code}, timeout=30)
+        retval=requests.get(f"{TASKS_URL}/taskslist", json={"service": "storage", "status_code":status_code}, timeout=30, verify=(SSL_CRT if USE_SSL else False))
 
         if not retval.ok:
             app.logger.error("Error getting tasks from Tasks microservice")
@@ -1003,4 +1075,7 @@ if __name__ == "__main__":
     upload_check.start()
 
 
-    app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=STORAGE_PORT)
+    if USE_SSL:        
+        app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=STORAGE_PORT, ssl_context=(SSL_CRT, SSL_KEY))        
+    else:
+        app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=STORAGE_PORT)

@@ -1,0 +1,13 @@
+image_definitions:
+  compute:
+    build_path: /home/firecrest/awx-firecrest-build
+  status:
+    build_path: /home/firecrest/awx-firecrest-build
+  storage:
+    build_path: /home/firecrest/awx-firecrest-build
+  tasks:
+    build_path: /home/firecrest/awx-firecrest-build
+  utilities:
+    build_path: /home/firecrest/awx-firecrest-build
+  openapi:
+    build_path: /home/firecrest/awx-firecrest-build

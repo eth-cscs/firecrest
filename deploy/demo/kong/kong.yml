@@ -28,35 +28,35 @@ routes:
 
 services:
 - name: compute
-  url: http://192.168.220.9:5006
+  url: https://192.168.220.9:5006
   routes:
   - name: compute
     methods: [DELETE,GET,POST]
     paths:
     - /compute/
 - name: status
-  url: http://192.168.220.4:5001
+  url: https://192.168.220.4:5001
   routes:
   - name: status
     methods: [GET]
     paths:
     - /status/
 - name: storage
-  url: http://192.168.220.5:5002
+  url: https://192.168.220.5:5002
   routes:
   - name: storage
     methods: [GET,POST]
     paths:
     - /storage/
 - name: tasks
-  url: http://192.168.220.6:5003
+  url: https://192.168.220.6:5003
   routes:
   - name: tasks
     methods: [GET]
     paths:
     - /tasks/
 - name: utilities
-  url: http://192.168.220.7:5004
+  url: https://192.168.220.7:5004
   routes:
   - name: utilities
     methods: [DELETE,GET,POST,PUT]

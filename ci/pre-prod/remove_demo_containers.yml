@@ -1,0 +1,50 @@
+
+
+---
+- name: Remove firecrest containers
+  gather_facts: No
+  hosts: all
+  vars:
+    firecrest_dir: "/home/centos/firecrest"
+
+  tasks:
+    - name: Stop and remove containers
+      docker_container:
+        name: "{{ item }}"
+        state: absent
+      with_items:
+        - taskpersistence
+        - tasks
+        - certificator
+        - compute
+        - status
+        - storage
+        - utilities
+        - cluster
+        - fckeycloak
+        - kong
+        - opa
+        - minio
+
+    - name: Delete network demo_firecrest-internal
+      community.general.docker_network:
+        name: demo_firecrest-internal
+        state: absent
+        force: yes
+
+    - name: Delete network firecrest-internal
+      community.general.docker_network:
+        name: firecrest-internal
+        state: absent
+        force: yes
+    
+    - name: Delete network demo_default
+      community.general.docker_network:
+        name: demo_default
+        state: absent
+        force: yes
+
+    - name: Clean firecrest deploy folder
+      file:
+        state: absent
+        path: "{{ firecrest_dir }}/"
