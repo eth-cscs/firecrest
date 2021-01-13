@@ -52,7 +52,7 @@ case "$command" in
     tmp2=${tmp1#* }
     command2=${tmp2%% *}   # remove options
     case "$command2" in
-      base64|chmod|chown|cp|curl|file|head|ln|ls|mkdir|mv|rm|sbatch|scontrol|sha256sum|squeue|stat|tail)
+      base64|chmod|chown|cp|curl|id|file|head|ln|ls|mkdir|mv|rm|sbatch|scontrol|sha256sum|squeue|stat|tail)
         ;;
       *)
         echo "${msg} error - Unhandled timeout command: ${command2}" >> ${log_file}
