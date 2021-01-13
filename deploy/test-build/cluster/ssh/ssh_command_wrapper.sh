@@ -52,7 +52,7 @@ case "$command" in
     tmp2=${tmp1#* }
     command2=${tmp2%% *}   # remove options
     case "$command2" in
-      base64|chmod|chown|cp|file|head|id|ln|ls|mkdir|mv|rm|sbatch|scontrol|sha256sum|squeue|stat|tail|wget)
+      base64|chmod|chown|cp|curl|id|file|head|ln|ls|mkdir|mv|rm|sbatch|scontrol|sha256sum|squeue|stat|tail)
         ;;
       *)
         echo "${msg} error - Unhandled timeout command: ${command2}" >> ${log_file}
@@ -63,7 +63,7 @@ case "$command" in
   sacct|sbatch|scancel|scontrol|squeue)
     # valid Slurm commands
     ;;
-  /usr/bin/wget|curl)
+  curl)
     # from object storage
     ;;
   *)
