@@ -18,7 +18,8 @@ SOC="${SSH_ORIGINAL_COMMAND}"
 
 set -u  # -e (abort on command error),  -u (undefined var are errors), -o pipefail (pipe errors)
 
-msg="$(date +%Y-%m-%dT%H:%M:%S) - "${UID}" -"
+# msg="$(date +%Y-%m-%dT%H:%M:%S) - "${UID}" -"
+msg="FirecREST command execution user $USER ($UID) -"
 
 cert_type=${SOC%%-cert-v01@openssh.com *}    # remove all after first space
 
@@ -35,7 +36,7 @@ case "$cert_type" in
     SSH_EXECUTE=${c#*force-command *} # remove " force-command " and spaces
     ;;
   *)
-    echo "${msg} error - Unknown certificate type: $cert_type" >> ${log_file}
+    logger -p user.error "${msg} error - Unknown certificate type: $cert_type"
     exit 118
     ;;
 esac
@@ -55,7 +56,7 @@ case "$command" in
       base64|chmod|chown|cp|curl|id|file|head|ln|ls|mkdir|mv|rm|sbatch|scontrol|sha256sum|squeue|stat|tail)
         ;;
       *)
-        echo "${msg} error - Unhandled timeout command: ${command2}" >> ${log_file}
+        logger -p user.error  "${msg} error - Unhandled timeout command: ${command2}"
         exit 118
         ;;
     esac
@@ -67,13 +68,13 @@ case "$command" in
     # from object storage
     ;;
   *)
-    echo "${msg} error - Unhandled command: ${command}" >> ${log_file}
+    logger -p user.error "${msg} error - Unhandled command: ${command}"
     exit 118
     ;;
 esac
 
 # all ok, log command
-echo "${msg} ok - ${SSH_EXECUTE}" >> ${log_file}
+logger -p user.info "${msg} ok - ${SSH_EXECUTE}"
 
 # execute command
 eval ${SSH_EXECUTE}
