@@ -141,7 +141,7 @@ def chmod():
     try:
         mode = request.form["mode"]
         if mode == "":
-            return jsonify(description="Error in chown operation",error="'mode' value is empty"), 400
+            return jsonify(description="Error in chmod operation",error="'mode' value is empty"), 400
     except BadRequestKeyError:
         return jsonify(description="Error in chmod operation", error="mode query string missing"), 400
 
