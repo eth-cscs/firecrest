@@ -686,6 +686,10 @@ def check_command_error(error_str, error_code, service_msg):
         header = {"X-Timeout": "Command has finished with timeout signal"}
         return {"description": service_msg, "status_code": 400, "header": header}
 
+    if error_code == 118:
+        header = {"X-Error": "Command execution is not allowed in machine"}
+        return {"description": service_msg, "status_code": 400, "header": header}
+
     # When certificate doesn't match SSH configuration
     if in_str(error_str,"OPENSSH"):
         header = {"X-Permission-Denied": "User does not have permissions to access machine"}
