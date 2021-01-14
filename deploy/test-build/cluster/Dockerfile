@@ -22,6 +22,7 @@ RUN set -ex \
        perl \
        python-pip \
        psmisc \
+       rsyslog \
        wget \
     && yum clean all \
     && rm -rf /var/cache/yum > /dev/null
@@ -77,6 +78,9 @@ RUN /usr/libexec/mariadb-prepare-db-dir 2>/dev/null
 
 ADD cluster/ssh/ssh_command_wrapper.sh /ssh_command_wrapper.sh
 RUN chmod 555 /ssh_command_wrapper.sh
+
+ADD cluster/rsyslog/rsyslog.conf /etc/
+ADD cluster/rsyslog/listen.conf /etc/rsyslog.d
 
 # add sbatch scripts for testing purposes
 RUN mkdir /srv/f7t
