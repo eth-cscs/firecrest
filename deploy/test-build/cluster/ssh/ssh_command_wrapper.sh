@@ -1,9 +1,10 @@
 #!/bin/bash
-#  Copyright (c) 2019-2020, ETH Zurich. All rights reserved.
-#
-#  Please, refer to the LICENSE file in the root directory.
-#  SPDX-License-Identifier: BSD-3-Clause
-#
+##
+##  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
+##
+##  Please, refer to the LICENSE file in the root directory.
+##  SPDX-License-Identifier: BSD-3-Clause
+##
 
 # Required OpenSSH >= 7.2 for ssh-keygen to read from stdin
 # Optional OpenSSH >= 7.6 for direct access to certificates (via ExposeAuthInfo)
