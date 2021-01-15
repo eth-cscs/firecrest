@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2019-2020, ETH Zurich. All rights reserved.
+#  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
 #
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
@@ -141,7 +141,7 @@ def chmod():
     try:
         mode = request.form["mode"]
         if mode == "":
-            return jsonify(description="Error in chown operation",error="'mode' value is empty"), 400
+            return jsonify(description="Error in chmod operation",error="'mode' value is empty"), 400
     except BadRequestKeyError:
         return jsonify(description="Error in chmod operation", error="mode query string missing"), 400
 

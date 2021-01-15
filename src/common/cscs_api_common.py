@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2019-2020, ETH Zurich. All rights reserved.
+#  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
 #
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
@@ -684,6 +684,10 @@ def check_command_error(error_str, error_code, service_msg):
 
     if error_code == 124:
         header = {"X-Timeout": "Command has finished with timeout signal"}
+        return {"description": service_msg, "status_code": 400, "header": header}
+
+    if error_code == 118:
+        header = {"X-Error": "Command execution is not allowed in machine"}
         return {"description": service_msg, "status_code": 400, "header": header}
 
     # When certificate doesn't match SSH configuration
