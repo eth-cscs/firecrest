@@ -30,7 +30,7 @@ case "$cert_type" in
     tmp2=$(grep "^ *${CA_signature}" <<< "$tmp1")
     sig="Signing CA:"${tmp2## *Signing CA:} # remove left spaces
     if [ "$sig" != "$CA_signature" ]; then
-      echo "${msg} error - Wrong CA: ${sig}" >> ${log_file}
+      logger -p user.error "${msg} error - Wrong CA: ${sig}"
       exit 118
     fi
     c=$(grep "^ *force-command " <<< "$tmp1")
