@@ -335,8 +335,8 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
 
         # TODO: change precedence of error, because in /xfer-external/download this gives error and it s not an error
         if stderr_errno == 0:
-            if stderr_errda and not in_str(stderr_errda,"Could not chdir to home directory"):
-                result = {"error": 0, "msg": stderr_errda}
+            if stderr_errda and not (in_str(stderr_errda,"Could not chdir to home directory") or in_str(stderr_errda,"scancel: Terminating job")):
+                result = {"error": 1, "msg": stderr_errda}
             else:
                 result = {"error": 0, "msg": outlines}
         elif stderr_errno > 0:
@@ -386,7 +386,7 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
         os.remove(priv_key)
         os.rmdir(temp_dir)
 
-    logging.info(f"Result returned: {result['msg']}")
+    logging.info(f"Returned: ({result['error']}) {result['msg']}")
     return result
 
 
