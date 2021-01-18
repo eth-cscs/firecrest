@@ -68,5 +68,11 @@ services:
     methods: [DELETE,GET,POST,PUT]
     paths:
     - /utilities/
-
+- name: reservations
+  url: https://192.168.220.8:5005
+  routes:
+  - name: reservations
+    methods: [DELETE,GET,POST,PUT]
+    paths:
+    - /reservations
 
