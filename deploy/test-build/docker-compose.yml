@@ -92,6 +92,18 @@ services:
       - ./logs/firecrest:/var/log:delegated
       - ./ssl:/ssl
 
+  reservations:
+    build: 
+      context: ../../
+      dockerfile: deploy/docker/reservations/Dockerfile
+    env_file:
+      - ./environment/common.env
+    network_mode: "host"
+    volumes:
+      - "./environment/keys/user-key:/user-key:ro"
+      - ./logs/firecrest:/var/log:delegated
+      - ./ssl:/ssl
+
   # auxiliary containers
   cluster:
     # runs on private network to avoid conflict with a local SSH server

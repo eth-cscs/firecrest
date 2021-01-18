@@ -137,6 +137,24 @@ services:
       - ../test-build/environment/keys/user-key:/user-key:ro
       - ./ssl:/ssl
 
+  reservations:
+    container_name: reservations
+    build: 
+      context: ../../
+      dockerfile: deploy/docker/reservations/Dockerfile
+      network: host
+    env_file:
+      - ./common/common.env
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.8
+    ports:
+      - 5005:5005
+    volumes:
+      - ./logs/firecrest:/var/log:delegated
+      - ../test-build/environment/keys/user-key:/user-key:ro
+      - ./ssl:/ssl
+
   # web client
   client:
     container_name: client
