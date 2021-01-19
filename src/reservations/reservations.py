@@ -234,7 +234,7 @@ def post():
     try:
         reservation = request.form["reservation"]
         if not check_name(reservation):
-            return jsonify(error="Error creating reservation", description=f"'reservation' parameter format is not valid (value entered:'{reservation}')"), 422
+            return jsonify(error="Error creating reservation", description=f"'reservation' parameter format is not valid (value entered:'{reservation}')"), 400
     except BadRequestKeyError:
         return jsonify(error="Error creating reservation", description="'reservation' form data input missing"), 400
 
@@ -242,7 +242,7 @@ def post():
     try:
         account = request.form["account"]
         if not check_name(account):
-            return jsonify(error="Error creating reservation", description=f"'account' parameter format is not valid (value entered:'{account}')"), 422
+            return jsonify(error="Error creating reservation", description=f"'account' parameter format is not valid (value entered:'{account}')"), 400
     except BadRequestKeyError:
         return jsonify(error="Error creating reservation", description="'account' form data input missing"), 400
 
@@ -250,7 +250,7 @@ def post():
     try:
         numberOfNodes = request.form["numberOfNodes"]
         if not check_number(numberOfNodes):
-            return jsonify(error="Error creating reservation", description=f"'numberOfNodes' parameter is not valid. It should be an integer > 0 (value entered:'{numberOfNodes}')"), 422
+            return jsonify(error="Error creating reservation", description=f"'numberOfNodes' parameter is not valid. It should be an integer > 0 (value entered:'{numberOfNodes}')"), 400
     except BadRequestKeyError:
         return jsonify(error="Error creating reservation", description="'numberOfNodes' form data input missing"), 400
 
@@ -258,7 +258,7 @@ def post():
     try:
         nodeType = request.form["nodeType"]
         if not check_name(nodeType):
-            return jsonify(error="Error creating reservation", description=f"'nodeType' parameter format is not valid (value entered:'{nodeType}')"), 422
+            return jsonify(error="Error creating reservation", description=f"'nodeType' parameter format is not valid (value entered:'{nodeType}')"), 400
     except BadRequestKeyError:
         return jsonify(error="Error creating reservation", description="'nodeType' form data input missing"), 400
     
@@ -266,7 +266,7 @@ def post():
     try:
         starttime = request.form["starttime"]
         if not check_dateTime(starttime):
-            return jsonify(error="Error creating reservation", description=f"'starttime' parameter format is not valid. It should be YYYY-MM-DDTHH:MM:SS (value entered:'{starttime}')"), 422
+            return jsonify(error="Error creating reservation", description=f"'starttime' parameter format is not valid. It should be YYYY-MM-DDTHH:MM:SS (value entered:'{starttime}')"), 400
     except BadRequestKeyError:
         return jsonify(error="Error creating reservation", description="'starttime' form data input missing"), 400
 
@@ -274,15 +274,15 @@ def post():
     try:
         endtime = request.form["endtime"]
         if not check_dateTime(endtime):
-            return jsonify(error="Error creating reservation", description=f"'endtime' parameter format is not valid. It should be YYYY-MM-DDTHH:MM:SS (value entered:'{endtime}')"), 422
+            return jsonify(error="Error creating reservation", description=f"'endtime' parameter format is not valid. It should be YYYY-MM-DDTHH:MM:SS (value entered:'{endtime}')"), 400
     except BadRequestKeyError:
         return jsonify(error="Error creating reservation", description="'endtime' form data input missing"), 400
     
     if not check_dateDiff(starttime,endtime):
-        return jsonify(error="Error creating reservation", description=f"'endtime' occurs before 'starttime' (values entered: endtime='{endtime}' <= starttime='{starttime}')"), 422
+        return jsonify(error="Error creating reservation", description=f"'endtime' occurs before 'starttime' (values entered: endtime='{endtime}' <= starttime='{starttime}')"), 400
 
     if not check_actualDate(starttime):
-        return jsonify(error="Error creating reservation", description=f"'starttime' is in the pass (values entered: starttime='{starttime}')"), 422
+        return jsonify(error="Error creating reservation", description=f"'starttime' is in the pass (values entered: starttime='{starttime}')"), 400
 
     # create a reservation
     # rsvmgmt -a unixGroupName numberOfNodes NodeType startDateTime endDateTime [optional reservationName]
@@ -355,13 +355,13 @@ def put(reservation):
     
     # checking input data
     if not check_name(reservation):
-        return jsonify(error="Error updating reservation", description=f"'reservation' parameter format is not valid (value entered:'{reservation}')"), 422
+        return jsonify(error="Error updating reservation", description=f"'reservation' parameter format is not valid (value entered:'{reservation}')"), 400
         
     # getting numberOfNodes from request form
     try:
         numberOfNodes = request.form["numberOfNodes"]
         if not check_number(numberOfNodes):
-            return jsonify(error="Error updating reservation", description=f"'numberOfNodes' parameter is not valid. It should be an integer > 0 (value entered:'{numberOfNodes}')"), 422
+            return jsonify(error="Error updating reservation", description=f"'numberOfNodes' parameter is not valid. It should be an integer > 0 (value entered:'{numberOfNodes}')"), 400
     except BadRequestKeyError:
         return jsonify(error="Error updating reservation", description="'numberOfNodes' form data input missing"), 400
 
@@ -369,7 +369,7 @@ def put(reservation):
     try:
         nodeType = request.form["nodeType"]
         if not check_name(nodeType):
-            return jsonify(error="Error updating reservation", description=f"'nodeType' parameter format is not valid (value entered:'{nodeType}')"), 422
+            return jsonify(error="Error updating reservation", description=f"'nodeType' parameter format is not valid (value entered:'{nodeType}')"), 400
     except BadRequestKeyError:
         return jsonify(error="Error updating reservation", description="'nodeType' form data input missing"), 400
     
@@ -377,7 +377,7 @@ def put(reservation):
     try:
         starttime = request.form["starttime"]
         if not check_dateTime(starttime):
-            return jsonify(error="Error updating reservation", description=f"'starttime' parameter format is not valid. It should be YYYY-MM-DDTHH:MM:SS (value entered:'{starttime}')"), 422
+            return jsonify(error="Error updating reservation", description=f"'starttime' parameter format is not valid. It should be YYYY-MM-DDTHH:MM:SS (value entered:'{starttime}')"), 400
     except BadRequestKeyError:
         return jsonify(error="Error updating reservation", description="'starttime' form data input missing"), 400
 
@@ -385,15 +385,15 @@ def put(reservation):
     try:
         endtime = request.form["endtime"]
         if not check_dateTime(endtime):
-            return jsonify(error="Error updating reservation", description=f"'endtime' parameter format is not valid. It should be YYYY-MM-DDTHH:MM:SS (value entered:'{endtime}')"), 422
+            return jsonify(error="Error updating reservation", description=f"'endtime' parameter format is not valid. It should be YYYY-MM-DDTHH:MM:SS (value entered:'{endtime}')"), 400
     except BadRequestKeyError:
         return jsonify(error="Error updating reservation", description="'endtime' form data input missing"), 400
     
     if not check_dateDiff(starttime,endtime):
-        return jsonify(error="Error updating reservation", description=f"'endtime' occurs before 'starttime' (values entered: endtime='{endtime}' <= starttime='{starttime}')"), 422
+        return jsonify(error="Error updating reservation", description=f"'endtime' occurs before 'starttime' (values entered: endtime='{endtime}' <= starttime='{starttime}')"), 400
     
     if not check_actualDate(starttime):
-        return jsonify(error="Error creating reservation", description=f"'starttime' is in the pass (values entered: starttime='{starttime}')"), 422
+        return jsonify(error="Error creating reservation", description=f"'starttime' is in the pass (values entered: starttime='{starttime}')"), 400
 
     # Update a reservation
     # rsvmgmt -u reservationName numberOfNodes NodeType StartDateTime EndDateTime
@@ -461,7 +461,7 @@ def delete(reservation):
 
     # checking input data
     if not check_name(reservation):
-        return jsonify(error="Error deleting reservation", description=f"'reservation' parameter format is not valid (value entered:'{reservation}')"), 422
+        return jsonify(error="Error deleting reservation", description=f"'reservation' parameter format is not valid (value entered:'{reservation}')"), 400
     
     # Update a reservation
     # rsvmgmt -d reservationName
