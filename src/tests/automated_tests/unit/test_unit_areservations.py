@@ -43,10 +43,10 @@ d8 = (datetime.datetime.now() + datetime.timedelta(hours=25)).strftime("%Y-%m-%d
 POST_DATA = [(SYSTEM, 201, "testrsvok01", "test",  "1", 			"f7t",		d1,		d2), 
 		     (SYSTEM, 201, "testrsvok02", "test",  "1", 			"f7t",		d5,		d6), 
              (SYSTEM, 400, "testrsvok01", "test",  "1", 			"f7t",		d1,		d2), # fail, duplicated reservation name
-			 (SYSTEM, 422, "testrsverr02", "test", "1", "f7t",d2,d1), # fail: dates are in wrong order
-             (SYSTEM, 422, "testrsverr03", "test", "1", "intel",d2,d1), # fail: invalid nodeType
-			 (SYSTEM, 422, "testrsverr04", "test", "1", "f7t",d3,d4), # fail: wrong date time format             
-			 (SYSTEM, 422, "",            "test", "1", "f7t",d5,d6), # fail: no reservation name
+			 (SYSTEM, 400, "testrsverr02", "test", "1", "f7t",d2,d1), # fail: dates are in wrong order
+             (SYSTEM, 400, "testrsverr03", "test", "1", "intel",d2,d1), # fail: invalid nodeType
+			 (SYSTEM, 400, "testrsverr04", "test", "1", "f7t",d3,d4), # fail: wrong date time format             
+			 (SYSTEM, 400, "",            "test", "1", "f7t",d5,d6), # fail: no reservation name
 			 (SYSTEM, 400, "testrsverr05", None, "1", "f7t",d5,d6), # fail: no account given
 			 (SYSTEM, 400, "testrsverr06", "test", "3", "f7t",d5,d6), # fail: required more nodes than available
 			 (SYSTEM, 400, "testrsverr07", "test", "1", None,d5,d6), # fail: no nodeType given
@@ -57,9 +57,9 @@ POST_DATA = [(SYSTEM, 201, "testrsvok01", "test",  "1", 			"f7t",		d1,		d2),
 # parameters:                reservation, numberOfNodes, nodeType, starttime, endtime
 PUT_DATA =  [(SYSTEM, 400, "testrsvok01", "1", 			"f7t",		d5,		d6), # fail overlap with testrsvok01
 			 (SYSTEM, 200, "testrsvok01", "1", 			"f7t",		d7,		d8), # ok
-             (SYSTEM, 422, "testrsvok01", "1", "f7t",d2,d1), # fail: dates are in wrong order
+             (SYSTEM, 400, "testrsvok01", "1", "f7t",d2,d1), # fail: dates are in wrong order
              (SYSTEM, 400, "testrsvok01", "1", "intel",d5,d6), # fail: invalid nodeType
-			 (SYSTEM, 422, "testrsvok01", "1", "f7t",d3,d4), # fail: wrong date time format             
+			 (SYSTEM, 400, "testrsvok01", "1", "f7t",d3,d4), # fail: wrong date time format             
 			 (SYSTEM, 405, "",            "1", "f7t",d5,d6), # fail: no reservation name, method not allowed
 			 (SYSTEM, 400, "wrongname",   "1", "f7t",d5,d6), # fail: wrong reservation name
 			 (SYSTEM, 400, "testrsvok01", "3", "f7t",d5,d6), # fail: required more nodes than available
