@@ -1932,6 +1932,329 @@ paths:
                 $ref: '#/components/schemas/Expiration-404'
 
         
+  '/reservations':
+    parameters:
+      - in: header
+        name: X-Machine-Name
+        description: The system name
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Returns all reservations
+      description: List all reservations actives and their status
+      tags:
+        - Reservation
+      responses:
+        '200':
+          description: Reservation list returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reservations'
+        '400':
+          description: Error listing reservations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Upload-notok'
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: integer
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: integer            
+            X-Timeout:
+              description: Command has finished with timeout signal
+              schema:
+                type: integer
+        '404':
+          description: Error listing reservations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Upload-notok'
+          headers:
+            X-Permission-Denied:
+              description: User does not have permissions to access machine
+              schema:
+                type: integer
+                
+    post:
+      summary: Creates a new reservation
+      description: Creates a new reservation with {reservation} name for a given SLURM groupname
+      tags:
+        - Reservation
+      requestBody:
+        required: true
+        content:
+          'multipart/form-data':
+            schema:
+              type: object
+              properties:
+                reservation:
+                  type: string
+                  description: name of the reservation
+                account:
+                  type: string
+                  description: name of the account in SLURM to which the reservation is made for
+                numberOfNodes:
+                  type: string
+                  description: number of nodes needed for the reservation
+                nodeType:
+                  type: string
+                  description: type of node
+                  default: knl
+                starttime:
+                  type: string
+                  description: start time for reservation (YYYY-MM-DDTHH:MM:SS)
+                endtime:
+                  type: string
+                  description: end time for reservation (YYYY-MM-DDTHH:MM:SS)
+              required:
+                - reservation
+                - account
+                - numberOfNodes
+                - nodeType
+                - starttime
+                - endtime
+              example:
+                reservation: selvedas
+                project: psigroup
+                numberOfNodes: 10
+                nodeType: knl
+                starttime: '2020-12-24T00:00:00'
+                endtime: '2020-12-24T12:30:00'
+      responses:
+        '201':
+          description: Reservation succesfully created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: string
+                    example: "Reservation created: {reservation}"
+        '400':
+          description: Error creating reservation
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Error creating reservation {reservation}"
+                  description:
+                    type: string
+                    example: "Error: invalid start time reservation"
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: integer
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: integer            
+            X-Error:
+              description: Error
+              schema:
+                type: integer
+            X-Timeout:
+              description: Command has finished with timeout signal
+              schema:
+                type: integer
+        '404':
+          description: Error creating reservation
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Error creating reservation {reservation}"
+          headers:
+            X-Permission-Denied:
+              description: User does not have permissions to access machine
+              schema:
+                type: integer          
+  '/reservations/{reservation}':
+    parameters:
+      - in: header
+        name: X-Machine-Name
+        description: The system name
+        required: true
+        schema:
+          type: string
+      - in: path
+        name: reservation
+        description: reservation name
+        required: true
+        schema:
+          type: string
+    put:
+      summary: Updates reservation {reservation}
+      description: Updates an already created reservation named {reservation}
+      tags:
+        - Reservation
+      requestBody:
+        required: true
+        content:
+          'multipart/form-data':
+            schema:
+              type: object
+              properties:
+                numberOfNodes:
+                  type: string
+                  description: number of nodes needed for the reservation
+                nodeType:
+                  type: string
+                  description: type of node
+                  default: knl
+                starttime:
+                  type: string
+                  description: start time for reservation (YYYY-MM-DDTHH:MM:SS)
+                endtime:
+                  type: string
+                  description: end time for reservation (YYYY-MM-DDTHH:MM:SS)
+              required:
+                - reservation
+                - numberOfNodes
+                - nodeType
+                - starttime
+                - endtime
+              example:
+                reservation: selvedas
+                project: psigroup
+                numberOfNodes: 10
+                nodeType: knl
+                starttime: '2020-12-24T00:00:00'
+                endtime: '2020-12-24T12:30:00'
+      responses:
+        '200':
+          description: Reservation succesfully updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: string
+                    example: "Reservation {reservation} updated"
+        '400':
+          description: Error updating reservation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Error updating reservation {reservation}"
+                  description:
+                    type: string
+                    example: "Error: {reservation} doesn't seem to be a valid reservation"
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: integer
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: integer            
+            X-Error:
+              description: Error
+              schema:
+                type: integer
+            X-Timeout:
+              description: Command has finished with timeout signal
+              schema:
+                type: integer
+        '404':
+          description: Error updating reservation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Error updating reservation {reservation}"
+          headers:
+            X-Permission-Denied:
+              description: User does not have permissions to access machine
+              schema:
+                type: integer
+
+    delete:
+      summary: Deletes reservation {reservation}
+      description: Deletes an already created reservation named {reservation}
+      tags:
+        - Reservation
+      responses:
+        '204':
+          description: Reservation succesfully deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: string
+                    example: "Reservation {reservation} removed"
+        '400':
+          description: Error deleting reservation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Error deleting reservation {reservation}"
+                  description:
+                    type: string
+                    example: "Error: You are not an owner of the reservation"
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: integer
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: integer
+            X-Error:
+              description: Error
+              schema:
+                type: integer
+            X-Timeout:
+              description: Command has finished with timeout signal
+              schema:
+                type: integer
+        '404':
+          description: Error deleting reservation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Error deleting reservation {reservation}"
+          headers:
+            X-Permission-Denied:
+              description: User does not have permissions to access machine
+              schema:
+                type: integer
+
 
     
 
@@ -2249,6 +2572,46 @@ components:
       properties:
         success:
           type: string
+    Reservation:
+      type: object
+      properties:
+        reservationname:
+          type: string
+        starttime:
+          type: string
+        endtime:
+          type: string
+        duration:
+          type: string
+        nodes:
+          type: string
+        nodecnt:
+          type: string
+        corecnt:
+          type: string
+        features:
+          type: string
+        partitionname:
+          type: string
+        flags:
+          type: string
+        users:
+          type: string
+        accounts:
+          type: string
+        licenses:
+          type: string
+        state:
+          type: string
+        burstbuffer:
+          type: string
+        watts:
+          type: string
+          
+    Reservations:
+      type: array
+      items: 
+        $ref: '#/components/schemas/Reservation'
 tags:
   - name: Status
     description: Status information of infrastructure and services.
