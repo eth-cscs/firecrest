@@ -341,6 +341,8 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
                 result = {"error": 1, "msg": stdout_errda} 
             elif in_str(stdout_errda, "no read permission"): # in case that error is 0 and the msg is on the stdout (like with some file)
                 result = {"error": 1, "msg": stdout_errda} 
+            elif in_str(stdout_errda, "cannot open"): # in case that error is 0 and the msg is on the stdout (like with some file)
+                result = {"error": 1, "msg": stdout_errda} 
             else:
                 result = {"error": 0, "msg": outlines}
         elif stderr_errno > 0:
