@@ -26,8 +26,15 @@ SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_PATH = "../../../deploy/test-build"
 
 
-# test data for rename, chmod,chown, file, download,upload
+# test data for rename, chmod,chown, download,upload
 DATA = [ (SERVER_UTILITIES, 200) , ("someservernotavailable", 400)]  
+
+# test data for file
+DATA_FILE = [ (SERVER_UTILITIES, 200, ".bashrc") , 
+         ("someservernotavailable", 400, ".bashrc"), 
+		 (SERVER_UTILITIES, 400, "nofile") , 
+		 (SERVER_UTILITIES, 400, "/var/log/messages") , 
+		 ]  
 
 # test data for #mkdir, symlink
 DATA_201 = [ (SERVER_UTILITIES, 201) , ("someservernotavailable", 400)]  
@@ -102,13 +109,25 @@ def test_upload(machine, expected_response_code, headers):
 
 
 # Test exec file command on remote system
+@pytest.mark.parametrize("machine, expected_response_code,file_name", DATA_FILE)
+def test_file_type(machine, expected_response_code, file_name, headers):
+	url = "{}/file".format(UTILITIES_URL)
+	params = {"targetPath": file_name}
+	headers.update({"X-Machine-Name": machine})
+	resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	print(resp.content)
+	print(resp.headers)
+	assert resp.status_code == expected_response_code  
+
+# Test exec file command on remote system
 @pytest.mark.parametrize("machine, expected_response_code", DATA)
-def test_file_type(machine, expected_response_code, headers):
+def test_file_type_error(machine, expected_response_code, headers):
 	url = "{}/file".format(UTILITIES_URL)
 	params = {"targetPath": ".bashrc"}
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
+	print(resp.headers)
 	assert resp.status_code == expected_response_code  
 	 
 
