@@ -187,7 +187,7 @@ def submit_job_task(auth_header, system_name, system_addr, job_file, job_dir, ta
 
         jobid = extract_jobid(outlines)
 
-        msg = {"result" : "Job submitted", "jobid" : jobid, "jobfile" : f"{job_dir}/{job_file['filename']}"}
+        msg = {"result" : "Job submitted", "jobid" : jobid}
 
         # now look for log and err files location
         job_extra_info = get_slurm_files(auth_header, system_name, system_addr, task_id, msg)
