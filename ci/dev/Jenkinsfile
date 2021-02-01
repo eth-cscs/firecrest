@@ -31,63 +31,26 @@ node {
             echo "JENKINS_HOME : ${env.JENKINS_HOME}"
         }
 
-        stage('Build') {
-            echo 'Build Stage Starting'
+        stage('Refresh') {
+            when {
+                expression { return branch 'master' || branch 'dev' }
+            }
+            steps {
+                sh "${env.WORKSPACE}/ci/dev/refresh.sh"
+            }
+        }
 
-            // delete log folder if exists
+        stage('Setup') {
             try {
-                sh "rm -rf ${env.WORKSPACE}/deploy/test-build/logs/firecrest"
+                sh "${env.WORKSPACE}/ci/dev/setup.sh"
             } catch (ex0) {
-                echo 'Error: Can not delete logs/firecrest folder'
+                echo 'Error: Failed to run setup.sh'
             }
-
-            // create folder for logs
-            try {
-                sh "mkdir -p ${env.WORKSPACE}/deploy/test-build/logs/firecrest"
-            } catch (ex1) {
-                echo 'Error creating logs/firecrest folder'
-            }
-
-            // give write permissions to users in jenkins group (root user must belong to it)
-            try {
-                sh "chmod 775 ${env.WORKSPACE}/deploy/test-build/logs/firecrest"
-            } catch (ex2) {
-                echo 'Error: Can not change permissions of logs/firecrest folder'
-            }
-
-            dir('deploy/test-build/environment/keys') {
-                sh 'chmod 400 ca-key user-key'
-            }
-
-            withEnv(["PATH=$PATH:/usr/local/bin"]) {
-                dir('deploy/test-build') {
-                    sh 'docker-compose up --build -d'
-                }
-            }
-
-            sh '''#!/bin/sh
-            sleep 60
-            echo "Waiting for containers to get ready..."
-            '''
-
-            echo 'Build Stage Finsihed'
         }
 
         stage('Tests') {
-            dir('src/tests/automated_tests') {
-                sh 'pip3 install --user -r requirements.txt'
-
-                withEnv(["PATH=$PATH:~/.local/bin"]) {
-                    echo 'Unit Tests Starting'
-                    sh 'pytest -c test-build.ini unit'
-                    echo 'Unit Tests Finished'
-
-                    echo 'Integration Tests Starting'
-                    sh 'pytest -c test-build.ini integration'
-                    echo 'Integrations Tests Finished'
-                }
-
-                echo 'Tests Finished'
+            withEnv(["PATH=$PATH:~/.local/bin"]) {
+                sh "${env.WORKSPACE}/ci/dev/test.sh"
             }
         }
     }
@@ -105,17 +68,9 @@ node {
             echo 'Error while saving log files: ' + errCpLogs.toString()
         }
 
-        sh '''#!/bin/sh
-        sleep 30
-        echo "Waiting 30 seconds before containers removal..."
-        '''
-
         // Remove containers
-        withEnv(["PATH=$PATH:/usr/local/bin"]) {
-            dir('deploy/test-build') {
-                // destroy containers and volumes
-                sh 'docker-compose down -v'
-            }
+        withEnv(["PATH=$PATH:~/.local/bin"]) {
+            sh "${env.WORKSPACE}/ci/dev/clean.sh"
         }
 
         notifyBuildStatusToGitHub(currentBuild.result, gitHubUser, gitHubRepo, longCommit)
