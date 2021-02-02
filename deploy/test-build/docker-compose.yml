@@ -13,7 +13,9 @@ services:
       dockerfile: deploy/docker/certificator/Dockerfile
     env_file:
       - ./environment/common.env
-    network_mode: "host"
+    networks:
+      - backend
+      - frontend
     volumes:
       - "./environment/keys/ca-key:/ca-key:ro"
       - "./environment/keys/user-key.pub:/user-key.pub:ro"
@@ -26,7 +28,9 @@ services:
       dockerfile: deploy/docker/compute/Dockerfile
     env_file:
       - ./environment/common.env
-    network_mode: "host"
+    networks:
+      - backend
+      - frontend
     volumes:
       - "./environment/keys/user-key:/user-key:ro"
       - ./logs/firecrest:/var/log:delegated
@@ -38,7 +42,9 @@ services:
       dockerfile: deploy/docker/status/Dockerfile
     env_file:
       - ./environment/common.env
-    network_mode: "host"
+    networks:
+      - backend
+      - frontend
     volumes:
       - ./logs/firecrest:/var/log:delegated
       - ./ssl:/ssl
@@ -50,7 +56,9 @@ services:
     env_file:
       - ./environment/common.env
       - ./environment/storage.env
-    network_mode: "host"
+    networks:
+      - backend
+      - frontend
     depends_on:
       - "tasks"
       - "minio"
@@ -75,7 +83,9 @@ services:
       - F7T_STORAGE_TASK_EXP_TIME=2678400
     depends_on:
       - "taskpersistence"
-    network_mode: "host"
+    networks:
+      - backend
+      - frontend
     volumes:
       - ./logs/firecrest:/var/log:delegated
       - ./ssl:/ssl
@@ -86,7 +96,9 @@ services:
       dockerfile: deploy/docker/utilities/Dockerfile
     env_file:
       - ./environment/common.env
-    network_mode: "host"
+    networks:
+      - backend
+      - frontend
     volumes:
       - "./environment/keys/user-key:/user-key:ro"
       - ./logs/firecrest:/var/log:delegated
@@ -98,7 +110,9 @@ services:
       dockerfile: deploy/docker/reservations/Dockerfile
     env_file:
       - ./environment/common.env
-    network_mode: "host"
+    networks:
+      - backend
+      - frontend
     volumes:
       - "./environment/keys/user-key:/user-key:ro"
       - ./logs/firecrest:/var/log:delegated
@@ -111,8 +125,9 @@ services:
       context: ./
       dockerfile: ./cluster/Dockerfile
     hostname: cluster
-    ports:
-      - "2223:22"
+    networks:
+      - backend
+      - frontend
 
   minio:
     # runs on private network so "cluster" can reach it
@@ -122,13 +137,18 @@ services:
     environment:
       MINIO_ACCESS_KEY: storage_access_key
       MINIO_SECRET_KEY: storage_secret_key
+    networks:
+      - backend
+      - frontend
     ports:
       - "9000:9000"
 
   taskpersistence:
     image: redis:5
     command: redis-server /redis.conf
-    network_mode: "host"
+    networks:
+      - backend
+      - frontend
     volumes:
       - ./taskpersistence/redis.conf:/redis.conf:ro
       - ./logs/firecrest:/var/log:delegated
@@ -136,7 +156,9 @@ services:
   opa:
     image: openpolicyagent/opa:0.22.0
     command: run --server --log-level=debug --log-format=json-pretty --tls-cert-file=/ssl/f7t_internal.crt --tls-private-key-file=/ssl/f7t_internal.key /opa-files/data.json /opa-files/policy.rego
-    network_mode: "host"
+    networks:
+      - backend
+      - frontend
     volumes:
       - ./opa:/opa-files
       - ./ssl:/ssl
@@ -146,7 +168,14 @@ services:
     build:
       context: ../../
       dockerfile: ./deploy/docker/openapi/Dockerfile
+    networks:
+      - backend
+      - frontend
     ports:
       - "9090:8080"
     environment:
       SWAGGER_JSON: /tmp/openapi.yaml
+
+networks:
+  backend:
+  frontend:
