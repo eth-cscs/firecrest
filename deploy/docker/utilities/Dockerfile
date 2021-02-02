@@ -17,7 +17,9 @@ RUN yum install -y python3-pip
 # upgrade
 RUN pip3 install --upgrade pip
 
-RUN pip3 install Flask paramiko cryptography pyjwt requests
+ADD deploy/docker/base/requirements.txt base/requirements.txt
+ADD deploy/docker/utilities/requirements.txt deps/requirements.txt
+RUN pip3 install -r deps/requirements.txt
 
 ADD src/utilities/utilities.py utilities.py
 ADD src/common/cscs_api_common.py cscs_api_common.py

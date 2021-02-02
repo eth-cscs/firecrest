@@ -117,7 +117,7 @@ services:
   minio:
     # runs on private network so "cluster" can reach it
     container_name: minio_test_build
-    image: minio/minio
+    image: minio/minio:RELEASE.2021-02-01T22-56-52Z
     command: minio server /data
     environment:
       MINIO_ACCESS_KEY: storage_access_key

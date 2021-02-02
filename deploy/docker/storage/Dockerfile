@@ -17,8 +17,9 @@ RUN yum install -y python3-pip
 # upgrade
 RUN pip3 install --upgrade pip
 
-RUN pip3 install Flask paramiko lxml cryptography pyjwt keystoneauth1 python-keystoneclient
-
+ADD deploy/docker/base/requirements.txt base/requirements.txt
+ADD deploy/docker/storage/requirements.txt deps/requirements.txt
+RUN pip3 install -r deps/requirements.txt
 
 ADD src/storage/storage.py storage.py
 ADD src/storage/keystone.py keystone.py

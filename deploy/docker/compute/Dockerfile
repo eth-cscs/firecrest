@@ -12,7 +12,9 @@ RUN yum install -y python3-pip
 
 RUN pip3 install --upgrade pip
 
-RUN pip3 install Flask paramiko cryptography pyjwt requests
+ADD deploy/docker/base/requirements.txt base/requirements.txt
+ADD deploy/docker/compute/requirements.txt deps/requirements.txt
+RUN pip3 install -r deps/requirements.txt
 
 ADD src/compute/compute.py compute.py
 ADD src/common/async_task.py async_task.py

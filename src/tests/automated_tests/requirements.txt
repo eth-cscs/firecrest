@@ -1,5 +1,7 @@
-pytest
-python-dotenv
-pytest-dotenv
-pyjwt
-requests
+# see with deploy/docker/base/requirements
+PyJWT==1.7.1
+requests==2.22.0
+# dev-specific below:
+pytest==6.2.1
+pytest-dotenv==0.5.2
+pytest-dotenv==0.5.2

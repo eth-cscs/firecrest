@@ -17,7 +17,9 @@ RUN yum install -y python3-pip
 # upgrade
 RUN pip3 install --upgrade pip
 
-RUN pip3 install Flask cryptography pyjwt redis requests
+ADD deploy/docker/base/requirements.txt base/requirements.txt
+ADD deploy/docker/tasks/requirements.txt deps/requirements.txt
+RUN pip3 install -r deps/requirements.txt
 
 ADD src/tasks/tasks.py tasks.py
 ADD src/common/async_task.py async_task.py
