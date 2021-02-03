@@ -337,6 +337,12 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
         if stderr_errno == 0:
             if stderr_errda and not in_str(stderr_errda,"Could not chdir to home directory"):
                 result = {"error": 0, "msg": stderr_errda}
+            elif in_str(stdout_errda, "No such file"): # in case that error is 0 and the msg is on the stdout (like with some file)
+                result = {"error": 1, "msg": stdout_errda} 
+            elif in_str(stdout_errda, "no read permission"): # in case that error is 0 and the msg is on the stdout (like with some file)
+                result = {"error": 1, "msg": stdout_errda} 
+            elif in_str(stdout_errda, "cannot open"): # in case that error is 0 and the msg is on the stdout (like with some file)
+                result = {"error": 1, "msg": stdout_errda} 
             else:
                 result = {"error": 0, "msg": outlines}
         elif stderr_errno > 0:
@@ -347,6 +353,7 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
             result = {"error": -2, "msg": "Receive ready timeout exceeded"}
         elif stderr_errno == -1:
             result = {"error": -1, "msg": "No exit status was provided by the server"}
+        
 
     # first if paramiko exception raise
     except paramiko.ssh_exception.NoValidConnectionsError as e:
@@ -386,7 +393,7 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
         os.remove(priv_key)
         os.rmdir(temp_dir)
 
-    logging.info(f"Result returned: {result['msg']}")
+    logging.info(f"Result: status_code {result['error']} -> {result['msg']}")
     return result
 
 
@@ -699,10 +706,6 @@ def check_command_error(error_str, error_code, service_msg):
         header={"X-Invalid-Path":"path is an invalid path"}
         return {"description": service_msg, "status_code": 400, "header": header}
 
-    if in_str(error_str,"cannot open"):
-        header = {"X-Permission-Denied": "User does not have permissions to access path"}
-        return {"description":service_msg, "status_code": 400, "header": header}
-
     if in_str(error_str,"No such file"):
         if in_str(error_str,"cannot stat"):
             header={"X-Not-Found":"sourcePath not found"}
@@ -719,6 +722,10 @@ def check_command_error(error_str, error_code, service_msg):
 
         header={"X-Invalid-Path":"path is an invalid path"}
         return {"description": service_msg, "status_code": 400, "header": header}
+
+    if in_str(error_str,"cannot open"):
+        header = {"X-Permission-Denied": "User does not have permissions to access path"}
+        return {"description":service_msg, "status_code": 400, "header": header}
 
     if in_str(error_str,"Permission denied"):
         header = {"X-Permission-Denied": "User does not have permissions to access path"}
