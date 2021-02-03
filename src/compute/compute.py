@@ -823,7 +823,10 @@ def cancel_job_task(auth_header,system_name, system_addr,action,task_id):
 
     # if "error" word appears:
     if in_str(data,"error"):
-        update_task(task_id, auth_header, async_task.ERROR, data)
+        # error message: "scancel: error: Kill job error on job id 5: Invalid job id specified"
+        # desired output: "Kill job error on job id 5: Invalid job id specified"
+        err_msg = data[(data.index("error")+7):]
+        update_task(task_id, auth_header, async_task.ERROR, err_msg)
         return
 
     # otherwise
