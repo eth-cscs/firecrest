@@ -434,7 +434,7 @@ def submit_job_upload():
                              args=(auth_header, system_name, system_addr, job_file, job_dir, task_id))
 
         aTask.start()
-        retval = update_task(task_id, auth_header,async_task.QUEUED, TASKS_URL)
+        retval = update_task(task_id, auth_header,async_task.QUEUED)
 
         task_url = f"{KONG_URL}/tasks/{task_id}"
         data = jsonify(success="Task created", task_id=task_id, task_url=task_url)
