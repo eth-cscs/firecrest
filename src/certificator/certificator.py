@@ -55,15 +55,16 @@ def check_user_auth(username,system):
 
     # check if OPA is active
     if OPA_USE:
+        logging.info(f"{OPA_URL}/{POLICY_PATH}")
+        input = {"input":{"user": f"{username}", "system": f"{system}"}}
+
         try:
-            input = {"input":{"user": f"{username}", "system": f"{system}"}}
-
-            #resp_opa = requests.post(f"{OPA_URL}/{POLICY_PATH}", json=input)
-            logging.info(f"{OPA_URL}/{POLICY_PATH}")
-
             resp_opa = requests.post(f"{OPA_URL}/{POLICY_PATH}", json=input, verify= (SSL_CRT if USE_SSL else False))
+            msg = "{} {}".format(resp_opa.status_code, resp_opa.text)
+            logging.info(f"resp_opa: {msg}")
 
-            logging.info(resp_opa.content)
+            if not resp_opa.ok:
+                return  {"allow": False, "description":f"Server error: {msg}", "status_code": resp_opa.status_code}
 
             if resp_opa.json()["result"]["allow"]:
                 logging.info(f"User {username} authorized by OPA")
@@ -71,19 +72,18 @@ def check_user_auth(username,system):
             else:
                 logging.error(f"User {username} NOT authorized by OPA")
                 return {"allow": False, "description":f"Permission denied for user {username} in {system}", "status_code": 401}
+
         except requests.exceptions.SSLError as e:
-            logging.error(e.args)
+            logging.error("Exception: {}".format(e))
             return {"allow": False, "description":"Authorization server error: SSL error.", "status_code": 404}
+
         except requests.exceptions.RequestException as e:
-            logging.error(e.args)
-            return {"allow": False, "description":"Authorization server error", "status_code": 404}
+            logging.error("Exception: {}".format(e))
+            return {"allow": False, "description":"Authorization server error: RequestException", "status_code": 404}
 
         except Exception as e:
-            logging.error(type(e))
-            logging.error(e)
-
-            logging.error(e.args)
-            return {"allow": False, "description":"Authorization server error", "status_code": 404}
+            logging.error("Exception: {}".format(e))
+            return {"allow": False, "description":"Authorization server error: Unexpected", "status_code": 404}
 
     return {"allow": True, "description":"Authorization method not active", "status_code": 200 }
 
