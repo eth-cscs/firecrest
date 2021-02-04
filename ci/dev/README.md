@@ -23,10 +23,10 @@ To run all tests for the first time simply run...
 ci/dev/run.sh
 ```
 
-Have a look at that script. It will setup and build everything from the scratch and run ALL the dev tests.
+Have a look at that script. It will setup and build everything from scratch and run ALL the dev tests.
 
 If you have already setup everything and just want to re-run some tests without recreating everything
-from the scratch, you can call the scripts that `ci/dev/test.sh` is calling.
+from scratch, you can call the scripts that `ci/dev/test.sh` is calling.
 
 ```
 ci/dev/test.sh
@@ -34,7 +34,7 @@ ci/dev/test.sh
 
 ## Debugging
 
-If you want to re-test something specific, you can customize the docker calls of the end of `ci/dev/tests.sh`
+If you want to re-test something specific, you can customize the docker calls of the end of `ci/dev/test.sh`
 to make an ad-hoc pytest call.
 
 If the stdout information is not enough, remember to check either the logs in the logs folder created in `ci/dev/setup.sh`
