@@ -205,7 +205,7 @@ services:
       - 8000:8000
 
   minio:
-    image: minio/minio:11437-709c94a
+    image: minio/minio:RELEASE.2021-02-01T22-56-52Z
     command: minio server /data
     container_name: minio
     environment:
