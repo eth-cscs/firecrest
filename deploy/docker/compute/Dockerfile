@@ -4,15 +4,8 @@
 ##  Please, refer to the LICENSE file in the root directory.
 ##  SPDX-License-Identifier: BSD-3-Clause
 ##
-from centos:7
+from f7t-base
 
-RUN yum install -y epel-release
-RUN yum -y update
-RUN yum install -y python3-pip
-
-RUN pip3 install --upgrade pip
-
-ADD deploy/docker/base/requirements.txt base/requirements.txt
 ADD deploy/docker/compute/requirements.txt deps/requirements.txt
 RUN pip3 install -r deps/requirements.txt
 
@@ -23,4 +16,3 @@ ADD src/common/job_time.py job_time.py
 
 ENTRYPOINT ["python3"]
 CMD ["compute.py"]
-

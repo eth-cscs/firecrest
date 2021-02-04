@@ -23,11 +23,11 @@ if [[ "$attempts" -ge 9 ]]; then
 fi
 
 echo "running unit_tests..."
-sudo docker run -ti --rm -v ${WORKSPACE}:/firecrest --network test-build_frontend python:3.8.5-slim bash \
-    -c 'pip install -r /firecrest/src/tests/automated_tests/requirements.txt; cd /firecrest/src/tests/automated_tests && pytest -c test-build.ini unit'
+sudo docker run -ti --rm -v ${WORKSPACE}:/firecrest --network test-build_frontend f7t-tester bash \
+    -c 'pytest -c test-build.ini unit'
 
 echo "running integration_tests..."
-sudo docker run -ti --rm -v ${WORKSPACE}:/firecrest --network test-build_frontend python:3.8.5-slim bash \
-    -c 'pip install -r /firecrest/src/tests/automated_tests/requirements.txt; cd /firecrest/src/tests/automated_tests && pytest -c test-build.ini integration'
+sudo docker run -ti --rm -v ${WORKSPACE}:/firecrest --network test-build_frontend f7t-tester bash \
+    -c 'pytest -c test-build.ini integration'
 
 echo "finished" $0
