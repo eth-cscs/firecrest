@@ -34,6 +34,8 @@ node {
             echo "NODE_LABELS : ${env.NODE_LABELS}"
             echo "WORKSPACE : ${env.WORKSPACE}"
             echo "JENKINS_HOME : ${env.JENKINS_HOME}"
+            sh "docker --version"
+            sh "docker-compose --version"
         }
 
         stage('Refresh') {
