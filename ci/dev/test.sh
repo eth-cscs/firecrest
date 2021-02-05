@@ -19,8 +19,8 @@ echo "waiting for Firecrest stack to be ready..."
 attempts=0
 while [[ "$attempts" -lt 9 && "$(curl -s -o /dev/null -w ''%{http_code}'' localhost:9000)" == "000" ]]; do
     let "attempts+=1"
-    echo "API NOT ready, next attempt in 5 seconds"
-    sleep 5
+    echo "API NOT ready, next attempt in 60 seconds"
+    sleep 60
 done
 if [[ "$attempts" -ge 9 ]]; then
     echo "TIMEOUT waiting API. Shutting down cluster..."
@@ -29,11 +29,11 @@ if [[ "$attempts" -ge 9 ]]; then
 fi
 
 echo "running unit_tests..."
-docker run -ti --rm -v ${WORKSPACE}:/firecrest --network f7t-frontend f7t-tester bash \
+docker run --rm -v ${WORKSPACE}:/firecrest --network f7t-frontend f7t-tester bash \
     -c 'pytest -c test-build.ini unit'
 
 echo "running integration_tests..."
-docker run -ti --rm -v ${WORKSPACE}:/firecrest --network f7t-frontend f7t-tester bash \
+docker run --rm -v ${WORKSPACE}:/firecrest --network f7t-frontend f7t-tester bash \
     -c 'pytest -c test-build.ini integration'
 
 echo "finished" $0

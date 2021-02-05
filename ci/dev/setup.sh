@@ -18,4 +18,9 @@ echo "adjusting keys..."
 chmod 400 ${WORKSPACE}/deploy/test-build/environment/keys/ca-key
 chmod 400 ${WORKSPACE}/deploy/test-build/environment/keys/user-key
 
+echo "building images with cache"
+docker build -f ${WORKSPACE}/deploy/docker/base/Dockerfile -t f7t-base --pull ${WORKSPACE}
+docker build -f ${WORKSPACE}/deploy/docker/tester/Dockerfile -t f7t-tester --pull ${WORKSPACE}
+docker-compose -f ${WORKSPACE}/deploy/test-build/docker-compose.yml build
+
 echo "finished" $0

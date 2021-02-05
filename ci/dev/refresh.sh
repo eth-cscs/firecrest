@@ -18,6 +18,6 @@ docker rmi f7t-base f7t-tester || echo "no base image to delete, no problem!"
 echo "building images from scratch"
 docker build -f ${WORKSPACE}/deploy/docker/base/Dockerfile -t f7t-base --pull ${WORKSPACE}
 docker build -f ${WORKSPACE}/deploy/docker/tester/Dockerfile -t f7t-tester --pull ${WORKSPACE}
-docker-compose -f ${WORKSPACE}/deploy/test-build/docker-compose.yml build #--no-cache
+docker-compose -f ${WORKSPACE}/deploy/test-build/docker-compose.yml build --no-cache
 
 echo "finished" $0

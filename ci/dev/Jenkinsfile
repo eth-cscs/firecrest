@@ -5,96 +5,74 @@
 //  Please, refer to the LICENSE file in the root directory.
 //  SPDX-License-Identifier: BSD-3-Clause
 //
-node {
-    def gitHubUser = 'eth-cscs'
-    def gitHubRepo = 'firecrest'
-
-    // $after contains the commit id obtained trough github webhook
-    def longCommit = "$after"
-
-    try {
-        stage('Checkout source code') {
-            echo 'Checking out source code'
-
-            git branch: 'master',
-            url: 'https://github.com/' + gitHubUser + '/' + gitHubRepo + '.git'
-
-            // checkout the specified commit
-            sh('git checkout ' + longCommit)
-        }
-
-        stage('Print Env After source checkout') {
-            echo "Branch Name: ${env.BRANCH_NAME}"
-            echo "BUILD_NUMBER : ${env.BUILD_NUMBER}"
-            echo "BUILD_ID : ${env.BUILD_ID}"
-            echo "JOB_NAME: ${env.JOB_NAME}"
-            echo "BUILD_TAG : ${env.BUILD_TAG}"
-            echo "EXECUTOR_NUMBER : ${env.EXECUTOR_NUMBER}"
-            echo "NODE_NAME: ${env.NODE_NAME}"
-            echo "NODE_LABELS : ${env.NODE_LABELS}"
-            echo "WORKSPACE : ${env.WORKSPACE}"
-            echo "JENKINS_HOME : ${env.JENKINS_HOME}"
+pipeline {
+    agent any
+    stages {
+        stage('Info') {
+            steps {
+                echo "Branch Name: ${env.BRANCH_NAME}"
+                echo "BUILD_NUMBER : ${env.BUILD_NUMBER}"
+                echo "BUILD_ID : ${env.BUILD_ID}"
+                echo "JOB_NAME: ${env.JOB_NAME}"
+                echo "BUILD_TAG : ${env.BUILD_TAG}"
+                echo "EXECUTOR_NUMBER : ${env.EXECUTOR_NUMBER}"
+                echo "NODE_NAME: ${env.NODE_NAME}"
+                echo "NODE_LABELS : ${env.NODE_LABELS}"
+                echo "WORKSPACE : ${env.WORKSPACE}"
+                echo "JENKINS_HOME : ${env.JENKINS_HOME}"
+                sh "docker --version"
+                sh "docker-compose --version"
+                sh "bash --version"
+                sh "git --version"
+                sh "pwd"
+                sh "ls -la"
+                sh "git status"
+            }
         }
 
         stage('Refresh') {
             when {
-                expression { return branch 'master' || branch 'dev' }
+                anyOf {
+                    branch 'master';
+                    branch 'dev'
+                }
             }
             steps {
-                sh "${env.WORKSPACE}/ci/dev/refresh.sh"
+                sh "ci/dev/refresh.sh"
             }
         }
 
         stage('Setup') {
-            try {
-                sh "${env.WORKSPACE}/ci/dev/setup.sh"
-            } catch (ex0) {
-                echo 'Error: Failed to run setup.sh'
+            steps {
+                sh "ci/dev/setup.sh"
             }
         }
 
         stage('Tests') {
-            withEnv(["PATH=$PATH:~/.local/bin"]) {
-                sh "${env.WORKSPACE}/ci/dev/test.sh"
+            steps {
+                sh "ci/dev/test.sh"
             }
         }
     }
-    catch (e) {
-        // If there was an exception, the build failed
-        currentBuild.result = 'FAILED'
-        throw e
-    }
-    finally {
-        // Save Log files
-        try {
-            sh "mkdir -p /var/log/jenkins/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}"
-            sh "cp -r ${env.WORKSPACE}/deploy/test-build/logs/firecrest/* /var/log/jenkins/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}/."
-        } catch (errCpLogs) {
-            echo 'Error while saving log files: ' + errCpLogs.toString()
+
+    post {
+        always {
+            script {
+                // Save log files
+                try {
+                    sh "mkdir -p /var/log/jenkins/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}"
+                    sh "cp -r deploy/test-build/logs/firecrest/* /var/log/jenkins/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}/. || echo 'no logs folder found"
+                } catch (errCpLogs) {
+                    echo 'Error while saving log files: ' + errCpLogs.toString()
+                }
+
+                // Cleanup
+                try {
+                    sh "ci/dev/clean.sh"
+                } catch (errCpLogs) {
+                    echo 'Error while trying to clean: ' + errCpLogs.toString()
+                }
+            }
         }
-
-        // Remove containers
-        withEnv(["PATH=$PATH:~/.local/bin"]) {
-            sh "${env.WORKSPACE}/ci/dev/clean.sh"
-        }
-
-        notifyBuildStatusToGitHub(currentBuild.result, gitHubUser, gitHubRepo, longCommit)
-    }
-}
-
-def notifyBuildStatusToGitHub(String buildStatus, String gitHubUser, String gitHubRepo, String longCommit) {
-    buildStatus = buildStatus ?: 'SUCCESS'
-    def status = ''
-    if (buildStatus == 'SUCCESS') {
-        status = 'success'
-    } else {
-        status = 'failure'
-    }
-
-    withCredentials([string(credentialsId: 'firecrestci_access_token', variable: 'accessToken')]) {
-        sh 'curl -H "Authorization: token ' + "${accessToken}"  + '" "https://api.github.com/repos/' + gitHubUser + '/' + gitHubRepo + '/statuses/' + longCommit + '" \\' +
-        '-H "Content-Type: application/json" \\' +
-        '-X POST \\' +
-        '-d "{\\"state\\": \\"' + status + '\\",\\"context\\": \\"continuous-integration/jenkins\\", \\"description\\": \\"Jenkins\\", \\"target_url\\": \\"' + "${env.BUILD_URL}" + '/console\\"}"'
     }
 }
