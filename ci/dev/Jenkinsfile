@@ -32,7 +32,7 @@ node {
         }
 
         stage('Build') {
-            echo 'Build Stage Starting'
+            echo 'Build Stage Starting test triggers'
 
             // delete log folder if exists
             try {

@@ -186,7 +186,7 @@ services:
       - ./logs/keycloak:/opt/jboss/keycloak/standalone/log/:delegated
 
   kong:
-    image: kong:latest
+    image: kong:2.3
     container_name: kong
     environment:
       - KONG_DATABASE=off
@@ -205,7 +205,7 @@ services:
       - 8000:8000
 
   minio:
-    image: minio/minio
+    image: minio/minio:RELEASE.2021-02-01T22-56-52Z
     command: minio server /data
     container_name: minio
     environment:
@@ -221,7 +221,7 @@ services:
 
   taskpersistence:
     container_name: taskpersistence
-    image: redis:latest
+    image: redis:5
     command: redis-server /redis.conf
     networks:
       firecrest-internal:

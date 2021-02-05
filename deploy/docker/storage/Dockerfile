@@ -12,13 +12,13 @@ RUN yum install -y epel-release
 RUN yum -y update
 
 # install python-pip from repo
-RUN yum install -y python3-pip
+RUN yum install -y python3-3.6.8 python3-pip-9.0.3
 
 # upgrade
-RUN pip3 install --upgrade pip
+RUN pip3 install --upgrade pip==21.0.1
 
-RUN pip3 install Flask paramiko lxml cryptography pyjwt keystoneauth1 python-keystoneclient
-
+# RUN pip3 install Flask paramiko lxml cryptography pyjwt keystoneauth1 python-keystoneclient
+RUN pip3 install cryptography==3.1.1 Flask==1.1.2 keystoneauth1==4.2.1 lxml==4.6.1 paramiko==2.6.0 python-keystoneclient==4.1.1 PyJWT==1.7.1 requests==2.24.0
 
 ADD src/storage/storage.py storage.py
 ADD src/storage/keystone.py keystone.py
