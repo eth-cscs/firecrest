@@ -178,4 +178,6 @@ services:
 
 networks:
   backend:
+    name: f7t-backend
   frontend:
+    name: f7t-frontend
