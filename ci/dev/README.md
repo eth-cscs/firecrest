@@ -4,7 +4,7 @@
 
 You can run the tests on any linux machine with...
 
-- [bash](https://www.gnu.org/software/bash/) >= `4` (with sudo)
+- [bash](https://www.gnu.org/software/bash/) >= `4`
 - [docker](https://docs.docker.com/engine/install/) >= `20.10.1`
 - [docker-compose](https://docs.docker.com/compose/install/) >= `1.26.2`
 
