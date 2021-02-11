@@ -29,11 +29,11 @@ if [[ "$attempts" -ge 9 ]]; then
 fi
 
 echo "running unit_tests..."
-docker run --rm -v ${WORKSPACE}:/firecrest --network f7t-frontend f7t-tester bash \
+docker run --rm -u $(id -u):$(id -g) -v ${WORKSPACE}:/firecrest --network f7t-frontend f7t-tester bash \
     -c 'pytest -c test-build.ini unit'
 
 echo "running integration_tests..."
-docker run --rm -v ${WORKSPACE}:/firecrest --network f7t-frontend f7t-tester bash \
+docker run --rm -u $(id -u):$(id -g) -v ${WORKSPACE}:/firecrest --network f7t-frontend f7t-tester bash \
     -c 'pytest -c test-build.ini integration'
 
 echo "finished" $0
