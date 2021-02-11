@@ -13,6 +13,9 @@
 ##        See scripts in ci folder.
 from python:3.8.5-slim
 
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
 ADD deploy/docker/base/requirements.txt base/requirements.txt
 ADD deploy/docker/tester/requirements.txt deps/requirements.txt
 RUN pip3 install -r deps/requirements.txt
