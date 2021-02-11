@@ -61,7 +61,7 @@ pipeline {
                 // Save log files
                 try {
                     sh "mkdir -p /var/log/jenkins/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}"
-                    sh "cp -r deploy/test-build/logs/firecrest/* /var/log/jenkins/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}/. || echo 'no logs folder found"
+                    sh "cp -r deploy/test-build/logs/firecrest/* /var/log/jenkins/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}/."
                 } catch (errCpLogs) {
                     echo 'Error while saving log files: ' + errCpLogs.toString()
                 }
