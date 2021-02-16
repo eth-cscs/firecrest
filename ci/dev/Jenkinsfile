@@ -20,6 +20,7 @@ pipeline {
                 echo "NODE_LABELS : ${env.NODE_LABELS}"
                 echo "WORKSPACE : ${env.WORKSPACE}"
                 echo "JENKINS_HOME : ${env.JENKINS_HOME}"
+                echo "GIT COMMIT: ${env.GIT_COMMIT}"
                 sh "docker --version"
                 sh "docker-compose --version"
                 sh "bash --version"
@@ -58,15 +59,40 @@ pipeline {
     post {
         always {
             script {
-                // Save log files
+                // Save the log files
                 try {
                     sh "mkdir -p /var/log/jenkins/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}"
                     sh "cp -r deploy/test-build/logs/firecrest/* /var/log/jenkins/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}/."
                 } catch (errCpLogs) {
                     echo 'Error while saving log files: ' + errCpLogs.toString()
                 }
+            }
+        }
 
-                // Cleanup
+        success {
+            script {
+                withCredentials([string(credentialsId: 'firecrestci_access_token', variable: 'accessToken')]) {
+                    sh 'curl -H "Authorization: token ' + "${accessToken}"  + '" "https://api.github.com/repos/eth-cscs/firecrest/statuses/' + "${env.GIT_COMMIT}" + '" \\' +
+                    '-H "Content-Type: application/json" \\' +
+                    '-X POST \\' +
+                    '-d "{\\"state\\": \\"success\\",\\"context\\": \\"continuous-integration/jenkins\\", \\"description\\": \\"Jenkins\\", \\"target_url\\": \\"' + "${env.BUILD_URL}" + '/console\\"}"'
+                }
+            }
+        }
+
+        unsuccessful{
+            script {
+                withCredentials([string(credentialsId: 'firecrestci_access_token', variable: 'accessToken')]) {
+                    sh 'curl -H "Authorization: token ' + "${accessToken}"  + '" "https://api.github.com/repos/eth-cscs/firecrest/statuses/' + "${env.GIT_COMMIT}" + '" \\' +
+                    '-H "Content-Type: application/json" \\' +
+                    '-X POST \\' +
+                    '-d "{\\"state\\": \\"failure\\",\\"context\\": \\"continuous-integration/jenkins\\", \\"description\\": \\"Jenkins\\", \\"target_url\\": \\"' + "${env.BUILD_URL}" + '/console\\"}"'
+                }
+            }
+        }
+
+        cleanup {
+            script {
                 try {
                     sh "ci/dev/clean.sh"
                 } catch (errCpLogs) {
