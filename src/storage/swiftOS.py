@@ -224,30 +224,34 @@ class Swift(ObjectStorage):
         signature = hmac.new(secret, hmac_body, sha1).hexdigest()
 
         # added OBJECT_PREFIX as dir_[task_id] in order to become unique the upload instead of user/filename
-        command = "curl -i {swift_url}/{swift_api_version}/{swift_account}/{containername}/{prefix}/" \
-              " -X POST " \
-              "-F max_file_size={max_file_size} -F max_file_count={max_file_count} " \
-              "-F expires={expires} -F signature={signature} " \
-              "-F redirect={redirect} -F file=@{sourcepath} ".format(
-            swift_url=swift_url, swift_api_version=swift_version, swift_account=swift_account,
-            containername=containername, prefix=prefix, max_file_size=max_file_size,
-            max_file_count=max_file_count,
-            expires=expires, signature=signature, redirect=redirect, sourcepath=sourcepath)
+        command = f"curl -i {swift_url}/{swift_version}/{swift_account}/{containername}/{prefix}/" \
+              f" -X POST " \
+              f"-F max_file_size={max_file_size} -F max_file_count={max_file_count} " \
+              f"-F expires={expires} -F signature={signature} " \
+              f"-F redirect={redirect} -F file=@{sourcepath} "
 
 
+        retval = {}
 
-        retval = dict()
+        retval["parameters"] = {
+            "method": "POST",
+            "url": f"{swift_url}/{swift_version}/{swift_account}/{containername}/{prefix}/",
+            "data": {
+                "max_file_size": max_file_size, 
+                "max_file_count": max_file_count,
+                "expires": expires,
+                "signature": signature,
+                "redirect": redirect,
+            },
+            "files": sourcepath,
+            "json": {},
+            "headers": {},
+            "params": {}
 
-        retval["method"] = "POST"
+        }
+
         retval["command"] = command
-        retval["url"] = "{swift_url}/{swift_api_version}/{swift_account}/{containername}/{prefix}/".format(swift_url=swift_url, swift_api_version=swift_version, swift_account=swift_account,
-            containername=containername, prefix=prefix)
-        retval["max_file_size"] = max_file_size
-        retval["max_file_count"] = max_file_count
-        retval["expires"] = expires
-        retval["signature"] = signature
-        retval["redirect"] = redirect
-        retval["sourcepath"] = sourcepath
+        
 
         return retval
 
