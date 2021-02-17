@@ -17,7 +17,6 @@ import tasks_persistence as persistence
 
 AUTH_HEADER_NAME = 'Authorization'
 
-STATUS_IP   = os.environ.get("F7T_STATUS_IP")
 STORAGE_IP  = os.environ.get("F7T_STORAGE_IP")
 COMPUTE_IP     = os.environ.get("F7T_COMPUTE_IP")
 KONG_URL    = os.environ.get("F7T_KONG_URL")
@@ -63,10 +62,10 @@ def init_queue():
 
     # dictionary: [task_id] = {hash_id,status_code,user,data}
     task_list = persistence.get_all_tasks(r)
-    
+
     # key = task_id ; values = {status_code,user,data}
     for rid, value in task_list.items():
-        
+
         # task_list has id with format task_id, ie: task_2
         # therefore it must be splitted by "_" char:
         task_id = rid.split("_")[1]
@@ -80,7 +79,7 @@ def init_queue():
         t.set_status(status,data)
         tasks[t.hash_id] = t
 
-    
+
 @app.route("/",methods=["GET"])
 @check_auth_header
 def list_tasks():
@@ -94,7 +93,7 @@ def list_tasks():
     for task_id,task in tasks.items():
         if task.user == username:
             user_tasks[task_id] = task.get_status()
-    
+
     data = jsonify(tasks=user_tasks)
     return data, 200
 
@@ -108,8 +107,9 @@ def create_task():
         logging.info('debug: tasks: create_task: remote_address: ' + remote_addr)
 
     # checks if request comes from allowed microservices
-    if remote_addr not in [COMPUTE_IP, STORAGE_IP]:
-        return jsonify(description="Invalid request address"), 403
+    if not debug and remote_addr not in [COMPUTE_IP, STORAGE_IP]:
+        msg = f"Invalid remote address: {remote_addr}"
+        return jsonify(error=msg), 403
 
     # checks if request has service header
     try:
@@ -157,7 +157,7 @@ def create_task():
     app.logger.info("New task created: {hash_id}".format(hash_id=t.hash_id))
     app.logger.info(t.get_status())
     task_url = "{KONG_URL}/tasks/{hash_id}".format(KONG_URL=KONG_URL,hash_id=t.hash_id)
-    
+
     data = jsonify(hash_id=t.hash_id, task_url=task_url)
 
     return data, 201
@@ -170,7 +170,7 @@ def create_task():
 def get_task(id):
 
     auth_header = request.headers[AUTH_HEADER_NAME]
-    
+
     # getting username from auth_header
     username = get_username(auth_header)
 
@@ -199,8 +199,9 @@ def update_task(id):
     remote_addr = request.remote_addr
 
     # checks if request comes from allowed microservices
-    if remote_addr not in [COMPUTE_IP, STORAGE_IP]:
-        return jsonify(description="Invalid request address"), 403
+    if not debug and remote_addr not in [COMPUTE_IP, STORAGE_IP]:
+        msg = f"Invalid remote address: {remote_addr}"
+        return jsonify(error=msg), 403
 
     if request.is_json:
 
@@ -208,14 +209,14 @@ def update_task(id):
             data = request.get_json(force=True)
             status=data["status"]
             msg=data["msg"]
-            
+
         except Exception as e:
             app.logger.error(type(e))
 
     else:
 
         try:
-            msg  = request.form["msg"]            
+            msg  = request.form["msg"]
         except Exception as e:
             msg = None
             # app.logger.error(e.message)
@@ -229,7 +230,7 @@ def update_task(id):
     # then check of header is NOT needed. ***
     # owner_needed is True if is not ***
     owner_needed = False
-    if status not in [async_task.ST_DWN_END , async_task.ST_DWN_ERR, async_task.ST_UPL_ERR, async_task.ST_UPL_END, 
+    if status not in [async_task.ST_DWN_END , async_task.ST_DWN_ERR, async_task.ST_UPL_ERR, async_task.ST_UPL_END,
                         async_task.ST_UPL_CFM, async_task.ST_DWN_BEG,async_task.ST_DWN_END] :
 
 
@@ -267,7 +268,7 @@ def update_task(id):
     # if no msg on request, default status msg:
     if msg == None:
         msg = async_task.status_codes[status]
-    
+
     # update task in memory
     tasks[hash_id].set_status(status=status, data=msg)
 
@@ -297,13 +298,14 @@ def update_task(id):
 @check_auth_header
 def delete_task(id):
     auth_header = request.headers[AUTH_HEADER_NAME]
-    
+
     # remote address request by Flask
     remote_addr = request.remote_addr
 
     # checks if request comes from allowed microservices
-    if remote_addr not in [COMPUTE_IP, STORAGE_IP]:
-        return jsonify(description="Invalid request address"), 403
+    if not debug and remote_addr not in [COMPUTE_IP, STORAGE_IP]:
+        msg = f"Invalid remote address: {remote_addr}"
+        return jsonify(error=msg), 403
 
     # getting username from auth_header
     username = get_username(auth_header)
@@ -343,8 +345,9 @@ def expire_task(id):
     remote_addr = request.remote_addr
 
     # checks if request comes from allowed microservices
-    if remote_addr not in [COMPUTE_IP, STORAGE_IP]:
-        return jsonify(description="Invalid request address"), 403
+    if not debug and remote_addr not in [COMPUTE_IP, STORAGE_IP]:
+        msg = f"Invalid remote address: {remote_addr}"
+        return jsonify(error=msg), 403
 
     # checks if request has service header
     try:
@@ -375,7 +378,7 @@ def expire_task(id):
 
     if service == "compute":
         exp_time = COMPUTE_TASK_EXP_TIME
-    
+
 
     try:
         global r
@@ -395,18 +398,10 @@ def expire_task(id):
         return data, 400
 
 
-# get status for status microservice
-# only used by STATUS_URL otherwise forbidden
-
 @app.route("/status",methods=["GET"])
 def status():
 
     app.logger.info("Test status of service")
-
-    if request.remote_addr != STATUS_IP:
-        app.logger.warning("Invalid remote address: {addr}".format(addr=request.remote_addr))
-        return jsonify(error="Invalid access"), 403
-
     return jsonify(success="ack"), 200
 
 
@@ -420,11 +415,12 @@ def tasklist():
     app.logger.info("Getting service tasks")
     app.logger.info("STORAGE_IP is {storage_ip}".format(storage_ip=STORAGE_IP))
 
-    # reject if not STORAGE_IP remote address
-    if request.remote_addr != STORAGE_IP:
-        app.logger.warning("Invalid remote address: {addr}".format(addr=request.remote_addr))
-        return jsonify(error="Invalid access"), 403
-        
+    # checks if request comes from allowed microservices
+    if not debug and request.remote_addr != STORAGE_IP:
+        msg = "Invalid remote address: {}".format(request.remote_addr)
+        app.logger.warning(msg)
+        return jsonify(error=msg), 403
+
     json = request.json
 
     if json == None:
@@ -439,9 +435,9 @@ def tasklist():
         if json["service"] not in ["storage", "compute"]:
             app.logger.error(f"Service parameter {json['service']} not valid")
             return jsonify(error=f"Service parameter {json['service']} not valid"), 401
-        
+
         _tasks = persistence.get_service_tasks(r, json["service"], json["status_code"])
-    
+
     except KeyError as e:
         app.logger.error(f"Key {e.args} in 'json' parameter is missing")
         return jsonify(error=f"{e.args} parameter missing"), 401
@@ -477,7 +473,7 @@ if __name__ == "__main__":
     init_queue()
 
     # set to debug = False, so stderr and stdout go to log file
-    if USE_SSL:        
-        app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=TASKS_PORT, ssl_context=(SSL_CRT, SSL_KEY))        
+    if USE_SSL:
+        app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=TASKS_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:
         app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=TASKS_PORT)

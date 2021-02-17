@@ -20,8 +20,6 @@ import datetime
 
 AUTH_HEADER_NAME = 'Authorization'
 
-STATUS_IP   = os.environ.get("F7T_STATUS_IP")
-
 RESERVATIONS_PORT    = os.environ.get("F7T_RESERVATIONS_PORT", 5050)
 
 # SYSTEMS: list of ; separated systems allowed
@@ -48,7 +46,7 @@ app = Flask(__name__)
 # accepts identifier names format and includes dash and underscore names.
 def check_name(name):
     regex="^[a-z_$][-a-z_$0-9]*$"
-    
+
     # can start with alphabetics letters in caps or not, or underscore,
     # can have (after first char) numbers.
 
@@ -61,7 +59,7 @@ def check_name(name):
 # positive number > 0 (also, it should be <= 1000, for number of nodes, but not checking)
 def check_number(number):
     try:
-        n=int(number)        
+        n=int(number)
         if n<1:
             return False
     except ValueError:
@@ -75,7 +73,7 @@ def check_dateTime(dateTime):
         # the one format that is valid is YYYY-MM-DDTHH:MM:SS
         datetime.datetime.strptime(dateTime, "%Y-%m-%dT%H:%M:%S")
         return True
-    except ValueError:    
+    except ValueError:
         return False
 
 
@@ -94,7 +92,7 @@ def check_actualDate(start_date):
 
     # local date from the server
     actual_date = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-    
+
     return check_dateDiff(actual_date,start_date)
 
 
@@ -104,9 +102,9 @@ def check_actualDate(start_date):
 @app.route("/",methods=["GET"])
 @check_auth_header
 def get():
-    
+
     auth_header = request.headers[AUTH_HEADER_NAME]
-    
+
     # checks if machine name is set
     try:
         system_name = request.headers["X-Machine-Name"]
@@ -122,7 +120,7 @@ def get():
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
     system_addr = SYS_INTERNALS[system_idx]
-    
+
     # list reservations
     action = f"timeout {TIMEOUT} {RESERVATION_CMD} -l"
 
@@ -141,16 +139,16 @@ def get():
             return jsonify(error="Error listing reservations"), 400, header
 
         #in case of permission for other user
-        # sudo error returned: 
-        # 
-        # "We trust you have received the usual lecture from the local SystemAdministrator. It usually boils down to these three things:    
-        # #1) Respect the privacy of others.    #2) Think before you type.    #3) With great power comes great responsibility.sudo: 
-        # no tty present and no askpass program specified 
+        # sudo error returned:
+        #
+        # "We trust you have received the usual lecture from the local SystemAdministrator. It usually boils down to these three things:
+        # #1) Respect the privacy of others.    #2) Think before you type.    #3) With great power comes great responsibility.sudo:
+        # no tty present and no askpass program specified
         #
         if in_str(error_str,"Permission") or in_str(error_str,"SystemAdministrator"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(error="Error listing reservations"), 404, header
-           
+
 
         # otherwise, generic error
         return jsonify(error="Error listing reservations", description=error_str), 400
@@ -162,7 +160,7 @@ def get():
     #
     ## rsvmgmt: Current Reservations
     ## ---------------------------
-    ## ReservationName=selvedas StartTime=2020-12-24T08:00:00 EndTime=2020-12-25T12:30:00 Duration=1-04:30:00 Nodes=nid0000[0-9] NodeCnt=10 
+    ## ReservationName=selvedas StartTime=2020-12-24T08:00:00 EndTime=2020-12-25T12:30:00 Duration=1-04:30:00 Nodes=nid0000[0-9] NodeCnt=10
     ## CoreCnt=640 Features=knl PartitionName=normal Flags= TRES=cpu=2560 Users=(null) Accounts=csstaff Licenses=(null) State=INACTIVE BurstBuffer=(null) Watts=n/a
     ## ---------------------------
     #
@@ -188,7 +186,7 @@ def get():
             break
 
         # otherwise this is the output list:
-        # ['ReservationName=selvedas', 'StartTime=2020-12-24T08:00:00', 'EndTime=2020-12-25T12:30:00', 'Duration=1-04:30:00', 'Nodes=nid0000[0-9]', 'NodeCnt=10', 
+        # ['ReservationName=selvedas', 'StartTime=2020-12-24T08:00:00', 'EndTime=2020-12-25T12:30:00', 'Duration=1-04:30:00', 'Nodes=nid0000[0-9]', 'NodeCnt=10',
         # 'CoreCnt=640', 'Features=knl', 'PartitionName=normal', 'Flags=', 'TRES=cpu=2560', 'Users=(null)', 'Accounts=csstaff', 'Licenses=(null)', 'State=INACTIVE', 'BurstBuffer=(null)', 'Watts=n/a']
 
         rsv_dict = {}
@@ -210,9 +208,9 @@ def get():
 @app.route("/",methods=["POST"])
 @check_auth_header
 def post():
-    
+
     auth_header = request.headers[AUTH_HEADER_NAME]
-    
+
     # checks if machine name is set
     try:
         system_name = request.headers["X-Machine-Name"]
@@ -228,7 +226,7 @@ def post():
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
     system_addr = SYS_INTERNALS[system_idx]
-    
+
     # checking input data
     # getting reservation name from request form
     try:
@@ -261,7 +259,7 @@ def post():
             return jsonify(error="Error creating reservation", description=f"'nodeType' parameter format is not valid (value entered:'{nodeType}')"), 400
     except BadRequestKeyError:
         return jsonify(error="Error creating reservation", description="'nodeType' form data input missing"), 400
-    
+
     # getting starttime from request form
     try:
         starttime = request.form["starttime"]
@@ -277,7 +275,7 @@ def post():
             return jsonify(error="Error creating reservation", description=f"'endtime' parameter format is not valid. It should be YYYY-MM-DDTHH:MM:SS (value entered:'{endtime}')"), 400
     except BadRequestKeyError:
         return jsonify(error="Error creating reservation", description="'endtime' form data input missing"), 400
-    
+
     if not check_dateDiff(starttime,endtime):
         return jsonify(error="Error creating reservation", description=f"'endtime' occurs before 'starttime' (values entered: endtime='{endtime}' <= starttime='{starttime}')"), 400
 
@@ -326,7 +324,7 @@ def post():
     data = jsonify(success=output)
     return data, 201
 
-    
+
 
 
 
@@ -336,7 +334,7 @@ def post():
 def put(reservation):
 
     auth_header = request.headers[AUTH_HEADER_NAME]
-    
+
     # checks if machine name is set
     try:
         system_name = request.headers["X-Machine-Name"]
@@ -352,11 +350,11 @@ def put(reservation):
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
     system_addr = SYS_INTERNALS[system_idx]
-    
+
     # checking input data
     if not check_name(reservation):
         return jsonify(error="Error updating reservation", description=f"'reservation' parameter format is not valid (value entered:'{reservation}')"), 400
-        
+
     # getting numberOfNodes from request form
     try:
         numberOfNodes = request.form["numberOfNodes"]
@@ -372,7 +370,7 @@ def put(reservation):
             return jsonify(error="Error updating reservation", description=f"'nodeType' parameter format is not valid (value entered:'{nodeType}')"), 400
     except BadRequestKeyError:
         return jsonify(error="Error updating reservation", description="'nodeType' form data input missing"), 400
-    
+
     # getting starttime from request form
     try:
         starttime = request.form["starttime"]
@@ -388,10 +386,10 @@ def put(reservation):
             return jsonify(error="Error updating reservation", description=f"'endtime' parameter format is not valid. It should be YYYY-MM-DDTHH:MM:SS (value entered:'{endtime}')"), 400
     except BadRequestKeyError:
         return jsonify(error="Error updating reservation", description="'endtime' form data input missing"), 400
-    
+
     if not check_dateDiff(starttime,endtime):
         return jsonify(error="Error updating reservation", description=f"'endtime' occurs before 'starttime' (values entered: endtime='{endtime}' <= starttime='{starttime}')"), 400
-    
+
     if not check_actualDate(starttime):
         return jsonify(error="Error creating reservation", description=f"'starttime' is in the pass (values entered: starttime='{starttime}')"), 400
 
@@ -442,7 +440,7 @@ def put(reservation):
 def delete(reservation):
 
     auth_header = request.headers[AUTH_HEADER_NAME]
-    
+
     # checks if machine name is set
     try:
         system_name = request.headers["X-Machine-Name"]
@@ -462,7 +460,7 @@ def delete(reservation):
     # checking input data
     if not check_name(reservation):
         return jsonify(error="Error deleting reservation", description=f"'reservation' parameter format is not valid (value entered:'{reservation}')"), 400
-    
+
     # Update a reservation
     # rsvmgmt -d reservationName
     action = f"timeout {TIMEOUT} {RESERVATION_CMD} -d {reservation}"
@@ -508,13 +506,8 @@ def delete(reservation):
 
 @app.route("/status",methods=["GET"])
 def status():
-
     app.logger.info("Test status of service")
-
-    if request.remote_addr != STATUS_IP:
-        app.logger.warning("Invalid remote address: {addr}".format(addr=request.remote_addr))
-        return jsonify(error="Invalid access"), 403
-
+    # TODO: check backend reservation binary to truthfully respond this request
     return jsonify(success="ack"), 200
 
 @app.errorhandler(MethodNotAllowed)
@@ -545,9 +538,9 @@ if __name__ == "__main__":
     logger.addHandler(logHandler)
 
     # set to debug = False, so stderr and stdout go to log file
-    
+
     # run app
-    if USE_SSL:        
-        app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=RESERVATIONS_PORT, ssl_context=(SSL_CRT, SSL_KEY))        
+    if USE_SSL:
+        app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=RESERVATIONS_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:
         app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=RESERVATIONS_PORT)
