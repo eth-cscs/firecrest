@@ -15,6 +15,7 @@ ${WORKSPACE}/ci/dev/clean.sh
 echo "starting containers..."
 docker-compose -f ${WORKSPACE}/deploy/test-build/docker-compose.yml up --build -d
 
+# TODO: Complete the missing endpoints (readinessProbe like) to allow this kind of wait
 # echo "waiting for Firecrest stack to be ready..."
 # attempts=0
 # while [[ "$attempts" -lt 9 && "$(curl -s -o /dev/null -w ''%{http_code}'' localhost:9000)" == "000" ]]; do

@@ -176,6 +176,9 @@ services:
     environment:
       SWAGGER_JSON: /tmp/openapi.yaml
 
+# For now all containers are attached to both networks.
+# Next step is to split microservices to the
+# correct networks to reflect production reality.
 networks:
   backend:
     name: f7t-backend

@@ -34,6 +34,8 @@ pipeline {
         stage('Refresh') {
             when {
                 anyOf {
+                    // For now, we use these branches to build everythig from scratch
+                    // See refresh.sh
                     branch 'master';
                     branch 'dev'
                 }
@@ -71,6 +73,7 @@ pipeline {
 
         success {
             script {
+                // Notify Github on success
                 withCredentials([string(credentialsId: 'firecrestci_access_token', variable: 'accessToken')]) {
                     sh 'curl -H "Authorization: token ' + "${accessToken}"  + '" "https://api.github.com/repos/eth-cscs/firecrest/statuses/' + "${env.GIT_COMMIT}" + '" \\' +
                     '-H "Content-Type: application/json" \\' +
@@ -82,6 +85,7 @@ pipeline {
 
         unsuccessful{
             script {
+                // Notify Github on failure
                 withCredentials([string(credentialsId: 'firecrestci_access_token', variable: 'accessToken')]) {
                     sh 'curl -H "Authorization: token ' + "${accessToken}"  + '" "https://api.github.com/repos/eth-cscs/firecrest/statuses/' + "${env.GIT_COMMIT}" + '" \\' +
                     '-H "Content-Type: application/json" \\' +
