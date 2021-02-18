@@ -6,7 +6,7 @@
 ##
 from f7t-base
 
-RUN yum install -y openssh
+RUN yum install -y openssh-7.4p1
 
 ADD deploy/docker/certificator/requirements.txt deps/requirements.txt
 RUN pip3 install -r deps/requirements.txt

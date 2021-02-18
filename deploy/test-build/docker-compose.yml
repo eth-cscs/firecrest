@@ -164,7 +164,6 @@ services:
       - ./ssl:/ssl
 
   openapi:
-    # image: swaggerapi/swagger-ui:v3.22.0
     build:
       context: ../../
       dockerfile: ./deploy/docker/openapi/Dockerfile

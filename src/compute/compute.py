@@ -186,7 +186,7 @@ def submit_job_task(auth_header, system_name, system_addr, job_file, job_dir, ta
 
         jobid = extract_jobid(outlines)
 
-        msg = {"result" : "Job submitted", "jobid" : jobid, "jobfile" : f"{job_dir}/{job_file['filename']}"}
+        msg = {"result" : "Job submitted", "jobid" : jobid}
 
         # now look for log and err files location
         job_extra_info = get_slurm_files(auth_header, system_name, system_addr, task_id, msg)
@@ -433,7 +433,7 @@ def submit_job_upload():
                              args=(auth_header, system_name, system_addr, job_file, job_dir, task_id))
 
         aTask.start()
-        retval = update_task(task_id, auth_header,async_task.QUEUED, TASKS_URL)
+        retval = update_task(task_id, auth_header,async_task.QUEUED)
 
         task_url = f"{KONG_URL}/tasks/{task_id}"
         data = jsonify(success="Task created", task_id=task_id, task_url=task_url)
@@ -822,7 +822,10 @@ def cancel_job_task(auth_header,system_name, system_addr,action,task_id):
 
     # if "error" word appears:
     if in_str(data,"error"):
-        update_task(task_id, auth_header, async_task.ERROR, data)
+        # error message: "scancel: error: Kill job error on job id 5: Invalid job id specified"
+        # desired output: "Kill job error on job id 5: Invalid job id specified"
+        err_msg = data[(data.index("error")+7):]
+        update_task(task_id, auth_header, async_task.ERROR, err_msg)
         return
 
     # otherwise

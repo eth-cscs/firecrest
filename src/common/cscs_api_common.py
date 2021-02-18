@@ -73,11 +73,11 @@ def check_header(header):
                 decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, options={'verify_aud': False})
             else:
                 decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, audience=AUTH_AUDIENCE)
-       
+
         if AUTH_REQUIRED_SCOPE != "":
             if AUTH_REQUIRED_SCOPE not in decoded["scope"].split():
                 return False
-        
+
         return True
 
     except jwt.exceptions.InvalidSignatureError:
@@ -105,7 +105,7 @@ def get_username(header):
             decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, options={'verify_aud': False})
         # check if it's a service account token
         try:
-            if AUTH_ROLE in decoded["realm_access"]["roles"]: 
+            if AUTH_ROLE in decoded["realm_access"]["roles"]:
 
                 clientId = decoded["clientId"]
                 username = decoded["resource_access"][clientId]["roles"][0]
@@ -276,12 +276,12 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
         stderr_errda = ""
         stdout_errda = ""
 
-        
+
 	# poll process status since directly using recv_exit_status() could result
-        # in a permanent hang when remote output is larger than the current Transport or session’s window_size 
+        # in a permanent hang when remote output is larger than the current Transport or session’s window_size
         while True:
             if stderr.channel.exit_status_ready():
-                logging.info("stderr channel exit status ready") 
+                logging.info("stderr channel exit status ready")
                 stderr_errno = stderr.channel.recv_exit_status()
                 endtime = time.time() + 30
                 eof_received = True
@@ -303,7 +303,7 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
         #for i in range(0,10):
         while True:
             if stdout.channel.exit_status_ready():
-                logging.info("stdout channel exit status ready") 
+                logging.info("stdout channel exit status ready")
                 stdout_errno = stdout.channel.recv_exit_status()
                 endtime = time.time() + 30
                 eof_received = True
@@ -313,7 +313,7 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
                         stdout.channel.close()
                         eof_received = False
                         break
-                if eof_received:                    
+                if eof_received:
                     output = "".join(stdout.readlines())
                     # error = stderr.read() it hangs
                     # clean "tput: No ..." lines at error output
@@ -337,6 +337,12 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
         if stderr_errno == 0:
             if stderr_errda and not (in_str(stderr_errda,"Could not chdir to home directory") or in_str(stderr_errda,"scancel: Terminating job")):
                 result = {"error": 1, "msg": stderr_errda}
+            elif in_str(stdout_errda, "No such file"): # in case that error is 0 and the msg is on the stdout (like with some file)
+                result = {"error": 1, "msg": stdout_errda}
+            elif in_str(stdout_errda, "no read permission"): # in case that error is 0 and the msg is on the stdout (like with some file)
+                result = {"error": 1, "msg": stdout_errda}
+            elif in_str(stdout_errda, "cannot open"): # in case that error is 0 and the msg is on the stdout (like with some file)
+                result = {"error": 1, "msg": stdout_errda}
             else:
                 result = {"error": 0, "msg": outlines}
         elif stderr_errno > 0:
@@ -347,6 +353,7 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
             result = {"error": -2, "msg": "Receive ready timeout exceeded"}
         elif stderr_errno == -1:
             result = {"error": -1, "msg": "No exit status was provided by the server"}
+
 
     # first if paramiko exception raise
     except paramiko.ssh_exception.NoValidConnectionsError as e:
@@ -386,7 +393,7 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
         os.remove(priv_key)
         os.rmdir(temp_dir)
 
-    logging.info(f"Returned: ({result['error']}) {result['msg']}")
+    logging.info(f"Result: status_code {result['error']} -> {result['msg']}")
     return result
 
 
@@ -460,7 +467,7 @@ def create_task(auth_header,service=None):
 # function to call update task entry API in Queue FS
 def update_task(task_id, auth_header, status, msg = None, is_json=False):
 
-    logging.info(f"Update {TASKS_URL}/{task_id} -> status: {status}")    
+    logging.info(f"Update {TASKS_URL}/{task_id} -> status: {status}")
 
     if is_json:
         data = {"status": status, "msg": msg}
@@ -492,8 +499,8 @@ def expire_task(task_id,auth_header,service):
 
     return True
 
-    
-    
+
+
 
 # function to check task status:
 def get_task_status(task_id,auth_header):
@@ -537,30 +544,30 @@ def is_valid_file(path, auth_header, system_name, system_addr):
 
         if retval["error"] == 113:
             return {"result":False, "headers":{"X-Machine-Not-Available":"Machine is not available"} }
-            
+
 
         if retval["error"] == 124:
             return {"result":False, "headers":{"X-Timeout": "Command has finished with timeout signal"}}
-            
+
 
         # error no such file
         if in_str(error_str,"No such file"):
             return {"result":False, "headers":{"X-Invalid-Path": "{path} is an invalid path.".format(path=path)}}
-                
+
 
         # permission denied
         if in_str(error_str,"Permission denied") or in_str(error_str,"OPENSSH"):
             return {"result":False, "headers":{"X-Permission-Denied": "User does not have permissions to access machine or path"}}
 
         if in_str(error_str, "directory"):
-            return {"result":False, "headers":{"X-A-Directory": "{path} is a directory".format(path=path)}}  
+            return {"result":False, "headers":{"X-A-Directory": "{path} is a directory".format(path=path)}}
 
         return {"result":False, "headers":{"X-Error": retval["msg"]}}
 
     return {"result":True}
 
 
-    
+
 # checks if {path} is a valid directory
 # 'path' should exists and be accesible to the user (write permissions)
 #
@@ -570,9 +577,9 @@ def is_valid_dir(path, auth_header, system_name, system_addr):
     # test file is a hidden file and has a timestamp in order to not overwrite other files created by user
     # after this, file should be deleted
 
-    
+
     timestamp = datetime.datetime.today().strftime("%Y-%m-%dT%H:%M:%S.%f")
-    # using a hash 
+    # using a hash
     hashedTS  =  hashlib.md5()
     hashedTS.update(timestamp.encode("utf-8"))
 
@@ -605,7 +612,7 @@ def is_valid_dir(path, auth_header, system_name, system_addr):
         if in_str(error_str,"Not a directory"):
             return {"result":False, "headers":{"X-Not-A-Directory": "{path} is not a directory".format(path=path)}}
 
-        return {"result":False, "headers":{"X-Error": retval["msg"]}}    
+        return {"result":False, "headers":{"X-Error": retval["msg"]}}
 
     # delete test file created
     action = f"rm -- {path}/{tempFileName}"
@@ -639,14 +646,14 @@ def check_auth_header(func):
 
 # check user authorization on endpoint
 # using Open Policy Agent
-# 
+#
 # use:
 # check_user_auth(username,system)
 def check_user_auth(username,system):
 
     # check if OPA is active
     if OPA_USE:
-        try: 
+        try:
             input = {"input":{"user": f"{username}", "system": f"{system}"}}
             #resp_opa = requests.post(f"{OPA_URL}/{POLICY_PATH}", json=input)
             logging.info(f"{OPA_URL}/{POLICY_PATH}")
@@ -660,11 +667,11 @@ def check_user_auth(username,system):
                 return {"allow": True, "description":f"User {username} authorized", "status_code": 200 }
             else:
                 logging.error(f"User {username} NOT authorized by OPA")
-                return {"allow": False, "description":f"User {username} not authorized in {system}", "status_code": 401}                
+                return {"allow": False, "description":f"User {username} not authorized in {system}", "status_code": 401}
         except requests.exceptions.RequestException as e:
             logging.error(e.args)
-            return {"allow": False, "description":"Authorization server error", "status_code": 404} 
-    
+            return {"allow": False, "description":"Authorization server error", "status_code": 404}
+
     return {"allow": True, "description":"Authorization method not active", "status_code": 200 }
 
 
@@ -699,10 +706,6 @@ def check_command_error(error_str, error_code, service_msg):
         header={"X-Invalid-Path":"path is an invalid path"}
         return {"description": service_msg, "status_code": 400, "header": header}
 
-    if in_str(error_str,"cannot open"):
-        header = {"X-Permission-Denied": "User does not have permissions to access path"}
-        return {"description":service_msg, "status_code": 400, "header": header}
-
     if in_str(error_str,"No such file"):
         if in_str(error_str,"cannot stat"):
             header={"X-Not-Found":"sourcePath not found"}
@@ -720,6 +723,10 @@ def check_command_error(error_str, error_code, service_msg):
         header={"X-Invalid-Path":"path is an invalid path"}
         return {"description": service_msg, "status_code": 400, "header": header}
 
+    if in_str(error_str,"cannot open"):
+        header = {"X-Permission-Denied": "User does not have permissions to access path"}
+        return {"description":service_msg, "status_code": 400, "header": header}
+
     if in_str(error_str,"Permission denied"):
         header = {"X-Permission-Denied": "User does not have permissions to access path"}
         return {"description": service_msg, "status_code": 400, "header": header}
@@ -727,7 +734,7 @@ def check_command_error(error_str, error_code, service_msg):
     if in_str(error_str,"directory"):
         header = {"X-A-Directory": "path is a directory, can't checksum directories"}
         return {"description": service_msg, "status_code": 400, "header": header}
-    
+
     # if already exists, not overwrite (-i)
     if in_str(error_str,"overwrite"):
         header = {"X-Exists": "targetPath already exists"}
@@ -744,7 +751,7 @@ def check_command_error(error_str, error_code, service_msg):
     if in_str(error_str,"invalid user"):
         header = {"X-Invalid-Owner": "owner is an invalid user"}
         return {"description": service_msg, "status_code": 400, "header": header}
-    
+
     if in_str(error_str, "invalid mode"):
         header = {"X-Invalid-Mode": "mode is an invalid mode"}
         return {"description": service_msg, "status_code": 400, "header": header}
