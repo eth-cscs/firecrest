@@ -66,7 +66,7 @@ def test_post_upload_request(headers):
 
     # upload file to storage server
     msg = resp.json()["task"]["data"]["msg"]
-    url = msg["url"]
+    url = msg["parameters"]["url"]
 
 
     url = url.replace("minio_test_build", "127.0.0.1")
@@ -74,7 +74,7 @@ def test_post_upload_request(headers):
     resp = None
     
     if (OBJECT_STORAGE == "s3v2"):
-        params = [('AWSAccessKeyId', msg["AWSAccessKeyId"]), ('Signature', msg["Signature"]), ('Expires', msg["Expires"])]
+        params = [('AWSAccessKeyId', msg["parameters"]["params"]["AWSAccessKeyId"]), ('Signature', msg["parameters"]["params"]["Signature"]), ('Expires', msg["parameters"]["params"]["Expires"])]
         
         # this way doesn't work
         # files = {'file': ("testsbatch.sh", open(data["sourcePath"], 'rb'))}
@@ -85,9 +85,9 @@ def test_post_upload_request(headers):
             resp= requests.put(url, data=data, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 
     elif (OBJECT_STORAGE == "s3v4"):
-        post_data =  [('key', msg["key"]), ('policy', msg["policy"]), ('x-amz-algorithm', msg["x-amz-algorithm"])
-        , ('x-amz-credential', msg["x-amz-credential"]), ('x-amz-date', msg["x-amz-date"]),
-        ('x-amz-signature', msg["x-amz-signature"])]
+        post_data =  [('key', msg["parameters"]["data"]["key"]), ('policy', msg["parameters"]["data"]["policy"]), ('x-amz-algorithm', msg["parameters"]["data"]["x-amz-algorithm"])
+        , ('x-amz-credential', msg["parameters"]["data"]["x-amz-credential"]), ('x-amz-date', msg["parameters"]["data"]["x-amz-date"]),
+        ('x-amz-signature', msg["parameters"]["data"]["x-amz-signature"])]
 
         files = {'file': open(data["sourcePath"],'rb')}
         resp = requests.post(url, data=post_data, files=files, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
