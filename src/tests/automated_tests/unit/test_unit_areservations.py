@@ -62,7 +62,7 @@ def test_list_reservation(system, expected_code, expected_data, headers):
 	else:
 		assert resp.json()['error'] == expected_data
 
-
+# TODO: ADD comment saying where are defined the valid number of nodes, node types and account names.
 POST_DATA = [(201, "testrsvok01", "test",  "1", "f7t", d1, d2),
 		     (201, "testrsvok02", "test",  "1", "f7t", d5, d6),
              (400, "testrsvok01", "test",  "1", "f7t", d1, d2), # fail, duplicated reservation name
@@ -112,7 +112,7 @@ def test_put_reservation(status_code, reservation, numberOfNodes, nodeType, star
 			"starttime":     starttime,
 			"endtime":       endtime}
 
-	resp = requests.put(url, headers=headers, data=data , verify=verify)
+	resp = requests.put(url, headers=headers, data=data, verify=verify)
 	check_status(resp, status_code)
 
 
@@ -127,6 +127,61 @@ def test_delete_reservation(status_code, reservation, headers):
 
 	resp = requests.delete(url, headers=headers, verify=verify)
 	check_status(resp, status_code)
+
+
+def test_reservation_crud_ok(headers):
+	print("test_reservation_crud_ok")
+	url = RESERVATIONS_URL
+	headers["X-Machine-Name"] = SYSTEM
+
+	rsv01 = {
+		"reservation":   "testrsvok01",
+		"account":       "test",
+		"numberOfNodes": "1",
+		"nodeType":      "f7t",
+		"starttime":     d1,
+		"endtime":       d2
+	}
+
+	rsv02 = dict(rsv01)
+	rsv02['reservation'] = "testrsvok02"
+	rsv02['starttime'] = d7
+	rsv02['endtime'] = d8
+
+	# create rsv1
+	resp = requests.post(url, headers=headers, data=rsv01, verify=verify)
+	check_status(resp, 201)
+
+	try:
+		# create rsv2
+		resp = requests.post(url, headers=headers, data=rsv02, verify=verify)
+		check_status(resp, 201)
+
+		try:
+			# list reservations
+			resp = requests.get(url, headers=headers, verify=verify)
+			check_status(resp, 200)
+			obtained = resp.json().get('success', [])
+			assert [x['reservationname'] for x in obtained] == ['testrsvok01', 'testrsvok02'] # Assumes there is order guarantee
+
+			# update rsv1
+			upd = {
+				"numberOfNodes": "1",
+				"nodeType":      "f7t",
+				"starttime": d5,
+				"endtime": d6
+			}
+			resp = requests.put(f"{RESERVATIONS_URL}/testrsvok01", headers=headers, data=upd, verify=verify)
+			check_status(resp, 200)
+		finally:
+			# delete rsv2
+			resp = requests.delete(f"{RESERVATIONS_URL}/testrsvok02", headers=headers, verify=verify)
+			check_status(resp, 204)
+
+	finally:
+		# delete rsv1
+		resp = requests.delete(f"{RESERVATIONS_URL}/testrsvok01", headers=headers, verify=verify)
+		check_status(resp, 204)
 
 
 if __name__ == '__main__':
