@@ -114,6 +114,41 @@ def test_put_reservation(status_code, reservation, numberOfNodes, nodeType, star
 	check_status(resp, status_code)
 
 
+def test_reservation_conflicts(headers):
+	url = RESERVATIONS_URL
+	headers["X-Machine-Name"] = SYSTEM
+
+	rsv01 = {
+		"reservation":   "testrsvok01",
+		"account":       "test",
+		"numberOfNodes": "1",
+		"nodeType":      "f7t",
+		"starttime":     d1,
+		"endtime":       d2
+	}
+
+	rsv02 = dict(rsv01)
+
+	# create rsv1
+	resp = requests.post(url, headers=headers, data=rsv01, verify=verify)
+	check_status(resp, 201)
+
+	try:
+		resp = requests.post(url, headers=headers, data=rsv02, verify=verify)
+		check_status(resp, 400)
+		# check msg duplicate name
+
+		rsv02['reservation'] = "testrsvok02"
+		resp = requests.post(url, headers=headers, data=rsv02, verify=verify)
+		check_status(resp, 400)
+		# check msg time overlap
+
+	finally:
+		# delete rsv1
+		resp = requests.delete(f"{RESERVATIONS_URL}/testrsvok01", headers=headers, verify=verify)
+		check_status(resp, 204)
+
+
 DELETE_DATA = [
 				(405, ""),   		# fail: empty name
 				(400, "wrongname"), # fail: wrong name
@@ -128,20 +163,7 @@ def test_delete_reservation(status_code, reservation, headers):
 	check_status(resp, status_code)
 
 
-def test_reservation_overlap(headers):
-	# put and post
-	#(400, "testrsvok01", "1", "f7t", d5, d6), # fail overlap with testrsvok01
-	pass
-
-
-def test_reservation_duplicate(headers):
-	# put and post?
-	#(400, "testrsvok01", "test",  "1", "f7t", d1, d2), # fail, duplicated reservation name
-	pass
-
-
 def test_reservation_crud_ok(headers):
-	print("test_reservation_crud_ok")
 	url = RESERVATIONS_URL
 	headers["X-Machine-Name"] = SYSTEM
 
