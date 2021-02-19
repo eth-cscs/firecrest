@@ -62,10 +62,9 @@ def test_list_reservation(system, expected_code, expected_data, headers):
 	else:
 		assert resp.json()['error'] == expected_data
 
+
 # TODO: ADD comment saying where are defined the valid number of nodes, node types and account names.
-POST_DATA = [(201, "testrsvok01", "test",  "1", "f7t", d1, d2),
-		     (201, "testrsvok02", "test",  "1", "f7t", d5, d6),
-             (400, "testrsvok01", "test",  "1", "f7t", d1, d2), # fail, duplicated reservation name
+POST_DATA = [
 			 (400, "testrsverr02", "test", "1", "f7t", d2, d1), # fail: dates are in wrong order
              (400, "testrsverr03", "test", "1", "ntl", d2, d1), # fail: invalid nodeType
 			 (400, "testrsverr04", "test", "1", "f7t", d3, d4), # fail: wrong date time format
@@ -91,8 +90,7 @@ def test_post_reservation(status_code,reservation,account,numberOfNodes,nodeType
 	check_status(resp, status_code)
 
 
-PUT_DATA = [(400, "testrsvok01", "1", "f7t", d5, d6), # fail overlap with testrsvok01
-			(200, "testrsvok01", "1", "f7t", d7, d8), # ok
+PUT_DATA = [
             (400, "testrsvok01", "1", "f7t", d2, d1), # fail: dates are in wrong order
             (400, "testrsvok01", "1", "ntl", d5, d6), # fail: invalid nodeType
 			(400, "testrsvok01", "1", "f7t", d3, d4), # fail: wrong date time format
@@ -116,9 +114,10 @@ def test_put_reservation(status_code, reservation, numberOfNodes, nodeType, star
 	check_status(resp, status_code)
 
 
-DELETE_DATA =  [(204, "testrsvok01"), # OK
-				(204, "testrsvok02"), # OK
-				(400, "wrongname"),   # fail: wrong name
+DELETE_DATA = [
+				(405, ""),   		# fail: empty name
+				(400, "wrongname"), # fail: wrong name
+				(400, "1_"), 		# fail: invalid name
 ]
 @pytest.mark.parametrize("status_code,reservation",DELETE_DATA)
 def test_delete_reservation(status_code, reservation, headers):
@@ -127,6 +126,18 @@ def test_delete_reservation(status_code, reservation, headers):
 
 	resp = requests.delete(url, headers=headers, verify=verify)
 	check_status(resp, status_code)
+
+
+def test_reservation_overlap(headers):
+	# put and post
+	#(400, "testrsvok01", "1", "f7t", d5, d6), # fail overlap with testrsvok01
+	pass
+
+
+def test_reservation_duplicate(headers):
+	# put and post?
+	#(400, "testrsvok01", "test",  "1", "f7t", d1, d2), # fail, duplicated reservation name
+	pass
 
 
 def test_reservation_crud_ok(headers):
