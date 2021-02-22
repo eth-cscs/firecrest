@@ -864,7 +864,7 @@ paths:
       description: 'Calculate the SHA256 (256-bit) checksum of a specified file in {targetPath} on the {X-Machine-Name} filesystem.'
       tags:
         - Utilities
-      parameters: 
+      parameters:
         - name: targetPath
           in: query
           description: Path to the file to calculate checksum
@@ -923,7 +923,7 @@ paths:
       description: 'View the content of a specified file in {targetPath} on the {X-Machine-Name} filesystem.'
       tags:
         - Utilities
-      parameters: 
+      parameters:
         - name: targetPath
           in: query
           description: Path to the file to view
@@ -1638,7 +1638,7 @@ paths:
                   description: source path to the file in local machine
                 targetPath:
                   type: string
-                  description: Absolute path to destination                
+                  description: Absolute path to destination
               required:
                 - sourcePath
                 - targetPath
@@ -1836,7 +1836,7 @@ paths:
           type: string
     get:
       summary: Returns all reservations
-      description: List all reservations actives and their status
+      description: List all active reservations and their status
       tags:
         - Reservation
       responses:
@@ -1860,7 +1860,7 @@ paths:
             X-Machine-Not-Available:
               description: Machine is not available
               schema:
-                type: integer            
+                type: integer
             X-Timeout:
               description: Command has finished with timeout signal
               schema:
@@ -1876,7 +1876,7 @@ paths:
               description: User does not have permissions to access machine
               schema:
                 type: integer
-                
+
     post:
       summary: Creates a new reservation
       description: Creates a new reservation with {reservation} name for a given SLURM groupname
@@ -1954,7 +1954,7 @@ paths:
             X-Machine-Not-Available:
               description: Machine is not available
               schema:
-                type: integer            
+                type: integer
             X-Error:
               description: Error
               schema:
@@ -1977,7 +1977,7 @@ paths:
             X-Permission-Denied:
               description: User does not have permissions to access machine
               schema:
-                type: integer          
+                type: integer
   '/reservations/{reservation}':
     parameters:
       - in: header
@@ -2062,7 +2062,7 @@ paths:
             X-Machine-Not-Available:
               description: Machine is not available
               schema:
-                type: integer            
+                type: integer
             X-Error:
               description: Error
               schema:
@@ -2426,10 +2426,10 @@ components:
           type: string
         watts:
           type: string
-          
+
     Reservations:
       type: array
-      items: 
+      items:
         $ref: '#/components/schemas/Reservation'
 tags:
   - name: Status

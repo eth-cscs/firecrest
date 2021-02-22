@@ -852,7 +852,7 @@ paths:
       description: 'Calculate the SHA256 (256-bit) checksum of a specified file in {targetPath} on the {X-Machine-Name} filesystem.'
       tags:
         - Utilities
-      parameters: 
+      parameters:
         - name: targetPath
           in: query
           description: Path to the file to calculate checksum
@@ -911,7 +911,7 @@ paths:
       description: 'View the content of a specified file in {targetPath} on the {X-Machine-Name} filesystem.'
       tags:
         - Utilities
-      parameters: 
+      parameters:
         - name: targetPath
           in: query
           description: Path to the file to view
@@ -1770,7 +1770,7 @@ paths:
     post:
       summary: Creates a new task
       description: Creates a new task.
-      parameters:         
+      parameters:
       - in: header
         name: X-Firecrest-Service
         description: Name of the service for which the task will be created ("compute" or "storage")
@@ -1779,7 +1779,7 @@ paths:
           type: string
       tags:
         - Tasks
-      responses:        
+      responses:
         '201':
           description: Task created
           content:
@@ -1830,11 +1830,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Task'
-    
+
     put:
      summary: Updates a task
      description: Updates a task entry that keeps track of progress
-     parameters:         
+     parameters:
       - in: header
         name: X-Firecrest-Service
         description: Name of the service for which the task will be created ("compute"/"storage")
@@ -1931,7 +1931,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Expiration-404'
 
-        
+
   '/reservations':
     parameters:
       - in: header
@@ -1942,7 +1942,7 @@ paths:
           type: string
     get:
       summary: Returns all reservations
-      description: List all reservations actives and their status
+      description: List all active reservations and their status
       tags:
         - Reservation
       responses:
@@ -1966,7 +1966,7 @@ paths:
             X-Machine-Not-Available:
               description: Machine is not available
               schema:
-                type: integer            
+                type: integer
             X-Timeout:
               description: Command has finished with timeout signal
               schema:
@@ -1982,7 +1982,7 @@ paths:
               description: User does not have permissions to access machine
               schema:
                 type: integer
-                
+
     post:
       summary: Creates a new reservation
       description: Creates a new reservation with {reservation} name for a given SLURM groupname
@@ -2060,7 +2060,7 @@ paths:
             X-Machine-Not-Available:
               description: Machine is not available
               schema:
-                type: integer            
+                type: integer
             X-Error:
               description: Error
               schema:
@@ -2083,7 +2083,7 @@ paths:
             X-Permission-Denied:
               description: User does not have permissions to access machine
               schema:
-                type: integer          
+                type: integer
   '/reservations/{reservation}':
     parameters:
       - in: header
@@ -2168,7 +2168,7 @@ paths:
             X-Machine-Not-Available:
               description: Machine is not available
               schema:
-                type: integer            
+                type: integer
             X-Error:
               description: Error
               schema:
@@ -2256,7 +2256,7 @@ paths:
                 type: integer
 
 
-    
+
 
 
   '/certificator':
@@ -2279,7 +2279,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Certificator-notok'
-        
+
 
 components:
   securitySchemes:
@@ -2461,13 +2461,13 @@ components:
       properties:
         success:
           type: string
-          description: Success description    
+          description: Success description
     Expiration-400:
       type: object
       properties:
         error:
           type: string
-          description: Error description           
+          description: Error description
     Expiration-403:
       type: object
       properties:
@@ -2607,10 +2607,10 @@ components:
           type: string
         watts:
           type: string
-          
+
     Reservations:
       type: array
-      items: 
+      items:
         $ref: '#/components/schemas/Reservation'
 tags:
   - name: Status
