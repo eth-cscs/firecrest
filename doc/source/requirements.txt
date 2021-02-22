@@ -1,0 +1,5 @@
+Sphinx==1.8.2
+sphinx-rtd-theme==0.4.3
+sphinxcontrib-openapi==0.6.0
+https://github.com/djungelorm/sphinx-tabs/releases/download/v1.1.13/sphinx-tabs-1.1.13.tar.gz
+sphinxcontrib-redoc==1.5.1
