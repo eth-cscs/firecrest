@@ -38,7 +38,7 @@ def test_status_systems(headers):
 	assert 'description' in resp.json()
 
 
-@pytest.mark.parametrize("service",["certificator", "utilities", "compute", "tasks", "storage"])
+@pytest.mark.parametrize("service",["certificator", "utilities", "compute", "tasks", "storage","reservations"])
 def test_status_service(service, headers):
 	url = "{}/services/{}".format(STATUS_URL, service)
 	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))

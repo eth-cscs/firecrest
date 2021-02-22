@@ -22,7 +22,7 @@ else:
     UTILITIES_URL = os.environ.get("F7T_UTILITIES_URL")
 
 # same server used for utilities and external upload storage
-SERVER_UTILITIES_STORAGE = os.environ.get("F7T_SYSTEMS_PUBLIC").split(";")[0] 
+SERVER_UTILITIES_STORAGE = os.environ.get("F7T_SYSTEMS_PUBLIC").split(";")[0]
 OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE")
 
 ### SSL parameters
@@ -68,18 +68,15 @@ def test_post_upload_request(headers):
     msg = resp.json()["task"]["data"]["msg"]
     url = msg["parameters"]["url"]
 
-
-    url = url.replace("minio_test_build", "127.0.0.1")
-
     resp = None
-    
+
     if (OBJECT_STORAGE == "s3v2"):
         params = [('AWSAccessKeyId', msg["parameters"]["params"]["AWSAccessKeyId"]), ('Signature', msg["parameters"]["params"]["Signature"]), ('Expires', msg["parameters"]["params"]["Expires"])]
-        
+
         # this way doesn't work
         # files = {'file': ("testsbatch.sh", open(data["sourcePath"], 'rb'))}
         # resp = requests.put(url=url, files=files, params)
-        
+
         # this is the only way signature doesn't break!
         with open(data["sourcePath"], 'rb') as data:
             resp= requests.put(url, data=data, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
@@ -96,10 +93,10 @@ def test_post_upload_request(headers):
         # swift post request
         params = [('max_file_size', msg["max_file_size"]), ('max_file_count', msg["max_file_count"]), ('expires', msg["expires"]),
         ('signature', msg["signature"]), ('redirect', msg["redirect"])]
-        
+
         with open(data["sourcePath"], 'rb') as data:
             resp= requests.put(url, data=data, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
-     
+
     assert resp.status_code == 200 or resp.status_code == 204 #TODO: check 204 is right
 
     # download from OS to FS is automatic
@@ -130,7 +127,7 @@ def test_internal_cp(machine, headers):
 
     task_id = resp.json()["task_id"]
     check_task_status(task_id, headers)
-    
+
      # wait to make sure job is finished
     time.sleep(5)
 

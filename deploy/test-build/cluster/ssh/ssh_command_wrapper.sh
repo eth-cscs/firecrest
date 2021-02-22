@@ -56,6 +56,9 @@ case "$command" in
     case "$command2" in
       base64|chmod|chown|cp|curl|id|file|head|ln|ls|mkdir|mv|rm|sbatch|scontrol|sha256sum|squeue|stat|tail)
         ;;
+      rsvmgmt)
+        # advance reservation command
+        ;;
       *)
         logger -p user.error  "${msg} error - Unhandled timeout command: ${command2}"
         exit 118
@@ -66,7 +69,7 @@ case "$command" in
     # valid Slurm commands
     ;;
   curl)
-    # from object storage
+    # storage
     ;;
   *)
     logger -p user.error "${msg} error - Unhandled command: ${command}"

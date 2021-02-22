@@ -14,7 +14,6 @@ from logging.handlers import TimedRotatingFileHandler
 import base64
 import requests
 
-STATUS_IP = os.environ.get("F7T_STATUS_IP")
 AUTH_HEADER_NAME = 'Authorization'
 
 AUTH_AUDIENCE = os.environ.get("F7T_AUTH_TOKEN_AUD", '').strip('\'"')
@@ -49,43 +48,43 @@ app = Flask(__name__)
 
 # check user authorization on endpoint
 # using Open Policy Agent
-# 
+#
 # use:
 # check_user_auth(username,system)
 def check_user_auth(username,system):
 
     # check if OPA is active
     if OPA_USE:
-        try: 
-            input = {"input":{"user": f"{username}", "system": f"{system}"}}
-            
-            #resp_opa = requests.post(f"{OPA_URL}/{POLICY_PATH}", json=input)
-            logging.info(f"{OPA_URL}/{POLICY_PATH}")
+        logging.info(f"{OPA_URL}/{POLICY_PATH}")
+        input = {"input":{"user": f"{username}", "system": f"{system}"}}
 
+        try:
             resp_opa = requests.post(f"{OPA_URL}/{POLICY_PATH}", json=input, verify= (SSL_CRT if USE_SSL else False))
+            msg = "{} {}".format(resp_opa.status_code, resp_opa.text)
+            logging.info(f"resp_opa: {msg}")
 
-            logging.info(resp_opa.content)
+            if not resp_opa.ok:
+                return  {"allow": False, "description":f"Server error: {msg}", "status_code": resp_opa.status_code}
 
             if resp_opa.json()["result"]["allow"]:
                 logging.info(f"User {username} authorized by OPA")
                 return {"allow": True, "description":f"User {username} authorized", "status_code": 200 }
             else:
                 logging.error(f"User {username} NOT authorized by OPA")
-                return {"allow": False, "description":f"Permission denied for user {username} in {system}", "status_code": 401} 
+                return {"allow": False, "description":f"Permission denied for user {username} in {system}", "status_code": 401}
+
         except requests.exceptions.SSLError as e:
-            logging.error(e.args)               
-            return {"allow": False, "description":"Authorization server error: SSL error.", "status_code": 404} 
+            logging.error("Exception: {}".format(e))
+            return {"allow": False, "description":"Authorization server error: SSL error.", "status_code": 404}
+
         except requests.exceptions.RequestException as e:
-            logging.error(e.args)
-            return {"allow": False, "description":"Authorization server error", "status_code": 404} 
-        
+            logging.error("Exception: {}".format(e))
+            return {"allow": False, "description":"Authorization server error: RequestException", "status_code": 404}
+
         except Exception as e:
-            logging.error(type(e))
-            logging.error(e)
-            
-            logging.error(e.args)
-            return {"allow": False, "description":"Authorization server error", "status_code": 404} 
-    
+            logging.error("Exception: {}".format(e))
+            return {"allow": False, "description":"Authorization server error: Unexpected", "status_code": 404}
+
     return {"allow": True, "description":"Authorization method not active", "status_code": 200 }
 
 # checks JWT from Keycloak, optionally validates signature. It only receives the content of header's auth pair (not key:content)
@@ -108,7 +107,7 @@ def check_header(header):
         # if AUTH_REQUIRED_SCOPE != '':
         #     if not (AUTH_REQUIRED_SCOPE in decoded['realm_access']['roles']):
         #         return False
-        
+
         # {"scope": "openid profile firecrest email"}
         if AUTH_REQUIRED_SCOPE != "":
             if AUTH_REQUIRED_SCOPE not in decoded["scope"].split():
@@ -143,7 +142,7 @@ def get_username(header):
             decoded = jwt.decode(header[7:], verify=False)
         else:
             decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, options={'verify_aud': False})
-        
+
         # check if it's a service account token
         try:
             if AUTH_ROLE in decoded["realm_access"]["roles"]:
@@ -272,15 +271,9 @@ def receive():
 
 
 # get status for status microservice
-# only used by STATUS_IP otherwise forbidden
 @app.route("/status", methods=["GET"])
 def status():
     app.logger.info("Test status of service")
-
-    # if request.remote_addr != STATUS_IP:
-    #     app.logger.warning("Invalid remote address: {addr}".format(addr=request.remote_addr))
-    #     return jsonify(error="Invalid access"), 403
-
     return jsonify(success="ack"), 200
 
 
@@ -315,9 +308,9 @@ if __name__ == "__main__":
 
     # run app
     # debug = False, so output redirects to log files
-    if USE_SSL:        
-        app.run(debug=debug, host='0.0.0.0', port=CERTIFICATOR_PORT, ssl_context=(SSL_CRT, SSL_KEY))        
+    if USE_SSL:
+        app.run(debug=debug, host='0.0.0.0', port=CERTIFICATOR_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:
         app.run(debug=debug, host='0.0.0.0', port=CERTIFICATOR_PORT)
-    
+
 
