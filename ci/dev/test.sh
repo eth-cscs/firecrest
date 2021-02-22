@@ -31,12 +31,17 @@ docker-compose -f ${WORKSPACE}/deploy/test-build/docker-compose.yml up --build -
 echo "sleeping..."
 sleep 120
 
-echo "running unit_tests..."
+# We start with the reservation tests because other tests still need a proper cleanup step.
+echo "running reservation tests..."
 docker run --rm -u $(id -u):$(id -g) -v ${WORKSPACE}:/firecrest --network f7t-frontend f7t-tester bash \
-    -c 'pytest -c test-build.ini unit'
+    -c 'pytest -s -m reservations -c test-build.ini '
 
-echo "running integration_tests..."
+echo "running unit tests..."
 docker run --rm -u $(id -u):$(id -g) -v ${WORKSPACE}:/firecrest --network f7t-frontend f7t-tester bash \
-    -c 'pytest -c test-build.ini integration'
+    -c 'pytest -s -m "not reservations" -c test-build.ini unit'
+
+echo "running integration tests..."
+docker run --rm -u $(id -u):$(id -g) -v ${WORKSPACE}:/firecrest --network f7t-frontend f7t-tester bash \
+    -c 'pytest -s -m "not reservations" -c test-build.ini integration'
 
 echo "finished" $0
