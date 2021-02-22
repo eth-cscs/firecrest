@@ -1,0 +1,3 @@
+User_Alias RSVMGMT = test1, testuser, service-account-firecrest-sample
+Cmnd_Alias RSV_CMD = /usr/local/sbin/rsvmgmt_priv
+RSVMGMT ALL=(ALL) NOPASSWD:RSV_CMD
