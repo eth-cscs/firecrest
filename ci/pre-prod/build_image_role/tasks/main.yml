@@ -18,7 +18,7 @@
     dest: /home/firecrest/awx-firecrest-build
     version: "{{ commit_id }}"
 
-- name: build base image with latest tag 
+- name: build base image with build tag 
   docker_image:
     name: "localhost:5000/f7t-base:{{ build_tag }}"
     build:
@@ -28,7 +28,7 @@
     state: present
     push: yes  
 
-- name: tag base image with build tag
+- name: tag base image with latest tag
   docker_image:
     name: "localhost:5000/f7t-base:{{ build_tag }}"
     repository: "localhost:5000/f7t-base"
