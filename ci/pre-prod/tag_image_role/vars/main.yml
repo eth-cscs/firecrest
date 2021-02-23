@@ -6,6 +6,7 @@
 ##
 image_definitions:
   compute:
+  reservations:
   status:
   storage:
   tasks:
