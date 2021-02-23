@@ -20,7 +20,7 @@
 
 - name: build base image with latest tag 
   docker_image:
-    name: "localhost:5000/f7t-base"
+    name: "localhost:5000/f7t-base:{{ build_tag }}"
     build:
       path: /home/firecrest/awx-firecrest-build
       dockerfile: ./deploy/docker/base/Dockerfile
@@ -30,9 +30,9 @@
 
 - name: tag base image with build tag
   docker_image:
-    name: "localhost:5000/f7t-base"
+    name: "localhost:5000/f7t-base:{{ build_tag }}"
     repository: "localhost:5000/f7t-base"
-    tag: "{{ build_tag }}"
+    tag: "latest"
     push: yes
 
 - name: build container image
