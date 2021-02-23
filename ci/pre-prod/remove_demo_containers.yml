@@ -23,6 +23,7 @@
         - tasks
         - certificator
         - compute
+        - reservations
         - status
         - storage
         - utilities
