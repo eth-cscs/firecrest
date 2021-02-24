@@ -306,15 +306,7 @@ def post():
             return jsonify(error="Error creating reservation"), 404, header
 
         # otherwise, generic error
-        # First cleanup "timeout:"  error string.
-        # Then if it comes from rsvmgmt this is the format
-        #    rsvmgmt: Error: You are not a member of the $1 project"
-        # let's extract "rsvmgmt: Error: " string so it reports "You are not a member of the $1 project"
-
-        error_str = error_str.lstrip("timeout:")
-        error_str = error_str.lstrip("rsvmgmt:")
-        error_str = error_str.lstrip("Error: ")
-
+        error_str = cleanup_rsvmgmt_error(error_str)
 
         return jsonify(error="Error creating reservation", description=error_str), 400
 
@@ -434,6 +426,19 @@ def put(reservation):
     return data, 200
 
 
+def cleanup_rsvmgmt_error(error_msg):
+    """
+    Helper to cleanup errors from rsvmgmt output
+    """
+    # in lack of builtin remove_prefix (python >= 3.9)
+    if error_msg.startswith("timeout:"):
+        error_msg = error_msg[len("timeout:"):].strip()
+    if error_msg.startswith("rsvmgmt:"):
+        error_msg = error_msg[len("rsvmgmt:"):].strip()
+    if error_msg.startswith("Error:"):
+        error_msg = error_msg[len("Error:"):].strip()
+    return error_msg
+
 
 @app.route("/<reservation>",methods=["DELETE"])
 @check_auth_header
@@ -485,14 +490,7 @@ def delete(reservation):
             return jsonify(error="Error deleting reservation"), 404, header
 
         # otherwise, generic error
-        # First cleanup "timeout:"  error string.
-        # Then if it comes from rsvmgmt this is the format
-        #    rsvmgmt: Error: You are not a member of the $1 project"
-        # let's extract "rsvmgmt: Error: " string so it reports "You are not a member of the $1 project"
-
-        error_str = error_str.lstrip("timeout:")
-        error_str = error_str.lstrip("rsvmgmt:")
-        error_str = error_str.lstrip("Error: ")
+        error_str = cleanup_rsvmgmt_error(error_str)
 
         return jsonify(error="Error deleting reservation", description=error_str), 400
 

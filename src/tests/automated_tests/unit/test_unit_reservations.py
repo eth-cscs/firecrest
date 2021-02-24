@@ -49,27 +49,27 @@ def test_list_reservations_wrong(headers):
 
 	resp = requests.get(url, headers=headers, verify=VERIFY)
 	check_response(resp, 400)
-	# NOTE: The api needs to harmonize the response schema :/
 	assert resp.json()['error'] == 'Error listing reservation'
 
 
-# TODO: ADD comment saying where the valid number of nodes, node types, account names, etc, are defined.
+# You can find the valid options for accounts, node types, etc in the slurm config files of the cluster built for these tests.
 POST_DATA = [
 	(400, None,           "test", "1", "f7t", d1, d2, "\'reservation\' form data input missing"),
 	(400, "",             "test", "1", "f7t", d1, d2, "\'reservation\' parameter format is not valid"),
 	(400, "validrsvname", None,   "1", "f7t", d1, d2, "\'account\' form data input missing"),
 	(400, "validrsvname", "",     "1", "f7t", d1, d2, "\'account\' parameter format is not valid"),
+
+	(400, "validrsvname", "test", "3",  "f7t", d1, d2, "greater than 1 available"),
+	(400, "validrsvname", "test", "1",  "ntl", d1, d2, "only f7t feature type are supported"),
 ]
 BASE_DATA = [
 	(400, "validrsvname", "test", None, "f7t", d1, d2, "\'numberOfNodes\' form data input missing"),
 	(400, "validrsvname", "test", "",   "f7t", d1, d2, "\'numberOfNodes\' parameter is not valid"),
 	(400, "validrsvname", "test", "-3", "f7t", d1, d2, "\'numberOfNodes\' parameter is not valid"),
 	(400, "validrsvname", "test", "0",  "f7t", d1, d2, "\'numberOfNodes\' parameter is not valid"),
-	(400, "validrsvname", "test", "3",  "f7t", d1, d2, ""), # TODO: missing proper error message for invalid numberOfNodes
 
 	(400, "validrsvname", "test", "1",  None,  d1, d2, "\'nodeType\' form data input missing"),
 	(400, "validrsvname", "test", "1",  "",    d1, d2, "\'nodeType\' parameter format is not valid"),
-	(400, "validrsvname", "test", "1",  "ntl", d1, d2, ""), # TODO: missing proper error message for invalid nodeType
 
 	(400, "validrsvname", "test", "1",  "f7t", None,   d2,   "\'starttime\' form data input missing"),
 	(400, "validrsvname", "test", "1",  "f7t", "",     d2,   "\'starttime\' parameter format is not valid"),
@@ -110,7 +110,7 @@ def test_put_reservation_wrong(status_code,reservation,account,numberOfNodes,nod
 
 
 @pytest.mark.parametrize("status_code,reservation,msg",[
-						(400, "wrongname", ""),
+						(400, "wrongname", "You are not an owner of the wrongname reservation"),
 						(400, "1_",        "\'reservation\' parameter format is not valid"),
 ])
 def test_delete_reservation_wrong(status_code, reservation, msg, headers):
@@ -181,7 +181,7 @@ def dummy_resevation(headers):
 	check_no_reservations(url, headers)
 
 
-def check_response(response, expected_code, in_description=""):
+def check_response(response, expected_code, in_description=None):
 	assert response.status_code == expected_code, "headers: {}, content: {}".format(response.headers, response.content)
 	if in_description:
 		assert in_description in response.json().get('description', "")
