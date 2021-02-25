@@ -7,6 +7,8 @@
 image_definitions:
   compute:
     build_path: /home/firecrest/awx-firecrest-build
+  reservations:
+    build_path: /home/firecrest/awx-firecrest-build
   status:
     build_path: /home/firecrest/awx-firecrest-build
   storage:

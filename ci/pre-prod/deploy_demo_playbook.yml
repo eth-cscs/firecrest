@@ -136,6 +136,21 @@
           - "{{ firecrest_dir }}/deploy/test-build/environment/keys/user-key:/user-key:ro"
           - "{{ firecrest_dir }}/deploy/demo/ssl:/ssl"
 
+    - name: Reservations
+      community.general.docker_container:
+        name: reservations
+        image: "{{ docker_registry_host }}/reservations:{{build_tag}}"
+        env_file: "{{ firecrest_dir }}/deploy/demo/common/common.env"
+        networks:
+              - name: firecrest-internal
+                ipv4_address: "192.168.220.8"
+        published_ports:
+          - "5005:5005"
+        volumes:
+          - "{{ firecrest_dir }}/deploy/demo/logs/firecrest:/var/log:delegated"
+          - "{{ firecrest_dir }}/deploy/test-build/environment/keys/user-key:/user-key:ro"
+          - "{{ firecrest_dir }}/deploy/demo/ssl:/ssl"
+
     - name: Status
       community.general.docker_container:
         name: status
