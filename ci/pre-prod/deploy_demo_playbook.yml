@@ -58,8 +58,10 @@
         networks:
               - name: firecrest-internal
                 ipv4_address: "192.168.220.13"
+        # force to recreate the container
+        recreate: yes
 
-    - name: Tasks
+    - name: Run Tasks
       community.general.docker_container:
         name: tasks
         image: "{{ docker_registry_host }}/tasks:{{build_tag}}"
@@ -78,23 +80,8 @@
         volumes:
           - "{{ firecrest_dir }}/deploy/demo/logs/firecrest:/var/log:delegated"
           - "{{ firecrest_dir }}/deploy/demo/ssl:/ssl"
-
-    ## Pull certificator image
-    #- name: Certificator
-    #  community.general.docker_container:
-    #    name: Certificator
-    #    image: "{{ docker_registry_host }}/certificator:{{build_tag}}"
-    #    env_file: "{{ firecrest_dir }}/deploy/demo/common/common.env"
-    #    networks:
-    #          - name: firecrest-internal
-    #            ipv4_address: "192.168.220.11"
-    #    published_ports:
-    #      - "5010:5010"
-    #    volumes:
-    #      - "{{ firecrest_dir }}/deploy/demo/logs/firecrest:/var/log:delegated"
-    #      - "{{ firecrest_dir }}/deploy/test-build/environment/keys/user-key.pub:/user-key.pub:ro"
-    #      - "{{ firecrest_dir }}/deploy/test-build/environment/keys/ca-key:/ca-key:ro"
-
+        # force to recreate the container
+        recreate: yes
 
     - name: Build Certificator
       community.general.docker_image:
@@ -104,8 +91,10 @@
           dockerfile: ./deploy/docker/certificator/Dockerfile
         source: build
         state: present
+        # force to build 
+        force_source: yes
 
-    - name: Certificator
+    - name: Run Certificator
       community.general.docker_container:
         name: certificator
         image: "demo_certificator"
@@ -120,8 +109,11 @@
           - "{{ firecrest_dir }}/deploy/test-build/environment/keys/user-key.pub:/user-key.pub:ro"
           - "{{ firecrest_dir }}/deploy/test-build/environment/keys/ca-key:/ca-key:ro"
           - "{{ firecrest_dir }}/deploy/demo/ssl:/ssl"
+        # force to recreate the container
+        recreate: yes
+        
 
-    - name: Compute
+    - name: Run Compute
       community.general.docker_container:
         name: compute
         image: "{{ docker_registry_host }}/compute:{{build_tag}}"
@@ -135,8 +127,10 @@
           - "{{ firecrest_dir }}/deploy/demo/logs/firecrest:/var/log:delegated"
           - "{{ firecrest_dir }}/deploy/test-build/environment/keys/user-key:/user-key:ro"
           - "{{ firecrest_dir }}/deploy/demo/ssl:/ssl"
+        # force to recreate the container
+        recreate: yes
 
-    - name: Reservations
+    - name: Run Reservations
       community.general.docker_container:
         name: reservations
         image: "{{ docker_registry_host }}/reservations:{{build_tag}}"
@@ -150,8 +144,10 @@
           - "{{ firecrest_dir }}/deploy/demo/logs/firecrest:/var/log:delegated"
           - "{{ firecrest_dir }}/deploy/test-build/environment/keys/user-key:/user-key:ro"
           - "{{ firecrest_dir }}/deploy/demo/ssl:/ssl"
+        # force to recreate the container
+        recreate: yes
 
-    - name: Status
+    - name: Run Status
       community.general.docker_container:
         name: status
         image: "{{ docker_registry_host }}/status:{{build_tag}}"
@@ -164,8 +160,10 @@
         volumes:
           - "{{ firecrest_dir }}/deploy/demo/logs/firecrest:/var/log:delegated"
           - "{{ firecrest_dir }}/deploy/demo/ssl:/ssl"
+        # force to recreate the container
+        recreate: yes
 
-    - name: Storage
+    - name: Run Storage
       community.general.docker_container:
         name: storage
         image: "{{ docker_registry_host }}/storage:{{build_tag}}"
@@ -183,8 +181,10 @@
           - "{{ firecrest_dir }}/deploy/demo/logs/firecrest:/var/log:delegated"
           - "{{ firecrest_dir }}/deploy/test-build/environment/keys/user-key:/user-key:ro"
           - "{{ firecrest_dir }}/deploy/demo/ssl:/ssl"
+        # force to recreate the container
+        recreate: yes
 
-    - name: Utilities
+    - name: Run Utilities
       community.general.docker_container:
         name: utilities
         image: "{{ docker_registry_host }}/utilities:{{build_tag}}"
@@ -198,8 +198,10 @@
           - "{{ firecrest_dir }}/deploy/demo/logs/firecrest:/var/log:delegated"
           - "{{ firecrest_dir }}/deploy/test-build/environment/keys/user-key:/user-key:ro"
           - "{{ firecrest_dir }}/deploy/demo/ssl:/ssl"
+        # force to recreate the container
+        recreate: yes
 
-    - name: Build dummy cluster image
+    - name: Build demo cluster image
       community.general.docker_image:
         name: demo_cluster
         build:
@@ -207,8 +209,10 @@
           dockerfile: ./cluster/Dockerfile
         source: build
         state: present
+        # force to rebuild image
+        force_source: yes
 
-    - name: Run dummy cluster
+    - name: Run demo cluster
       community.general.docker_container:
         name: cluster
         image: "demo_cluster"
@@ -218,6 +222,8 @@
         hostname: cluster
         volumes:
           - "{{ firecrest_dir }}/deploy/demo/logs/cluster/:/var/log/slurm/:delegated"
+        # force to recreate the container
+        recreate: yes
 
     - name: Keycloack
       community.general.docker_container:
