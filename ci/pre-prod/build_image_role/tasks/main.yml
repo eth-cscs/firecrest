@@ -38,6 +38,16 @@
     state: present
     push: yes
 
+- name: build base image locally 
+  docker_image:
+    name: "f7t-base"
+    build:
+      path: /home/firecrest/awx-firecrest-build
+      dockerfile: ./deploy/docker/base/Dockerfile
+    source: build
+    state: present
+    push: yes
+
 - name: build container image
   docker_image:
     name: "localhost:5000/{{ item.key }}:{{ build_tag }}"
