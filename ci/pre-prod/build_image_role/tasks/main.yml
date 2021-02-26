@@ -18,33 +18,62 @@
     dest: /home/firecrest/awx-firecrest-build
     version: "{{ commit_id }}"
 
-- name: build base image with build tag 
+- name: Build base image with build tag 
   docker_image:
     name: "localhost:5000/f7t-base:{{ build_tag }}"
     build:
       path: /home/firecrest/awx-firecrest-build
       dockerfile: ./deploy/docker/base/Dockerfile
+      pull: yes
     source: build
     state: present
-    push: yes  
-
-- name: tag base image with latest tag
-  docker_image:
-    name: "localhost:5000/f7t-base:{{ build_tag }}"
-    repository: "localhost:5000/f7t-base"
-    tag: "latest"
     push: yes
 
-- name: build container image
+# TODO: Building because tagging didn't seem to be properly tagging
+- name: Build base image with latest tag 
+  docker_image:
+    name: "localhost:5000/f7t-base:latest"
+    build:
+      path: /home/firecrest/awx-firecrest-build
+      dockerfile: ./deploy/docker/base/Dockerfile
+      pull: yes
+    source: build
+    state: present
+    push: yes
+
+- name: Build base image locally 
+  docker_image:
+    name: "f7t-base"
+    build:
+      path: /home/firecrest/awx-firecrest-build
+      dockerfile: ./deploy/docker/base/Dockerfile
+      pull: yes
+    source: build
+    state: present
+
+- name: Build container image
   docker_image:
     name: "localhost:5000/{{ item.key }}:{{ build_tag }}"
     build:
       path: /home/firecrest/awx-firecrest-build
       dockerfile: ./deploy/docker/{{ item.key }}/Dockerfile
+      # Pull no, because base image is built locally for now
+      pull: no
     source: build
     state: present
     push: yes
   with_dict: "{{ image_definitions }}"
+
+- name: Build certificator image
+  docker_image:
+    name: "localhost:5000/certificator:{{ build_tag }}"
+    build:
+      path: /home/firecrest/awx-firecrest-build
+      dockerfile: ./deploy/docker/certificator/Dockerfile
+      pull: no
+    source: build
+    state: present
+    push: yes  
 
 - name: build client image
   docker_image:
@@ -52,6 +81,7 @@
     build:
       path: /home/firecrest/awx-firecrest-build/src/tests/template_client
       dockerfile: ./Dockerfile
+      pull: yes
     source: build
     state: present
     push: yes
@@ -63,9 +93,3 @@
     push: yes
     source: pull
 
-#- name: Pull minio and push to local registry
-#  docker_image:
-#    name: minio/minio
-#    repository: "localhost:5000/minio:{{ build_tag }}"
-#    push: yes
-#    source: pull

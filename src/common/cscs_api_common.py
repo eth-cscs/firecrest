@@ -322,7 +322,6 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
             # else:
             #     time.sleep(5)
 
-
         if file_transfer == "download":
             outlines = output
         else:
@@ -346,7 +345,7 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
             else:
                 result = {"error": 0, "msg": outlines}
         elif stderr_errno > 0:
-            result = {"error": stderr_errno, "msg": stderr_errda}
+            result = {"error": stderr_errno, "msg": stderr_errda or stdout_errda}
         elif len(stderr_errda) > 0:
             result = {"error": 1, "msg": stderr_errda}
         elif stdout_errno == -2:

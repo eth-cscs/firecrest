@@ -29,6 +29,7 @@
         - status
         - tasks
         - storage
+        - reservations
 
     - debug: var=fetch_output
 
