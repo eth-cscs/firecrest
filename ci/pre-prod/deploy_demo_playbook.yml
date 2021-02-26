@@ -45,7 +45,7 @@
         ipam_config:
           - subnet: "192.168.220.0/24"
 
-    - name: Taskpersistence
+    - name: Run Taskpersistence
       community.general.docker_container:
         name: taskpersistence
         #image: "{{ docker_registry_host }}/taskpersistence:{{build_tag}}"
@@ -83,21 +83,10 @@
         # force to recreate the container
         recreate: yes
 
-    - name: Build Certificator
-      community.general.docker_image:
-        name: demo_certificator
-        build:
-          path: "{{ firecrest_dir }}"
-          dockerfile: ./deploy/docker/certificator/Dockerfile
-        source: build
-        state: present
-        # force to build 
-        force_source: yes
-
     - name: Run Certificator
       community.general.docker_container:
         name: certificator
-        image: "demo_certificator"
+        image: "{{ docker_registry_host }}/certificator:{{build_tag}}"
         env_file: "{{ firecrest_dir }}/deploy/demo/common/common.env"
         networks:
               - name: firecrest-internal
