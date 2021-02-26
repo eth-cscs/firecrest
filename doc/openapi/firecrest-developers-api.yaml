@@ -9,7 +9,7 @@ servers:
   - url: 'http://FIRECREST_URL'
   - url: 'https://FIRECREST_URL'
 info:
-  version: 1.7.0-beta1
+  version: 1.7.0
   title: FirecREST API
   description: >
     FirecREST platform, a RESTful Services Gateway to HPC resources, is a
