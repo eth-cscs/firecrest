@@ -16,27 +16,20 @@ echo "starting containers..."
 docker-compose -f ${WORKSPACE}/deploy/test-build/docker-compose.yml up --build -d
 
 # TODO: Complete the missing endpoints (readinessProbe like) to allow this kind of wait
+#       and remove the sleeps from retest.sh
 # echo "waiting for Firecrest stack to be ready..."
 # attempts=0
 # while [[ "$attempts" -lt 9 && "$(curl -s -o /dev/null -w ''%{http_code}'' localhost:9000)" == "000" ]]; do
 #     let "attempts+=1"
-#     echo "API NOT ready, next attempt in 60 seconds"
-#     sleep 60
+#     echo "API NOT ready, next attempt in 10 seconds"
+#     sleep 10
 # done
 # if [[ "$attempts" -ge 9 ]]; then
 #     echo "TIMEOUT waiting API. Shutting down cluster..."
 #     docker-compose -f ${WORKSPACE}/deploy/test-build/docker-compose.yml down -v
 #     exit 1
 # fi
-echo "sleeping..."
-sleep 120
 
-echo "running unit_tests..."
-docker run --rm -u $(id -u):$(id -g) -v ${WORKSPACE}:/firecrest --network f7t-frontend f7t-tester bash \
-    -c 'pytest -c test-build.ini unit'
-
-echo "running integration_tests..."
-docker run --rm -u $(id -u):$(id -g) -v ${WORKSPACE}:/firecrest --network f7t-frontend f7t-tester bash \
-    -c 'pytest -c test-build.ini integration'
+${WORKSPACE}/ci/dev/retest.sh
 
 echo "finished" $0
