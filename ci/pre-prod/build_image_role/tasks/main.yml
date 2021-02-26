@@ -70,6 +70,7 @@
     build:
       path: /home/firecrest/awx-firecrest-build
       dockerfile: ./deploy/docker/certificator/Dockerfile
+      pull: no
     source: build
     state: present
     push: yes  
