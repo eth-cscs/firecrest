@@ -24,16 +24,19 @@
     build:
       path: /home/firecrest/awx-firecrest-build
       dockerfile: ./deploy/docker/base/Dockerfile
+      pull: yes
     source: build
     state: present
-    push: yes  
+    push: yes
 
+# TODO: Building because tagging didn't seem to be properly tagging
 - name: Build base image with latest tag 
   docker_image:
     name: "localhost:5000/f7t-base:latest"
     build:
       path: /home/firecrest/awx-firecrest-build
       dockerfile: ./deploy/docker/base/Dockerfile
+      pull: yes
     source: build
     state: present
     push: yes
@@ -44,8 +47,9 @@
     build:
       path: /home/firecrest/awx-firecrest-build
       dockerfile: ./deploy/docker/base/Dockerfile
+      pull: yes
     source: build
-    state: present    
+    state: present
 
 - name: Build container image
   docker_image:
@@ -53,6 +57,8 @@
     build:
       path: /home/firecrest/awx-firecrest-build
       dockerfile: ./deploy/docker/{{ item.key }}/Dockerfile
+      # Pull no, because base image is built locally for now
+      pull: no
     source: build
     state: present
     push: yes
@@ -74,6 +80,7 @@
     build:
       path: /home/firecrest/awx-firecrest-build/src/tests/template_client
       dockerfile: ./Dockerfile
+      pull: yes
     source: build
     state: present
     push: yes
