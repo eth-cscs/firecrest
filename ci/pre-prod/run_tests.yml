@@ -25,17 +25,19 @@
       args:
         chdir: "{{ firecrest_tester_dir }}"
 
-    - name: Run unit tests
-      shell: "{{ pytest_bin }}/pytest -c demo.ini unit"
+    - name: Run unit tests (marker='reservations')
+      shell: "{{ pytest_bin }}/pytest -m 'reservations' -c demo.ini unit"
       args:
         chdir: "{{ firecrest_tests_dir }}"
-      #environment:
-      #  PATH: "{{ ansible_env.PATH }}:{{ pytest_bin }}"
+
+    - name: Run unit tests (marker='not reservations')
+      shell: "{{ pytest_bin }}/pytest -m 'not reservations' -c demo.ini unit"
+      args:
+        chdir: "{{ firecrest_tests_dir }}"
+      
 
     - name: Run integration tests
-      shell:  "{{ pytest_bin }}/pytest -c demo.ini integration"
+      shell:  "{{ pytest_bin }}/pytest -m 'not reservations' -c demo.ini integration"
       args:
-        chdir: "{{ firecrest_tests_dir }}"
-      #environment:
-      #  PATH: "{{ ansible_env.PATH }}:{{ pytest_bin }}"
+        chdir: "{{ firecrest_tests_dir }}"      
 

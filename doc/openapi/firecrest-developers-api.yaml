@@ -2309,6 +2309,16 @@ components:
           type: string
         nodelist:
           type: string
+        job_file:
+          type: string
+        job_file_out:
+          type: string
+        job_file_err:
+          type: string
+        job_data_out:
+          type: string
+        job_data_err:
+          type: string
     Jobs:
       type: array
       items:
