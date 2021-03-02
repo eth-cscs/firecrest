@@ -89,6 +89,9 @@ services:
     hostname: cluster
     ports:
       - "2223:22"
+    # enables mount, and unshare needed by the drophome SPANK plugin
+    cap_add:
+      - SYS_ADMIN
 
   minio:
     # runs on private network so "cluster" can reach it
