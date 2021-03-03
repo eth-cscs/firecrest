@@ -41,15 +41,15 @@ AUTH_ROLE = os.environ.get("F7T_AUTH_ROLE", '').strip('\'"')
 CERTIFICATOR_URL = os.environ.get("F7T_CERTIFICATOR_URL")
 TASKS_URL = os.environ.get("F7T_TASKS_URL")
 
-F7T_SSH_CERTIFICATE_WRAPPER = os.environ.get("F7T_SSH_CERTIFICATE_WRAPPER", None)
+F7T_SSH_CERTIFICATE_WRAPPER = os.environ.get("F7T_SSH_CERTIFICATE_WRAPPER", None) == "True"
 
 # OPA endpoint
-OPA_USE = os.environ.get("F7T_OPA_USE",False)
+OPA_USE = os.environ.get("F7T_OPA_USE",False) == "True"
 OPA_URL = os.environ.get("F7T_OPA_URL","http://localhost:8181").strip('\'"')
 POLICY_PATH = os.environ.get("F7T_POLICY_PATH","v1/data/f7t/authz").strip('\'"')
 
 ### SSL parameters
-USE_SSL = os.environ.get("F7T_USE_SSL", False)
+USE_SSL = os.environ.get("F7T_USE_SSL", False) == "True"
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 

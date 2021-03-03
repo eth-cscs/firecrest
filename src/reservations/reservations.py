@@ -31,13 +31,13 @@ SYS_INTERNALS   = os.environ.get("F7T_SYSTEMS_INTERNAL_COMPUTE").strip('\'"').sp
 TIMEOUT = os.environ.get("F7T_UTILITIES_TIMEOUT", 5)
 
 ### SSL parameters
-USE_SSL = os.environ.get("F7T_USE_SSL", False)
+USE_SSL = os.environ.get("F7T_USE_SSL", False) == "True"
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
 RESERVATION_CMD = os.environ.get("F7T_RESERVATION_CMD", "rsvmgmt")
 
-debug = os.environ.get("F7T_DEBUG_MODE", None)
+debug = os.environ.get("F7T_DEBUG_MODE", None) == "True"
 
 
 app = Flask(__name__)

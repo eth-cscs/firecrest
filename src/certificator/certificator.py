@@ -25,12 +25,12 @@ AUTH_ROLE = os.environ.get("F7T_AUTH_ROLE", '').strip('\'"')
 CERTIFICATOR_PORT = os.environ.get("F7T_CERTIFICATOR_PORT", 5000)
 
 # OPA endpoint
-OPA_USE = os.environ.get("F7T_OPA_USE",False)
+OPA_USE = os.environ.get("F7T_OPA_USE",False) == "True"
 OPA_URL = os.environ.get("F7T_OPA_URL","http://localhost:8181").strip('\'"')
 POLICY_PATH = os.environ.get("F7T_POLICY_PATH","v1/data/f7t/authz").strip('\'"')
 
 ### SSL parameters
-USE_SSL = os.environ.get("F7T_USE_SSL", False)
+USE_SSL = os.environ.get("F7T_USE_SSL", False) == "True"
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
@@ -41,7 +41,7 @@ if realm_pubkey != '':
     realm_pubkey = '-----BEGIN PUBLIC KEY-----\n' + realm_pubkey + '\n-----END PUBLIC KEY-----'
     realm_pubkey_type = os.environ.get("F7T_REALM_RSA_TYPE").strip('\'"')
 
-debug = os.environ.get("F7T_DEBUG_MODE", False)
+debug = os.environ.get("F7T_DEBUG_MODE", False) == "True"
 
 app = Flask(__name__)
 

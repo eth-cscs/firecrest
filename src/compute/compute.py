@@ -37,7 +37,7 @@ KONG_URL        = os.environ.get("F7T_KONG_URL")
 COMPUTE_PORT    = os.environ.get("F7T_COMPUTE_PORT", 5000)
 
 ### SSL parameters
-USE_SSL = os.environ.get("F7T_USE_SSL", False)
+USE_SSL = os.environ.get("F7T_USE_SSL", False) == "True"
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
@@ -68,7 +68,7 @@ app = Flask(__name__)
 # max content length for upload in bytes
 app.config['MAX_CONTENT_LENGTH'] = int(MAX_FILE_SIZE) * 1024 * 1024
 
-debug = os.environ.get("F7T_DEBUG_MODE", None)
+debug = os.environ.get("F7T_DEBUG_MODE", None) == "True"
 
 
 def is_jobid(jobid):
