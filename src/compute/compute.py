@@ -482,7 +482,7 @@ def submit_job_path():
 
     try:
         targetPath = request.form["targetPath"]
-    except Exception as e:
+    except KeyError as e:
         data = jsonify(description="Failed to submit job", error="'targetPath' parameter not set in request")
         return data, 400
 
