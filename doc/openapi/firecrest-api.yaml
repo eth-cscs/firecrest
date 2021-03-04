@@ -9,7 +9,7 @@ servers:
   - url: 'http://FIRECREST_URL'
   - url: 'https://FIRECREST_URL'
 info:
-  version: 1.7.0
+  version: 1.7.1-beta2
   title: FirecREST Developers API
   description: >
     This API specification is intended for FirecREST developers only. There're some endpoints that are not available in the public version for client developers.
