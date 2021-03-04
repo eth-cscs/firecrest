@@ -20,7 +20,21 @@ import base64
 import io
 import time
 
-debug = os.environ.get("F7T_DEBUG_MODE", None)
+# Checks if an environment variable injected to F7T is a valid True value
+# var <- str
+# returns -> boolean
+def get_boolean_var(var):
+
+    # ensure variable to be a string
+    var = str(var)
+    # True, true or TRUE
+    # Yes, yes or YES
+    # 1
+
+    return var.upper() == "TRUE" or var.upper() == "YES" or var == "1"
+
+
+debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 AUTH_HEADER_NAME = 'Authorization'
 
@@ -41,15 +55,15 @@ AUTH_ROLE = os.environ.get("F7T_AUTH_ROLE", '').strip('\'"')
 CERTIFICATOR_URL = os.environ.get("F7T_CERTIFICATOR_URL")
 TASKS_URL = os.environ.get("F7T_TASKS_URL")
 
-F7T_SSH_CERTIFICATE_WRAPPER = os.environ.get("F7T_SSH_CERTIFICATE_WRAPPER", None) == "True"
+F7T_SSH_CERTIFICATE_WRAPPER = get_boolean_var(os.environ.get("F7T_SSH_CERTIFICATE_WRAPPER", False))
 
 # OPA endpoint
-OPA_USE = os.environ.get("F7T_OPA_USE",False) == "True"
+OPA_USE = get_boolean_var(os.environ.get("F7T_OPA_USE",False))
 OPA_URL = os.environ.get("F7T_OPA_URL","http://localhost:8181").strip('\'"')
 POLICY_PATH = os.environ.get("F7T_POLICY_PATH","v1/data/f7t/authz").strip('\'"')
 
 ### SSL parameters
-USE_SSL = os.environ.get("F7T_USE_SSL", False) == "True"
+USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
@@ -760,3 +774,6 @@ def check_command_error(error_str, error_code, service_msg):
         return {"description": service_msg, "status_code": 400, "header": header}
     header = {"X-Error": error_str}
     return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
+
+
+

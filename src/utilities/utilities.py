@@ -13,9 +13,9 @@ from werkzeug.exceptions import BadRequestKeyError
 
 from math import ceil
 
-from cscs_api_common import check_auth_header, get_username,exec_remote_command, parse_io_error, check_command_error, in_str
-import base64
+from cscs_api_common import check_auth_header, get_username,exec_remote_command, parse_io_error, check_command_error, in_str, get_boolean_var
 import io
+import base64
 
 
 CERTIFICATOR_URL = os.environ.get("F7T_CERTIFICATOR_URL")
@@ -31,13 +31,13 @@ SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
 # internal machines for file operations
 SYS_INTERNALS   = os.environ.get("F7T_SYSTEMS_INTERNAL_UTILITIES").strip('\'"').split(";")
 
-debug = os.environ.get("F7T_DEBUG_MODE", False) == "True"
+debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 #max file size for upload/download in MB
 MAX_FILE_SIZE=int(os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE"))
 
 ### SSL parameters
-USE_SSL = os.environ.get("F7T_USE_SSL", False) == "True"
+USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 

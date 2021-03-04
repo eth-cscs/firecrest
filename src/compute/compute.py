@@ -11,7 +11,8 @@ import threading
 import async_task
 
 from cscs_api_common import check_auth_header, get_username, \
-    exec_remote_command, create_task, update_task, clean_err_output, in_str, is_valid_file
+    exec_remote_command, create_task, update_task, clean_err_output, \
+    in_str, is_valid_file, get_boolean_var
 
 from job_time import check_sacctTime
 
@@ -37,7 +38,7 @@ KONG_URL        = os.environ.get("F7T_KONG_URL")
 COMPUTE_PORT    = os.environ.get("F7T_COMPUTE_PORT", 5000)
 
 ### SSL parameters
-USE_SSL = os.environ.get("F7T_USE_SSL", False) == "True"
+USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
@@ -68,7 +69,7 @@ app = Flask(__name__)
 # max content length for upload in bytes
 app.config['MAX_CONTENT_LENGTH'] = int(MAX_FILE_SIZE) * 1024 * 1024
 
-debug = os.environ.get("F7T_DEBUG_MODE", None) == "True"
+debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 
 def is_jobid(jobid):
