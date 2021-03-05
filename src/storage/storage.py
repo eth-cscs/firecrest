@@ -53,11 +53,15 @@ SYSTEMS_INTERNAL_STORAGE = os.environ.get("F7T_SYSTEMS_INTERNAL_STORAGE").strip(
 # Job machine where to send xfer-internal jobs (must be defined in SYSTEMS_PUBLIC)
 STORAGE_JOBS_MACHINE     = os.environ.get("F7T_STORAGE_JOBS_MACHINE").strip('\'"')
 
+
+
 # SYSTEMS_PUBLIC: list of allowed systems
 # remove quotes and split into array
 SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
 # internal machines to submit/query jobs
 SYS_INTERNALS   = os.environ.get("F7T_SYSTEMS_INTERNAL_COMPUTE").strip('\'"').split(";")
+# internal machines for small operations
+SYS_INTERNALS_UTILITIES  = os.environ.get("F7T_SYSTEMS_INTERNAL_UTILITIES").strip('\'"').split(";")
 
 ###### ENV VAR FOR DETECT TECHNOLOGY OF STAGING AREA:
 OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE", "").strip('\'"')
@@ -734,7 +738,7 @@ def internal_operation(request, command):
     auth_header = request.headers[AUTH_HEADER_NAME]
 
     system_idx = SYSTEMS_PUBLIC.index(STORAGE_JOBS_MACHINE)
-    system_addr = SYS_INTERNALS[system_idx]
+    system_addr = SYS_INTERNALS_UTILITIES[system_idx]
     system_name = STORAGE_JOBS_MACHINE
 
     try:
