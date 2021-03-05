@@ -12,7 +12,7 @@ import async_task
 import os
 import logging
 from logging.handlers import TimedRotatingFileHandler
-from cscs_api_common import check_auth_header, get_username, check_header
+from cscs_api_common import check_auth_header, get_username, check_header, get_boolean_var
 import tasks_persistence as persistence
 
 AUTH_HEADER_NAME = 'Authorization'
@@ -29,7 +29,7 @@ PERSIST_PORT = os.environ.get("F7T_PERSIST_PORT")
 PERSIST_PWD  = os.environ.get("F7T_PERSIST_PWD")
 
 ### SSL parameters
-USE_SSL = os.environ.get("F7T_USE_SSL", False)
+USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
@@ -39,7 +39,7 @@ COMPUTE_TASK_EXP_TIME = os.environ.get("F7T_COMPUTE_TASK_EXP_TIME", 86400)
 # expire time in seconds, for download/upload: default 30 days + 24 hours = 2678400 secs
 STORAGE_TASK_EXP_TIME = os.environ.get("F7T_STORAGE_TASK_EXP_TIME", 2678400)
 
-debug = os.environ.get("F7T_DEBUG_MODE", None)
+debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 # task dict, key is the task_id
 tasks = {}
