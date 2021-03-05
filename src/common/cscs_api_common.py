@@ -21,7 +21,7 @@ import io
 import time
 
 # Checks if an environment variable injected to F7T is a valid True value
-# var <- str
+# var <- object
 # returns -> boolean
 def get_boolean_var(var):
 
