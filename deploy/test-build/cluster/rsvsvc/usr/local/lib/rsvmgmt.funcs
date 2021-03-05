@@ -1,0 +1,231 @@
+#!/bin/bash
+. /usr/local/lib/rsvmgmt.conf
+
+display_help() {
+	echo "rsvmgmt: the reservation management tool"
+	echo "Subcommands:"
+	echo 
+	echo "* lists current project reservations" 
+    echo "-l"
+    echo ""
+    echo "* adds reservation"
+	echo "-a project #nodes NodeType StartTime EndTime [optionalname]"   
+	echo "example: 'rsvmgmt -a csstaff 10 knl 2020-12-24T08:00:00 2020-12-25T12:30:00 csstaff-testing"
+	echo "creates csstaff-testing reservation for 10 knl nodes 10 hours"
+    echo ""
+    echo "* update/extend reservation"
+	echo "-u reservation #nodes NodeType StartTime EndTime"
+	echo "example: 'rsvmgmt -u csstaff_36 15 knl 2020-12-24T08:00:00 2020-12-25T12:50:00"
+	echo "     modifies csstaff_36 reservation to be 15 knl nodes and go 20 minutes later"
+	echo "     Note: can not change the features of an existing reservation"
+    echo ""
+    echo "* delete reservation"
+	echo "-d [reservation name]"
+    echo ""
+    echo "* displays version number"
+	echo "-V"
+	echo
+	exit 1
+}
+# list_accounts returns just the accounts the user belongs to
+# Example: "cstaff,cray"
+list_accounts() {
+	for i in `${sacctmgr} show user ${SUDO_USER} where cluster=$(cat /etc/hostname) WithAssoc format=account --noheader`
+	do
+		echo -n "$i,"
+	done
+}
+
+#Print the reservation info
+resv_print() {
+	${scontrol} show reservation -o|grep "Accounts=$1 Licenses"
+}
+
+# Loops through the accounts and prints current reservations owned by accounts
+list_allowed() {
+	echo "${ProgName}: Current Reservations"
+	echo ---------------------------
+	ACCOUNTS=$(list_accounts)
+	for i in ${ACCOUNTS//,/ }
+	do
+		resv_print $i
+	done
+	echo ---------------------------
+}
+
+# Checks if account is member of reservation
+test_resv()
+{
+	# We can only process one account at a time, if there's a comma: error
+	if [[ $1 =~ "," ]]
+	then
+		echo "${ProgName}: Error: only one reservation allowed per call"
+		exit -1
+	fi
+
+	# If scontrol show doesn't show, error
+	if [[ -z $(${scontrol} show res=${1}) ]]
+	then
+		echo "${ProgName}: Error: $1 doesn't seem to be a valid reservation"
+		exit -1
+	fi
+	RESV=$(${scontrol} show res=${1}|awk '/Accounts/{print $2}')
+	MEMBER=0
+	ACCOUNTS=$(list_accounts)
+	for i in ${ACCOUNTS//,/ }
+	do
+	if [[ "${RESV}" == "Accounts=${i}" ]]
+	then
+	MEMBER=1
+	fi
+	done
+	if [[ $MEMBER -ne 1 ]]
+	then
+		echo "${ProgName}: Error: You are not an owner of the $1 reservation"
+		exit -1
+	fi
+}
+
+
+# Creates reservation
+# Input Parameter: project #nodes nodespec starttime endttime [optionalresvname]
+add_resv() {
+	# Check to make sure account is valid
+  feature_check $3
+	project_check $1
+	node_check $2
+	start_check $4
+	end_check $5
+	CLEANNAME=${6//[^a-zA-Z0-9\-]/}
+	${scontrol} create Res=${CLEANNAME} Accounts=${1} NodeCnt=$2 start=${4} end=${5} Feature=${3}
+}
+
+# Update Reservation
+# Input: resvname #nodes nodespec starttime endttime
+update_resv() {
+	test_resv $1
+        feature_check $3
+        node_check $2
+        start_check $4
+        end_check $5
+	${scontrol} update res=${1} NodeCnt=$2 start=${4} end=${5}
+}
+
+# Verify the node count requested
+node_check() {
+
+if [[ ! -z $FEATURE ]]
+then
+MAX_NODE=$(${scontrol} show nodes|grep AvailableFeatures|grep -c $FEATURE)
+fi
+
+if [[ $1 -lt ${MIN_NODE} ]]
+then
+echo "${ProgName}: Error: NodeCnt less than ${MIN_NODE}"
+exit -1
+fi
+if [[ $1 -gt ${MAX_NODE} ]]
+then
+echo "${ProgName}: Error: NodeCnt greater than ${MAX_NODE} available ${FEATURE} nodes"
+exit -1
+fi
+if [[ $1 -gt ${NODE_LIMIT} ]]
+then
+echo "${ProgName}: Error: NodeCnt greater than ${NODE_LIMIT} reservation limit"
+exit -1
+fi
+
+}
+
+#The Features we allow are here
+feature_check() {
+
+if ! [[ $1 =~ ^(f7t)$ ]]
+then
+echo "${ProgName}: Error: only f7t feature type are supported"
+exit -1
+fi
+
+if [[ -z $FEATURE ]]
+then
+export FEATURE=$1
+fi
+
+}
+
+
+#Is calling user a member of account they want to create a reservation for
+project_check() {
+	MEMBER=0
+	ACCOUNTS=$(list_accounts)
+        for i in ${ACCOUNTS//,/ }
+        do
+        if [[ "${i}" == "$1" ]]
+        then
+        MEMBER=1
+        fi
+        done
+        if [[ $MEMBER -ne 1 ]]
+        then
+                echo "${ProgName}: Error: You are not a member of the $1 project"
+                exit -1
+        fi
+        if [[ $(${scontrol} show res -o|grep "Accounts=$1 Licenses" -c) -ge ${RESV_MAX_NUM} ]]
+        then
+                echo "${ProgName}: Error: Only ${RESV_MAX_NUM} reservations are allowed at one time."
+                exit -1
+        fi
+
+}
+
+#validate start time
+start_check(){
+START=$(${datecmd} -d $1 +"%s" 2> /dev/null)
+if [[ $? -ne 0 ]]
+then
+        echo "${ProgName}: Error: invalid start time reservation"
+        exit 1
+fi
+
+if [[ $START -lt $NOW ]]
+then
+        echo "${ProgName}: Error: start time for reservation is in the past"
+        exit 1
+fi      
+if [[ $START -gt $FUTURE ]]
+then
+        echo "${ProgName}: Error: reservations can only be made for up to 1 year in the future"
+        exit 1
+fi
+}
+
+#validate end time
+end_check(){
+END=$(${datecmd} -d $1 +"%s" 2> /dev/null)
+if [[ $? -ne 0 ]]
+then
+        echo "${ProgName}: Error: invalid end time reservation"
+        exit 1
+fi
+
+if [[ $END -lt $NOW ]]
+then
+        echo "${ProgName}: Error: end time for reservation is in the past"
+        exit 1
+fi
+if [[ $END -gt $FUTURE ]]
+then
+        echo "${ProgName}: Error: reservations can only be made for up to 1 year in the future"
+        exit 1
+fi
+}
+
+#delete reservation
+del_account() {
+	# Check to make sure resv is valid
+	test_resv $1
+	$scontrol delete Res=${1}
+	echo "${ProgName}: Reservation $1 removed"
+}
+
+

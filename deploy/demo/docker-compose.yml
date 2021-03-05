@@ -1,3 +1,9 @@
+##
+##  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
+##
+##  Please, refer to the LICENSE file in the root directory.
+##  SPDX-License-Identifier: BSD-3-Clause
+##
 version: '3.4'
 
 networks:
@@ -28,6 +34,7 @@ services:
       - ./logs/firecrest:/var/log:delegated
       - ../test-build/environment/keys/user-key.pub:/user-key.pub:ro
       - ../test-build/environment/keys/ca-key:/ca-key:ro
+      - ./ssl:/ssl
 
   compute:
     container_name: compute
@@ -45,6 +52,7 @@ services:
     volumes:
       - ./logs/firecrest:/var/log:delegated
       - ../test-build/environment/keys/user-key:/user-key:ro
+      - ./ssl:/ssl
 
   status:
     container_name: status
@@ -61,6 +69,7 @@ services:
       - 5001:5001
     volumes:
       - ./logs/firecrest:/var/log:delegated
+      - ./ssl:/ssl
 
   storage:
     container_name: storage
@@ -83,6 +92,7 @@ services:
     volumes:
       - ./logs/firecrest:/var/log:delegated
       - ../test-build/environment/keys/user-key:/user-key:ro
+      - ./ssl:/ssl
 
   tasks:
     container_name: tasks
@@ -107,6 +117,7 @@ services:
       - 5003:5003
     volumes:
       - ./logs/firecrest:/var/log:delegated
+      - ./ssl:/ssl
 
   utilities:
     container_name: utilities
@@ -124,6 +135,25 @@ services:
     volumes:
       - ./logs/firecrest:/var/log:delegated
       - ../test-build/environment/keys/user-key:/user-key:ro
+      - ./ssl:/ssl
+
+  reservations:
+    container_name: reservations
+    build: 
+      context: ../../
+      dockerfile: deploy/docker/reservations/Dockerfile
+      network: host
+    env_file:
+      - ./common/common.env
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.8
+    ports:
+      - 5005:5005
+    volumes:
+      - ./logs/firecrest:/var/log:delegated
+      - ../test-build/environment/keys/user-key:/user-key:ro
+      - ./ssl:/ssl
 
   # web client
   client:
@@ -174,7 +204,7 @@ services:
       - ./logs/keycloak:/opt/jboss/keycloak/standalone/log/:delegated
 
   kong:
-    image: kong:latest
+    image: kong:2.3
     container_name: kong
     environment:
       - KONG_DATABASE=off
@@ -193,7 +223,7 @@ services:
       - 8000:8000
 
   minio:
-    image: minio/minio
+    image: minio/minio:RELEASE.2021-02-01T22-56-52Z
     command: minio server /data
     container_name: minio
     environment:
@@ -209,7 +239,7 @@ services:
 
   taskpersistence:
     container_name: taskpersistence
-    image: redis:latest
+    image: redis:5
     command: redis-server /redis.conf
     networks:
       firecrest-internal:
@@ -221,7 +251,7 @@ services:
 
   opa:
     image: openpolicyagent/opa:0.22.0
-    command: run --server --log-level=debug --log-format=json-pretty  /opa-files/data.json /opa-files/policy.rego
+    command: run --server --log-level=debug --log-format=json-pretty --tls-cert-file=/ssl/f7t_internal.crt --tls-private-key-file=/ssl/f7t_internal.key /opa-files/data.json /opa-files/policy.rego
     networks:
       firecrest-internal:
         ipv4_address: 192.168.220.40
@@ -229,6 +259,7 @@ services:
       - "8181:8181"    
     volumes: 
       - ./opa:/opa-files
+      - ./ssl:/ssl
 
   openapi:
     # image: swaggerapi/swagger-ui:v3.22.0

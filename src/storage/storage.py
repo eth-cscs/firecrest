@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2019-2020, ETH Zurich. All rights reserved.
+#  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
 #
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
@@ -21,7 +21,7 @@ from cscs_api_common import create_task, update_task, get_task_status
 from cscs_api_common import exec_remote_command
 from cscs_api_common import create_certificate
 from cscs_api_common import in_str
-from cscs_api_common import is_valid_file, is_valid_dir
+from cscs_api_common import is_valid_file, is_valid_dir, check_command_error
 
 # job_time_checker for correct SLURM job time in /xfer-internal tasks
 import job_time
@@ -41,7 +41,6 @@ import time
 CERTIFICATOR_URL = os.environ.get("F7T_CERTIFICATOR_URL")
 TASKS_URL        = os.environ.get("F7T_TASKS_URL")
 COMPUTE_URL      = os.environ.get("F7T_COMPUTE_URL")
-STATUS_IP        = os.environ.get("F7T_STATUS_IP")
 KONG_URL         = os.environ.get("F7T_KONG_URL")
 
 STORAGE_PORT     = os.environ.get("F7T_STORAGE_PORT", 5000)
@@ -66,6 +65,9 @@ OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE", "").strip('\'"')
 # Scheduller partition used for internal transfers
 XFER_PARTITION = os.environ.get("F7T_XFER_PARTITION", "").strip('\'"')
 
+# --account parameter needed in sbatch?
+USE_SLURM_ACCOUNT = os.environ.get("F7T_USE_SLURM_ACCOUNT", False)
+
 # Machine used for external transfers
 
 EXT_TRANSFER_MACHINE_PUBLIC=os.environ.get("F7T_EXT_TRANSFER_MACHINE_PUBLIC", "").strip('\'"')
@@ -88,9 +90,17 @@ STORAGE_MAX_FILE_SIZE = int(os.environ.get("F7T_STORAGE_MAX_FILE_SIZE", "5120").
 # for use on signature of URL it must be in bytes (MB*1024*1024 = Bytes)
 STORAGE_MAX_FILE_SIZE *= 1024*1024
 
+UTILITIES_TIMEOUT = int(os.environ.get("F7T_UTILITIES_TIMEOUT", "5").strip('\'"'))
+
 STORAGE_POLLING_INTERVAL = int(os.environ.get("F7T_STORAGE_POLLING_INTERVAL", "60").strip('\'"'))
 CERT_CIPHER_KEY = os.environ.get("F7T_CERT_CIPHER_KEY", "").strip('\'"').encode('utf-8')
 
+### SSL parameters
+USE_SSL = os.environ.get("F7T_USE_SSL", False)
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
+# verify signed SSL certificates
+SSL_SIGNED = os.environ.get("F7T_SSL_SIGNED", False)
 
 # aynchronous tasks: upload & download --> http://TASKS_URL
 # {task_id : AsyncTask}
@@ -148,7 +158,7 @@ def os_to_fs(task_id):
     try:
         app.logger.info(upl_file["msg"])
         action = upl_file["msg"]["action"]
-        
+
         # certificate is encrypted with CERT_CIPHER_KEY key
         # here is decrypted
         cert = upl_file["msg"]["cert"]
@@ -186,9 +196,9 @@ def os_to_fs(task_id):
 
         # if no error, then download is complete
         if result["error"] == 0:
-            
+
             update_task(task_id, None, async_task.ST_DWN_END)
-            
+
             # No need to delete the dictionary, it will be cleaned on next iteration
 
             # delete upload request
@@ -197,7 +207,7 @@ def os_to_fs(task_id):
             # must be deleted after object is moved to storage
             # staging.delete_object(containername=username,prefix=task_id,objectname=objectname)
             # for big files delete_object consumes a long time and often gives a TimeOut error between system and staging area
-            # Therefore, using delete_object_after a few minutes (in this case 5 minutes) will trigger internal staging area 
+            # Therefore, using delete_object_after a few minutes (in this case 5 minutes) will trigger internal staging area
             # mechanism to delete the file automatically and without a need of a connection
 
             staging.delete_object_after(containername=username,prefix=task_id,objectname=objectname, ttl = time.time()+600)
@@ -221,17 +231,17 @@ def check_upload_files():
     global staging
 
     while True:
-        
+
         # Get updated task status from Tasks microservice DB backend (TaskPersistence)
         get_upload_unfinished_tasks()
 
         # Timestampo for logs
         timestamp = time.asctime( time.localtime(time.time()) )
-        
+
         app.logger.info(f"Check files in Object Storage {timestamp}")
         app.logger.info(f"Pendings uploads: {len(uploaded_files)}")
 
-        
+
         # create STATIC auxiliary upload list in order to avoid "RuntimeError: dictionary changed size during iteration"
         # (this occurs since upload_files dictionary is shared between threads and since Python3 dict.items() trigger that error)
         upl_list= [(task_id, upload) for task_id,upload in uploaded_files.items()]
@@ -239,11 +249,11 @@ def check_upload_files():
         for task_id,upload in upl_list:
             #checks if file is ready or not for download to FileSystem
             try:
-                
+
                 task_status = async_task.status_codes[upload['status']]
-                
+
                 app.logger.info(f"Status of {task_id}: {task_status}")
-                
+
                 #if upload["status"] in [async_task.ST_URL_REC,async_task.ST_DWN_ERR] :
                 if upload["status"] == async_task.ST_URL_REC:
                     app.logger.info(f"Task {task_id} -> File ready to upload or already downloaded")
@@ -254,7 +264,7 @@ def check_upload_files():
                     containername = upl["user"]
                     prefix = task_id
                     objectname = upl["source"]
-                    
+
                     if not staging.is_object_created(containername,prefix,objectname):
                         app.logger.info(f"{containername}/{prefix}/{objectname} isn't created in staging area, continue polling")
                         continue
@@ -285,10 +295,10 @@ def check_upload_files():
                     os_to_fs_task = threading.Thread(target=os_to_fs,args=(task_id,))
                     os_to_fs_task.start()
             except Exception as e:
-                
+
                 app.logger.error(type(e), e)
                 continue
-            
+
         time.sleep(STORAGE_POLLING_INTERVAL)
 
 
@@ -373,7 +383,7 @@ def download_task(auth_header,system_name, system_addr,sourcePath,task_id):
 def download_request():
 
     auth_header = request.headers[AUTH_HEADER_NAME]
-        
+
     system_addr = EXT_TRANSFER_MACHINE_INTERNAL
     system_name = EXT_TRANSFER_MACHINE_PUBLIC
     sourcePath = request.form["sourcePath"]  # path file in cluster
@@ -388,7 +398,7 @@ def download_request():
 
     if not check["result"]:
         return jsonify(description="sourcePath error"), 400, check["headers"]
-    
+
 
     # obtain new task from Tasks microservice
     task_id = create_task(auth_header, service="storage")
@@ -397,7 +407,7 @@ def download_request():
     if task_id == -1:
         data = jsonify(error="Couldn't create task")
         return data, 400
-    
+
     # asynchronous task creation
     aTask = threading.Thread(target=download_task,
                              args=(auth_header, system_name, system_addr, sourcePath, task_id))
@@ -435,10 +445,10 @@ def invalidate_request():
 
     # search if task belongs to the user
     task_status = get_task_status(task_id, auth_header)
-    
+
     if task_status == -1:
         return jsonify(error="Invalid X-Task-Id"), 400
-    
+
 
     containername = get_username(auth_header)
     prefix        = task_id
@@ -459,7 +469,7 @@ def invalidate_request():
 
 
 
-    
+
 
 # async task for upload large files
 # user: user in the posix file system
@@ -525,11 +535,10 @@ def upload_task(auth_header,system_name, system_addr,targetPath,sourcePath,task_
     download_url = staging.create_temp_url(container_name, object_prefix, fileName, STORAGE_TEMPURL_EXP_TIME)
 
     # create certificate for later download from OS to filesystem
-    app.logger.info("Creating certificate for later download") 
-    options = f"-q -O {targetPath}/{fileName} -- '{download_url}'"
+    app.logger.info("Creating certificate for later download")
+    options = f"-s -G -o {targetPath}/{fileName} -- '{download_url}'"
     exp_time = STORAGE_TEMPURL_EXP_TIME
-    certs = create_certificate(auth_header, system_name, system_addr, "wget", options, exp_time)
-    # certs = create_certificates(auth_header,system,command="wget",options=urllib.parse.quote(options),exp_time=STORAGE_TEMPURL_EXP_TIME)
+    certs = create_certificate(auth_header, system_name, system_addr, "curl", options, exp_time)
 
     if not certs[0]:
         data = uploaded_files[task_id]
@@ -546,7 +555,7 @@ def upload_task(auth_header,system_name, system_addr,targetPath,sourcePath,task_
     # key_priv = file_to_str(fileName=certs[2])
     temp_dir = certs[3]
 
-    # encrypt certificate with CERT_CIPHER_KEY key     
+    # encrypt certificate with CERT_CIPHER_KEY key
     cipher = Fernet(CERT_CIPHER_KEY)
     # data to be encrypted should be encoded to bytes
     # in order to save it as json, the cert encrypted should be decoded to string
@@ -554,14 +563,14 @@ def upload_task(auth_header,system_name, system_addr,targetPath,sourcePath,task_
 
 
     resp["download_url"] = download_url
-    resp["action"] = f"wget {options}"
+    resp["action"] = f"curl {options}"
     resp["cert"] =  [cert_pub_enc, temp_dir]
 
     data["msg"] = resp
     data["status"] = async_task.ST_URL_REC
 
     app.logger.info("Cert and url created correctly")
-    
+
     update_task(task_id,auth_header,async_task.ST_URL_REC,data,is_json=True)
 
     return
@@ -571,7 +580,7 @@ def upload_task(auth_header,system_name, system_addr,targetPath,sourcePath,task_
 @app.route("/xfer-external/upload",methods=["POST"])
 @check_auth_header
 def upload_request():
-    
+
     auth_header = request.headers[AUTH_HEADER_NAME]
 
     system_addr = EXT_TRANSFER_MACHINE_INTERNAL
@@ -590,7 +599,7 @@ def upload_request():
         data = jsonify(error="Target path not set in request")
         return data, 400
 
-    
+
     if sourcePath == None or sourcePath == "":
         data = jsonify(error="Source path not set in request")
         return data, 400
@@ -606,7 +615,7 @@ def upload_request():
 
     if task_id == -1:
         return jsonify(error="Error creating task"), 400
-   
+
 
     # asynchronous task creation
     try:
@@ -629,23 +638,6 @@ def upload_request():
         return data, 400
 
 
-
-# use wget to download file from download_url created with swift
-def get_file_from_storage(auth_header,system_name, system_addr,path,download_url,fileName):
-
-    app.logger.info(f"Trying downloading {download_url} from Object Storage to {system_name}")
-                    
-
-    # wget to be executed on cluster side:
-    action = f"wget -q -O {path}/{fileName} -- \"{download_url}\" "
-
-    app.logger.info(action)
-
-    retval = exec_remote_command(auth_header,system_name, system_addr,action)
-
-    return retval
-
-
 ## Internal Transfer MicroServices:
 ## cp / rm / mv / rsync using Jobs microservice
 
@@ -659,7 +651,8 @@ def get_file_from_storage(auth_header,system_name, system_addr,path,download_url
 # jobName = --job-name parameter to be used on sbatch command
 # jobTime = --time  parameter to be used on sbatch command
 # stageOutJobId = value to set in --dependency:afterok parameter
-def exec_internal_command(auth_header,command,sourcePath, targetPath, jobName, jobTime, stageOutJobId):
+# account = value to set in --account parameter
+def exec_internal_command(auth_header,command,sourcePath, targetPath, jobName, jobTime, stageOutJobId, account):
 
 
     action = "{command} {sourcePath} {targetPath}".\
@@ -681,6 +674,9 @@ def exec_internal_command(auth_header,command,sourcePath, targetPath, jobName, j
 
         if stageOutJobId != None:
             sbatch_file.write("#SBATCH --dependency=afterok:{stageOutJobId}\n".format(stageOutJobId=stageOutJobId))
+        if account != None:
+            app.logger.info(account)
+            sbatch_file.write(f"#SBATCH --account={account}")
 
         sbatch_file.write("\n")
         sbatch_file.write("echo -e \"$SLURM_JOB_NAME started on $(date): {action}\"\n".format(action=action))
@@ -694,7 +690,7 @@ def exec_internal_command(auth_header,command,sourcePath, targetPath, jobName, j
         result = {"error": 1, "msg":ioe.message}
         return result
 
-    
+
     # create xfer job
     resp = create_xfer_job(STORAGE_JOBS_MACHINE, auth_header, td + "/sbatch-job.sh")
 
@@ -736,14 +732,19 @@ def internal_rm():
 def internal_operation(request, command):
 
     auth_header = request.headers[AUTH_HEADER_NAME]
-    
+
+    system_idx = SYSTEMS_PUBLIC.index(STORAGE_JOBS_MACHINE)
+    system_addr = SYS_INTERNALS[system_idx]
+    system_name = STORAGE_JOBS_MACHINE
+
     try:
         targetPath = request.form["targetPath"]  # path to save file in cluster
         if targetPath == "":
-            return jsonify(error="targetPath is empty"), 400    
+            return jsonify(error="targetPath is empty"), 400
     except:
         app.logger.error("targetPath not specified")
         return jsonify(error="targetPath not specified"), 400
+
 
     # using actual_command to add options to check sanity of the command to be executed
     actual_command = ""
@@ -755,6 +756,30 @@ def internal_operation(request, command):
         except:
             app.logger.error("sourcePath not specified")
             return jsonify(error="sourcePath not specified"), 400
+
+        # checks if file to copy, move or rsync (targetPath) is a valid path
+        # remove the last part of the path (after last "/" char) to check if the dir can be written by user
+
+        _targetPath = targetPath.split("/")[:-1]
+        _targetPath = "/".join(_targetPath)
+
+        app.logger.info(f"_targetPath={_targetPath}")
+
+
+        check_dir  = is_valid_dir(_targetPath, auth_header, system_name, system_addr)
+
+        if not check_dir["result"]:
+            return jsonify(description="targetPath error"), 400, check_dir["headers"]
+
+        check_file = is_valid_file(sourcePath, auth_header, system_name, system_addr)
+
+        if not check_file["result"]:
+            check_dir  = is_valid_dir(sourcePath, auth_header, system_name, system_addr)
+
+            if not check_dir["result"]:
+                return jsonify(description="sourcePath error"), 400, check_dir["headers"]
+
+
         if command == "cp":
             actual_command = "cp --force -dR --preserve=all -- "
         elif command == "mv":
@@ -763,6 +788,15 @@ def internal_operation(request, command):
             actual_command = "rsync -av -- "
     elif command == "rm":
         # for 'rm' there's no source, set empty to call exec_internal_command(...)
+        # checks if file or dir to delete (targetPath) is a valid path or valid directory
+        check_file = is_valid_file(targetPath, auth_header, system_name, system_addr)
+
+        if not check_file["result"]:
+            check_dir  = is_valid_dir(targetPath, auth_header, system_name, system_addr)
+
+            if not check_dir["result"]:
+                return jsonify(description="targetPath error"), 400, check_dir["headers"]
+
         sourcePath = ""
         actual_command = "rm -rf -- "
     else:
@@ -793,6 +827,25 @@ def internal_operation(request, command):
     system_idx = SYSTEMS_PUBLIC.index(STORAGE_JOBS_MACHINE)
     system_addr = SYS_INTERNALS[system_idx]
 
+    app.logger.info(f"USE_SLURM_ACCOUNT: {USE_SLURM_ACCOUNT}")
+    # get "account" parameter, if not found, it is obtained from "id" command
+    try:
+        account = request.form["account"]
+    except:
+        if USE_SLURM_ACCOUNT:
+            username = get_username(auth_header)
+
+            id_command = f"timeout {UTILITIES_TIMEOUT} id -gn -- {username}"
+            resp = exec_remote_command(auth_header, STORAGE_JOBS_MACHINE, system_addr, id_command)
+            if resp["error"] != 0:
+                retval = check_command_error(resp["msg"], resp["error"], f"{command} job")
+
+                return jsonify(description=f"Failed to submit {command} job", error=retval["description"]), retval["status_code"], retval["header"]
+
+            account = resp["msg"]
+        else:
+            account = None
+
     # check if machine is accessible by user:
     # exec test remote command
     resp = exec_remote_command(auth_header, STORAGE_JOBS_MACHINE, system_addr, "true")
@@ -806,7 +859,7 @@ def internal_operation(request, command):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description=f"Failed to submit {command} job"), 404, header
 
-    retval = exec_internal_command(auth_header, actual_command, sourcePath, targetPath, jobName, jobTime, stageOutJobId)
+    retval = exec_internal_command(auth_header, actual_command, sourcePath, targetPath, jobName, jobTime, stageOutJobId, account)
 
     # returns "error" key or "success" key
     try:
@@ -833,7 +886,7 @@ def create_xfer_job(machine,auth_header,fileName):
     try:
         req = requests.post("{compute_url}/jobs/upload".
                             format(compute_url=COMPUTE_URL),
-                            files=files, headers={AUTH_HEADER_NAME: auth_header, "X-Machine-Name":machine})
+                            files=files, headers={AUTH_HEADER_NAME: auth_header, "X-Machine-Name":machine}, verify= (SSL_CRT if USE_SSL else False))
 
         retval = json.loads(req.text)
         if not req.ok:
@@ -847,18 +900,11 @@ def create_xfer_job(machine,auth_header,fileName):
 
 
 
-# get status for status microservice
-# only used by STATUS_IP otherwise forbidden
-
 @app.route("/status",methods=["GET"])
 def status():
 
     app.logger.info("Test status of service")
-
-    if request.remote_addr != STATUS_IP:
-        app.logger.warning("Invalid remote address: {addr}".format(addr=request.remote_addr))
-        return jsonify(error="Invalid access"), 403
-
+    # TODO: check backend storage service to truthfully respond this request
     return jsonify(success="ack"), 200
 
 
@@ -916,17 +962,17 @@ def get_upload_unfinished_tasks():
     # cleanup upload dictionary
     global uploaded_files
     uploaded_files = {}
-    
-    
+
+
     app.logger.info("Staging Area Used: {}".format(staging.url))
     app.logger.info("ObjectStorage Technology: {}".format(staging.get_object_storage()))
-    
+
     try:
         # query Tasks microservice for previous tasks. Allow 30 seconds to answer
 
         # only unfinished upload process
         status_code = [async_task.ST_URL_ASK, async_task.ST_URL_REC, async_task.ST_UPL_CFM, async_task.ST_DWN_BEG, async_task.ST_DWN_ERR]
-        retval=requests.get(f"{TASKS_URL}/taskslist", json={"service": "storage", "status_code":status_code}, timeout=30)
+        retval=requests.get(f"{TASKS_URL}/taskslist", json={"service": "storage", "status_code":status_code}, timeout=30, verify=(SSL_CRT if USE_SSL else False))
 
         if not retval.ok:
             app.logger.error("Error getting tasks from Tasks microservice")
@@ -947,7 +993,7 @@ def get_upload_unfinished_tasks():
         n_tasks = 0
 
         for key,task in queue_tasks.items():
-            
+
             task = json.loads(task)
 
             # iterating over queue_tasls
@@ -993,7 +1039,7 @@ def init_storage():
 
     create_staging()
     get_upload_unfinished_tasks()
-    
+
 
 
 if __name__ == "__main__":
@@ -1009,7 +1055,7 @@ if __name__ == "__main__":
 
     # get app log (Flask+werkzeug+python)
     logger = logging.getLogger()
-    
+
     # set handler to logger
     logger.addHandler(logHandler)
 
@@ -1021,4 +1067,7 @@ if __name__ == "__main__":
     upload_check.start()
 
 
-    app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=STORAGE_PORT)
+    if USE_SSL:
+        app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=STORAGE_PORT, ssl_context=(SSL_CRT, SSL_KEY))
+    else:
+        app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=STORAGE_PORT)

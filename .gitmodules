@@ -1,0 +1,3 @@
+[submodule "src/tools/pyfirecrest"]
+	path = src/tools/pyfirecrest
+	url = https://github.com/ekouts/pyfirecrest.git

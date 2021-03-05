@@ -1,0 +1,43 @@
+##
+##  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
+##
+##  Please, refer to the LICENSE file in the root directory.
+##  SPDX-License-Identifier: BSD-3-Clause
+##
+---
+- name: Run tests
+  gather_facts: no
+  hosts: all
+  vars:
+    # This play will have to start using containerized tests soon, as done in dev
+    firecrest_tester_dir: "/home/centos/firecrest/deploy/docker/tester"
+    firecrest_tests_dir: "/home/centos/firecrest/src/tests/automated_tests"
+    pytest_bin: "/home/centos/.local/bin"
+
+  # Shell module always looks for commands at /bin/sh
+  # We have to set the full path for pytest in shell tasks.
+  # Setting PATH variable doesn't work in this case...
+  #environment:
+  #  PATH: "{{ ansible_env.PATH }}:/home/centos/.local/bin"
+  tasks:
+    - name: Install pytest modules
+      shell: pip3 install --user -r requirements.txt
+      args:
+        chdir: "{{ firecrest_tester_dir }}"
+
+    - name: Run unit tests (marker='reservations')
+      shell: "{{ pytest_bin }}/pytest -m 'reservations' -c demo.ini unit"
+      args:
+        chdir: "{{ firecrest_tests_dir }}"
+
+    - name: Run unit tests (marker='not reservations')
+      shell: "{{ pytest_bin }}/pytest -m 'not reservations' -c demo.ini unit"
+      args:
+        chdir: "{{ firecrest_tests_dir }}"
+      
+
+    - name: Run integration tests
+      shell:  "{{ pytest_bin }}/pytest -m 'not reservations' -c demo.ini integration"
+      args:
+        chdir: "{{ firecrest_tests_dir }}"      
+

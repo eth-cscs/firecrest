@@ -107,6 +107,6 @@ Subsystem       sftp    /usr/libexec/openssh/sftp-server
     #AllowUsers user1
     MaxAuthTries 1
     AllowTcpForwarding no
-    #ForceCommand /ssh_command_wrapper.sh
+    ForceCommand /ssh_command_wrapper.sh
     PermitTTY no
     PermitTunnel no

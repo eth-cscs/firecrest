@@ -1,17 +1,26 @@
+##
+##  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
+##
+##  Please, refer to the LICENSE file in the root directory.
+##  SPDX-License-Identifier: BSD-3-Clause
+##
 version: '3'
 
 services:
   certificator:
-    build: 
+    build:
       context: ../../
       dockerfile: deploy/docker/certificator/Dockerfile
     env_file:
       - ./environment/common.env
-    network_mode: "host"
+    networks:
+      - backend
+      - frontend
     volumes:
       - "./environment/keys/ca-key:/ca-key:ro"
       - "./environment/keys/user-key.pub:/user-key.pub:ro"
       - ./logs/firecrest:/var/log:delegated
+      - ./ssl:/ssl
 
   compute:
     build:
@@ -19,10 +28,13 @@ services:
       dockerfile: deploy/docker/compute/Dockerfile
     env_file:
       - ./environment/common.env
-    network_mode: "host"
+    networks:
+      - backend
+      - frontend
     volumes:
       - "./environment/keys/user-key:/user-key:ro"
       - ./logs/firecrest:/var/log:delegated
+      - ./ssl:/ssl
 
   status:
     build:
@@ -30,9 +42,12 @@ services:
       dockerfile: deploy/docker/status/Dockerfile
     env_file:
       - ./environment/common.env
-    network_mode: "host"
+    networks:
+      - backend
+      - frontend
     volumes:
       - ./logs/firecrest:/var/log:delegated
+      - ./ssl:/ssl
 
   storage:
     build:
@@ -41,7 +56,9 @@ services:
     env_file:
       - ./environment/common.env
       - ./environment/storage.env
-    network_mode: "host"
+    networks:
+      - backend
+      - frontend
     depends_on:
       - "tasks"
       - "minio"
@@ -50,9 +67,10 @@ services:
       # custom host file
       - "./environment/hosts:/etc/hosts:ro"
       - ./logs/firecrest:/var/log:delegated
+      - ./ssl:/ssl
 
   tasks:
-    build: 
+    build:
       context: ../../
       dockerfile: deploy/docker/tasks/Dockerfile
     env_file:
@@ -65,65 +83,103 @@ services:
       - F7T_STORAGE_TASK_EXP_TIME=2678400
     depends_on:
       - "taskpersistence"
-    network_mode: "host"
-    volumes: 
+    networks:
+      - backend
+      - frontend
+    volumes:
       - ./logs/firecrest:/var/log:delegated
+      - ./ssl:/ssl
 
   utilities:
-    build: 
+    build:
       context: ../../
       dockerfile: deploy/docker/utilities/Dockerfile
     env_file:
       - ./environment/common.env
-    network_mode: "host"
+    networks:
+      - backend
+      - frontend
     volumes:
       - "./environment/keys/user-key:/user-key:ro"
       - ./logs/firecrest:/var/log:delegated
+      - ./ssl:/ssl
+
+  reservations:
+    build:
+      context: ../../
+      dockerfile: deploy/docker/reservations/Dockerfile
+    env_file:
+      - ./environment/common.env
+    networks:
+      - backend
+      - frontend
+    volumes:
+      - "./environment/keys/user-key:/user-key:ro"
+      - ./logs/firecrest:/var/log:delegated
+      - ./ssl:/ssl
 
   # auxiliary containers
   cluster:
     # runs on private network to avoid conflict with a local SSH server
-    build: 
+    build:
       context: ./
       dockerfile: ./cluster/Dockerfile
     hostname: cluster
-    ports:
-      - "2223:22"
+    networks:
+      - backend
+      - frontend
 
   minio:
     # runs on private network so "cluster" can reach it
     container_name: minio_test_build
-    image: minio/minio
+    image: minio/minio:RELEASE.2021-02-01T22-56-52Z
     command: minio server /data
     environment:
       MINIO_ACCESS_KEY: storage_access_key
       MINIO_SECRET_KEY: storage_secret_key
+    networks:
+      - backend
+      - frontend
     ports:
       - "9000:9000"
-    
+
   taskpersistence:
     image: redis:5
     command: redis-server /redis.conf
-    network_mode: "host"
+    networks:
+      - backend
+      - frontend
     volumes:
       - ./taskpersistence/redis.conf:/redis.conf:ro
       - ./logs/firecrest:/var/log:delegated
 
   opa:
     image: openpolicyagent/opa:0.22.0
-    command: run --server --log-level=debug --log-format=json-pretty  /opa-files/data.json /opa-files/policy.rego
-    network_mode: "host"
-    ports: 
-      - "8181:8181"    
-    volumes: 
+    command: run --server --log-level=debug --log-format=json-pretty --tls-cert-file=/ssl/f7t_internal.crt --tls-private-key-file=/ssl/f7t_internal.key /opa-files/data.json /opa-files/policy.rego --addr http://0.0.0.0:8282
+    networks:
+      - backend
+      - frontend
+    volumes:
       - ./opa:/opa-files
+      - ./ssl:/ssl
 
   openapi:
-    # image: swaggerapi/swagger-ui:v3.22.0
     build:
       context: ../../
       dockerfile: ./deploy/docker/openapi/Dockerfile
+    networks:
+      - backend
+      - frontend
     ports:
       - "9090:8080"
     environment:
       SWAGGER_JSON: /tmp/openapi.yaml
+
+# For now all containers are attached to both networks.
+# Next step is to split microservices to the
+# correct networks to reflect production reality.
+networks:
+  backend:
+    name: f7t-backend
+  frontend:
+    name: f7t-frontend
