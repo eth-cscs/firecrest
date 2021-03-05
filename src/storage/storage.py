@@ -21,7 +21,7 @@ from cscs_api_common import create_task, update_task, get_task_status
 from cscs_api_common import exec_remote_command
 from cscs_api_common import create_certificate
 from cscs_api_common import in_str
-from cscs_api_common import is_valid_file, is_valid_dir, check_command_error
+from cscs_api_common import is_valid_file, is_valid_dir, check_command_error, get_boolean_var
 
 # job_time_checker for correct SLURM job time in /xfer-internal tasks
 import job_time
@@ -66,7 +66,7 @@ OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE", "").strip('\'"')
 XFER_PARTITION = os.environ.get("F7T_XFER_PARTITION", "").strip('\'"')
 
 # --account parameter needed in sbatch?
-USE_SLURM_ACCOUNT = os.environ.get("F7T_USE_SLURM_ACCOUNT", False)
+USE_SLURM_ACCOUNT = get_boolean_var(os.environ.get("F7T_USE_SLURM_ACCOUNT", False))
 
 # Machine used for external transfers
 
@@ -96,11 +96,11 @@ STORAGE_POLLING_INTERVAL = int(os.environ.get("F7T_STORAGE_POLLING_INTERVAL", "6
 CERT_CIPHER_KEY = os.environ.get("F7T_CERT_CIPHER_KEY", "").strip('\'"').encode('utf-8')
 
 ### SSL parameters
-USE_SSL = os.environ.get("F7T_USE_SSL", False)
+USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 # verify signed SSL certificates
-SSL_SIGNED = os.environ.get("F7T_SSL_SIGNED", False)
+SSL_SIGNED = get_boolean_var(os.environ.get("F7T_SSL_SIGNED", False))
 
 # aynchronous tasks: upload & download --> http://TASKS_URL
 # {task_id : AsyncTask}
@@ -112,7 +112,7 @@ storage_tasks = {}
 uploaded_files = {}
 
 # debug on console
-debug = os.environ.get("F7T_DEBUG_MODE", None)
+debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 
 app = Flask(__name__)
