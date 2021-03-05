@@ -372,7 +372,8 @@ def download_task(auth_header,system_name, system_addr,sourcePath,task_id):
 
     # if succesfully created: temp_url in task with success status
     update_task(task_id, auth_header, async_task.ST_UPL_END, temp_url)
-    retval = staging.delete_object_after(containername=container_name,prefix=object_prefix,objectname=object_name,ttl=STORAGE_TEMPURL_EXP_TIME)
+    # marked deletion from here to STORAGE_TEMPURL_EXP_TIME (default 30 days)
+    retval = staging.delete_object_after(containername=container_name,prefix=object_prefix,objectname=object_name,ttl=int(time.time()) + STORAGE_TEMPURL_EXP_TIME)
 
     if retval == 0:
         app.logger.info("Setting {seconds} [s] as X-Delete-After".format(seconds=STORAGE_TEMPURL_EXP_TIME))
