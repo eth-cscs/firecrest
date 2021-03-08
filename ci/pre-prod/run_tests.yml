@@ -20,6 +20,9 @@
   #environment:
   #  PATH: "{{ ansible_env.PATH }}:/home/centos/.local/bin"
   tasks:
+    - name: Upgrade pip3
+      shell: pip3 install --user --upgrade pip==21.0.1
+
     - name: Install pytest modules
       shell: pip3 install --user -r requirements.txt
       args:
