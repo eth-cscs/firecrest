@@ -376,9 +376,9 @@ def download_task(auth_header,system_name, system_addr,sourcePath,task_id):
     retval = staging.delete_object_after(containername=container_name,prefix=object_prefix,objectname=object_name,ttl=int(time.time()) + STORAGE_TEMPURL_EXP_TIME)
 
     if retval == 0:
-        app.logger.info("Setting {seconds} [s] as X-Delete-After".format(seconds=STORAGE_TEMPURL_EXP_TIME))
+        app.logger.info("Setting {seconds} [s] as X-Delete-At".format(seconds=STORAGE_TEMPURL_EXP_TIME))
     else:
-        app.logger.error("Object couldn't be marked as X-Delete-After")
+        app.logger.error("Object couldn't be marked as X-Delete-At")
 
 
 
