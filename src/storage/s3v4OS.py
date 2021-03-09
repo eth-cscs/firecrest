@@ -666,7 +666,7 @@ class S3v4(ObjectStorage):
             resp = requests.put(url, data=body, headers=headers)
 
             if resp.ok:
-                logging.info("Object marked as delete-at succesfully")
+                logging.info(f"Object was marked as to be deleted at {_delete_at_iso}")
 
                 return 0
             

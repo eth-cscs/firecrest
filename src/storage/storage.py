@@ -214,7 +214,7 @@ def os_to_fs(task_id):
             # Therefore, using delete_object_after a few minutes (in this case 5 minutes) will trigger internal staging area
             # mechanism to delete the file automatically and without a need of a connection
 
-            staging.delete_object_after(containername=username,prefix=task_id,objectname=objectname, ttl = time.time()+600)
+            staging.delete_object_after(containername=username,prefix=task_id,objectname=objectname, ttl = int(time.time())+600)
 
         # if error, should be prepared for try again
         else:
@@ -372,12 +372,13 @@ def download_task(auth_header,system_name, system_addr,sourcePath,task_id):
 
     # if succesfully created: temp_url in task with success status
     update_task(task_id, auth_header, async_task.ST_UPL_END, temp_url)
-    retval = staging.delete_object_after(containername=container_name,prefix=object_prefix,objectname=object_name,ttl=STORAGE_TEMPURL_EXP_TIME)
+    # marked deletion from here to STORAGE_TEMPURL_EXP_TIME (default 30 days)
+    retval = staging.delete_object_after(containername=container_name,prefix=object_prefix,objectname=object_name,ttl=int(time.time()) + STORAGE_TEMPURL_EXP_TIME)
 
     if retval == 0:
-        app.logger.info("Setting {seconds} [s] as X-Delete-After".format(seconds=STORAGE_TEMPURL_EXP_TIME))
+        app.logger.info("Setting {seconds} [s] as X-Delete-At".format(seconds=STORAGE_TEMPURL_EXP_TIME))
     else:
-        app.logger.error("Object couldn't be marked as X-Delete-After")
+        app.logger.error("Object couldn't be marked as X-Delete-At")
 
 
 
@@ -463,7 +464,7 @@ def invalidate_request():
 
         # error = staging.delete_object(containername,prefix,objectname)
         # replacing delete_object by delete_object_after 5 minutes
-        error = staging.delete_object_after(containername=containername, prefix=prefix, objectname=objectname, ttl=time.time()+600)
+        error = staging.delete_object_after(containername=containername, prefix=prefix, objectname=objectname, ttl=int(time.time())+600)
 
         if error == -1:
             return jsonify(error="Could not invalidate URL"), 400
