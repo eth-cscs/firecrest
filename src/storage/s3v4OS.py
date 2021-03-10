@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2019-2020, ETH Zurich. All rights reserved.
+#  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
 #
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
@@ -380,28 +380,38 @@ class S3v4(ObjectStorage):
 
         signature = hmac.new(signing_key, base64Policy.encode('utf-8'), hashlib.sha256).hexdigest()
 
-        fields = {
-            "key": prefix + "/" + objectname,
-            "x-amz-algorithm": algorithm,
-            "x-amz-credential": credentials,
-            "x-amz-date": amzdate,
-            "policy": base64Policy,
-            "x-amz-signature" : signature
+
+        retval = {}
+
+        retval["parameters"] = {
+
+            "method": httpVerb,
+            "url": f"{endpoint_url}/{containername}",
+            "data": {
+                "key": prefix + "/" + objectname,
+                "x-amz-algorithm": algorithm,
+                "x-amz-credential": credentials,
+                "x-amz-date": amzdate,
+                "policy": base64Policy,
+                "x-amz-signature" : signature
+            },
+            "files": sourcepath,
+            "json" : {},
+            "params": {},
+            "headers": {}
         }
 
         command = f"curl -i -X {httpVerb} {endpoint_url}/{containername}"
 
-        for k,v in fields.items():
+        for k,v in retval["parameters"]["data"].items():
             command += f" -F '{k}={v}'"
 
-        command+=f" -F file=@{sourcepath}"
+        command+=f" -F file=@{retval['parameters']['files']}"
 
-        fields["command"] = command
-        fields["method"]  = httpVerb
-        fields["url"] = f"{endpoint_url}/{containername}"
+        retval["command"] = command
 
-        return fields
-
+        return retval
+        
 
     def create_temp_url(self, containername, prefix, objectname, ttl):
 
@@ -656,7 +666,7 @@ class S3v4(ObjectStorage):
             resp = requests.put(url, data=body, headers=headers)
 
             if resp.ok:
-                logging.info("Object marked as delete-at succesfully")
+                logging.info(f"Object was marked as to be deleted at {_delete_at_iso}")
 
                 return 0
             

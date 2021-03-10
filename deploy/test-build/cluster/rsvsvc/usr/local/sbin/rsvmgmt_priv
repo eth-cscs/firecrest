@@ -1,0 +1,58 @@
+#!/bin/bash
+
+#Load the config
+. /usr/local/lib/rsvmgmt.conf
+#Load the functions
+. /usr/local/lib/rsvmgmt.funcs
+
+#handle the inputs
+case "$1" in
+	-h)
+		display_help
+		exit 0
+		;;
+	-a)
+		# If reservation name is included, pass it, otherwise automatic
+		if [[ $# -eq 7 ]]
+		then
+			add_resv $2 $3 $4 $5 $6 $7
+			exit 0
+		fi
+		if [[ $# -eq 6 ]] 
+		then
+			add_resv $2 $3 $4 $5 $6 ""
+			exit 0
+		fi
+		echo "${ProgName}: Error: Wrong Number of Arguments"
+		exit 1
+		;;
+	-u)
+		
+		if [[ $# -eq 6 ]]
+		then
+		update_resv $2 $3 $4 $5 $6
+		exit 0
+		fi
+		echo "${ProgName}: Error: Wrong Number of Arguments"
+		exit 1
+		;;
+	-d)
+		del_account $2
+		exit 0
+		;;
+	-l)
+		list_allowed
+		exit 0
+		;;
+	-V)
+		echo "${ProgName}, version ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_FIX}"
+		exit 0;
+		;;
+	*)
+		echo "${ProgName}: invalid option -- \"${1}\""
+		echo
+		display_help
+		exit 0
+		;;
+esac
+

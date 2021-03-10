@@ -1,12 +1,16 @@
+***** IMPORTANT *****
+
+Instructions below are for the case where you want to run tests from a local
+python environment. For a containerized environment, please refer to
+ci/dev/README.md.
+
 ***** Install Pytest and dependencies *****
 
-pip3 install -r requirements.txt
-
-
+pip3 install -r deploy/docker/tester/requirements.txt
 
 ***** Configure Test environment *****
 
-The environment variables for your test implementation must be configured 
+The environment variables for your test implementation must be configured
 in the pytest section of pytest.ini file.
 For example, for "test-build" deploy, the configuration is as follows:
 
@@ -72,8 +76,8 @@ Run a specific test within a test file:
 
 ***** Tests Limitations *****
 
-In order to test implementations that are behind a gateway with authetication 
-you will need to disable token verification. This has to be done in your gateway configuration. 
+In order to test implementations that are behind a gateway with authetication
+you will need to disable token verification. This has to be done in your gateway configuration.
 Also you must set to empty the REALM_RSA_PUBLIC_KEY environment variable in the common.env file of your deploy.
 Finally, you will need to specify the firecrest gateway address in FIRECREST_URL environment variable.
 
@@ -87,7 +91,7 @@ You need to setup the following environment variables:
 FIRECREST_URL = http://myapigateway
 
 # enable login with SA
-SA_LOGIN      = True 
+SA_LOGIN      = True
 
 # Openid service url
 SA_TOKEN_URI  = http://myopenidservice/auth/realms/kcrealm/protocol/openid-connect/token
@@ -101,6 +105,6 @@ The "demo" implementation has been configured to be tested using service account
 Open demo.env file to check the configuration values that have been set.
 As previously shown, run the tests on "demo" implementation by executing the following command:
 
-    pytest -c demo.ini 
+    pytest -c demo.ini
 
 

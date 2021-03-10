@@ -1,0 +1,144 @@
+#!/bin/bash
+
+#Load the configs and functions
+
+oneTimeSetUp() {
+
+# need to manually set feature for tests
+if [[ $(cat /etc/xthostname) == "tave" ]]
+then
+FEATURE=knl
+  if [[ $(cat /etc/xthostname) == "daint" ]]
+  then
+  FEATURE=[mc,gpu]
+    if [[ $(cat /etc/xthostname) == "dom" ]]
+    then
+    FEATURE=[mc,gpu]
+    fi 
+  fi
+fi
+#When running tests outside SUDO, this variable isn't set
+
+if [[ -z $SUDO_USER ]]
+then
+export SUDO_USER=`whoami`
+fi
+
+. /usr/local/lib/rsvmgmt.conf
+. /usr/local/lib/rsvmgmt.funcs
+}
+
+
+
+testTooSoonStart() {
+toosoon=`start_check "$(${datecmd} --date=yesterday +%FT%T)"`
+assertContains 'Start time too early should produce an Error' "$toosoon" "Error"
+}
+testNowStart() {
+now=`start_check "$(${datecmd} +%FT%T)"`
+assertNotContains 'Start time now should not error' "$now" "Error"
+}
+
+testTomorrowStart() {
+tomorrow=`start_check "$(${datecmd} --date=tomorrow +%FT%T)"`
+assertNotContains 'Start time tomorrow should not error' "$tomorrow" "Error"
+}
+testNextYearStart() {
+oneyear=`start_check "$(${datecmd} --date='next year-10 seconds' +%FT%T)"`
+assertNotContains 'Start time up to one year in future should not error' "$oneyear" "Error"
+}
+testTooLateStart() {
+toolate=`start_check "$(${datecmd} --date='next year+1 day' +%FT%T)"`
+assertContains 'Start time over 1 year in future should error' "$toolate" "Error"
+}
+
+testTooSoonEnd() {
+toosoon=`end_check "$(${datecmd} --date=yesterday +%FT%T)"`
+assertContains 'End time too early should produce an Error' "$toosoon" "Error"
+}
+testNowEnd() {
+now=`end_check "$(${datecmd} +%FT%T)"`
+assertNotContains 'End time now should not error' "$now" "Error"
+}
+
+testTomorrowEnd() {
+tomorrow=`end_check "$(${datecmd} --date=tomorrow +%FT%T)"`
+assertNotContains 'End time tomorrow should not error' "$tomorrow" "Error"
+}
+testNextYearEnd() {
+oneyear=`end_check "$(${datecmd} --date='next year-10 seconds' +%FT%T)"`
+assertNotContains 'End time up to one year in future should not error' "$oneyear" "Error"
+}
+testTooLateEnd() {
+toolate=`end_check "$(${datecmd} --date='next year+1 day' +%FT%T)"`
+assertContains 'End time over 1 year in future should error' "$toolate" "Error"
+}
+
+
+testAccounts() {
+
+accounts=`list_accounts`
+assertContains "Account list should not be null" "$accounts" ","
+}
+
+
+testHelp() {
+helpout=`display_help`
+assertNotNull "Help should display something" helpout
+}
+
+testReservationMultiple() {
+multitest=`test_resv "csstaff,test"`
+assertContains 'More than one reservation at a time should error' "$multitest" "Error"
+}
+testReservationInvalid() {
+invalidresv=`test_resv "uniquereservationsomeonebetternotusethisplease"`
+assertContains 'Invalid reservation name should error' "$multitest" "Error"
+}
+testReservationPermission() {
+notmember=`test_resv "maintenance"`
+assertContains 'Not a member of reservation should error' "$multitest" "Error"
+}
+
+testFeaturesMC() {
+mc=`feature_check "mc"`
+assertNotContains 'Feature mc should be valid' "$mc" "Error"
+}
+
+testFeaturesGPU() {
+gpu=`feature_check "gpu"`
+assertNotContains 'Feature gpu should be valid' "$gpu" "Error"
+}
+testFeaturesKNL() {
+knl=`feature_check "knl"`
+assertNotContains 'Feature knl should be valid' "$knl" "Error"
+}
+testFeaturesInvalid() {
+invalid=`feature_check "invalid"`
+assertContains 'Feature invalid should be invalid' "$invalid" "Error"
+}
+
+testNodeCountsTooFew() {
+toofew=`node_check -1`
+assertContains 'Too few nodes should error' "$toofew" "Error"
+}
+
+testNodeCountsWayTooMany() {
+waytoomany=`node_check 10000`
+assertContains 'Way too many nodes should error' "$waytoomany" "Error"
+}
+
+testNodeCountsJustRight() {
+justright=`node_check ${MIN_NODE}`
+assertNotContains "Node Count of ${MIN_NODE} should not error" "$justright" "Error"
+}
+
+testProjCheckGood() {
+good=`project_check csstaff`
+assertNotContains "test user should be member of csstaff" "$good" "Error"
+}
+testProjCheckBad() {
+bad=`project_check madeupproject`
+assertContains "made up project name should error" "$bad" "Error"
+}
+. shunit2/shunit2

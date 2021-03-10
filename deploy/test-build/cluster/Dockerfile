@@ -1,3 +1,10 @@
+##
+##  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
+##
+##  Please, refer to the LICENSE file in the root directory.
+##  SPDX-License-Identifier: BSD-3-Clause
+##
+
 # partially based on https://github.com/giovtorres/slurm-docker-cluster
 
 FROM centos:7
@@ -22,7 +29,9 @@ RUN set -ex \
        perl \
        python-pip \
        psmisc \
-       wget \
+       rsyslog \
+       sudo \
+       wget \       
     && yum clean all \
     && rm -rf /var/cache/yum > /dev/null
 
@@ -89,12 +98,26 @@ RUN /usr/libexec/mariadb-prepare-db-dir 2>/dev/null
 ADD cluster/ssh/ssh_command_wrapper.sh /ssh_command_wrapper.sh
 RUN chmod 555 /ssh_command_wrapper.sh
 
+## add rsyslog configuration files
+ADD cluster/rsyslog/rsyslog.conf /etc/
+ADD cluster/rsyslog/listen.conf /etc/rsyslog.d
+
+## advance reservation tool files
+ADD cluster/rsvsvc/usr/local/bin/* /usr/local/bin/
+ADD cluster/rsvsvc/usr/local/lib/* /usr/local/lib/
+ADD cluster/rsvsvc/usr/local/sbin/* /usr/local/sbin/
+ADD cluster/rsvsvc/rsvmgmt_users /etc/sudoers.d/
+
 # add sbatch scripts for testing purposes
 RUN mkdir /srv/f7t
 ADD cluster/test_sbatch.sh /srv/f7t/.
 ADD cluster/test_sbatch.sh /srv/f7t/test_sbatch_forbidden.sh
+ADD cluster/test_sbatch.sh /srv/f7t/test_sbatch_rm.sh
+ADD cluster/test_sbatch.sh /srv/f7t/test_sbatch_mv.sh
 RUN chmod 777 /srv/f7t
 RUN chmod 555 /srv/f7t/test_sbatch.sh
+RUN chmod 777 /srv/f7t/test_sbatch_rm.sh
+RUN chmod 777 /srv/f7t/test_sbatch_mv.sh
 RUN chmod 700 /srv/f7t/test_sbatch_forbidden.sh
 
 ENTRYPOINT ["/usr/bin/supervisord"]

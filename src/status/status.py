@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2019-2020, ETH Zurich. All rights reserved.
+#  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
 #
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
@@ -11,7 +11,7 @@ import logging
 import multiprocessing as mp
 
 # common modules
-from cscs_api_common import check_auth_header
+from cscs_api_common import check_auth_header, get_boolean_var
 
 import paramiko
 import socket
@@ -33,6 +33,12 @@ STATUS_PORT = os.environ.get("F7T_STATUS_PORT", 5000)
 
 SERVICES_DICT = {}
 
+### SSL parameters
+USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
+
+
 ### parameters
 UTILITIES_MAX_FILE_SIZE = os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE")
 UTILITIES_TIMEOUT = os.environ.get("F7T_UTILITIES_TIMEOUT")
@@ -41,7 +47,7 @@ STORAGE_MAX_FILE_SIZE = os.environ.get("F7T_STORAGE_MAX_FILE_SIZE")
 OBJECT_STORAGE=os.environ.get("F7T_OBJECT_STORAGE")
 
 # debug on console
-debug = os.environ.get("F7T_DEBUG_MODE", None)
+debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 
 app = Flask(__name__)
@@ -63,7 +69,7 @@ def test_service(servicename, status_list):
     try:
         serviceurl = SERVICES_DICT[servicename]
         #timeout set to 5 seconds
-        req = requests.get("{url}/status".format(url=serviceurl), timeout=5)
+        req = requests.get("{url}/status".format(url=serviceurl), timeout=5, verify= (SSL_CRT if USE_SSL else False))
 
         app.logger.info("Return code: {status_code}".format(status_code=req.status_code))
 
@@ -379,4 +385,7 @@ if __name__ == "__main__":
     logger.addHandler(logHandler)
 
     # run app
-    app.run(debug=debug, host='0.0.0.0', port=STATUS_PORT)
+    if USE_SSL:        
+        app.run(debug=debug, host='0.0.0.0', port=STATUS_PORT, ssl_context=(SSL_CRT, SSL_KEY))        
+    else:
+        app.run(debug=debug, host='0.0.0.0', port=STATUS_PORT)

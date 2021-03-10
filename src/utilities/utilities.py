@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2019-2020, ETH Zurich. All rights reserved.
+#  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
 #
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
@@ -13,13 +13,12 @@ from werkzeug.exceptions import BadRequestKeyError
 
 from math import ceil
 
-from cscs_api_common import check_auth_header, get_username,exec_remote_command, parse_io_error, check_command_error, in_str
-import base64
+from cscs_api_common import check_auth_header, get_username,exec_remote_command, parse_io_error, check_command_error, in_str, get_boolean_var
 import io
+import base64
 
 
 CERTIFICATOR_URL = os.environ.get("F7T_CERTIFICATOR_URL")
-STATUS_IP        = os.environ.get("F7T_STATUS_IP")
 
 UTILITIES_PORT   = os.environ.get("F7T_UTILITIES_PORT", 5000)
 
@@ -32,10 +31,15 @@ SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
 # internal machines for file operations
 SYS_INTERNALS   = os.environ.get("F7T_SYSTEMS_INTERNAL_UTILITIES").strip('\'"').split(";")
 
-debug = os.environ.get("F7T_DEBUG_MODE", None)
+debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 #max file size for upload/download in MB
 MAX_FILE_SIZE=int(os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE"))
+
+### SSL parameters
+USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
 app = Flask(__name__)
 # max content lenght for upload in bytes
@@ -49,7 +53,7 @@ app.config['MAX_CONTENT_LENGTH'] = int(MAX_FILE_SIZE) * 1024 * 1024
 @app.route("/file", methods=["GET"])
 @check_auth_header
 def file_type():
-    
+
     auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
@@ -108,7 +112,7 @@ def file_type():
 def chmod():
 
     auth_header = request.headers[AUTH_HEADER_NAME]
-    
+
     try:
         system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
@@ -136,7 +140,7 @@ def chmod():
     try:
         mode = request.form["mode"]
         if mode == "":
-            return jsonify(description="Error in chown operation",error="'mode' value is empty"), 400
+            return jsonify(description="Error in chmod operation",error="'mode' value is empty"), 400
     except BadRequestKeyError:
         return jsonify(description="Error in chmod operation", error="mode query string missing"), 400
 
@@ -171,7 +175,7 @@ def chmod():
 @app.route("/chown",methods=["PUT"])
 @check_auth_header
 def chown():
-    
+
     auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
@@ -229,7 +233,7 @@ def chown():
         except:
             return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
 
-        
+
     return jsonify(description="Operation completed", out=retval["msg"]), 200
 
 
@@ -242,7 +246,7 @@ def chown():
 @app.route("/ls",methods=["GET"])
 @check_auth_header
 def list_directory():
-    
+
     auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
@@ -294,7 +298,7 @@ def list_directory():
             jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
         except:
             return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
-        
+
     # file List is retorned as a string separated for a $ character
     fileList = []
     if len(retval["msg"].split("$")) == 1:
@@ -380,7 +384,7 @@ def list_directory():
 def make_directory():
 
     auth_header = request.headers[AUTH_HEADER_NAME]
-    
+
     try:
         system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
@@ -400,7 +404,7 @@ def make_directory():
         path = request.form["targetPath"]
         if path == "":
             return jsonify(description="Error creating directory",error="'targetPath' value is empty"), 400
-        
+
     except BadRequestKeyError:
         return jsonify(description="Error creating directory", error="'targetPath' query string missing"), 400
 
@@ -426,7 +430,7 @@ def make_directory():
             jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
         except:
             return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
-        
+
     return jsonify(description="Directory created", output=""), 201
 
 ## Returns the content from the specified path on the {machine} filesystem
@@ -480,9 +484,9 @@ def view():
         except:
             return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
 
-    
+
     file_size = int(retval["msg"]) # in bytes
-    max_file_size = MAX_FILE_SIZE*(1024*1024) 
+    max_file_size = MAX_FILE_SIZE*(1024*1024)
 
 
     if file_size > max_file_size:
@@ -511,11 +515,11 @@ def view():
     content = retval["msg"].replace("$","\n")
 
     return jsonify(description="File content successfully returned", output=content), 200
-    
+
 
 ## checksum: Print or check SHA256 (256-bit) checksums
 ## params:
-##  - targetPath: Filesystem path (Str) *required##  
+##  - targetPath: Filesystem path (Str) *required##
 ##  - machinename: str *required
 
 @app.route("/checksum",methods=["GET"])
@@ -523,7 +527,7 @@ def view():
 def checksum():
 
     auth_header = request.headers[AUTH_HEADER_NAME]
-    
+
     try:
         system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
@@ -543,7 +547,7 @@ def checksum():
         path = request.args.get("targetPath")
         if path == "":
             return jsonify(description="Error obatining checksum",error="'targetPath' value is empty"), 400
-        
+
     except BadRequestKeyError:
         return jsonify(description="Error obatining checksum", error="'targetPath' query string missing"), 400
 
@@ -567,7 +571,7 @@ def checksum():
 
     # on success: retval["msg"] = "checksum  /path/to/file"
     output = retval["msg"].split()[0]
-    
+
 
     return jsonify(description="Checksum successfully retrieved", output=output), 200
 
@@ -596,7 +600,7 @@ def copy():
 
 ## common code for file operations: copy, rename (move)
 def common_operation(request, command, method):
-    
+
     auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
@@ -655,7 +659,7 @@ def common_operation(request, command, method):
             jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
         except:
             return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
-        
+
     return jsonify(description="Success to " + command + " file or directory.", output=""), success_code
 
 
@@ -670,7 +674,7 @@ def common_operation(request, command, method):
 def rm():
 
     auth_header = request.headers[AUTH_HEADER_NAME]
-    
+
     try:
         system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
@@ -689,7 +693,7 @@ def rm():
     try:
         path = request.form["targetPath"]
         if path == "":
-            return jsonify(description="Error on delete operation",error="'targetPath' value is empty"), 400    
+            return jsonify(description="Error on delete operation",error="'targetPath' value is empty"), 400
     except BadRequestKeyError:
         return jsonify(description="Error on delete operation",error="'targetPath' query string missing"), 400
 
@@ -711,7 +715,7 @@ def rm():
             jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
         except:
             return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
-       
+
     return jsonify(description="Success to delete file or directory.", output=""), 204
 
 
@@ -727,7 +731,7 @@ def rm():
 def symlink():
 
     auth_header = request.headers[AUTH_HEADER_NAME]
-    
+
     try:
         system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
@@ -773,7 +777,7 @@ def symlink():
             jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
         except:
             return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
-        
+
     return jsonify(description="Success create the symlink"), 201
 
 
@@ -921,16 +925,9 @@ def upload():
     return jsonify(description="File upload successful"), 201
 
 
-# get status for status microservice
-# only used by STATUS_IP otherwise forbidden
 @app.route("/status", methods=["GET"])
 def status():
     app.logger.info("Test status of service")
-
-    if request.remote_addr != STATUS_IP:
-        app.logger.warning("Invalid remote address: {addr}".format(addr=request.remote_addr))
-        return jsonify(error="Invalid access"), 403
-
     return jsonify(success="ack"), 200
 
 
@@ -952,4 +949,7 @@ if __name__ == "__main__":
 
     # run app
     # debug = False, so output redirects to log files
-    app.run(debug=debug, host='0.0.0.0', port=UTILITIES_PORT)
+    if USE_SSL:
+        app.run(debug=debug, host='0.0.0.0', port=UTILITIES_PORT, ssl_context=(SSL_CRT, SSL_KEY))
+    else:
+        app.run(debug=debug, host='0.0.0.0', port=UTILITIES_PORT)

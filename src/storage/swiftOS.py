@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2019-2020, ETH Zurich. All rights reserved.
+#  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
 #
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
@@ -9,6 +9,7 @@ import logging
 import requests
 import keystone
 from time import time
+from datetime import datetime
 import hmac
 from hashlib import sha1
 
@@ -138,6 +139,7 @@ class Swift(ObjectStorage):
 
         try:
             req = requests.head(url, headers={"X-Auth-Token": self.auth})
+            logging.info(req.headers)
             headers = req.headers
 
             # if Content-Lenght == 0, then object doesn't exist
@@ -224,30 +226,34 @@ class Swift(ObjectStorage):
         signature = hmac.new(secret, hmac_body, sha1).hexdigest()
 
         # added OBJECT_PREFIX as dir_[task_id] in order to become unique the upload instead of user/filename
-        command = "curl -i {swift_url}/{swift_api_version}/{swift_account}/{containername}/{prefix}/" \
-              " -X POST " \
-              "-F max_file_size={max_file_size} -F max_file_count={max_file_count} " \
-              "-F expires={expires} -F signature={signature} " \
-              "-F redirect={redirect} -F file=@{sourcepath} ".format(
-            swift_url=swift_url, swift_api_version=swift_version, swift_account=swift_account,
-            containername=containername, prefix=prefix, max_file_size=max_file_size,
-            max_file_count=max_file_count,
-            expires=expires, signature=signature, redirect=redirect, sourcepath=sourcepath)
+        command = f"curl -i {swift_url}/{swift_version}/{swift_account}/{containername}/{prefix}/" \
+              f" -X POST " \
+              f"-F max_file_size={max_file_size} -F max_file_count={max_file_count} " \
+              f"-F expires={expires} -F signature={signature} " \
+              f"-F redirect={redirect} -F file=@{sourcepath} "
 
 
+        retval = {}
 
-        retval = dict()
+        retval["parameters"] = {
+            "method": "POST",
+            "url": f"{swift_url}/{swift_version}/{swift_account}/{containername}/{prefix}/",
+            "data": {
+                "max_file_size": max_file_size, 
+                "max_file_count": max_file_count,
+                "expires": expires,
+                "signature": signature,
+                "redirect": redirect,
+            },
+            "files": sourcepath,
+            "json": {},
+            "headers": {},
+            "params": {}
 
-        retval["method"] = "POST"
+        }
+
         retval["command"] = command
-        retval["url"] = "{swift_url}/{swift_api_version}/{swift_account}/{containername}/{prefix}/".format(swift_url=swift_url, swift_api_version=swift_version, swift_account=swift_account,
-            containername=containername, prefix=prefix)
-        retval["max_file_size"] = max_file_size
-        retval["max_file_count"] = max_file_count
-        retval["expires"] = expires
-        retval["signature"] = signature
-        retval["redirect"] = redirect
-        retval["sourcepath"] = sourcepath
+        
 
         return retval
 
@@ -288,23 +294,26 @@ class Swift(ObjectStorage):
     # sets time to live (TTL) for an object in SWIFT
     def delete_object_after(self,containername,prefix,objectname,ttl):
 
-        swift_account_url = "{swift_url}/{containername}/{prefix}/{objectname}".format(
-            swift_url=self.url, containername=containername, prefix=prefix, objectname=objectname)
+        swift_account_url = f"{self.url}/{containername}/{prefix}/{objectname}"
 
-        header = {'X-Delete-After': "{}".format(ttl), "X-Auth-Token": self.auth}
+        header = {"X-Delete-At": str(ttl), "X-Auth-Token": self.auth}
 
         try:
-            logging.info("Setting {seconds} [s] as X-Delete-After".format(seconds=ttl))
+            logging.info(f"Setting {ttl} [s] as X-Delete-At")
 
             req = requests.post(swift_account_url, headers=header)
 
             if not req.ok:
-                logging.error("Object couldn't be marked as X-Delete-After")
+                logging.error("Object couldn't be marked as X-Delete-At")
+                logging.error(req.text)
                 return -1
+            date_ttl = datetime.fromtimestamp(ttl).strftime("%Y-%m-%dT%H:%M:%S")
+
+            logging.info(f"Object was marked as to be deleted at {date_ttl}")
             return 0
 
         except Exception as e:
-            logging.error("Object couldn't be marked as X-Delete-After")
+            logging.error("Object couldn't be marked as X-Delete-At")
             logging.error(e)
             return -1
 
@@ -317,7 +326,7 @@ class Swift(ObjectStorage):
 
         try:
 
-            logging.info("Deleting object: {}/{}/{}".format(containername,prefix,objectname))
+            logging.info(f"Deleting object: {containername}/{prefix}/{objectname}")
 
             req = requests.delete(swift_account_url, headers=header)
 

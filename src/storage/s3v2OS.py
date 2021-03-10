@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2019-2020, ETH Zurich. All rights reserved.
+#  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
 #
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
@@ -307,35 +307,32 @@ class S3v2(ObjectStorage):
 
         # signature will be Bytes type in Pytho3, so it needs to be decoded to str again
         sig = sig.decode('latin-1')
-
-        # sig = base64.b64encode(hmac.new(self.passwd, string_to_sign, hashlib.sha1).digest())
-
-        # print("(result sig: {})".format(sig))
-
-        # msg = "curl -i -X POST {url}/{containername}/{prefix} -F AWSAccessKeyId={awsAccessKeyId} -F Signature={signature} " \
-        #       "-F Expires={expires} -F file=@{file}".format(
-        #     url=self.url, containername=containername, prefix=prefix,
-        #     awsAccessKeyId=self.user, signature=sig, expires=expires,file=sourcepath)
-
+        
         url = "{url}/{containername}/{prefix}/{objectname}".format(
             url=self.url, containername=containername, prefix=prefix, objectname=objectname)
 
-        data = {}
-        #
-        data["url"] = url
-        data["method"] = httpVerb
-        data["AWSAccessKeyId"] = self.user
-        data["Signature"] = sig
-        data["Expires"] = expires
-        data["sourcepath"] = sourcepath
+        retval = {}
 
-        command = "curl -i -X {httpVerb} '{url}?AWSAccessKeyId={AWSAccessKeyId}&Signature={Signature}&Expires={Expires}' -T {sourcepath}".format(
-            httpVerb=httpVerb, sourcepath=sourcepath, url=url, AWSAccessKeyId=data["AWSAccessKeyId"],
-            Signature=urllib.parse.quote(data["Signature"]), Expires=data["Expires"])
+        retval["parameters"] = {
+            
+            "url": url,
+            "method": httpVerb,
+            "params": {
+                "AWSAccessKeyId": self.user,
+                "Signature": sig,
+                "Expires": expires
+            },
+            "files": sourcepath,
+            "json": {},
+            "data": {},
+            "headers": {}
+        }
 
-        data["command"] = command
+        command = f"curl -i -X {httpVerb} '{url}?AWSAccessKeyId={self.user}&Signature={sig}&Expires={expires}' -T {sourcepath}"
+        
+        retval["command"] = command
 
-        return data
+        return retval
 
     def create_temp_url(self, containername, prefix, objectname, ttl):
 
