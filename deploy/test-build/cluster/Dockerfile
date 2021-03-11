@@ -59,6 +59,19 @@ RUN set -x \
     && chown -R slurm:slurm /var/log/slurm   \
     && chown -R slurm:slurm /var/spool/slurm*
 
+
+ADD cluster/slurm/*.conf /etc/slurm/
+ADD cluster/slurm/*.sh /
+RUN chmod 644 /etc/slurm/* && chmod 755 /*.sh
+
+RUN mkdir /etc/slurm/plugstack.conf.d
+RUN chmod 755 /etc/slurm/plugstack.conf.d
+ADD cluster/slurm/plugstack.conf.d/cscs-slurm-nohome.conf /etc/slurm/plugstack.conf.d/
+
+RUN mkdir /spank
+ADD cluster/spank/nohome-1.*.rpm /spank/
+RUN rpm -i /spank/nohome-*.rpm
+
 RUN set -x \
     && /sbin/create-munge-key
 
@@ -68,10 +81,8 @@ ADD cluster/supervisord.conf /etc/supervisord.conf
 
 RUN chown -R munge:munge /var/log/munge && chmod 755 /var/log/munge && chmod 755 /run/munge
 
-ADD cluster/slurm/*.conf /etc/slurm/
-ADD cluster/slurm/*.sh /
 
-RUN chmod 644 /etc/slurm/* && chmod 755 /*.sh
+RUN chmod 755 /*.sh
 
 RUN useradd -m -s /bin/bash test1 && useradd -m -s /bin/bash test2
 RUN echo 'test1:test11' | chpasswd  && echo 'test2:test22' | chpasswd

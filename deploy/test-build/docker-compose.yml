@@ -125,9 +125,12 @@ services:
       context: ./
       dockerfile: ./cluster/Dockerfile
     hostname: cluster
+    cap_add:
+      - SYS_ADMIN
     networks:
       - backend
       - frontend
+
 
   minio:
     # runs on private network so "cluster" can reach it
