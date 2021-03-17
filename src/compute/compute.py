@@ -9,6 +9,7 @@ import paramiko
 from logging.handlers import TimedRotatingFileHandler
 import threading
 import async_task
+import traceback
 
 from cscs_api_common import check_auth_header, get_username, \
     exec_remote_command, create_task, update_task, clean_err_output, \
@@ -201,6 +202,7 @@ def submit_job_task(auth_header, system_name, system_addr, job_file, job_dir, ta
     except Exception as e:
         app.logger.error(type(e))
         app.logger.error(e)
+        traceback.print_exc(file=sys.stdout)
         update_task(task_id, auth_header, async_task.ERROR, e.message)
 
 
