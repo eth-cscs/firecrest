@@ -10,6 +10,7 @@ from logging.handlers import TimedRotatingFileHandler
 import threading
 import async_task
 import traceback
+import sys
 
 from cscs_api_common import check_auth_header, get_username, \
     exec_remote_command, create_task, update_task, clean_err_output, \
@@ -196,14 +197,14 @@ def submit_job_task(auth_header, system_name, system_addr, job_file, job_dir, ta
         update_task(task_id, auth_header, async_task.SUCCESS, job_extra_info, True)
 
     except IOError as e:
-        app.logger.error(e.filename)
+        app.logger.error(e.filename, exc_info=True, stack_info=True)
         app.logger.error(e.strerror)
         update_task(task_id, auth_header,async_task.ERROR, e.message)
     except Exception as e:
-        app.logger.error(type(e))
+        app.logger.error(type(e), exc_info=True, stack_info=True)
         app.logger.error(e)
         traceback.print_exc(file=sys.stdout)
-        update_task(task_id, auth_header, async_task.ERROR, e.message)
+        update_task(task_id, auth_header, async_task.ERROR)
 
 
 
@@ -877,7 +878,7 @@ def cancel_job(jobid):
     action = f"scancel -v {jobid}"
 
     try:
-        # obtain new task from TASKS microservice
+        # obtain new task from TASKS microservice.
         task_id = create_task(auth_header,service="compute")
 
         # if error in creating task:
