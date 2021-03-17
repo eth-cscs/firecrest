@@ -246,13 +246,13 @@ def get_slurm_files(auth_header, system_name, system_addr, task_id,job_info,outp
     # if it's ok, we can add information
     control_resp = resp["msg"]
 
+    # tokens are expected to be space-separated and with a k=v form. See man scontrol show
     control_list = control_resp.split()
+    control_dict = { value.split("=")[0] : value.split("=")[1] for value in control_list if "=" in value }
 
-    control_dict = { value.split("=")[0] : value.split("=")[1] for value in control_list }
-
-    control_info["job_file_out"] = control_dict["StdOut"]
-    control_info["job_file_err"] = control_dict["StdErr"]
-    control_info["job_file"] = control_dict["Command"]
+    control_info["job_file_out"] = control_dict.get("StdOut", "stdout-file-not-found")
+    control_info["job_file_err"] = control_dict.get("StdErr", "stderr-file-not-found")
+    control_info["job_file"] = control_dict.get("Command", "command-not-found")
     control_info["job_data_out"] = ""
     control_info["job_data_err"] = ""
     # if all fine:
