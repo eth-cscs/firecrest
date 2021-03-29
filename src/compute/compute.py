@@ -9,9 +9,12 @@ import paramiko
 from logging.handlers import TimedRotatingFileHandler
 import threading
 import async_task
+import traceback
+import sys
 
 from cscs_api_common import check_auth_header, get_username, \
-    exec_remote_command, create_task, update_task, clean_err_output, in_str, is_valid_file
+    exec_remote_command, create_task, update_task, clean_err_output, \
+    in_str, is_valid_file, get_boolean_var
 
 from job_time import check_sacctTime
 
@@ -37,7 +40,7 @@ KONG_URL        = os.environ.get("F7T_KONG_URL")
 COMPUTE_PORT    = os.environ.get("F7T_COMPUTE_PORT", 5000)
 
 ### SSL parameters
-USE_SSL = os.environ.get("F7T_USE_SSL", False)
+USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
@@ -68,7 +71,7 @@ app = Flask(__name__)
 # max content length for upload in bytes
 app.config['MAX_CONTENT_LENGTH'] = int(MAX_FILE_SIZE) * 1024 * 1024
 
-debug = os.environ.get("F7T_DEBUG_MODE", None)
+debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 
 def is_jobid(jobid):
@@ -194,13 +197,14 @@ def submit_job_task(auth_header, system_name, system_addr, job_file, job_dir, ta
         update_task(task_id, auth_header, async_task.SUCCESS, job_extra_info, True)
 
     except IOError as e:
-        app.logger.error(e.filename)
+        app.logger.error(e.filename, exc_info=True, stack_info=True)
         app.logger.error(e.strerror)
         update_task(task_id, auth_header,async_task.ERROR, e.message)
     except Exception as e:
-        app.logger.error(type(e))
+        app.logger.error(type(e), exc_info=True, stack_info=True)
         app.logger.error(e)
-        update_task(task_id, auth_header, async_task.ERROR, e.message)
+        traceback.print_exc(file=sys.stdout)
+        update_task(task_id, auth_header, async_task.ERROR)
 
 
 
@@ -242,13 +246,13 @@ def get_slurm_files(auth_header, system_name, system_addr, task_id,job_info,outp
     # if it's ok, we can add information
     control_resp = resp["msg"]
 
+    # tokens are expected to be space-separated and with a k=v form. See man scontrol show
     control_list = control_resp.split()
+    control_dict = { value.split("=")[0] : value.split("=")[1] for value in control_list if "=" in value }
 
-    control_dict = { value.split("=")[0] : value.split("=")[1] for value in control_list }
-
-    control_info["job_file_out"] = control_dict["StdOut"]
-    control_info["job_file_err"] = control_dict["StdErr"]
-    control_info["job_file"] = control_dict["Command"]
+    control_info["job_file_out"] = control_dict.get("StdOut", "stdout-file-not-found")
+    control_info["job_file_err"] = control_dict.get("StdErr", "stderr-file-not-found")
+    control_info["job_file"] = control_dict.get("Command", "command-not-found")
     control_info["job_data_out"] = ""
     control_info["job_data_err"] = ""
     # if all fine:
@@ -874,7 +878,7 @@ def cancel_job(jobid):
     action = f"scancel -v {jobid}"
 
     try:
-        # obtain new task from TASKS microservice
+        # obtain new task from TASKS microservice.
         task_id = create_task(auth_header,service="compute")
 
         # if error in creating task:

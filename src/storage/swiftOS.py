@@ -9,6 +9,7 @@ import logging
 import requests
 import keystone
 from time import time
+from datetime import datetime
 import hmac
 from hashlib import sha1
 
@@ -138,6 +139,7 @@ class Swift(ObjectStorage):
 
         try:
             req = requests.head(url, headers={"X-Auth-Token": self.auth})
+            logging.info(req.headers)
             headers = req.headers
 
             # if Content-Lenght == 0, then object doesn't exist
@@ -292,23 +294,26 @@ class Swift(ObjectStorage):
     # sets time to live (TTL) for an object in SWIFT
     def delete_object_after(self,containername,prefix,objectname,ttl):
 
-        swift_account_url = "{swift_url}/{containername}/{prefix}/{objectname}".format(
-            swift_url=self.url, containername=containername, prefix=prefix, objectname=objectname)
+        swift_account_url = f"{self.url}/{containername}/{prefix}/{objectname}"
 
-        header = {'X-Delete-After': "{}".format(ttl), "X-Auth-Token": self.auth}
+        header = {"X-Delete-At": str(ttl), "X-Auth-Token": self.auth}
 
         try:
-            logging.info("Setting {seconds} [s] as X-Delete-After".format(seconds=ttl))
+            logging.info(f"Setting {ttl} [s] as X-Delete-At")
 
             req = requests.post(swift_account_url, headers=header)
 
             if not req.ok:
-                logging.error("Object couldn't be marked as X-Delete-After")
+                logging.error("Object couldn't be marked as X-Delete-At")
+                logging.error(req.text)
                 return -1
+            date_ttl = datetime.fromtimestamp(ttl).strftime("%Y-%m-%dT%H:%M:%S")
+
+            logging.info(f"Object was marked as to be deleted at {date_ttl}")
             return 0
 
         except Exception as e:
-            logging.error("Object couldn't be marked as X-Delete-After")
+            logging.error("Object couldn't be marked as X-Delete-At")
             logging.error(e)
             return -1
 
@@ -321,7 +326,7 @@ class Swift(ObjectStorage):
 
         try:
 
-            logging.info("Deleting object: {}/{}/{}".format(containername,prefix,objectname))
+            logging.info(f"Deleting object: {containername}/{prefix}/{objectname}")
 
             req = requests.delete(swift_account_url, headers=header)
 

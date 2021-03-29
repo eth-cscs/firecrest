@@ -11,7 +11,7 @@ import logging
 import multiprocessing as mp
 
 # common modules
-from cscs_api_common import check_auth_header
+from cscs_api_common import check_auth_header, get_boolean_var
 
 import paramiko
 import socket
@@ -34,7 +34,7 @@ STATUS_PORT = os.environ.get("F7T_STATUS_PORT", 5000)
 SERVICES_DICT = {}
 
 ### SSL parameters
-USE_SSL = os.environ.get("F7T_USE_SSL", False)
+USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
@@ -47,7 +47,7 @@ STORAGE_MAX_FILE_SIZE = os.environ.get("F7T_STORAGE_MAX_FILE_SIZE")
 OBJECT_STORAGE=os.environ.get("F7T_OBJECT_STORAGE")
 
 # debug on console
-debug = os.environ.get("F7T_DEBUG_MODE", None)
+debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 
 app = Flask(__name__)

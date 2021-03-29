@@ -14,6 +14,19 @@ from logging.handlers import TimedRotatingFileHandler
 import base64
 import requests
 
+# Checks if an environment variable injected to F7T is a valid True value
+# var <- object
+# returns -> boolean
+def get_boolean_var(var):
+
+    # ensure variable to be a string
+    var = str(var)
+    # True, true or TRUE
+    # Yes, yes or YES
+    # 1
+
+    return var.upper() == "TRUE" or var.upper() == "YES" or var == "1"
+
 AUTH_HEADER_NAME = 'Authorization'
 
 AUTH_AUDIENCE = os.environ.get("F7T_AUTH_TOKEN_AUD", '').strip('\'"')
@@ -25,12 +38,12 @@ AUTH_ROLE = os.environ.get("F7T_AUTH_ROLE", '').strip('\'"')
 CERTIFICATOR_PORT = os.environ.get("F7T_CERTIFICATOR_PORT", 5000)
 
 # OPA endpoint
-OPA_USE = os.environ.get("F7T_OPA_USE",False)
+OPA_USE = get_boolean_var(os.environ.get("F7T_OPA_USE",False))
 OPA_URL = os.environ.get("F7T_OPA_URL","http://localhost:8181").strip('\'"')
 POLICY_PATH = os.environ.get("F7T_POLICY_PATH","v1/data/f7t/authz").strip('\'"')
 
 ### SSL parameters
-USE_SSL = os.environ.get("F7T_USE_SSL", False)
+USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
@@ -41,7 +54,7 @@ if realm_pubkey != '':
     realm_pubkey = '-----BEGIN PUBLIC KEY-----\n' + realm_pubkey + '\n-----END PUBLIC KEY-----'
     realm_pubkey_type = os.environ.get("F7T_REALM_RSA_TYPE").strip('\'"')
 
-debug = os.environ.get("F7T_DEBUG_MODE", False)
+debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 app = Flask(__name__)
 

@@ -21,7 +21,7 @@ from cscs_api_common import create_task, update_task, get_task_status
 from cscs_api_common import exec_remote_command
 from cscs_api_common import create_certificate
 from cscs_api_common import in_str
-from cscs_api_common import is_valid_file, is_valid_dir, check_command_error
+from cscs_api_common import is_valid_file, is_valid_dir, check_command_error, get_boolean_var
 
 # job_time_checker for correct SLURM job time in /xfer-internal tasks
 import job_time
@@ -53,11 +53,15 @@ SYSTEMS_INTERNAL_STORAGE = os.environ.get("F7T_SYSTEMS_INTERNAL_STORAGE").strip(
 # Job machine where to send xfer-internal jobs (must be defined in SYSTEMS_PUBLIC)
 STORAGE_JOBS_MACHINE     = os.environ.get("F7T_STORAGE_JOBS_MACHINE").strip('\'"')
 
+
+
 # SYSTEMS_PUBLIC: list of allowed systems
 # remove quotes and split into array
 SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
 # internal machines to submit/query jobs
 SYS_INTERNALS   = os.environ.get("F7T_SYSTEMS_INTERNAL_COMPUTE").strip('\'"').split(";")
+# internal machines for small operations
+SYS_INTERNALS_UTILITIES  = os.environ.get("F7T_SYSTEMS_INTERNAL_UTILITIES").strip('\'"').split(";")
 
 ###### ENV VAR FOR DETECT TECHNOLOGY OF STAGING AREA:
 OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE", "").strip('\'"')
@@ -66,7 +70,7 @@ OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE", "").strip('\'"')
 XFER_PARTITION = os.environ.get("F7T_XFER_PARTITION", "").strip('\'"')
 
 # --account parameter needed in sbatch?
-USE_SLURM_ACCOUNT = os.environ.get("F7T_USE_SLURM_ACCOUNT", False)
+USE_SLURM_ACCOUNT = get_boolean_var(os.environ.get("F7T_USE_SLURM_ACCOUNT", False))
 
 # Machine used for external transfers
 
@@ -96,11 +100,11 @@ STORAGE_POLLING_INTERVAL = int(os.environ.get("F7T_STORAGE_POLLING_INTERVAL", "6
 CERT_CIPHER_KEY = os.environ.get("F7T_CERT_CIPHER_KEY", "").strip('\'"').encode('utf-8')
 
 ### SSL parameters
-USE_SSL = os.environ.get("F7T_USE_SSL", False)
+USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 # verify signed SSL certificates
-SSL_SIGNED = os.environ.get("F7T_SSL_SIGNED", False)
+SSL_SIGNED = get_boolean_var(os.environ.get("F7T_SSL_SIGNED", False))
 
 # aynchronous tasks: upload & download --> http://TASKS_URL
 # {task_id : AsyncTask}
@@ -112,7 +116,7 @@ storage_tasks = {}
 uploaded_files = {}
 
 # debug on console
-debug = os.environ.get("F7T_DEBUG_MODE", None)
+debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 
 app = Flask(__name__)
@@ -210,7 +214,7 @@ def os_to_fs(task_id):
             # Therefore, using delete_object_after a few minutes (in this case 5 minutes) will trigger internal staging area
             # mechanism to delete the file automatically and without a need of a connection
 
-            staging.delete_object_after(containername=username,prefix=task_id,objectname=objectname, ttl = time.time()+600)
+            staging.delete_object_after(containername=username,prefix=task_id,objectname=objectname, ttl = int(time.time())+600)
 
         # if error, should be prepared for try again
         else:
@@ -368,12 +372,13 @@ def download_task(auth_header,system_name, system_addr,sourcePath,task_id):
 
     # if succesfully created: temp_url in task with success status
     update_task(task_id, auth_header, async_task.ST_UPL_END, temp_url)
-    retval = staging.delete_object_after(containername=container_name,prefix=object_prefix,objectname=object_name,ttl=STORAGE_TEMPURL_EXP_TIME)
+    # marked deletion from here to STORAGE_TEMPURL_EXP_TIME (default 30 days)
+    retval = staging.delete_object_after(containername=container_name,prefix=object_prefix,objectname=object_name,ttl=int(time.time()) + STORAGE_TEMPURL_EXP_TIME)
 
     if retval == 0:
-        app.logger.info("Setting {seconds} [s] as X-Delete-After".format(seconds=STORAGE_TEMPURL_EXP_TIME))
+        app.logger.info("Setting {seconds} [s] as X-Delete-At".format(seconds=STORAGE_TEMPURL_EXP_TIME))
     else:
-        app.logger.error("Object couldn't be marked as X-Delete-After")
+        app.logger.error("Object couldn't be marked as X-Delete-At")
 
 
 
@@ -459,7 +464,7 @@ def invalidate_request():
 
         # error = staging.delete_object(containername,prefix,objectname)
         # replacing delete_object by delete_object_after 5 minutes
-        error = staging.delete_object_after(containername=containername, prefix=prefix, objectname=objectname, ttl=time.time()+600)
+        error = staging.delete_object_after(containername=containername, prefix=prefix, objectname=objectname, ttl=int(time.time())+600)
 
         if error == -1:
             return jsonify(error="Could not invalidate URL"), 400
@@ -734,7 +739,7 @@ def internal_operation(request, command):
     auth_header = request.headers[AUTH_HEADER_NAME]
 
     system_idx = SYSTEMS_PUBLIC.index(STORAGE_JOBS_MACHINE)
-    system_addr = SYS_INTERNALS[system_idx]
+    system_addr = SYS_INTERNALS_UTILITIES[system_idx]
     system_name = STORAGE_JOBS_MACHINE
 
     try:
