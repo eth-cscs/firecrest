@@ -30,16 +30,6 @@ class KeystoneOIDC(Keystone):
         self.OS_CLIENT_SECRET        = os.environ.get("F7T_OS_CLIENT_SECRET")
         self.OS_DISCOVERY_ENDPOINT   = os.environ.get("F7T_OS_DISCOVERY_ENDPOINT")
 
-        self.OS_AUTH_URL= "https://pollux.cscs.ch:13000/v3"
-        self.OS_IDENTITY_PROVIDER= "cscskc"
-        self.OS_PROTOCOL= "openid"
-        self.OS_INTERFACE= "public"
-        self.OS_PROJECT_ID= "***REMOVED***"
-        self.OS_CLIENT_ID = 'pollux-prod'
-        self.OS_CLIENT_SECRET = '***REMOVED***'
-        self.OS_DISCOVERY_ENDPOINT ='https://auth.cscs.ch/auth/realms/cscs/.well-known/openid-configuration'
-        
-
     # returns a valid token if username & password are valid keystone credentials
     def authenticate(self,username,password):
 
