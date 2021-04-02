@@ -5,8 +5,6 @@
 #  SPDX-License-Identifier: BSD-3-Clause
 #
 from flask import Flask, request, jsonify
-
-import keystone
 import json, tempfile, os
 import urllib
 import datetime
