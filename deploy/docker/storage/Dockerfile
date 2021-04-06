@@ -11,6 +11,8 @@ RUN pip3 install -r deps/requirements.txt
 
 ADD src/storage/storage.py storage.py
 ADD src/storage/keystone.py keystone.py
+ADD src/storage/keystoneoidc.py keystoneoidc.py
+ADD src/storage/keystonesaml.py keystonesaml.py
 ADD src/storage/objectstorage.py objectstorage.py
 ADD src/storage/s3v2OS.py s3v2OS.py
 ADD src/storage/s3v4OS.py s3v4OS.py

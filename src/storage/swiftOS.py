@@ -5,9 +5,9 @@
 #  SPDX-License-Identifier: BSD-3-Clause
 #
 from objectstorage import ObjectStorage
+import os
 import logging
 import requests
-import keystone
 from time import time
 from datetime import datetime
 import hmac
@@ -23,15 +23,31 @@ class Swift(ObjectStorage):
         self.passwd = passwd
         self.secret = secret
 
+        # keystone authentication type selection
+        OS_KEYSTONE_AUTH = os.environ.get("F7T_OS_KEYSTONE_AUTH",None)
+        if OS_KEYSTONE_AUTH == "oidc":
+            from keystoneoidc import KeystoneOIDC as KeystoneAuth
+            self.keystone = KeystoneAuth()
+        elif OS_KEYSTONE_AUTH == "saml":
+            from keystonesaml import KeystoneSAML as KeystoneAuth
+            self.keystone = KeystoneAuth()
+        else:
+            self.keystone = None
+        
+
     def get_object_storage(self):
         return "OpenStack Swift"
 
 
     # authenticate SWIFT against keystone
     def authenticate(self):
+
+        if not self.keystone:
+            return False
+        
         logging.info("GET TOKEN: {user} ".format(user=self.user))
 
-        retVal = keystone.authenticate(self.user, self.passwd)
+        retVal = self.keystone.authenticate(self.user, self.passwd)
 
         if retVal["error"] == 1:
             logging.error("Keystone Auth Error:\n{msg}".format(msg=retVal["msg"]))
@@ -41,7 +57,10 @@ class Swift(ObjectStorage):
         return True
 
     def is_token_valid(self):
-        return keystone.is_token_valid(self.auth)
+        if not self.keystone:
+            return False
+
+        return self.keystone.is_token_valid(self.auth)
 
     # return list of containers created
     def get_users(self):
