@@ -401,7 +401,7 @@ class S3v4(ObjectStorage):
             "headers": {}
         }
 
-        command = f"curl -i -X {httpVerb} {endpoint_url}/{containername}"
+        command = f"curl -s -i -X {httpVerb} {endpoint_url}/{containername}"
 
         for k,v in retval["parameters"]["data"].items():
             command += f" -F '{k}={v}'"
