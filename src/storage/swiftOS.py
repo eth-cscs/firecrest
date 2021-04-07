@@ -245,7 +245,7 @@ class Swift(ObjectStorage):
         signature = hmac.new(secret, hmac_body, sha1).hexdigest()
 
         # added OBJECT_PREFIX as dir_[task_id] in order to become unique the upload instead of user/filename
-        command = f"curl -i {swift_url}/{swift_version}/{swift_account}/{containername}/{prefix}/" \
+        command = f"curl --show-error -s -i {swift_url}/{swift_version}/{swift_account}/{containername}/{prefix}/" \
               f" -X POST " \
               f"-F max_file_size={max_file_size} -F max_file_count={max_file_count} " \
               f"-F expires={expires} -F signature={signature} " \

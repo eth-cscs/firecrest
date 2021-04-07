@@ -346,7 +346,6 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
         logging.info(f"stdout: ({stdout_errno}) --> {stdout_errda}")
         logging.info(f"sdtout: ({stdout_errno}) --> {outlines}")
 
-        # TODO: change precedence of error, because in /xfer-external/download this gives error and it s not an error
         if stderr_errno == 0:
             if stderr_errda and not (in_str(stderr_errda,"Could not chdir to home directory") or in_str(stderr_errda,"scancel: Terminating job")):
                 result = {"error": 1, "msg": stderr_errda}
@@ -359,13 +358,17 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
             else:
                 result = {"error": 0, "msg": outlines}
         elif stderr_errno > 0:
-            result = {"error": stderr_errno, "msg": stderr_errda or stdout_errda}
+            if stderr_errno == 7:
+                result = {"error": 7, "msg": "Failed to connect to staging area server"}
+            else:
+                result = {"error": stderr_errno, "msg": stderr_errda or stdout_errda}
         elif len(stderr_errda) > 0:
             result = {"error": 1, "msg": stderr_errda}
         elif stdout_errno == -2:
             result = {"error": -2, "msg": "Receive ready timeout exceeded"}
         elif stderr_errno == -1:
             result = {"error": -1, "msg": "No exit status was provided by the server"}
+        
 
 
     # first if paramiko exception raise
