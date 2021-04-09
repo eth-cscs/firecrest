@@ -1,0 +1,14 @@
+## from: https://medium.com/hoursofoperation/auto-generate-swagger-docs-to-gitlab-pages-ca040230df3a
+pages:
+  image: node:latest
+  stage: deploy
+  script:
+  - npm install -g redoc-cli
+  - ls -las doc/openapi
+  - redoc-cli bundle -o public/index.html doc/openapi/firecrest-developers-api.yaml
+  - mkdir public/api && cp public/index.html public/api/
+  - ls -lasR public
+  - echo 🎉 URL is https://fgeorgatos.gitlab.io/firecrest/api/
+  artifacts:
+    paths:
+    - public
