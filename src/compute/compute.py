@@ -50,6 +50,22 @@ SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
 # internal machines to submit/query jobs
 SYS_INTERNALS   = os.environ.get("F7T_SYSTEMS_INTERNAL_COMPUTE").strip('\'"').split(";")
+
+# Does the job machine have the spank plugin
+USE_SPANK_PLUGIN = os.environ.get("F7T_USE_SPANK_PLUGIN", None)
+if USE_SPANK_PLUGIN != None:
+    USE_SPANK_PLUGIN = USE_SPANK_PLUGIN.strip('\'"').split(";")
+    # cast to boolean
+    for i in range(len(USE_SPANK_PLUGIN)):
+        USE_SPANK_PLUGIN[i] = get_boolean_var(USE_SPANK_PLUGIN[i])
+    # spank plugin option value
+    SPANK_PLUGIN_OPTION = os.environ.get("F7T_SPANK_PLUGIN_OPTION","--nohome")
+
+else:
+    # if not set, create a list of False values, one for each SYSTEM
+    USE_SPANK_PLUGIN = [False]*len(SYS_INTERNALS)
+        
+
 # Filesystems where to save sbatch files
 # F7T_FILESYSTEMS = "/home,/scratch;/home"
 FILESYSTEMS     = os.environ.get("F7T_FILESYSTEMS").strip('\'"').split(";")
@@ -114,7 +130,7 @@ def extract_jobid(outline):
     return jobid
 
 # copies file and submits with sbatch
-def submit_job_task(auth_header, system_name, system_addr, job_file, job_dir, task_id):
+def submit_job_task(auth_header, system_name, system_addr, job_file, job_dir, use_plugin, task_id):
 
     try:
         # get scopes from token
@@ -168,7 +184,10 @@ def submit_job_task(auth_header, system_name, system_addr, job_file, job_dir, ta
                 return
 
         # execute sbatch
-        action = f"sbatch --chdir={job_dir} {scopes_parameters} -- {job_file['filename']}"
+
+        plugin_option = ("" if not use_plugin else SPANK_PLUGIN_OPTION)
+        
+        action = f"sbatch {plugin_option} --chdir={job_dir} {scopes_parameters} -- {job_file['filename']}"
         app.logger.info(action)
 
         retval = exec_remote_command(auth_header, system_name, system_addr, action)
@@ -280,7 +299,7 @@ def get_slurm_files(auth_header, system_name, system_addr, task_id,job_info,outp
     # update_task(task_id, auth_header, async_task.SUCCESS, control_info,True)
     return control_info
 
-def submit_job_path_task(auth_header,system_name, system_addr,fileName,job_dir, task_id):
+def submit_job_path_task(auth_header,system_name, system_addr,fileName,job_dir, use_plugin, task_id):
 
     try:
         # get scopes from token
@@ -310,8 +329,10 @@ def submit_job_path_task(auth_header,system_name, system_addr,fileName,job_dir, 
 
         app.logger.error(e.args)
 
+    
+    plugin_option = ("" if not use_plugin else SPANK_PLUGIN_OPTION)
 
-    action=f"sbatch --chdir={job_dir} {scopes_parameters} -- {fileName}"
+    action=f"sbatch {plugin_option} --chdir={job_dir} {scopes_parameters} -- {fileName}"
 
     resp = exec_remote_command(auth_header, system_name, system_addr, action)
 
@@ -375,6 +396,7 @@ def submit_job_upload():
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
     system_addr = SYS_INTERNALS[system_idx]
+    
 
     # check if machine is accessible by user:
     # exec test remote command
@@ -428,13 +450,14 @@ def submit_job_upload():
     username = get_username(auth_header)
 
     job_dir = f"{job_base_fs}/{username}/firecrest/{tmpdir}"
+    use_plugin  = USE_SPANK_PLUGIN[system_idx]
 
     app.logger.info(f"Job dir: {job_dir}")
 
     try:
         # asynchronous task creation
         aTask = threading.Thread(target=submit_job_task,
-                             args=(auth_header, system_name, system_addr, job_file, job_dir, task_id))
+                             args=(auth_header, system_name, system_addr, job_file, job_dir, use_plugin, task_id))
 
         aTask.start()
         retval = update_task(task_id, auth_header,async_task.QUEUED)
@@ -470,6 +493,7 @@ def submit_job_path():
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
     system_addr = SYS_INTERNALS[system_idx]
+    use_plugin = USE_SPANK_PLUGIN[system_idx]
 
     # check if machine is accessible by user:
     # exec test remote command
@@ -525,7 +549,7 @@ def submit_job_path():
     try:
         # asynchronous task creation
         aTask = threading.Thread(target=submit_job_path_task,
-                             args=(auth_header, system_name, system_addr, targetPath, job_dir, task_id))
+                             args=(auth_header, system_name, system_addr, targetPath, job_dir, use_plugin, task_id))
 
         aTask.start()
         retval = update_task(task_id, auth_header, async_task.QUEUED, TASKS_URL)
