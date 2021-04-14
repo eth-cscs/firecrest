@@ -48,13 +48,22 @@ SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
 # internal machines to submit/query jobs
 SYS_INTERNALS   = os.environ.get("F7T_SYSTEMS_INTERNAL_COMPUTE").strip('\'"').split(";")
+
 # Does the job machine have the spank plugin
-USE_SPANK_PLUGIN = os.environ.get("F7T_USE_SPANK_PLUGIN").strip('\'"').split(";")
-# cast to boolean
-for i in range(len(USE_SPANK_PLUGIN)):
-    USE_SPANK_PLUGIN[i] = get_boolean_var(USE_SPANK_PLUGIN[i])
-# spank plugin option value
-SPANK_PLUGIN_OPTION = os.environ.get("F7T_SPANK_PLUGIN_OPTION","--nohome")
+USE_SPANK_PLUGIN = os.environ.get("F7T_USE_SPANK_PLUGIN", None)
+if USE_SPANK_PLUGIN != None:
+    USE_SPANK_PLUGIN = USE_SPANK_PLUGIN.strip('\'"').split(";")
+    # cast to boolean
+    for i in range(len(USE_SPANK_PLUGIN)):
+        USE_SPANK_PLUGIN[i] = get_boolean_var(USE_SPANK_PLUGIN[i])
+    # spank plugin option value
+    SPANK_PLUGIN_OPTION = os.environ.get("F7T_SPANK_PLUGIN_OPTION","--nohome")
+
+else:
+    # if not set, create a list of False values, one for each SYSTEM
+    USE_SPANK_PLUGIN = [False]*len(SYS_INTERNALS)
+        
+
 # Filesystems where to save sbatch files
 # F7T_FILESYSTEMS = "/home,/scratch;/home"
 FILESYSTEMS     = os.environ.get("F7T_FILESYSTEMS").strip('\'"').split(";")
