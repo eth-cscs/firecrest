@@ -69,18 +69,17 @@ test_resv()
 		echo "${ProgName}: Error: $1 doesn't seem to be a valid reservation"
 		exit -1
 	fi
-	RESV=$(${scontrol} show res=${1}|awk '/Accounts/{print $2}')
+	tmp1=$(${scontrol} --oneliner show res=${1})
+	tmp1=${tmp1##* Accounts=}  # remove anything before Accounts
+	RESV=${tmp1%% *}  # remove anything after first space
 	MEMBER=0
 	ACCOUNTS=$(list_accounts)
-	for i in ${ACCOUNTS//,/ }
-	do
-	if [[ "${RESV}" == "Accounts=${i}" ]]
-	then
-	MEMBER=1
-	fi
+	for i in ${ACCOUNTS//,/ }; do
+	    if [[ "${RESV}" == "${i}" ]]; then
+		MEMBER=1
+	    fi
 	done
-	if [[ $MEMBER -ne 1 ]]
-	then
+	if [[ $MEMBER -ne 1 ]]; then
 		echo "${ProgName}: Error: You are not an owner of the $1 reservation"
 		exit -1
 	fi
