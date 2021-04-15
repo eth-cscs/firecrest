@@ -121,7 +121,7 @@ def test_delete_reservation_wrong(status_code, reservation, msg, headers):
 	check_response(resp, status_code, msg)
 
 
-def test_reservation_crud_conflicts(dummy_resevation, headers):
+def disabled_test_reservation_crud_conflicts(dummy_resevation, headers):
 	url = RESERVATIONS_URL
 	headers["X-Machine-Name"] = SYSTEM
 
@@ -132,7 +132,7 @@ def test_reservation_crud_conflicts(dummy_resevation, headers):
 	check_response(resp, 400, "Error creating the reservation")
 
 
-def test_reservation_crud_ok(dummy_resevation, headers):
+def disabled_test_reservation_crud_ok(dummy_resevation, headers):
 	url = RESERVATIONS_URL
 	headers["X-Machine-Name"] = SYSTEM
 
