@@ -129,7 +129,7 @@ def test_reservation_crud_conflicts(dummy_resevation, headers):
 	rsv02['reservation'] = "testrsvok02"
 
 	resp = requests.post(url, headers=headers, data=rsv02, verify=VERIFY)
-	check_response(resp, 400, "Requested nodes are busy")
+	check_response(resp, 400, "Error creating the reservation")
 
 
 def test_reservation_crud_ok(dummy_resevation, headers):
