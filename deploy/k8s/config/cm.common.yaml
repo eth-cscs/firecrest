@@ -22,6 +22,7 @@ data:
   F7T_KONG_TASKS_URL: http://svc-tasks:5003
   F7T_KONG_URL: http://svc-kong:8000
   F7T_KONG_UTILITIES_URL: http://svc-utilities:5004
+  F7T_KONG_RESERVATIONS_URL: http://svc-reservations:5005
   F7T_OBJECT_STORAGE: '''s3v4'''
   F7T_OPA_URL: http://localhost:8181
   F7T_OPA_USE: "True"
@@ -29,6 +30,11 @@ data:
   F7T_POLICY_PATH: v1/data/f7t/authz
   F7T_REALM_RSA_PUBLIC_KEY: '''MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqB44q32bQp8LbyW6dQvgsjseXESkLT1g5LQKGb+P79AC+nOAtxhn8i/kmgc6zsQH8NlUtNJruLxlzdo2/OGmlDGYZH1x6VmAwvJPJ4er0xPUrvZ8YclxYQC16PY5LFiQRNBMRyQwP5Kne1O46FpmADFVWMfoabdnaqoXexxB56b25o8tE2ulRBgfpnrRgZAvf7kWjugRCNO06FV074FVMYHA1aBk0ICyaFCDM/Tb5oaDyGr5c/ZvdrRUrw8vaiYyMgaAnnJPL75cebGoHeMJaEyZalsHA+iuhRAfeAwpSClsmhVqnfH7a7hqrqumVRo27dydqmfVgpFjU5gbFcBZ5wIDAQAB'''
   F7T_REALM_RSA_TYPE: RS256
+  F7T_RESERVATIONS_IP: reservations
+  F7T_RESERVATIONS_PORT: "5005"
+  F7T_RESERVATIONS_URL: http://svc-reservations:5005
+  F7T_SSH_CERTIFICATE_WRAPPER: "True"
+  F7T_SPANK_PLUGIN_OPTION: --nohome
   F7T_STATUS_IP: status
   F7T_STATUS_PORT: "5001"
   F7T_STATUS_SERVICES: '''certificator;utilities;compute;tasks;storage'''
@@ -52,6 +58,7 @@ data:
   F7T_UTILITIES_PORT: "5004"
   F7T_UTILITIES_TIMEOUT: "5"
   F7T_UTILITIES_URL: http://svc-utilities:5004
+  F7T_USE_SPANK_PLUGIN: '"True;True"'  
   F7T_XFER_PARTITION: xfer
 kind: ConfigMap
 metadata:

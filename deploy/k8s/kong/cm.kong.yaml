@@ -37,6 +37,13 @@ items:
           methods: [DELETE,GET,POST]
           paths:
           - /compute/
+      - name: reservations
+        url: http://svc-reservations:5005
+        routes:
+        - name: reservations
+          methods: [DELETE,GET,POST,PUT]
+          paths:
+          - /reservations
       - name: status
         url: http://svc-status:5001
         routes:
