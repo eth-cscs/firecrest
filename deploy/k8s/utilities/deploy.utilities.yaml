@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-utilities
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: utilities
+  template:
+    metadata:
+      labels:
+        app: utilities
+      generateName: firecrest.utilities-1-
+    spec:
+      containers:
+      - image: demo_utilities
+        imagePullPolicy: Never
+        name: utilities
+        ports:
+        - containerPort: 5004
+        envFrom:
+        - configMapRef:
+            name: common-env-file
+        volumeMounts:
+        - mountPath: /var/log
+          name: logs-endpoint
+        - mountPath: /user-key
+          subPath: user-key
+          name: user-key-public
+      volumes:
+      - emptyDir: {}
+        name: logs-endpoint
+      - name: user-key-public
+        configMap:
+          name: f7t-user-ssh-keys
