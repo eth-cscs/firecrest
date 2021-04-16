@@ -92,6 +92,7 @@ RUN useradd -m -s /bin/bash service-account-firecrest-sample && echo 'service-ac
 ADD cluster/ssh/* /etc/ssh/
 ADD environment/keys/ca-key.pub  /etc/ssh/
 RUN chmod -R 400 /etc/ssh/  && chown -R root:root /etc/ssh/
+RUN /usr/bin/ssh-keygen -A
 
 RUN /usr/libexec/mariadb-prepare-db-dir 2>/dev/null
 
