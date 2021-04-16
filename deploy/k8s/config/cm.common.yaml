@@ -13,7 +13,7 @@ data:
   F7T_COMPUTE_PORT: "5006"
   F7T_COMPUTE_URL: http://svc-compute:5006
   F7T_EXT_TRANSFER_MACHINE_INTERNAL: '''svc-cluster:22'''
-  F7T_EXT_TRANSFER_MACHINE_PUBLIC: '''svc-cluster'''
+  F7T_EXT_TRANSFER_MACHINE_PUBLIC: '''cluster'''
   F7T_FILESYSTEMS: '"/home"'
   F7T_FIRECREST_SERVICE: '''firecrest.some.place'''
   F7T_KONG_COMPUTE_URL: http://svc-compute:5006
