@@ -316,11 +316,10 @@ def download_task(auth_header,system_name, system_addr,sourcePath,task_id):
     global staging
 
     # check if staging area token is valid
-    if not staging.is_token_valid():
-        if not staging.authenticate():
-            msg = "Staging area auth error"
-            update_task(task_id, auth_header, async_task.ERROR, msg)
-            return
+    if not staging.renew_token():
+        msg = "Staging area auth error"
+        update_task(task_id, auth_header, async_task.ERROR, msg)
+        return
 
     # create container if it doesn't exists:
     container_name = get_username(auth_header)
@@ -505,14 +504,13 @@ def upload_task(auth_header,system_name, system_addr,targetPath,sourcePath,task_
     update_task(task_id, auth_header, async_task.ST_URL_ASK, data, is_json=True)
 
     # check if staging token is valid
-    if not staging.is_token_valid():
-        if not staging.authenticate():
-            data = uploaded_files[task_id]
-            msg = "Staging Area auth error, try again later"
-            data["msg"] = msg
-            data["status"] = async_task.ERROR
-            update_task(task_id, auth_header, async_task.ERROR, data, is_json=True)
-            return
+    if not staging.renew_token():
+        data = uploaded_files[task_id]
+        msg = "Staging Area auth error, try again later"
+        data["msg"] = msg
+        data["status"] = async_task.ERROR
+        update_task(task_id, auth_header, async_task.ERROR, data, is_json=True)
+        return
 
 
     # create or return container
