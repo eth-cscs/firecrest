@@ -278,10 +278,15 @@ class S3v2(ObjectStorage):
             logging.error("Error: {}".format(e))
             return False
 
+    # Since S3 is used with signature, no token is needed, 
+    # but this is kept only for consistency with objectstorage class
     def authenticate(self, user, passwd):
         return True
 
     def is_token_valid(self):
+        return True
+
+    def renew_token(self):
         return True
 
     def create_upload_form(self, sourcepath, containername, prefix, ttl, max_file_size):
