@@ -29,12 +29,12 @@ SSL_PATH = "../../../deploy/test-build"
 VERIFY = (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False)
 
 # Time examples
-d1 = (datetime.datetime.now() + datetime.timedelta(hours=5)).strftime("%Y-%m-%dT%H:%M:%S")
-d2 = (datetime.datetime.now() + datetime.timedelta(hours=6)).strftime("%Y-%m-%dT%H:%M:%S")
-d3 = (datetime.datetime.now() + datetime.timedelta(hours=12)).strftime("%Y-%m-%dT%H:%M") # wrong format
-d4 = (datetime.datetime.now() + datetime.timedelta(hours=13)).strftime("%Y-%m-%dT%H:%M") # wrong format
-d5 = (datetime.datetime.now() + datetime.timedelta(hours=12)).strftime("%Y-%m-%dT%H:%M:%S")
-d6 = (datetime.datetime.now() + datetime.timedelta(hours=13)).strftime("%Y-%m-%dT%H:%M:%S")
+d1 = (datetime.datetime.now() + datetime.timedelta(days=5)).strftime("%Y-%m-%dT%H:%M:%S")
+d2 = (datetime.datetime.now() + datetime.timedelta(days=6)).strftime("%Y-%m-%dT%H:%M:%S")
+d3 = (datetime.datetime.now() + datetime.timedelta(days=12)).strftime("%Y-%m-%dT%H:%M") # wrong format
+d4 = (datetime.datetime.now() + datetime.timedelta(days=13)).strftime("%Y-%m-%dT%H:%M") # wrong format
+d5 = (datetime.datetime.now() + datetime.timedelta(days=12)).strftime("%Y-%m-%dT%H:%M:%S")
+d6 = (datetime.datetime.now() + datetime.timedelta(days=13)).strftime("%Y-%m-%dT%H:%M:%S")
 
 
 def test_list_reservations_empty(headers):
@@ -129,7 +129,14 @@ def test_reservation_crud_conflicts(dummy_resevation, headers):
 	rsv02['reservation'] = "testrsvok02"
 
 	resp = requests.post(url, headers=headers, data=rsv02, verify=VERIFY)
-	check_response(resp, 400, "Requested nodes are busy")
+	respd = resp.json().get('description', "")
+	if "Requested nodes are busy" in respd:
+		# Slurm < 20
+		expected_des = "Error creating the reservation: Requested nodes are busy"
+	else:
+		# Slurm > 20
+		expected_des = "Error creating the reservation: Requested node configuration is not available"
+	check_response(resp, 400, expected_des)
 
 
 def test_reservation_crud_ok(dummy_resevation, headers):
