@@ -9,14 +9,14 @@
 
 FROM centos:7
 
-ARG SLURM_VERSION=19.05.4
+ARG SLURM_VERSION=20.11.4
 
-###    && yum -y update \
 RUN set -ex \
     && yum makecache fast \
     && yum -y install epel-release \
     && yum -y install \
        bzip2 \
+       curl \
        file \
        gcc \
        gcc-c++\
@@ -26,18 +26,18 @@ RUN set -ex \
        munge \
        munge-devel \
        openssh-server \
-       perl \
-       python-pip \
+       python3 \
+       python3-pip \
        psmisc \
        rsyslog \
        sudo \
-       wget \       
+       rsync \
     && yum clean all \
     && rm -rf /var/cache/yum > /dev/null
 
 RUN set -x \
-    && wget https://download.schedmd.com/slurm/slurm-$SLURM_VERSION.tar.bz2 \
-    && tar -xvf slurm-$SLURM_VERSION.tar.bz2 > /dev/null
+    && curl --output slurm-$SLURM_VERSION.tar.bz2  https://download.schedmd.com/slurm/slurm-$SLURM_VERSION.tar.bz2 \
+    && tar -xf slurm-$SLURM_VERSION.tar.bz2 > /dev/null
 
 RUN set -x \
     && cd slurm-$SLURM_VERSION \
@@ -46,7 +46,7 @@ RUN set -x \
     && make install > /dev/null
 
 RUN set -x \
-    && rm -rf slurm \
+    && rm -rf /slurm-$SLURM_VERSION  2> /dev/null \
     && groupadd -r --gid=995 slurm \
     && useradd -r -g slurm --uid=995 slurm \
     && mkdir /etc/sysconfig/slurm \
@@ -62,7 +62,8 @@ RUN set -x \
 
 ADD cluster/slurm/*.conf /etc/slurm/
 ADD cluster/slurm/*.sh /
-RUN chmod 644 /etc/slurm/* && chmod 755 /*.sh
+# slurmdbd requires slurmdbd.conf with 600
+RUN chmod 644 /etc/slurm/*.conf && chmod 600 /etc/slurm/slurmdbd.conf  && chown -R slurm:slurm /etc/slurm/*.conf && chmod 755 /*.sh
 
 RUN mkdir /etc/slurm/plugstack.conf.d
 RUN chmod 755 /etc/slurm/plugstack.conf.d
@@ -76,7 +77,7 @@ RUN set -x \
     && /sbin/create-munge-key
 
 
-RUN pip install supervisor
+RUN pip3 install supervisor
 ADD cluster/supervisord.conf /etc/supervisord.conf
 
 RUN chown -R munge:munge /var/log/munge && chmod 755 /var/log/munge && chmod 755 /run/munge
@@ -92,6 +93,7 @@ RUN useradd -m -s /bin/bash service-account-firecrest-sample && echo 'service-ac
 ADD cluster/ssh/* /etc/ssh/
 ADD environment/keys/ca-key.pub  /etc/ssh/
 RUN chmod -R 400 /etc/ssh/  && chown -R root:root /etc/ssh/
+RUN /usr/bin/ssh-keygen -A
 
 RUN /usr/libexec/mariadb-prepare-db-dir 2>/dev/null
 
@@ -120,5 +122,5 @@ RUN chmod 777 /srv/f7t/test_sbatch_rm.sh
 RUN chmod 777 /srv/f7t/test_sbatch_mv.sh
 RUN chmod 700 /srv/f7t/test_sbatch_forbidden.sh
 
-ENTRYPOINT ["/usr/bin/supervisord"]
+ENTRYPOINT ["supervisord"]
 

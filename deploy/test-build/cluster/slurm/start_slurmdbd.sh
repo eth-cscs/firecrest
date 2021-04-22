@@ -15,6 +15,8 @@ while true; do
    sleep 1
 done
 
+echo "127.0.0.1 cluster" >> /etc/hosts
+
 echo "CREATE USER slurmdb@localhost IDENTIFIED BY 'slurmdbpass';" | mysql -u root
 echo "CREATE DATABASE slurmdb; GRANT ALL PRIVILEGES ON slurmdb.* TO slurmdb;" | mysql -u root
 
