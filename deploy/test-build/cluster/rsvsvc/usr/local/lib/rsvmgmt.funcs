@@ -69,7 +69,7 @@ test_resv()
 		echo "${ProgName}: Error: $1 doesn't seem to be a valid reservation"
 		exit -1
 	fi
-	RESV=$(${scontrol} show res=${1}|awk '/Accounts/{print $2}')
+	RESV=$(${scontrol} show res=${1}|awk '/Accounts/{print $3}')
 	MEMBER=0
 	ACCOUNTS=$(list_accounts)
 	for i in ${ACCOUNTS//,/ }
