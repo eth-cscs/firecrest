@@ -38,6 +38,20 @@ class Swift(ObjectStorage):
     def get_object_storage(self):
         return "OpenStack Swift"
 
+    def renew_token(self):
+        
+        if self.is_token_valid():
+            logging.info("Token is still valid: Not renewal needed")
+            return True
+
+        if self.authenticate():
+            logging.info("Token not valid: Successfuly renewed")
+            return True
+
+        logging.error("Token not valid: Token couldn't be renewed")
+        return False
+
+
 
     # authenticate SWIFT against keystone
     def authenticate(self):
@@ -72,7 +86,11 @@ class Swift(ObjectStorage):
         logging.info("Storage URL: %s" % (query_url))
 
         try:
-            # (headers, containers) =swiftclient.get_account(swift_account_url, os_token)
+            # check token validation
+            if not self.renew_token():
+                logging.error("Keystone token couldn't be renewed")
+                return None
+
 
             req = requests.get(query_url, headers={"X-Auth-Token": self.auth})
 
@@ -100,7 +118,11 @@ class Swift(ObjectStorage):
     # Checks if container is already created (in order to not override it)
     # if exists returns True, otherwise False
     def is_container_created(self,containername):
-
+        
+        # check token validation
+        if not self.renew_token():
+            logging.error("Keystone token couldn't be renewed")
+            return False
 
         header = {"X-Auth-Token": self.auth}
         url = "{swift_url}/{containername}".format(
@@ -112,7 +134,6 @@ class Swift(ObjectStorage):
         if ret.status_code == 200:
             logging.info("container {containername} exists".format(containername=containername))
             return True
-
 
         return False
 
@@ -127,6 +148,11 @@ class Swift(ObjectStorage):
 
             # create a container with PUT method on SWIFT
             # creating with FirecRest policy, so no backup to tape is made
+            # check token validation
+            if not self.renew_token():
+                logging.error("Keystone token couldn't be renewed")
+                return -1
+
             header = {"X-Auth-Token": self.auth, "X-Storage-Policy": "FirecRest"}
 
             req = requests.put(url, headers=header)
@@ -157,6 +183,11 @@ class Swift(ObjectStorage):
             swift_url=self.url, container=containername,object=object_prefix)
 
         try:
+            # check token validation
+            if not self.renew_token():
+                logging.error("Keystone token couldn't be renewed")
+                return False
+
             req = requests.head(url, headers={"X-Auth-Token": self.auth})
             logging.info(req.headers)
             headers = req.headers
@@ -282,6 +313,11 @@ class Swift(ObjectStorage):
         url = f"{self.url}/{containername}"
         
         try:
+            # check token validation
+            if not self.renew_token():
+                logging.error("Keystone token couldn't be renewed")
+                return None
+
             req = requests.get(url, headers={"X-Auth-Token": self.auth})
             if req.ok:
                 
@@ -314,6 +350,10 @@ class Swift(ObjectStorage):
     def delete_object_after(self,containername,prefix,objectname,ttl):
 
         swift_account_url = f"{self.url}/{containername}/{prefix}/{objectname}"
+        # check token validation
+        if not self.renew_token():
+            logging.error("Keystone token couldn't be renewed")
+            return -1
 
         header = {"X-Delete-At": str(ttl), "X-Auth-Token": self.auth}
 
@@ -339,6 +379,10 @@ class Swift(ObjectStorage):
     def delete_object(self,containername,prefix,objectname):
 
         swift_account_url = f"{self.url}/{containername}/{prefix}"
+        # check token validation
+        if not self.renew_token():
+            logging.error("Keystone token couldn't be renewed")
+            return -1
 
         header = {"X-Auth-Token": self.auth}
 

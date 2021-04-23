@@ -17,6 +17,14 @@ class ObjectStorage:
     @abstractmethod
     def authenticate(self,user,passwd):
         pass
+    
+    @abstractmethod
+    def is_token_valid(self):
+        pass
+
+    @abstractmethod
+    def renew_token(self):
+        pass
 
     @abstractmethod
     def create_container(self,containername):
@@ -59,6 +67,5 @@ class ObjectStorage:
         pass
 
 
-    def is_token_valid(self):
-        pass
+    
 
