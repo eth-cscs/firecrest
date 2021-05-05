@@ -844,7 +844,7 @@ def download():
         return jsonify(description="Failed to download file"), 400
 
     # download with base64 to avoid encoding conversion and string processing
-    action = f"timeout {UTILITIES_TIMEOUT} base64 --wrap=0 -- '{path}'"
+    action = f"base64 --wrap=0 -- '{path}'"
     retval = exec_remote_command(auth_header, system_name, system_addr, action, file_transfer="download")
 
     if retval["error"] != 0:
