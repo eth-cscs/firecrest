@@ -342,9 +342,20 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
             # replace newlines with $ for parsing
             outlines = output.replace('\n', '$')[:-1]
 
-        logging.info(f"sdterr: ({stderr_errno}) --> {stderr_errda}")
-        logging.info(f"stdout: ({stdout_errno}) --> {stdout_errda}")
-        logging.info(f"sdtout: ({stdout_errno}) --> {outlines}")
+        # hiding success results from utilities/download, since output is the content of the file
+        if file_transfer == "download":
+            if stderr_errno !=0:
+                logging.info(f"sdterr: ({stderr_errno}) --> {stderr_errda}")
+                logging.info(f"stdout: ({stdout_errno}) --> {stdout_errda}")
+                logging.info(f"sdtout: ({stdout_errno}) --> {outlines}")
+            else:
+                logging.info(f"sdterr: ({stderr_errno}) --> Download OK (content hidden)")
+                logging.info(f"stdout: ({stdout_errno}) --> Download OK (content hidden)")
+                logging.info(f"sdtout: ({stdout_errno}) --> Download OK (content hidden)")
+        else:
+            logging.info(f"sdterr: ({stderr_errno}) --> {stderr_errda}")
+            logging.info(f"stdout: ({stdout_errno}) --> {stdout_errda}")
+            logging.info(f"sdtout: ({stdout_errno}) --> {outlines}")
 
         if stderr_errno == 0:
             if stderr_errda and not (in_str(stderr_errda,"Could not chdir to home directory") or in_str(stderr_errda,"scancel: Terminating job")):
@@ -409,7 +420,11 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
         os.remove(priv_key)
         os.rmdir(temp_dir)
 
-    logging.info(f"Result: status_code {result['error']} -> {result['msg']}")
+    # hiding results from utilities/download, since output is the content of the file
+    if file_transfer == "download":
+        logging.info(f"Result: status_code {result['error']} -> Utilities download")
+    else:
+        logging.info(f"Result: status_code {result['error']} -> {result['msg']}")
     return result
 
 
