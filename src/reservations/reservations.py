@@ -28,7 +28,7 @@ SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
 SYS_INTERNALS   = os.environ.get("F7T_SYSTEMS_INTERNAL_COMPUTE").strip('\'"').split(";")
 
 # time out for rsvmgmt command
-TIMEOUT = os.environ.get("F7T_UTILITIES_TIMEOUT", 5)
+TIMEOUT = os.environ.get("F7T_RESERVATIONS_TIMEOUT", 30)
 
 ### SSL parameters
 USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
