@@ -285,6 +285,7 @@ def common_fs_operation(request, command, method):
         if sourcePath == "":
             return jsonify(description="Error on " + command + " operation", error="'sourcePath' value is empty"), 400
 
+    file_content = None
     file_transfer = None
     success_code = 200
 
@@ -371,6 +372,7 @@ def common_fs_operation(request, command, method):
             return jsonify(description='Error on upload operation', output=''), 400
         filename = secure_filename(file.filename)
         action = f"cat > {targetPath}/{filename}"
+        file_content = file.read()
         file_transfer = 'upload'
         success_code = 201
     else:
@@ -379,10 +381,7 @@ def common_fs_operation(request, command, method):
 
 
     action = f"timeout {UTILITIES_TIMEOUT} {action}"
-    if command == "upload":
-        retval = exec_remote_command(auth_header, system_name, system_addr, action, file_transfer, file_content=file.read())
-    else:
-        retval = exec_remote_command(auth_header, system_name ,system_addr, action, file_transfer)
+    retval = exec_remote_command(auth_header, system_name ,system_addr, action, file_transfer, file_content)
 
 
     if retval["error"] != 0:
