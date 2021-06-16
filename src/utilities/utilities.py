@@ -11,12 +11,12 @@ import tempfile, os, socket, logging
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import BadRequestKeyError
 
+import base64
+import io
+import json
 from math import ceil
 
 from cscs_api_common import check_auth_header, get_username,exec_remote_command, parse_io_error, check_command_error, in_str, get_boolean_var
-import io
-import base64
-
 
 CERTIFICATOR_URL = os.environ.get("F7T_CERTIFICATOR_URL")
 
@@ -33,8 +33,8 @@ SYS_INTERNALS   = os.environ.get("F7T_SYSTEMS_INTERNAL_UTILITIES").strip('\'"').
 
 debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
-#max file size for upload/download in MB
-MAX_FILE_SIZE=int(os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE"))
+#max file size for upload/download in MB, internally used in bytes
+MAX_FILE_SIZE_BYTES = int(os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE")) * 1024 * 1024
 
 ### SSL parameters
 USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
@@ -43,7 +43,8 @@ SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
 app = Flask(__name__)
 # max content lenght for upload in bytes
-app.config['MAX_CONTENT_LENGTH'] = int(MAX_FILE_SIZE) * 1024 * 1024
+app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE_BYTES
+
 
 ## file: determines the type of file of path
 ## params:
@@ -53,52 +54,7 @@ app.config['MAX_CONTENT_LENGTH'] = int(MAX_FILE_SIZE) * 1024 * 1024
 @app.route("/file", methods=["GET"])
 @check_auth_header
 def file_type():
-
-    auth_header = request.headers[AUTH_HEADER_NAME]
-
-    try:
-        system_name = request.headers["X-Machine-Name"]
-    except KeyError as e:
-        app.logger.error("No machinename given")
-        return jsonify(description="No machine name given"), 400
-
-    # PUBLIC endpoints from Kong to users
-    if system_name not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
-        return jsonify(description="Error in file operation", error="Machine does not exist"), 400, header
-
-    # select index in the list corresponding with machine name
-    system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS[system_idx]
-
-    try:
-        path = request.args.get("targetPath")
-        if path == "":
-            return jsonify(description="Error in file operation",error="'targetPath' value is empty"), 400
-    except BadRequestKeyError as e:
-        return jsonify(description="Error in file operation",error="'targetPath' query string missing"), 400
-
-
-    action = f"timeout {UTILITIES_TIMEOUT} file -b -- '{path}'"
-
-    retval = exec_remote_command(auth_header, system_name, system_addr, action)
-
-    error_str = retval["msg"]
-
-    if retval["error"] != 0:
-        error_str   = retval["msg"]
-        error_code  = retval["error"]
-        service_msg = "Error in file operation"
-
-        ret_data = check_command_error(error_str, error_code, service_msg)
-
-        # if generic "error" not in the dict
-        try:
-            jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
-        except:
-            return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
-
-    return jsonify(description="Operation completed", out=retval["msg"]), 200
+    return common_fs_operation(request, "file", "GET")
 
 
 ## chmod: Change Mode of path in Filesystem
@@ -107,62 +63,10 @@ def file_type():
 ##  - mode: numerical mode for file (e.g.: 700, 644, etc) *required
 ##  - machinename: str *required
 
-@app.route("/chmod",methods=["PUT"])
+@app.route("/chmod", methods=["PUT"])
 @check_auth_header
 def chmod():
-
-    auth_header = request.headers[AUTH_HEADER_NAME]
-
-    try:
-        system_name = request.headers["X-Machine-Name"]
-    except KeyError as e:
-        app.logger.error("No machinename given")
-        return jsonify(description="No machine name given"), 400
-
-    # PUBLIC endpoints from Kong to users
-    if system_name not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
-        return jsonify(description="Error in chmod operation", error="Machine does not exist"), 400, header
-
-    # select index in the list corresponding with machine name
-    system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS[system_idx]
-
-    # getting path from request form
-    try:
-        path = request.form["targetPath"]
-        if path == "":
-            return jsonify(description="Error in chmod operation",error="'targetPath' value is empty"), 400
-    except BadRequestKeyError:
-        return jsonify(description="Error in chmod operation",error="'targetPath' query string missing"), 400
-
-    # getting chmode's mode from request form:
-    try:
-        mode = request.form["mode"]
-        if mode == "":
-            return jsonify(description="Error in chmod operation",error="'mode' value is empty"), 400
-    except BadRequestKeyError:
-        return jsonify(description="Error in chmod operation", error="mode query string missing"), 400
-
-    # using -c flag for verbose mode in stdout
-    action = f"timeout {UTILITIES_TIMEOUT} chmod -v '{mode}' -- '{path}'"
-
-    retval = exec_remote_command(auth_header, system_name, system_addr, action)
-
-    if retval["error"] != 0:
-        error_str   = retval["msg"]
-        error_code  = retval["error"]
-        service_msg = "Error in chmod operation"
-
-        ret_data = check_command_error(error_str, error_code, service_msg)
-
-        # if generic "error" not in the dict
-        try:
-            jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
-        except:
-            return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
-
-    return jsonify(description="Operation completed", out=retval["msg"]), 200
+    return common_fs_operation(request, "chmod", "PUT")
 
 
 ## chown: Change owner of path in Filesystem
@@ -172,69 +76,10 @@ def chmod():
 ##  - group: new group owner of the path file
 ##  - machinename: str *required
 
-@app.route("/chown",methods=["PUT"])
+@app.route("/chown", methods=["PUT"])
 @check_auth_header
 def chown():
-
-    auth_header = request.headers[AUTH_HEADER_NAME]
-
-    try:
-        system_name = request.headers["X-Machine-Name"]
-    except KeyError as e:
-        app.logger.error("No machinename given")
-        return jsonify(description="No machine name given"), 400
-
-    # PUBLIC endpoints from Kong to users
-    if system_name not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
-        return jsonify(description="Error in chown operation", error="Machine does not exist"), 400, header
-
-    # select index in the list corresponding with machine name
-    system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS[system_idx]
-
-    try:
-        path = request.form["targetPath"]
-        if path == "":
-            return jsonify(description="Error in chown operation",error="'targetPath' value is empty"), 400
-    except BadRequestKeyError:
-        return jsonify(description="Error in chown operation",error="'targetPath' query string missing"), 400
-
-    if path == None:
-        return jsonify(description="Error in chown operation",error="'targetPath' query string missing"), 400
-    try:
-        owner = request.form["owner"]
-    except Exception:
-        owner = ""
-
-    try:
-        group = request.form["group"]
-    except Exception:
-        group = ""
-
-    if owner == "" and group == "":
-        return jsonify(description="Error in chown operation", error="group and/or owner should be set"), 400
-
-
-    action = f"timeout {UTILITIES_TIMEOUT} chown -v '{owner}':'{group}' -- '{path}'"
-
-    retval = exec_remote_command(auth_header, system_name, system_addr, action)
-
-    if retval["error"] != 0:
-        error_str   = retval["msg"]
-        error_code  = retval["error"]
-        service_msg = "Error in chown operation"
-
-        ret_data = check_command_error(error_str, error_code, service_msg)
-
-        # if generic "error" not in the dict
-        try:
-            jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
-        except:
-            return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
-
-
-    return jsonify(description="Operation completed", out=retval["msg"]), 200
+    return common_fs_operation(request, "chown", "PUT")
 
 
 ## ls: List Directory contents
@@ -243,62 +88,14 @@ def chown():
 ##  - showhidden: Bool
 ##  - machinename: str *required
 
-@app.route("/ls",methods=["GET"])
+@app.route("/ls", methods=["GET"])
 @check_auth_header
 def list_directory():
+    return common_fs_operation(request, "ls", "GET")
 
-    auth_header = request.headers[AUTH_HEADER_NAME]
 
-    try:
-        system_name = request.headers["X-Machine-Name"]
-    except KeyError as e:
-        app.logger.error("No machinename given")
-        return jsonify(description="No machine name given"), 400
-
-    # PUBLIC endpoints from Kong to users
-    if system_name not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
-        return jsonify(description="Error listing contents of path", error="Machine does not exist"), 400, header
-
-    # select index in the list corresponding with machine name
-    system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS[system_idx]
-
-    try:
-        path = request.args.get("targetPath")
-    except BadRequestKeyError:
-        return jsonify(description="Error in ls operation",error="'targetPath' query string missing"), 400
-
-    if path == None:
-        return jsonify(description="Error listing contents of path",error="path query string missing"), 400
-
-    # if set shows entrys starting with . (not including . and/or .. dirs)
-    try:
-        showhidden = request.args.get("showhidden", None)
-    except BadRequestKeyError:
-        return jsonify(description="Error in ls operation", error="option error"), 400
-
-    showall = ""
-    if showhidden != None:
-        showall = "-A"
-
-    action = f"timeout {UTILITIES_TIMEOUT} ls -l {showall} --time-style=+%Y-%m-%dT%H:%M:%S -- '{path}'"
-
-    retval = exec_remote_command(auth_header, system_name, system_addr, action)
-
-    if retval["error"] != 0:
-        error_str   = retval["msg"]
-        error_code  = retval["error"]
-        service_msg = "Error listing contents of path"
-
-        ret_data = check_command_error(error_str, error_code, service_msg)
-
-        # if generic "error" not in the dict
-        try:
-            jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
-        except:
-            return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
-
+#
+def ls_parse(request, retval):
     # file List is retorned as a string separated for a $ character
     fileList = []
     if len(retval["msg"].split("$")) == 1:
@@ -320,7 +117,6 @@ def list_directory():
 
     # calculate the list to retrieve
     if pageSize and pageNumber:
-
         pageNumber = float(pageNumber)
         pageSize   = float(pageSize)
 
@@ -329,16 +125,13 @@ def list_directory():
         app.logger.info(f"Total Size: {totalSize}")
         app.logger.info(f"Total Pages: {totalPages}")
 
-
         if pageNumber < 1 or pageNumber>totalPages:
-            app.logger.warning("pageNumber ({pageNumber}) greater than total pages ({totalPages})".format(pageNumber=pageNumber, totalPages=totalPages))
-            app.logger.warning("Showing all results")
+            app.logger.warning(f"pageNumber ({pageNumber}) greater than total pages ({totalPages})")
+            #app.logger.warning("Showing all results")
         else:
             beg_reg=int((pageNumber-1)*pageSize)
             end_reg=int(pageNumber*pageSize-1)
-
-            app.logger.info("Initial reg {beg_reg}, final reg: {end_reg}".format(beg_reg=beg_reg, end_reg=end_reg))
-
+            app.logger.info(f"Initial reg {beg_reg}, final reg: {end_reg}")
             fileList = fileList[beg_reg:end_reg+1]
 
 
@@ -347,10 +140,9 @@ def list_directory():
     # labels taken from list to dict with default value: ""
     outList = []
 
-    logging.info("Length of file list: {}".format(len(fileList)))
+    logging.info(f"Length of file list: {len(fileList)}")
 
     for files in fileList:
-
         line = files.split()
 
         try:
@@ -370,7 +162,7 @@ def list_directory():
 
         outList.append(outDict)
 
-    return jsonify(descr="List of contents of path",output=outList), 200
+    return outList
 
 
 ## mkdir: Make Directory
@@ -379,61 +171,13 @@ def list_directory():
 ##  - p: -p, --parents no error if existing, make parent directories as needed (bool)
 ##  - machinename: str *required
 
-@app.route("/mkdir",methods=["POST"])
+@app.route("/mkdir", methods=["POST"])
 @check_auth_header
 def make_directory():
+    return common_fs_operation(request, "mkdir", "POST")
 
-    auth_header = request.headers[AUTH_HEADER_NAME]
 
-    try:
-        system_name = request.headers["X-Machine-Name"]
-    except KeyError as e:
-        app.logger.error("No machinename given")
-        return jsonify(description="No machine name given"), 400
-
-    # PUBLIC endpoints from Kong to users
-    if system_name not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
-        return jsonify(description="Error creating directory", error="Machine does not exist"), 400, header
-
-    # select index in the list corresponding with machine name
-    system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS[system_idx]
-
-    try:
-        path = request.form["targetPath"]
-        if path == "":
-            return jsonify(description="Error creating directory",error="'targetPath' value is empty"), 400
-
-    except BadRequestKeyError:
-        return jsonify(description="Error creating directory", error="'targetPath' query string missing"), 400
-
-    try:
-        p = request.form["p"]
-        parent = "-p"
-    except BadRequestKeyError:
-        parent = ""
-
-    action = f"timeout {UTILITIES_TIMEOUT} mkdir {parent} -- '{path}'"
-
-    retval = exec_remote_command(auth_header, system_name, system_addr, action)
-
-    if retval["error"] != 0:
-        error_str   = retval["msg"]
-        error_code  = retval["error"]
-        service_msg = "Error creating directory"
-
-        ret_data = check_command_error(error_str, error_code, service_msg)
-
-        # if generic "error" not in the dict
-        try:
-            jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
-        except:
-            return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
-
-    return jsonify(description="Directory created", output=""), 201
-
-## Returns the content from the specified path on the {machine} filesystem
+## Returns the content (head) from the specified path on the {machine} filesystem
 ## params:
 ##  - path: path to the file to download *required
 ##  - machinename: str *required
@@ -441,80 +185,24 @@ def make_directory():
 @app.route("/view", methods=["GET"])
 @check_auth_header
 def view():
-
-    auth_header = request.headers[AUTH_HEADER_NAME]
-
     try:
-        system_name = request.headers["X-Machine-Name"]
-    except KeyError as e:
-        app.logger.error("No machinename given")
-        return jsonify(description="No machine name given"), 400
+        resp = common_fs_operation(request, "stat", "GET")
+        if resp[1] != 200:
+            return resp
+        out = json.loads(resp[0].data.decode())
+    except:
+        return jsonify(description='Error on stat operation', output=''), 400
 
-    # PUBLIC endpoints from Kong to users
-    if system_name not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
-        return jsonify(description="Failed to view file content", error="Machine does not exist"), 400, header
+    file_size = int(out["output"]) # in bytes
 
-    # select index in the list corresponding with machine name
-    system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS[system_idx]
-
-    path = request.args.get("targetPath")
-
-    if path == None:
-        return jsonify(description="Failed to view file content",error="'targetPath' query string missing"), 400
-    if path == "":
-        return jsonify(description="Failed to view file content",error="'targetPath' value is empty"), 400
-
-    # check file size
-    action = f"timeout {UTILITIES_TIMEOUT} stat --dereference -c %s -- '{path}'"
-    retval = exec_remote_command(auth_header, system_name, system_addr, action)
-
-    if retval["error"] != 0:
-
-        error_str   = retval["msg"]
-        error_code  = retval["error"]
-        service_msg = "Failed to view file content"
-
-        ret_data = check_command_error(error_str, error_code, service_msg)
-
-        # if generic "error" not in the dict
-        try:
-            jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
-        except:
-            return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
-
-
-    file_size = int(retval["msg"]) # in bytes
-    max_file_size = MAX_FILE_SIZE*(1024*1024)
-
-
-    if file_size > max_file_size:
+    if file_size > MAX_FILE_SIZE_BYTES:
         app.logger.warning("File size exceeds limit")
         # custom error raises when file size > SIZE_LIMIT env var
         header = {"X-Size-Limit": "File exceeds size limit"}
         return jsonify(description="Failed to view file content"), 400, header
 
-    # download with base64 to avoid encoding conversion and string processing
-    action = f"timeout {UTILITIES_TIMEOUT} head -c {max_file_size} -- '{path}'"
-    retval = exec_remote_command(auth_header, system_name, system_addr, action)
-    if retval["error"] != 0:
-
-        error_str   = retval["msg"]
-        error_code  = retval["error"]
-        service_msg = "Failed to view file content"
-
-        ret_data = check_command_error(error_str, error_code, service_msg)
-
-        # if generic "error" not in the dict
-        try:
-            return jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
-        except:
-            return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
-
-    content = retval["msg"].replace("$","\n")
-
-    return jsonify(description="File content successfully returned", output=content), 200
+    # TODO: download with base64 to avoid encoding conversion and string processing ?
+    return common_fs_operation(request, "head", "GET")
 
 
 ## checksum: Print or check SHA256 (256-bit) checksums
@@ -522,58 +210,11 @@ def view():
 ##  - targetPath: Filesystem path (Str) *required##
 ##  - machinename: str *required
 
-@app.route("/checksum",methods=["GET"])
+@app.route("/checksum", methods=["GET"])
 @check_auth_header
 def checksum():
+    return common_fs_operation(request, "checksum", "GET")
 
-    auth_header = request.headers[AUTH_HEADER_NAME]
-
-    try:
-        system_name = request.headers["X-Machine-Name"]
-    except KeyError as e:
-        app.logger.error("No machinename given")
-        return jsonify(description="No machine name given"), 400
-
-    # PUBLIC endpoints from Kong to users
-    if system_name not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
-        return jsonify(description="Error obatining checksum", error="Machine does not exist"), 400, header
-
-    # select index in the list corresponding with machine name
-    system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS[system_idx]
-
-    try:
-        path = request.args.get("targetPath")
-        if path == "":
-            return jsonify(description="Error obatining checksum",error="'targetPath' value is empty"), 400
-
-    except BadRequestKeyError:
-        return jsonify(description="Error obatining checksum", error="'targetPath' query string missing"), 400
-
-    action = f"timeout {UTILITIES_TIMEOUT} sha256sum -- '{path}'"
-
-    retval = exec_remote_command(auth_header, system_name, system_addr, action)
-
-    if retval["error"] != 0:
-
-        error_str   = retval["msg"]
-        error_code  = retval["error"]
-        service_msg = "Error obtaining checksum"
-
-        ret_data = check_command_error(error_str, error_code, service_msg)
-
-        # if generic "error" not in the dict
-        try:
-            jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
-        except:
-            return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
-
-    # on success: retval["msg"] = "checksum  /path/to/file"
-    output = retval["msg"].split()[0]
-
-
-    return jsonify(description="Checksum successfully retrieved", output=output), 200
 
 ## rename/move
 ## params:
@@ -584,7 +225,7 @@ def checksum():
 @app.route("/rename", methods=["PUT"])
 @check_auth_header
 def rename():
-    return common_operation(request, "rename", "PUT")
+    return common_fs_operation(request, "rename", "PUT")
 
 
 ## copy cp
@@ -592,15 +233,15 @@ def rename():
 ##  - sourcepath: Filesystem path of object to be copied (Str) *required
 ##  - targetpath: Filesystem path of copied object (Str) *required
 ##  - machinename: str *required
-
 @app.route("/copy", methods=["POST"])
 @check_auth_header
 def copy():
-    return common_operation(request, "copy", "POST")
+    return common_fs_operation(request, "copy", "POST")
 
-## common code for file operations: copy, rename (move)
-def common_operation(request, command, method):
 
+## common code for file operations:
+def common_fs_operation(request, command, method):
+    # check appropiate headers and identify machine
     auth_header = request.headers[AUTH_HEADER_NAME]
 
     try:
@@ -618,34 +259,131 @@ def common_operation(request, command, method):
     system_idx = SYSTEMS_PUBLIC.index(system_name)
     system_addr = SYS_INTERNALS[system_idx]
 
+    # get targetPath to apply command
+    tn = 'targetPath'
     try:
-        sourcePath = request.form["sourcePath"]
+        if method == 'GET':
+            targetPath = request.args.get("targetPath", "")
+            if (targetPath == "") and (command in ['base64', 'stat']):
+                # TODO: review API
+                tn = "sourcePath"
+                targetPath = request.args.get("sourcePath", "")
+        else: # DELETE, POST, PUT
+            targetPath = request.form["targetPath"]
+    except BadRequestKeyError:
+        return jsonify(description="Error on " + command + " operation", error="targetPath query string missing"), 400
+
+    if targetPath == "":
+        return jsonify(description="Error on " + command + " operation", error=f"'{tn}' value is empty"), 400
+
+
+    if command in ['copy', 'rename']:
+        try:
+            sourcePath = request.form["sourcePath"]
+        except BadRequestKeyError:
+            return jsonify(description="Error on " + command + " operation", error="'sourcePath' query string missing"), 400
         if sourcePath == "":
-            return jsonify(description="Error on " + command + " operation",error="'sourcePath' value is empty"), 400
-    except BadRequestKeyError:
-        return jsonify(description="Error on " + command + " operation", error="'sourcePath' query string missing"), 400
+            return jsonify(description="Error on " + command + " operation", error="'sourcePath' value is empty"), 400
 
-    try:
-        targetPath = request.form["targetPath"]
-        if targetPath == "":
-            return jsonify(description="Error on " + command + " operation",error="'targetPath' value is empty"), 400
-    except BadRequestKeyError:
-        return jsonify(description="Error on " + command + " operation", error="target query string missing"), 400
+    file_transfer = None
+    success_code = 200
 
+    if command == "base64":
+        action = f"base64 --wrap=0 -- '{targetPath}'"
+        file_transfer = 'download'
+    elif command == "checksum":
+        action = f"sha256sum -- '{targetPath}'"
+    elif command == "chmod":
+        try:
+            mode = request.form["mode"]
+            if mode == "":
+                return jsonify(description="Error in chmod operation", error="'mode' value is empty"), 400
+        except BadRequestKeyError:
+            return jsonify(description="Error in chmod operation", error="mode query string missing"), 400
+        action = f"chmod -v '{mode}' -- '{targetPath}'"
 
-    if command == "copy":
-        # action to execute
+    elif command == "chown":
+        try:
+            owner = request.form["owner"]
+        except Exception:
+            owner = ""
+        try:
+            group = request.form["group"]
+        except Exception:
+            group = ""
+        if owner == "" and group == "":
+            return jsonify(description="Error in chown operation", error="group and/or owner should be set"), 400
+        action = f"chown -v '{owner}':'{group}' -- '{targetPath}'"
+
+    elif command == "copy":
         # -r is for recursivelly copy files into directories
-        action = f"timeout {UTILITIES_TIMEOUT} cp --force -dR --preserve=all -- '{sourcePath}' '{targetPath}'"
+        action = f"cp --force -dR --preserve=all -- '{sourcePath}' '{targetPath}'"
+        success_code = 201
+    elif command == "file":
+        # -b: do not prepend filenames to output lines
+        action = f"file -b -- '{targetPath}'"
+    elif command == "head":
+        action = f"head -c {MAX_FILE_SIZE_BYTES} -- '{targetPath}'"
+        file_transfer = 'download'
+    elif command == "ls":
+        # if set shows entrys starting with . (not including . and/or .. dirs)
+        showhidden = request.args.get("showhidden", None)
+        showall = ""
+        if showhidden != None:
+            showall = "-A"
+        action = f"ls -l {showall} --time-style=+%Y-%m-%dT%H:%M:%S -- '{targetPath}'"
+    elif command == "mkdir":
+        try:
+            p = request.form["p"]
+            parent = "-p"
+        except BadRequestKeyError:
+            parent = ""
+        action = f"mkdir {parent} -- '{targetPath}'"
         success_code = 201
     elif command == "rename":
-        action = f"timeout {UTILITIES_TIMEOUT} mv --force -- '{sourcePath}' '{targetPath}'"
-        success_code = 200
-    else:
-        app.logger.error("Unknown command on common_operation: " + command)
-        return jsonify(description="Error on unkownon operation", error="Unknown"), 400
+        action = f"mv --force -- '{sourcePath}' '{targetPath}'"
+    elif command == "rm":
+        # -r is for recursivelly delete files into directories
+        action = f"rm -r --interactive=never -- '{targetPath}'"
+        success_code = 204
+    elif command == "stat":
+        action = f"stat --dereference -c %s -- '{targetPath}'"
+    elif command == "symlink":
+        try:
+            linkPath = request.form["linkPath"]
+            if linkPath == "":
+                return jsonify(description="Failed to create symlink", error="'linkPath' value is empty"), 400
+        except BadRequestKeyError:
+            return jsonify(description="Failed to create symlink", error="'linkPath' query string missing"), 400
 
-    retval = exec_remote_command(auth_header,system_name ,system_addr, action)
+        action = f"ln -s -- '{targetPath}' '{linkPath}'"
+        success_code = 201
+    elif command == "upload":
+        try:
+            if 'file' not in request.files:
+                return jsonify(description="Failed to upload file", error="No file in query"), 400
+            file = request.files['file']
+            app.logger.info(f"Upload length: {file.content_length}")
+            #app.logger.info(f"Upload headers: {file.headers}")
+            if file.filename == '':
+                return jsonify(description="Failed to upload file", error="No filename selected"), 400
+        except:
+            return jsonify(description='Error on upload operation', output=''), 400
+        filename = secure_filename(file.filename)
+        action = f"cat > {targetPath}/{filename}"
+        file_transfer = 'upload'
+        success_code = 201
+    else:
+        app.logger.error("Unknown command on common_fs_operation: " + command)
+        return jsonify(description="Error on internal operation", error="Internal error"), 400
+
+
+    action = f"timeout {UTILITIES_TIMEOUT} {action}"
+    if command == "upload":
+        retval = exec_remote_command(auth_header, system_name, system_addr, action, file_transfer, file_content=file.read())
+    else:
+        retval = exec_remote_command(auth_header, system_name ,system_addr, action, file_transfer)
+
 
     if retval["error"] != 0:
         error_str   = retval["msg"]
@@ -656,11 +394,25 @@ def common_operation(request, command, method):
 
         # if generic "error" not in the dict
         try:
-            jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
+            return jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
         except:
             return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
 
-    return jsonify(description="Success to " + command + " file or directory.", output=""), success_code
+
+    description = "Success to " + command + " file or directory."
+    output = ''
+    if command == 'checksum':
+        # return only hash, msg sintax:  hash filename
+        output = retval["msg"].split()[0]
+    elif command in ['base64', 'chmod', 'chown', 'file', 'head', 'stat']:
+        output = retval["msg"]
+    elif command == 'ls':
+        description = "List of contents"
+        output = ls_parse(request, retval)
+    elif command == "upload":
+        description="File upload successful"
+
+    return jsonify(description=description, output=output), success_code
 
 
 
@@ -672,52 +424,7 @@ def common_operation(request, command, method):
 @app.route("/rm", methods=["DELETE"])
 @check_auth_header
 def rm():
-
-    auth_header = request.headers[AUTH_HEADER_NAME]
-
-    try:
-        system_name = request.headers["X-Machine-Name"]
-    except KeyError as e:
-        app.logger.error("No machinename given")
-        return jsonify(description="No machine name given"), 400
-
-    # PUBLIC endpoints from Kong to users
-    if system_name not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
-        return jsonify(description="Error on delete operation", error="Machine does not exist"), 400, header
-
-    # select index in the list corresponding with machine name
-    system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS[system_idx]
-
-    try:
-        path = request.form["targetPath"]
-        if path == "":
-            return jsonify(description="Error on delete operation",error="'targetPath' value is empty"), 400
-    except BadRequestKeyError:
-        return jsonify(description="Error on delete operation",error="'targetPath' query string missing"), 400
-
-    # action to execute
-    # -r is for recursivelly delete files into directories
-    action = f"timeout {UTILITIES_TIMEOUT} rm -r --interactive=never -- '{path}'"
-
-    retval = exec_remote_command(auth_header, system_name, system_addr, action)
-
-    if retval["error"] != 0:
-        error_str   = retval["msg"]
-        error_code  = retval["error"]
-        service_msg = "Error on delete operation"
-
-        ret_data = check_command_error(error_str, error_code, service_msg)
-
-        # if generic "error" not in the dict
-        try:
-            jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
-        except:
-            return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
-
-    return jsonify(description="Success to delete file or directory.", output=""), 204
-
+    return common_fs_operation(request, "rm", "DELETE")
 
 
 ## Symbolic Link
@@ -729,56 +436,7 @@ def rm():
 @app.route("/symlink", methods=["POST"])
 @check_auth_header
 def symlink():
-
-    auth_header = request.headers[AUTH_HEADER_NAME]
-
-    try:
-        system_name = request.headers["X-Machine-Name"]
-    except KeyError as e:
-        app.logger.error("No machinename given")
-        return jsonify(description="No machine name given"), 400
-
-    # PUBLIC endpoints from Kong to users
-    if system_name not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
-        return jsonify(description="Failed to create symlink", error="Machine does not exist"), 400, header
-
-    # select index in the list corresponding with machine name
-    system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS[system_idx]
-
-    try:
-        linkPath = request.form["linkPath"]
-        if linkPath == "":
-            return jsonify(description="Failed to create symlink",error="'linkPath' value is empty"), 400
-    except BadRequestKeyError:
-        return jsonify(description="Failed to create symlink",error="'linkPath' query string missing"), 400
-
-    try:
-        targetPath = request.form["targetPath"]
-        if targetPath == "":
-            return jsonify(description="Failed to create symlink",error="'targetPath' value is empty"), 400
-    except BadRequestKeyError:
-        return jsonify(description="Failed to create symlink",error="'targetPath' query string missing"), 400
-
-    action = f"timeout {UTILITIES_TIMEOUT} ln -s -- '{targetPath}' '{linkPath}'"
-
-    retval = exec_remote_command(auth_header, system_name, system_addr, action)
-
-    if retval["error"] != 0:
-        error_str   = retval["msg"]
-        error_code  = retval["error"]
-        service_msg = "Failed to create symlink"
-
-        ret_data = check_command_error(error_str, error_code, service_msg)
-
-        # if generic "error" not in the dict
-        try:
-            jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
-        except:
-            return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
-
-    return jsonify(description="Success create the symlink"), 201
+    return common_fs_operation(request, "symlink", "POST")
 
 
 ## Returns the file from the specified path on the {machine} filesystem
@@ -789,43 +447,23 @@ def symlink():
 @app.route("/download", methods=["GET"])
 @check_auth_header
 def download():
-
-    auth_header = request.headers[AUTH_HEADER_NAME]
-
     try:
-        system_name = request.headers["X-Machine-Name"]
-    except KeyError as e:
-        app.logger.error("No machinename given")
-        return jsonify(description="No machine name given"), 400
-
-    # PUBLIC endpoints from Kong to users
-    if system_name not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
-        return jsonify(description="Failed to download file", error="Machine does not exist"), 400, header
-
-    # select index in the list corresponding with machine name
-    system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS[system_idx]
-
-    path = request.args.get("sourcePath")
-
-    if path == None:
-        return jsonify(description="Failed to download file",error="'sourcePath' query string missing"), 400
-    if path == "":
-        return jsonify(description="Failed to download file",error="'sourcePath' value is empty"), 400
+        # returns a tuple (json_msg, status_code [, header])
+        resp = common_fs_operation(request, "stat", "GET")
+        if resp[1] != 200:
+            return resp
+        out = json.loads(resp[0].data.decode())
+    except Exception as e:
+        app.logger.error(e)
+        return jsonify(description='Error on stat operation', output=''), 400
 
     #TODO: check path doesn't finish with /
+    path = request.args.get("sourcePath")
     file_name = secure_filename(path.split("/")[-1])
 
-    action = f"timeout {UTILITIES_TIMEOUT} stat --dereference -c %s -- '{path}'"
-    retval = exec_remote_command(auth_header, system_name, system_addr, action)
-
-    if retval["error"] != 0:
-        return parse_io_error(retval, 'download file', path)
-
     try:
-        file_size = int(retval["msg"]) # in bytes
-        if file_size > MAX_FILE_SIZE*(1024*1024):
+        file_size = int(out["output"]) # in bytes
+        if file_size > MAX_FILE_SIZE_BYTES:
             app.logger.warning("File size exceeds limit")
             # custom error raises when file size > SIZE_LIMIT env var
             header = {"X-Size-Limit": "File exceeds size limit"}
@@ -838,21 +476,23 @@ def download():
                      mimetype="application/octet-stream",
                      attachment_filename=file_name,
                      as_attachment=True)
-
     except Exception as e:
         app.logger.error("Download decode error: " + e.message)
         return jsonify(description="Failed to download file"), 400
 
     # download with base64 to avoid encoding conversion and string processing
-    action = f"timeout {UTILITIES_TIMEOUT} base64 --wrap=0 -- '{path}'"
-    retval = exec_remote_command(auth_header, system_name, system_addr, action, file_transfer="download")
-
-    if retval["error"] != 0:
-        return parse_io_error(retval, 'download file', path)
+    try:
+        # returns a tuple (json_msg, status_code [, header])
+        resp = common_fs_operation(request, "base64", "GET")
+        if resp[1] != 200:
+            return resp
+        out = json.loads(resp[0].data.decode())
+    except:
+        return jsonify(description='Error on download operation', output=''), 400
 
     try:
         data = io.BytesIO()
-        data.write(base64.b64decode(retval["msg"]))
+        data.write(base64.b64decode(out["output"]))
         data.seek(0)
     except Exception as e:
         app.logger.error("Download decode error: " + e.message)
@@ -864,65 +504,23 @@ def download():
                      as_attachment=True)
 
 
-## Returns the file from the specified path on the {machine} filesystem
-## params:
-##  - path: path to the file to download *required
-##  - machinename: str *required
 
 ## error handler for files above SIZE_LIMIT -> app.config['MAX_CONTENT_LENGTH']
 @app.errorhandler(413)
 def request_entity_too_large(error):
     app.logger.error(error)
-    return jsonify(description="Failed to upload file. The file is over {} MB".format(MAX_FILE_SIZE)), 413
+    return jsonify(description=f"Failed to upload file. The file is over {MAX_FILE_SIZE_BYTES} bytes"), 413
+
+
+## Uploads file to specified path on the {machine} filesystem
+## params:
+##  - path: path to the file to download *required
+##  - machinename: str *required
 
 @app.route("/upload", methods=["POST"])
 @check_auth_header
 def upload():
-
-    auth_header = request.headers[AUTH_HEADER_NAME]
-
-    try:
-        system_name = request.headers["X-Machine-Name"]
-    except KeyError as e:
-        app.logger.error("No machinename given")
-        return jsonify(description="No machine name given"), 400
-
-    # PUBLIC endpoints from Kong to users
-    if system_name not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
-        return jsonify(description="Failed to download file", error="Machine does not exist"), 400, header
-
-    # select index in the list corresponding with machine name
-    system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS[system_idx]
-
-    path = request.form["targetPath"]
-
-    if path == None:
-        return jsonify(description="Failed to upload file", error="'targetPath' query string missing"), 400
-
-    if path == "":
-        return jsonify(description="Failed to upload file",error="'targetPath' value is empty"), 400
-
-    if 'file' not in request.files:
-        return jsonify(description="Failed to upload file", error="No file in query"), 400
-
-    file = request.files['file']
-
-    app.logger.info("Length: {length}".format(length=file.content_length))
-    app.logger.info("Headers: {headers}".format(headers=file.headers))
-
-    if file.filename == '':
-        return jsonify(description="Failed to upload file", error="No file selected"), 400
-
-    filename = secure_filename(file.filename)
-    action = f"cat > {path}/{filename}"
-    retval = exec_remote_command(auth_header, system_name, system_addr, action, file_transfer="upload", file_content=file.read())
-
-    if retval["error"] != 0:
-        return parse_io_error(retval, 'upload file', path)
-
-    return jsonify(description="File upload successful"), 201
+    return common_fs_operation(request, "upload", "POST")
 
 
 @app.route("/status", methods=["GET"])
