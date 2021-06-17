@@ -9,7 +9,7 @@
 
 FROM centos:7
 
-ARG SLURM_VERSION=20.11.4
+ARG SLURM_VERSION=20.11.7
 
 RUN set -ex \
     && yum makecache fast \
