@@ -54,7 +54,7 @@ app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE_BYTES
 @app.route("/file", methods=["GET"])
 @check_auth_header
 def file_type():
-    return common_fs_operation(request, "file", "GET")
+    return common_fs_operation(request, "file")
 
 
 ## chmod: Change Mode of path in Filesystem
@@ -66,7 +66,7 @@ def file_type():
 @app.route("/chmod", methods=["PUT"])
 @check_auth_header
 def chmod():
-    return common_fs_operation(request, "chmod", "PUT")
+    return common_fs_operation(request, "chmod")
 
 
 ## chown: Change owner of path in Filesystem
@@ -79,7 +79,7 @@ def chmod():
 @app.route("/chown", methods=["PUT"])
 @check_auth_header
 def chown():
-    return common_fs_operation(request, "chown", "PUT")
+    return common_fs_operation(request, "chown")
 
 
 ## ls: List Directory contents
@@ -91,7 +91,7 @@ def chown():
 @app.route("/ls", methods=["GET"])
 @check_auth_header
 def list_directory():
-    return common_fs_operation(request, "ls", "GET")
+    return common_fs_operation(request, "ls")
 
 
 #
@@ -174,7 +174,7 @@ def ls_parse(request, retval):
 @app.route("/mkdir", methods=["POST"])
 @check_auth_header
 def make_directory():
-    return common_fs_operation(request, "mkdir", "POST")
+    return common_fs_operation(request, "mkdir")
 
 
 ## Returns the content (head) from the specified path on the {machine} filesystem
@@ -186,7 +186,7 @@ def make_directory():
 @check_auth_header
 def view():
     try:
-        resp = common_fs_operation(request, "stat", "GET")
+        resp = common_fs_operation(request, "stat")
         if resp[1] != 200:
             return resp
         out = json.loads(resp[0].data.decode())
@@ -202,7 +202,7 @@ def view():
         return jsonify(description="Failed to view file content"), 400, header
 
     # TODO: download with base64 to avoid encoding conversion and string processing ?
-    return common_fs_operation(request, "head", "GET")
+    return common_fs_operation(request, "head")
 
 
 ## checksum: Print or check SHA256 (256-bit) checksums
@@ -213,7 +213,7 @@ def view():
 @app.route("/checksum", methods=["GET"])
 @check_auth_header
 def checksum():
-    return common_fs_operation(request, "checksum", "GET")
+    return common_fs_operation(request, "checksum")
 
 
 ## rename/move
@@ -225,7 +225,7 @@ def checksum():
 @app.route("/rename", methods=["PUT"])
 @check_auth_header
 def rename():
-    return common_fs_operation(request, "rename", "PUT")
+    return common_fs_operation(request, "rename")
 
 
 ## copy cp
@@ -236,11 +236,11 @@ def rename():
 @app.route("/copy", methods=["POST"])
 @check_auth_header
 def copy():
-    return common_fs_operation(request, "copy", "POST")
+    return common_fs_operation(request, "copy")
 
 
 ## common code for file operations:
-def common_fs_operation(request, command, method):
+def common_fs_operation(request, command):
     # check appropiate headers and identify machine
     auth_header = request.headers[AUTH_HEADER_NAME]
 
@@ -262,7 +262,7 @@ def common_fs_operation(request, command, method):
     # get targetPath to apply command
     tn = 'targetPath'
     try:
-        if method == 'GET':
+        if request.method == 'GET':
             targetPath = request.args.get("targetPath", "")
             if (targetPath == "") and (command in ['base64', 'stat']):
                 # TODO: review API
@@ -423,7 +423,7 @@ def common_fs_operation(request, command, method):
 @app.route("/rm", methods=["DELETE"])
 @check_auth_header
 def rm():
-    return common_fs_operation(request, "rm", "DELETE")
+    return common_fs_operation(request, "rm")
 
 
 ## Symbolic Link
@@ -435,7 +435,7 @@ def rm():
 @app.route("/symlink", methods=["POST"])
 @check_auth_header
 def symlink():
-    return common_fs_operation(request, "symlink", "POST")
+    return common_fs_operation(request, "symlink")
 
 
 ## Returns the file from the specified path on the {machine} filesystem
@@ -448,7 +448,7 @@ def symlink():
 def download():
     try:
         # returns a tuple (json_msg, status_code [, header])
-        resp = common_fs_operation(request, "stat", "GET")
+        resp = common_fs_operation(request, "stat")
         if resp[1] != 200:
             return resp
         out = json.loads(resp[0].data.decode())
@@ -482,7 +482,7 @@ def download():
     # download with base64 to avoid encoding conversion and string processing
     try:
         # returns a tuple (json_msg, status_code [, header])
-        resp = common_fs_operation(request, "base64", "GET")
+        resp = common_fs_operation(request, "base64")
         if resp[1] != 200:
             return resp
         out = json.loads(resp[0].data.decode())
@@ -519,7 +519,7 @@ def request_entity_too_large(error):
 @app.route("/upload", methods=["POST"])
 @check_auth_header
 def upload():
-    return common_fs_operation(request, "upload", "POST")
+    return common_fs_operation(request, "upload")
 
 
 @app.route("/status", methods=["GET"])
