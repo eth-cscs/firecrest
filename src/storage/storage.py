@@ -818,7 +818,7 @@ def internal_operation(request, command):
     try:
         account = request.form["account"]
         v = validate_input(account)
-        if v != None:
+        if v != "":
             return jsonify(description="Invalid account", error=f"'account' {v}"), 400
     except:
         if USE_SLURM_ACCOUNT:
