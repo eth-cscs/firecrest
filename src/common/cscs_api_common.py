@@ -18,6 +18,7 @@ import requests
 import urllib
 import base64
 import io
+import re
 import time
 
 # Checks if an environment variable injected to F7T is a valid True value
@@ -56,6 +57,10 @@ CERTIFICATOR_URL = os.environ.get("F7T_CERTIFICATOR_URL")
 TASKS_URL = os.environ.get("F7T_TASKS_URL")
 
 F7T_SSH_CERTIFICATE_WRAPPER = get_boolean_var(os.environ.get("F7T_SSH_CERTIFICATE_WRAPPER", False))
+
+# Fobidden chars on user path/parameters: wihtout scapes: < > | ; " ' & \ [ ] ( ) x00-x1F
+#   r'...' specifies it's a regular expression with special treatment for \
+FORBIDDEN_INPUT_CHARS = r'[\<\>\|\;\"\'\&\\\[\]\(\)\x00-\x1F]'
 
 # OPA endpoint
 OPA_USE = get_boolean_var(os.environ.get("F7T_OPA_USE",False))
@@ -186,7 +191,7 @@ def create_certificate(auth_header, cluster_name, cluster_addr,  command=None, o
     try:
         resp = requests.get(reqURL, headers={AUTH_HEADER_NAME: auth_header}, verify= (SSL_CRT if USE_SSL else False) )
 
-        if not resp.ok:
+        if resp.status_code != 200:
             return [None, resp.status_code, resp.json()["description"]]
 
         jcert = resp.json()
@@ -379,7 +384,7 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
             result = {"error": -2, "msg": "Receive ready timeout exceeded"}
         elif stderr_errno == -1:
             result = {"error": -1, "msg": "No exit status was provided by the server"}
-        
+
 
 
     # first if paramiko exception raise
@@ -794,4 +799,15 @@ def check_command_error(error_str, error_code, service_msg):
     return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
 
 
+
+## Test if user provided text is not empty and has no invalid chars
+def validate_input(text):
+    if text == None:
+        return "not specified"
+    if text == "":
+        return "is empty"
+    if re.search(FORBIDDEN_INPUT_CHARS, text) != None:
+        logging.warning(f'Forbidden char on: {base64.urlsafe_b64encode(text.encode()).decode()}')
+        return "has invalid char"
+    return ""
 
