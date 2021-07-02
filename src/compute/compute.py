@@ -14,7 +14,7 @@ import sys
 
 from cscs_api_common import check_auth_header, get_username, \
     exec_remote_command, create_task, update_task, clean_err_output, \
-    in_str, is_valid_file, get_boolean_var
+    in_str, is_valid_file, get_boolean_var, validate_input
 
 from job_time import check_sacctTime
 
@@ -64,7 +64,7 @@ if USE_SPANK_PLUGIN != None:
 else:
     # if not set, create a list of False values, one for each SYSTEM
     USE_SPANK_PLUGIN = [False]*len(SYS_INTERNALS)
-        
+
 
 # Filesystems where to save sbatch files
 # F7T_FILESYSTEMS = "/home,/scratch;/home"
@@ -82,6 +82,9 @@ TAIL_BYTES = os.environ.get("F7T_TAIL_BYTES",1000)
 #max file size for sbatch upload in MB (POST compute/job)
 MAX_FILE_SIZE=int(os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE"))
 TIMEOUT = int(os.environ.get("F7T_UTILITIES_TIMEOUT"))
+
+# string to separate fields on squeue, avoid forbidden chars
+SQUEUE_SEP = ".:."
 
 app = Flask(__name__)
 # max content length for upload in bytes
@@ -186,7 +189,7 @@ def submit_job_task(auth_header, system_name, system_addr, job_file, job_dir, us
         # execute sbatch
 
         plugin_option = ("" if not use_plugin else SPANK_PLUGIN_OPTION)
-        
+
         action = f"sbatch {plugin_option} --chdir={job_dir} {scopes_parameters} -- {job_file['filename']}"
         app.logger.info(action)
 
@@ -329,7 +332,7 @@ def submit_job_path_task(auth_header,system_name, system_addr,fileName,job_dir, 
 
         app.logger.error(e.args)
 
-    
+
     plugin_option = ("" if not use_plugin else SPANK_PLUGIN_OPTION)
 
     action=f"sbatch {plugin_option} --chdir={job_dir} {scopes_parameters} -- {fileName}"
@@ -369,7 +372,7 @@ def submit_job_path_task(auth_header,system_name, system_addr,fileName,job_dir, 
 @app.errorhandler(413)
 def request_entity_too_large(error):
     app.logger.error(error)
-    return jsonify(description="Failed to upload sbatch file. The file is over {} MB".format(MAX_FILE_SIZE)), 413
+    return jsonify(description=f"Failed to upload sbatch file. The file is over {MAX_FILE_SIZE} MB"), 413
 
 # Submit a batch script to SLURM on the target system.
 # The batch script is uploaded as a file
@@ -396,7 +399,7 @@ def submit_job_upload():
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
     system_addr = SYS_INTERNALS[system_idx]
-    
+
 
     # check if machine is accessible by user:
     # exec test remote command
@@ -445,7 +448,7 @@ def submit_job_upload():
 
     # create tmp file with timestamp
     # using hash_id from Tasks, which is user-task_id (internal)
-    tmpdir = "{task_id}".format(task_id=task_id)
+    tmpdir = f"{task_id}"
 
     username = get_username(auth_header)
 
@@ -495,6 +498,11 @@ def submit_job_path():
     system_addr = SYS_INTERNALS[system_idx]
     use_plugin = USE_SPANK_PLUGIN[system_idx]
 
+    targetPath = request.form.get("targetPath", None)
+    v = validate_input(targetPath)
+    if v != "":
+        return jsonify(description="Failed to submit job", error=f"'targetPath' {v}"), 400
+
     # check if machine is accessible by user:
     # exec test remote command
     resp = exec_remote_command(auth_header, system_name, system_addr, "true")
@@ -507,21 +515,6 @@ def submit_job_path():
         if in_str(error_str,"Permission") or in_str(error_str,"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Failed to submit job"), 404, header
-
-    try:
-        targetPath = request.form["targetPath"]
-    except KeyError as e:
-        data = jsonify(description="Failed to submit job", error="'targetPath' parameter not set in request")
-        return data, 400
-
-    if targetPath == None:
-        data = jsonify(description="Failed to submit job", error="'targetPath' parameter not set in request")
-        return data, 400
-
-    if targetPath == "":
-        data = jsonify(description="Failed to submit job", error="'targetPath' parameter value is empty")
-        return data, 400
-
 
     # checks if targetPath is a valid path for this user in this machine
     check = is_valid_file(targetPath, auth_header, system_name, system_addr)
@@ -554,7 +547,7 @@ def submit_job_path():
         aTask.start()
         retval = update_task(task_id, auth_header, async_task.QUEUED, TASKS_URL)
 
-        task_url = "{KONG_URL}/tasks/{task_id}".format(KONG_URL=KONG_URL, task_id=task_id)
+        task_url = f"{KONG_URL}/tasks/{task_id}"
         data = jsonify(success="Task created", task_id=task_id, task_url=task_url)
         return data, 201
 
@@ -626,6 +619,9 @@ def list_jobs():
     # by default empty
     job_list = ""
     if jobs != None:
+        v = validate_input(jobs)
+        if v != "":
+            return jsonify(description="Failed to retrieve job information", error=f"'jobs' {v}"), 400
         try:
             # check if input is correct:
             job_aux_list = jobs.split(",")
@@ -636,14 +632,15 @@ def list_jobs():
                 if not is_jobid(jobid):
                     return jsonify(error=f"{jobid} is not a valid job ID", description="Failed to retrieve job information"), 400
 
-            job_list="--job={jobs}".format(jobs=jobs)
+            job_list = f"--job='{jobs}'"
         except:
             return jsonify(error="Jobs list wrong format",description="Failed to retrieve job information"), 400
 
+    S = SQUEUE_SEP
     # format: jobid (i) partition (P) jobname (j) user (u) job sTate (T),
     #          start time (S), job time (M), left time (L)
     #           nodes allocated (M) and resources (R)
-    action = f"squeue -u {username} {job_list} --format='%i|%P|%j|%u|%T|%M|%S|%L|%D|%R' --noheader"
+    action = f"squeue -u {username} {job_list} --format='%i{S}%P{S}%j{S}%u{S}%T{S}%M{S}%S{S}%L{S}%D{S}%R' --noheader"
 
     try:
         task_id = create_task(auth_header,service="compute")
@@ -710,23 +707,21 @@ def list_job_task(auth_header,system_name, system_addr,action,task_id,pageSize,p
     app.logger.info(f"Total Pages: {totalPages}")
 
     if pageNumber < 0 or pageNumber > totalPages-1:
-        app.logger.warning(
-            "pageNumber ({pageNumber}) greater than total pages ({totalPages})".format(pageNumber=pageNumber,
-                                                                                       totalPages=totalPages))
+        app.logger.warning(f"pageNumber ({pageNumber}) greater than total pages ({totalPages})")
         app.logger.warning("set to default")
         pageNumber = 0
 
     beg_reg = int(pageNumber * pageSize)
     end_reg = int( (pageNumber+1 * pageSize) -1 )
 
-    app.logger.info("Initial reg {beg_reg}, final reg: {end_reg}".format(beg_reg=beg_reg, end_reg=end_reg))
+    app.logger.info(f"Initial reg {beg_reg}, final reg: {end_reg}")
 
     jobList = jobList[beg_reg:end_reg + 1]
 
     jobs = {}
     for job_index in range(len(jobList)):
         job = jobList[job_index]
-        jobaux = job.split("|")
+        jobaux = job.split(SQUEUE_SEP)
         jobinfo = {"jobid": jobaux[0], "partition": jobaux[1], "name": jobaux[2],
                    "user": jobaux[3], "state": jobaux[4], "start_time": jobaux[5],
                    "time": jobaux[6], "time_left": jobaux[7],
@@ -786,11 +781,11 @@ def list_job(jobid):
     username = get_username(auth_header)
     app.logger.info(f"Getting SLURM information of job={jobid} from {system_name} ({system_addr})")
 
+    S = SQUEUE_SEP
     # format: jobid (i) partition (P) jobname (j) user (u) job sTate (T),
     #          start time (S), job time (M), left time (L)
     #           nodes allocated (M) and resources (R)
-    action = "squeue -u {username} --format='%i|%P|%j|%u|%T|%M|%S|%L|%D|%R' --noheader -j {jobid}".\
-        format(username=username,jobid=jobid)
+    action = f"squeue -u {username} --format='%i{S}%P{S}%j{S}%u{S}%T{S}%M{S}%S{S}%L{S}%D{S}%R' --noheader -j '{jobid}'"
 
     try:
         # obtain new task from Tasks microservice
@@ -808,7 +803,7 @@ def list_job(jobid):
 
         aTask.start()
 
-        task_url = "{KONG_URL}/tasks/{task_id}".format(KONG_URL=KONG_URL, task_id=task_id)
+        task_url = f"{KONG_URL}/tasks/{task_id}"
 
         data = jsonify(success="Task created", task_id=task_id, task_url=task_url)
         return data, 200
@@ -882,6 +877,10 @@ def cancel_job(jobid):
     system_idx = SYSTEMS_PUBLIC.index(system_name)
     system_addr = SYS_INTERNALS[system_idx]
 
+    v = validate_input(jobid)
+    if v != "":
+        return jsonify(description="Failed to delete job", error=f"'jobid' {v}"), 400
+
     # check if machine is accessible by user:
     # exec test remote command
     resp = exec_remote_command(auth_header, system_name, system_addr, "true")
@@ -896,10 +895,11 @@ def cancel_job(jobid):
             return jsonify(description="Failed to delete job"), 404, header
 
 
+
     app.logger.info(f"Cancel SLURM job={jobid} from {system_name} ({system_addr})")
 
     # scancel with verbose in order to show correctly the error
-    action = f"scancel -v {jobid}"
+    action = f"scancel -v '{jobid}'"
 
     try:
         # obtain new task from TASKS microservice.
@@ -956,7 +956,7 @@ def acct_task(auth_header, system_name, system_addr, action, task_id):
     joblist = resp["msg"].split("$")
     jobs = []
     for job in joblist:
-
+        # ouput by sacct uses '|'
         jobaux = job.split("|")
         jobinfo = {"jobid": jobaux[0], "partition": jobaux[1], "name": jobaux[2],
                    "user": jobaux[3], "state": jobaux[4], "start_time": jobaux[5],
@@ -1011,7 +1011,7 @@ def acct():
         if starttime != "":
             # check if starttime parameter is correctly encoded
             if check_sacctTime(starttime):
-                start_time_opt  = " --starttime={start_time} ".format(start_time=starttime)
+                start_time_opt  = f" --starttime='{starttime}' "
             else:
                 app.logger.warning("starttime wrongly encoded")
 
@@ -1021,7 +1021,7 @@ def acct():
         if endtime != "":
             # check if endtime parameter is correctly encoded
             if check_sacctTime(endtime):
-                end_time_opt = " --endtime={end_time} ".format(end_time=endtime)
+                end_time_opt = f" --endtime='{endtime}' "
             else:
                 app.logger.warning("endtime wrongly encoded")
     except Exception as e:
@@ -1032,10 +1032,13 @@ def acct():
     # check optional parameter jobs=jobidA,jobidB,jobidC
     jobs_opt = ""
 
-    jobs = request.args.get("jobs","")
+    jobs = request.args.get("jobs", "")
 
     if jobs != "":
-        jobs_opt = " --jobs={jobs} ".format(jobs=jobs)
+        v = validate_input(jobs)
+        if v != "":
+            return jsonify(description="Failed to retrieve account information", error=f"'jobs' {v}"), 400
+        jobs_opt = f" --jobs='{jobs}' "
 
     # sacct
     # -X so no step information is shown (ie: just jobname, not jobname.batch or jobname.0, etc)
@@ -1047,9 +1050,9 @@ def acct():
     #          8 - nodes allocated and 9 - resources
     # --parsable2 = limits with | character not ending with it
 
-    action = "sacct -X {starttime} {endtime} {jobs_opt} " \
+    action = f"sacct -X {start_time_opt} {end_time_opt} {jobs_opt} " \
              "--format='jobid,partition,jobname,user,state,start,cputime,end,NNodes,NodeList' " \
-              "--noheader --parsable2".format(starttime=start_time_opt,endtime=end_time_opt, jobs_opt=jobs_opt)
+              "--noheader --parsable2"
 
     try:
         # obtain new task from Tasks microservice
@@ -1067,7 +1070,7 @@ def acct():
                                  args=(auth_header, system_name, system_addr, action, task_id))
 
         aTask.start()
-        task_url = "{KONG_URL}/tasks/{task_id}".format(KONG_URL=KONG_URL, task_id=task_id)
+        task_url = f"{KONG_URL}/tasks/{task_id}"
 
         data = jsonify(success="Task created", task_id=task_id, task_url=task_url)
         return data, 200

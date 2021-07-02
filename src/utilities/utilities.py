@@ -16,7 +16,7 @@ import io
 import json
 from math import ceil
 
-from cscs_api_common import check_auth_header, get_username,exec_remote_command, parse_io_error, check_command_error, in_str, get_boolean_var
+from cscs_api_common import check_auth_header, exec_remote_command, check_command_error, get_boolean_var, validate_input
 
 CERTIFICATOR_URL = os.environ.get("F7T_CERTIFICATOR_URL")
 
@@ -94,7 +94,7 @@ def list_directory():
     return common_fs_operation(request, "ls")
 
 
-#
+## parse ls output
 def ls_parse(request, retval):
     # file List is retorned as a string separated for a $ character
     fileList = []
@@ -253,7 +253,7 @@ def common_fs_operation(request, command):
     # PUBLIC endpoints from Kong to users
     if system_name not in SYSTEMS_PUBLIC:
         header = {"X-Machine-Does-Not-Exist": "Machine does not exist"}
-        return jsonify(description="Error on " + command + " operation", error="Machine does not exist"), 400, header
+        return jsonify(description=f"Error on {command} operation", error="Machine does not exist"), 400, header
 
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
@@ -261,29 +261,24 @@ def common_fs_operation(request, command):
 
     # get targetPath to apply command
     tn = 'targetPath'
-    try:
-        if request.method == 'GET':
-            targetPath = request.args.get("targetPath", "")
-            if (targetPath == "") and (command in ['base64', 'stat']):
-                # TODO: review API
-                tn = "sourcePath"
-                targetPath = request.args.get("sourcePath", "")
-        else: # DELETE, POST, PUT
-            targetPath = request.form["targetPath"]
-    except BadRequestKeyError:
-        return jsonify(description="Error on " + command + " operation", error="targetPath query string missing"), 400
+    if request.method == 'GET':
+        targetPath = request.args.get("targetPath", None)
+        if (targetPath == None) and (command in ['base64', 'stat']):
+            # TODO: review API
+            tn = "sourcePath"
+            targetPath = request.args.get("sourcePath", None)
+    else: # DELETE, POST, PUT
+        targetPath = request.form.get("targetPath", None)
 
-    if targetPath == "":
-        return jsonify(description="Error on " + command + " operation", error=f"'{tn}' value is empty"), 400
-
+    v = validate_input(targetPath)
+    if v != "":
+        return jsonify(description=f"Error on {command} operation", error=f"'{tn}' {v}"), 400
 
     if command in ['copy', 'rename']:
-        try:
-            sourcePath = request.form["sourcePath"]
-        except BadRequestKeyError:
-            return jsonify(description="Error on " + command + " operation", error="'sourcePath' query string missing"), 400
-        if sourcePath == "":
-            return jsonify(description="Error on " + command + " operation", error="'sourcePath' value is empty"), 400
+        sourcePath = request.form.get("sourcePath", None)
+        v = validate_input(sourcePath)
+        if v != "":
+            return jsonify(description=f"Error on {command} operation", error=f"'sourcePath' {v}"), 400
 
     file_content = None
     file_transfer = None
@@ -295,27 +290,20 @@ def common_fs_operation(request, command):
     elif command == "checksum":
         action = f"sha256sum -- '{targetPath}'"
     elif command == "chmod":
-        try:
-            mode = request.form["mode"]
-            if mode == "":
-                return jsonify(description="Error in chmod operation", error="'mode' value is empty"), 400
-        except BadRequestKeyError:
-            return jsonify(description="Error in chmod operation", error="mode query string missing"), 400
+        mode = request.form.get("mode", None)
+        v = validate_input(mode)
+        if v != "":
+            return jsonify(description="Error on chmod operation", error=f"'mode' {v}"), 400
         action = f"chmod -v '{mode}' -- '{targetPath}'"
-
     elif command == "chown":
-        try:
-            owner = request.form["owner"]
-        except Exception:
-            owner = ""
-        try:
-            group = request.form["group"]
-        except Exception:
-            group = ""
+        owner = request.form.get("owner", "")
+        group = request.form.get("group", "")
         if owner == "" and group == "":
-            return jsonify(description="Error in chown operation", error="group and/or owner should be set"), 400
+            return jsonify(description="Error in chown operation", error="group or owner must be set"), 400
+        v = validate_input(owner + group)
+        if v != "":
+            return jsonify(description="Error in chown operation", error="group or owner {v}"), 400
         action = f"chown -v '{owner}':'{group}' -- '{targetPath}'"
-
     elif command == "copy":
         # -r is for recursivelly copy files into directories
         action = f"cp --force -dR --preserve=all -- '{sourcePath}' '{targetPath}'"
@@ -350,13 +338,10 @@ def common_fs_operation(request, command):
     elif command == "stat":
         action = f"stat --dereference -c %s -- '{targetPath}'"
     elif command == "symlink":
-        try:
-            linkPath = request.form["linkPath"]
-            if linkPath == "":
-                return jsonify(description="Failed to create symlink", error="'linkPath' value is empty"), 400
-        except BadRequestKeyError:
-            return jsonify(description="Failed to create symlink", error="'linkPath' query string missing"), 400
-
+        linkPath = request.form.get("linkPath", None)
+        v = validate_input(linkPath)
+        if v != "":
+            return jsonify(description="Failed to create symlink", error=f"'linkPath' value {v}"), 400
         action = f"ln -s -- '{targetPath}' '{linkPath}'"
         success_code = 201
     elif command == "upload":
@@ -366,8 +351,9 @@ def common_fs_operation(request, command):
             file = request.files['file']
             app.logger.info(f"Upload length: {file.content_length}")
             #app.logger.info(f"Upload headers: {file.headers}")
-            if file.filename == '':
-                return jsonify(description="Failed to upload file", error="No filename selected"), 400
+            v = validate_input(file.filename)
+            if v != "":
+                return jsonify(description="Failed to upload file", error=f"Filename {v}"), 400
         except:
             return jsonify(description='Error on upload operation', output=''), 400
         filename = secure_filename(file.filename)
@@ -376,7 +362,7 @@ def common_fs_operation(request, command):
         file_transfer = 'upload'
         success_code = 201
     else:
-        app.logger.error("Unknown command on common_fs_operation: " + command)
+        app.logger.error(f"Unknown command on common_fs_operation: {command}")
         return jsonify(description="Error on internal operation", error="Internal error"), 400
 
 
@@ -398,7 +384,7 @@ def common_fs_operation(request, command):
             return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
 
 
-    description = "Success to " + command + " file or directory."
+    description = f"Success to {command} file or directory."
     output = ''
     if command == 'checksum':
         # return only hash, msg sintax:  hash filename
@@ -476,7 +462,7 @@ def download():
                      attachment_filename=file_name,
                      as_attachment=True)
     except Exception as e:
-        app.logger.error("Download decode error: " + e.message)
+        app.logger.error(f"Download decode error: {e.message}")
         return jsonify(description="Failed to download file"), 400
 
     # download with base64 to avoid encoding conversion and string processing
@@ -494,7 +480,7 @@ def download():
         data.write(base64.b64decode(out["output"]))
         data.seek(0)
     except Exception as e:
-        app.logger.error("Download decode error: " + e.message)
+        app.logger.error(f"Download decode error: {e.message}")
         return jsonify(description="Failed to download file"), 400
 
     return send_file(data,
