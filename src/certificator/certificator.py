@@ -322,13 +322,13 @@ if __name__ == "__main__":
     try:
         cas = os.stat('ca-key').st_mode
         if oct(cas & 0o477) != '0o400':
-            app.logger.error("ERROR: wrong 'ca-key' permissions, please set to 400. Exiting.")
-            raise SystemExit
-    except SystemExit as e:
-        exit(e)
-    except:
-        app.logger.error("ERROR: couldn't read 'ca-key', exiting.")
-        exit(1)
+            msg = "ERROR: wrong 'ca-key' permissions, please set to 400. Exiting."
+            app.logger.error(msg)
+            exit(msg)
+    except OSError as e:
+        msg = f"ERROR: couldn't stat 'ca-key', message: {e.strerror} - Exiting."
+        app.logger.error(msg)
+        exit(msg)
 
     # run app
     # debug = False, so output redirects to log files
