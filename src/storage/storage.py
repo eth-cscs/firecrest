@@ -19,7 +19,7 @@ from cscs_api_common import create_task, update_task, get_task_status
 from cscs_api_common import exec_remote_command
 from cscs_api_common import create_certificate
 from cscs_api_common import in_str
-from cscs_api_common import is_valid_file, is_valid_dir, check_command_error, get_boolean_var
+from cscs_api_common import is_valid_file, is_valid_dir, check_command_error, get_boolean_var, validate_input
 
 # job_time_checker for correct SLURM job time in /xfer-internal tasks
 import job_time
@@ -388,11 +388,11 @@ def download_request():
 
     system_addr = EXT_TRANSFER_MACHINE_INTERNAL
     system_name = EXT_TRANSFER_MACHINE_PUBLIC
-    sourcePath = request.form["sourcePath"]  # path file in cluster
 
-    if sourcePath == None or sourcePath == "":
-        data = jsonify(error="Source path not set in request")
-        return data, 400
+    sourcePath = request.form.get("sourcePath", None) # path file in cluster
+    v = validate_input(sourcePath)
+    if v != "":
+        return jsonify(description="Failed to download file", error=f"'sourcePath' {v}"), 400
 
     # checks if sourcePath is a valid path
     check = is_valid_file(sourcePath, auth_header, system_name, system_addr)
@@ -407,8 +407,7 @@ def download_request():
 
     # couldn't create task
     if task_id == -1:
-        data = jsonify(error="Couldn't create task")
-        return data, 400
+        return jsonify(error="Couldn't create task"), 400
 
     # asynchronous task creation
     aTask = threading.Thread(target=download_task,
@@ -421,7 +420,7 @@ def download_request():
 
         storage_tasks[task_id].start()
 
-        task_url = "{kong_url}/tasks/{task_id}".format(kong_url=KONG_URL, task_id=task_id)
+        task_url = f"{KONG_URL}/tasks/{task_id}"
 
         data = jsonify(success="Task created", task_url=task_url, task_id=task_id)
         return data, 201
@@ -438,8 +437,9 @@ def download_request():
 @check_auth_header
 def invalidate_request():
     try:
-
         task_id = request.headers["X-Task-Id"]
+        if not task_id.isalnum():
+            return jsonify(error="Header X-Task-Id is not alphanumeric"), 400
     except KeyError as e:
         return jsonify(error="Header X-Task-Id missing"), 400
 
@@ -587,25 +587,17 @@ def upload_request():
     system_addr = EXT_TRANSFER_MACHINE_INTERNAL
     system_name = EXT_TRANSFER_MACHINE_PUBLIC
 
+    targetPath = request.form.get("targetPath", None) # path to save file in cluster
+    v = validate_input(targetPath)
+    if v != "":
+        return jsonify(description="Failed to upload file", error=f"'targetPath' {v}"), 400
 
-    targetPath   = request.form["targetPath"] # path to save file in cluster
-    sourcePath   = request.form["sourcePath"] # path from the local FS
+    sourcePath = request.form.get("sourcePath", None) # path from the local FS
+    v = validate_input(sourcePath)
+    if v != "":
+        return jsonify(description="Failed to upload file", error=f"'sourcePath' {v}"), 400
 
-
-    if system_addr == None or system_addr == "":
-        data = jsonify(error="System not set in request")
-        return data, 400
-
-    if targetPath == None or targetPath == "":
-        data = jsonify(error="Target path not set in request")
-        return data, 400
-
-
-    if sourcePath == None or sourcePath == "":
-        data = jsonify(error="Source path not set in request")
-        return data, 400
-
-    # checks if sourcePath is a valid path
+    # checks if targetPath is a valid path
     check = is_valid_dir(targetPath, auth_header, system_name, system_addr)
 
     if not check["result"]:
@@ -616,7 +608,6 @@ def upload_request():
 
     if task_id == -1:
         return jsonify(error="Error creating task"), 400
-
 
     # asynchronous task creation
     try:
@@ -629,7 +620,7 @@ def upload_request():
 
         storage_tasks[task_id].start()
 
-        task_url = "{kong_url}/tasks/{task_id}".format(kong_url=KONG_URL,task_id=task_id)
+        task_url = f"{KONG_URL}/tasks/{task_id}"
 
         data = jsonify(success="Task created",task_url=task_url,task_id=task_id)
         return data, 201
@@ -655,33 +646,31 @@ def upload_request():
 # account = value to set in --account parameter
 def exec_internal_command(auth_header,command,sourcePath, targetPath, jobName, jobTime, stageOutJobId, account):
 
-
-    action = "{command} {sourcePath} {targetPath}".\
-                format(command=command, sourcePath=sourcePath, targetPath=targetPath)
+    action = f"{command} '{sourcePath}' '{targetPath}'"
     try:
         td = tempfile.mkdtemp(prefix="job")
 
         sbatch_file = open(td + "/sbatch-job.sh", "w")
 
         sbatch_file.write("#! /bin/bash -l\n")
-        sbatch_file.write("#SBATCH --job-name={jobName}\n".format(jobName=jobName))
-        sbatch_file.write("#SBATCH --time={jobTime}\n".format(jobTime=jobTime))
+        sbatch_file.write(f"#SBATCH --job-name='{jobName}'\n")
+        sbatch_file.write(f"#SBATCH --time={jobTime}\n")
         sbatch_file.write("#SBATCH --error=job-%j.err\n")
         sbatch_file.write("#SBATCH --output=job-%j.out\n")
         sbatch_file.write("#SBATCH --ntasks=1\n")
-        sbatch_file.write("#SBATCH --partition={xfer}\n".format(xfer=XFER_PARTITION))
+        sbatch_file.write(f"#SBATCH --partition={XFER_PARTITION}\n")
         # test line for error
         # sbatch_file.write("#SBATCH --constraint=X2450\n")
 
         if stageOutJobId != None:
-            sbatch_file.write("#SBATCH --dependency=afterok:{stageOutJobId}\n".format(stageOutJobId=stageOutJobId))
+            sbatch_file.write(f"#SBATCH --dependency=afterok:{stageOutJobId}\n")
         if account != None:
             app.logger.info(account)
-            sbatch_file.write(f"#SBATCH --account={account}")
+            sbatch_file.write(f"#SBATCH --account='{account}'")
 
         sbatch_file.write("\n")
-        sbatch_file.write("echo -e \"$SLURM_JOB_NAME started on $(date): {action}\"\n".format(action=action))
-        sbatch_file.write("srun -n $SLURM_NTASKS {action}\n".format(action=action))
+        sbatch_file.write(f"echo -e \"$SLURM_JOB_NAME started on $(date): {action}\"\n")
+        sbatch_file.write(f"srun -n $SLURM_NTASKS {action}\n")
         sbatch_file.write("echo -e \"$SLURM_JOB_NAME finished on $(date)\"\n")
 
         sbatch_file.close()
@@ -691,13 +680,15 @@ def exec_internal_command(auth_header,command,sourcePath, targetPath, jobName, j
         result = {"error": 1, "msg":ioe.message}
         return result
 
-
     # create xfer job
     resp = create_xfer_job(STORAGE_JOBS_MACHINE, auth_header, td + "/sbatch-job.sh")
 
-    # remove sbatch file and dir
-    os.remove(td + "/sbatch-job.sh")
-    os.rmdir(td)
+    try:
+        # remove sbatch file and dir
+        os.remove(td + "/sbatch-job.sh")
+        os.rmdir(td)
+    except IOError as ioe:
+        app.logger.error(f"Failed to remove temp sbatch file: {ioe.message}")
 
     return resp
 
@@ -738,25 +729,18 @@ def internal_operation(request, command):
     system_addr = SYS_INTERNALS_UTILITIES[system_idx]
     system_name = STORAGE_JOBS_MACHINE
 
-    try:
-        targetPath = request.form["targetPath"]  # path to save file in cluster
-        if targetPath == "":
-            return jsonify(error="targetPath is empty"), 400
-    except:
-        app.logger.error("targetPath not specified")
-        return jsonify(error="targetPath not specified"), 400
-
+    targetPath = request.form.get("targetPath", None)  # path to save file in cluster
+    v = validate_input(targetPath)
+    if v != "":
+        return jsonify(description=f"Error on {command} operation", error=f"'targetPath' {v}"), 400
 
     # using actual_command to add options to check sanity of the command to be executed
     actual_command = ""
     if command in ['cp', 'mv', 'rsync']:
-        try:
-            sourcePath = request.form["sourcePath"]  # path to get file in cluster
-            if sourcePath == "":
-                return jsonify(error="sourcePath is empty"), 400
-        except:
-            app.logger.error("sourcePath not specified")
-            return jsonify(error="sourcePath not specified"), 400
+        sourcePath = request.form.get("sourcePath", None)  # path to get file in cluster
+        v = validate_input(sourcePath)
+        if v != "":
+            return jsonify(description=f"Error on {command} operation", error=f"'sourcePath' {v}"), 400
 
         # checks if file to copy, move or rsync (targetPath) is a valid path
         # remove the last part of the path (after last "/" char) to check if the dir can be written by user
@@ -803,14 +787,14 @@ def internal_operation(request, command):
     else:
         return jsonify(error=f"Command {command} not allowed"), 400
 
-    try:
-        jobName = request.form["jobName"]  # jobName for SLURM
-        if jobName == None or jobName == "":
-            jobName = command + "-job"
-            app.logger.info("jobName not found, setting default to: {jobName}".format(jobName=jobName))
-    except:
+    jobName = request.form.get("jobName", "")  # jobName for SLURM
+    if jobName == "":
         jobName = command + "-job"
-        app.logger.info("jobName not found, setting default to: {jobName}".format(jobName=jobName))
+        app.logger.info(f"jobName not found, setting default to: {jobName}")
+    else:
+        v = validate_input(jobName)
+        if v != "":
+            return jsonify(description="Invalid jobName", error=f"'jobName' {v}"), 400
 
     try:
         jobTime = request.form["time"]  # job time, default is 2:00:00 H:M:s
@@ -819,10 +803,11 @@ def internal_operation(request, command):
     except:
         jobTime = "02:00:00"
 
-    try:
-        stageOutJobId = request.form["stageOutJobId"]  # start after this JobId has finished
-    except:
-        stageOutJobId = None
+    stageOutJobId = request.form.get("stageOutJobId", None)  # start after this JobId has finished
+    if stageOutJobId != None:
+        v = validate_input(stageOutJobId)
+        if v != "":
+            return jsonify(description="Invalid stageOutJobId", error=f"'stageOutJobId' {v}"), 400
 
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(STORAGE_JOBS_MACHINE)
@@ -832,6 +817,9 @@ def internal_operation(request, command):
     # get "account" parameter, if not found, it is obtained from "id" command
     try:
         account = request.form["account"]
+        v = validate_input(account)
+        if v != "":
+            return jsonify(description="Invalid account", error=f"'account' {v}"), 400
     except:
         if USE_SLURM_ACCOUNT:
             username = get_username(auth_header)
@@ -840,7 +828,6 @@ def internal_operation(request, command):
             resp = exec_remote_command(auth_header, STORAGE_JOBS_MACHINE, system_addr, id_command)
             if resp["error"] != 0:
                 retval = check_command_error(resp["msg"], resp["error"], f"{command} job")
-
                 return jsonify(description=f"Failed to submit {command} job", error=retval["description"]), retval["status_code"], retval["header"]
 
             account = resp["msg"]
@@ -885,8 +872,7 @@ def create_xfer_job(machine,auth_header,fileName):
     files = {'file': open(fileName, 'rb')}
 
     try:
-        req = requests.post("{compute_url}/jobs/upload".
-                            format(compute_url=COMPUTE_URL),
+        req = requests.post(f"{COMPUTE_URL}/jobs/upload",
                             files=files, headers={AUTH_HEADER_NAME: auth_header, "X-Machine-Name":machine}, verify= (SSL_CRT if USE_SSL else False))
 
         retval = json.loads(req.text)
