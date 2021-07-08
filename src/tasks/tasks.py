@@ -61,6 +61,7 @@ if JAEGER_AGENT != "":
     tracing = FlaskTracing(jaeger_tracer, True, app)
 else:
     jaeger_tracer = None
+    tracing = None
 
 # redis connection object
 r = None
@@ -158,8 +159,12 @@ def create_task():
     # create task with service included
     t = async_task.AsyncTask(task_id=str(task_id), user=username, service=service)
     tasks[t.hash_id] = t
-    span = tracing.get_span(request)
-    span.set_tag('f7t_task_id', t.hash_id)
+    if JAEGER_AGENT != "":
+        try:
+            span = tracing.get_span(request)
+            span.set_tag('f7t_task_id', t.hash_id)
+        except Exception as e:
+            app.logger.info(e)
 
     exp_time = STORAGE_TASK_EXP_TIME
 
@@ -172,9 +177,9 @@ def create_task():
     #               "status":async_task.QUEUED,
     #               "msg":async_task.status_codes[async_task.QUEUED]}
 
-    app.logger.info("New task created: {hash_id}".format(hash_id=t.hash_id))
+    app.logger.info(f"New task created: {t.hash_id}")
     app.logger.info(t.get_status())
-    task_url = "{KONG_URL}/tasks/{hash_id}".format(KONG_URL=KONG_URL,hash_id=t.hash_id)
+    task_url = f"{KONG_URL}/tasks/{t.hash_id}"
 
     data = jsonify(hash_id=t.hash_id, task_url=task_url)
 
@@ -264,8 +269,13 @@ def update_task(id):
 
     # for better knowledge of what this id is
     hash_id = id
-    span = tracing.get_span(request)
-    span.set_tag('f7t_task_id', hash_id)
+    if JAEGER_AGENT != "":
+        try:
+            span = tracing.get_span(request)
+            span.set_tag('f7t_task_id', hash_id)
+        except Exception as e:
+            app.logger.info(e)
+
 
     # if username isn't taks owner, then deny access, unless is ***
     try:
@@ -304,7 +314,7 @@ def update_task(id):
         app.logger.error(tasks[hash_id].get_internal_status())
         return jsonify(description="Couldn't update task"), 400
 
-    app.logger.info("New status for task {hash_id}: {status}".format(hash_id=hash_id,status=status))
+    app.logger.info(f"New status for task {hash_id}: {status}")
 
     data = jsonify(success="task updated")
     return data, 200

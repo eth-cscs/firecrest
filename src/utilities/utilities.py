@@ -60,25 +60,24 @@ if JAEGER_AGENT != "":
             service_name = "utilities")
     jaeger_tracer = config.initialize_tracer()
     tracing = FlaskTracing(jaeger_tracer, True, app)
-    JAEGER_TRACER_HEADER = "uber-trace-id"
 else:
     jaeger_tracer = None
-    JAEGER_TRACER_HEADER = ""
+    tracing = None
 
 
-def get_tracing_headers(headers, span):
+def get_tracing_headers(req):
     """
-    receives a span, returns headers suitable for RPC and ID for logging
+    receives a requests object, returns headers suitable for RPC and ID for logging
     """
-    ID = ''
     new_headers = {}
-    try:
-        jaeger_tracer.inject(span, opentracing.Format.TEXT_MAP, new_headers)
-        new_headers[AUTH_HEADER_NAME] = headers[AUTH_HEADER_NAME]
-        ID = new_headers.get(TRACER_HEADER, '')
-    except Exception as e:
-        app.logger.error(e)
+    if JAEGER_AGENT != "":
+        try:
+            jaeger_tracer.inject(tracing.get_span(req), opentracing.Format.TEXT_MAP, new_headers)
+        except Exception as e:
+            app.logger.error(e)
 
+    new_headers[AUTH_HEADER_NAME] = req.headers[AUTH_HEADER_NAME]
+    ID = new_headers.get(TRACER_HEADER, '')
     return new_headers, ID
 
 ## file: determines the type of file of path
@@ -397,7 +396,7 @@ def common_fs_operation(request, command):
         app.logger.error(f"Unknown command on common_fs_operation: {command}")
         return jsonify(description="Error on internal operation", error="Internal error"), 400
 
-    [headers, ID] = get_tracing_headers(request.headers, tracing.get_span(request))
+    [headers, ID] = get_tracing_headers(request)
     action = f"ID={ID} timeout {UTILITIES_TIMEOUT} {action}"
     retval = exec_remote_command(headers, system_name ,system_addr, action, file_transfer, file_content)
 

@@ -49,6 +49,8 @@ STORAGE_TEMPURL_EXP_TIME = os.environ.get("F7T_STORAGE_TEMPURL_EXP_TIME")
 STORAGE_MAX_FILE_SIZE = os.environ.get("F7T_STORAGE_MAX_FILE_SIZE")
 OBJECT_STORAGE=os.environ.get("F7T_OBJECT_STORAGE")
 
+TRACER_HEADER = "uber-trace-id"
+
 # debug on console
 debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
@@ -67,8 +69,23 @@ if JAEGER_AGENT != "":
     tracing = FlaskTracing(jaeger_tracer, True, app)
 else:
     jaeger_tracer = None
+    tracing = None
 
 
+def get_tracing_headers(req):
+    """
+    receives a requests object, returns headers suitable for RPC and ID for logging
+    """
+    new_headers = {}
+    if JAEGER_AGENT != "":
+        try:
+            jaeger_tracer.inject(tracing.get_span(req), opentracing.Format.TEXT_MAP, new_headers)
+        except Exception as e:
+            app.logger.error(e)
+
+    new_headers[AUTH_HEADER_NAME] = req.headers[AUTH_HEADER_NAME]
+    ID = new_headers.get(TRACER_HEADER, '')
+    return new_headers, ID
 
 def set_services():
     for servicename in SERVICES:
@@ -279,14 +296,8 @@ def status_service(servicename):
     # in compatibility with test all services
     status_list = []
 
-    trace_header = {}
-    try:
-        current_span = tracing.get_span(request)
-        jaeger_tracer.inject(current_span, opentracing.Format.TEXT_MAP, trace_header)
-    except Exception as e:
-        app.logger.error(e)
-
-    test_service(servicename, status_list, trace_header)
+    [headers, ID] = get_tracing_headers(request)
+    test_service(servicename, status_list, headers)
 
     # as it's just 1 service tested, 0 index is always valid
     serv_status = status_list[0]["status"]
@@ -321,16 +332,11 @@ def status_services():
     # create cross memory (between processes) list
     status_list = mgr.list()
 
-    trace_header = {}
-    try:
-        current_span = tracing.get_span(request)
-        jaeger_tracer.inject(current_span, opentracing.Format.TEXT_MAP, trace_header)
-    except Exception as e:
-        app.logger.error(e)
+    [headers, ID] = get_tracing_headers(request)
 
     # for each servicename, creates a process
     for servicename,serviceurl in SERVICES_DICT.items():
-        p = mp.Process(target=test_service, args=(servicename, status_list, trace_header))
+        p = mp.Process(target=test_service, args=(servicename, status_list, headers))
         process_list.append(p)
         p.start()
 

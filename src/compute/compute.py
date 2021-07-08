@@ -109,7 +109,7 @@ if JAEGER_AGENT != "":
     tracing = FlaskTracing(jaeger_tracer, True, app)
 else:
     jaeger_tracer = None
-
+    tracing = None
 
 def is_jobid(jobid):
     try:
@@ -150,19 +150,19 @@ def extract_jobid(outline):
 
     return jobid
 
-def get_tracing_headers(headers, span):
+def get_tracing_headers(req):
     """
-    receives a span, returns headers suitable for RPC and ID for logging
+    receives a requests object, returns headers suitable for RPC and ID for logging
     """
-    ID = ''
     new_headers = {}
-    try:
-        jaeger_tracer.inject(span, opentracing.Format.TEXT_MAP, new_headers)
-        new_headers[AUTH_HEADER_NAME] = headers[AUTH_HEADER_NAME]
-        ID = new_headers.get(TRACER_HEADER, '')
-    except Exception as e:
-        app.logger.error(e)
+    if JAEGER_AGENT != "":
+        try:
+            jaeger_tracer.inject(tracing.get_span(req), opentracing.Format.TEXT_MAP, new_headers)
+        except Exception as e:
+            app.logger.error(e)
 
+    new_headers[AUTH_HEADER_NAME] = req.headers[AUTH_HEADER_NAME]
+    ID = new_headers.get(TRACER_HEADER, '')
     return new_headers, ID
 
 # copies file and submits with sbatch
@@ -419,7 +419,7 @@ def submit_job_upload():
     system_idx = SYSTEMS_PUBLIC.index(system_name)
     system_addr = SYS_INTERNALS[system_idx]
 
-    [headers, ID] = get_tracing_headers(request.headers, tracing.get_span(request))
+    [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
     resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true")
 
@@ -520,7 +520,7 @@ def submit_job_path():
     if v != "":
         return jsonify(description="Failed to submit job", error=f"'targetPath' {v}"), 400
 
-    [headers, ID] = get_tracing_headers(request.headers, tracing.get_span(request))
+    [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
     resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true")
 
@@ -592,7 +592,7 @@ def list_jobs():
     system_idx = SYSTEMS_PUBLIC.index(system_name)
     system_addr = SYS_INTERNALS[system_idx]
 
-    [headers, ID] = get_tracing_headers(request.headers, tracing.get_span(request))
+    [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
     resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true")
 
@@ -780,7 +780,7 @@ def list_job(jobid):
     system_idx = SYSTEMS_PUBLIC.index(system_name)
     system_addr = SYS_INTERNALS[system_idx]
 
-    [headers, ID] = get_tracing_headers(request.headers, tracing.get_span(request))
+    [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
     resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true")
 
@@ -894,7 +894,7 @@ def cancel_job(jobid):
     if v != "":
         return jsonify(description="Failed to delete job", error=f"'jobid' {v}"), 400
 
-    [headers, ID] = get_tracing_headers(request.headers, tracing.get_span(request))
+    [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
     resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true")
 
@@ -1000,7 +1000,7 @@ def acct():
     system_idx = SYSTEMS_PUBLIC.index(system_name)
     system_addr = SYS_INTERNALS[system_idx]
 
-    [headers, ID] = get_tracing_headers(request.headers, tracing.get_span(request))
+    [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
     resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true")
 

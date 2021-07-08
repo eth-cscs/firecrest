@@ -79,7 +79,7 @@ if JAEGER_AGENT != "":
     tracing = FlaskTracing(jaeger_tracer, True, app)
 else:
     jaeger_tracer = None
-
+    tracing = None
 
 # check user authorization on endpoint
 # using Open Policy Agent

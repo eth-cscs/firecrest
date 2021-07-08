@@ -136,21 +136,22 @@ if JAEGER_AGENT != "":
     tracing = FlaskTracing(jaeger_tracer, True, app)
 else:
     jaeger_tracer = None
+    tracing = None
 
 
-def get_tracing_headers(headers, span):
+def get_tracing_headers(req):
     """
-    receives a span, returns headers suitable for RPC and ID for logging
+    receives a requests object, returns headers suitable for RPC and ID for logging
     """
-    ID = ''
     new_headers = {}
-    try:
-        jaeger_tracer.inject(span, opentracing.Format.TEXT_MAP, new_headers)
-        new_headers[AUTH_HEADER_NAME] = headers[AUTH_HEADER_NAME]
-        ID = new_headers.get(TRACER_HEADER, '')
-    except Exception as e:
-        app.logger.error(e)
+    if JAEGER_AGENT != "":
+        try:
+            jaeger_tracer.inject(tracing.get_span(req), opentracing.Format.TEXT_MAP, new_headers)
+        except Exception as e:
+            app.logger.error(e)
 
+    new_headers[AUTH_HEADER_NAME] = req.headers[AUTH_HEADER_NAME]
+    ID = new_headers.get(TRACER_HEADER, '')
     return new_headers, ID
 
 def file_to_str(fileName):
@@ -426,7 +427,7 @@ def download_request():
     if v != "":
         return jsonify(description="Failed to download file", error=f"'sourcePath' {v}"), 400
 
-    [headers, ID] = get_tracing_headers(request.headers, tracing.get_span(request))
+    [headers, ID] = get_tracing_headers(request)
     # checks if sourcePath is a valid path
     check = is_valid_file(sourcePath, headers, system_name, system_addr)
 
@@ -474,7 +475,7 @@ def invalidate_request():
     except KeyError as e:
         return jsonify(error="Header X-Task-Id missing"), 400
 
-    [headers, ID] = get_tracing_headers(request.headers, tracing.get_span(request))
+    [headers, ID] = get_tracing_headers(request)
     # search if task belongs to the user
     task_status = get_task_status(task_id, headers)
 
@@ -622,7 +623,7 @@ def upload_request():
     if v != "":
         return jsonify(description="Failed to upload file", error=f"'sourcePath' {v}"), 400
 
-    [headers, ID] = get_tracing_headers(request.headers, tracing.get_span(request))
+    [headers, ID] = get_tracing_headers(request)
     # checks if targetPath is a valid path
     check = is_valid_dir(targetPath, headers, system_name, system_addr)
 
@@ -757,7 +758,7 @@ def internal_operation(request, command):
     if v != "":
         return jsonify(description=f"Error on {command} operation", error=f"'targetPath' {v}"), 400
 
-    [headers, ID] = get_tracing_headers(request.headers, tracing.get_span(request))
+    [headers, ID] = get_tracing_headers(request)
     # using actual_command to add options to check sanity of the command to be executed
     actual_command = ""
     if command in ['cp', 'mv', 'rsync']:

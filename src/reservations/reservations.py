@@ -58,6 +58,7 @@ if JAEGER_AGENT != "":
     tracing = FlaskTracing(jaeger_tracer, True, app)
 else:
     jaeger_tracer = None
+    tracing = None
 
 
 # checks if reservation/account name are valid
@@ -114,18 +115,19 @@ def check_actualDate(start_date):
     return check_dateDiff(actual_date,start_date)
 
 
-def get_tracing_headers(headers, span):
+def get_tracing_headers(req):
     """
-    receives a span, returns headers suitable for RPC and ID for logging
+    receives a requests object, returns headers suitable for RPC and ID for logging
     """
-    ID = ''
     new_headers = {}
-    try:
-        jaeger_tracer.inject(span, opentracing.Format.TEXT_MAP, new_headers)
-        new_headers[AUTH_HEADER_NAME] = headers[AUTH_HEADER_NAME]
-        ID = new_headers.get(TRACER_HEADER, '')
-    except Exception as e:
-        app.logger.error(e)
+    if JAEGER_AGENT != "":
+        try:
+            jaeger_tracer.inject(tracing.get_span(req), opentracing.Format.TEXT_MAP, new_headers)
+        except Exception as e:
+            app.logger.error(e)
+
+    new_headers[AUTH_HEADER_NAME] = req.headers[AUTH_HEADER_NAME]
+    ID = new_headers.get(TRACER_HEADER, '')
     return new_headers, ID
 
 
@@ -149,7 +151,7 @@ def get():
     system_idx = SYSTEMS_PUBLIC.index(system_name)
     system_addr = SYS_INTERNALS[system_idx]
 
-    [headers, ID] = get_tracing_headers(request.headers, tracing.get_span(request))
+    [headers, ID] = get_tracing_headers(request)
     # list reservations
     action = f"ID={ID} timeout {TIMEOUT} {RESERVATION_CMD} -l"
 
@@ -308,7 +310,7 @@ def post():
     if not check_actualDate(starttime):
         return jsonify(error="Error creating reservation", description=f"'starttime' is in the pass (values entered: starttime='{starttime}')"), 400
 
-    [headers, ID] = get_tracing_headers(request.headers, tracing.get_span(request))
+    [headers, ID] = get_tracing_headers(request)
 
     # create a reservation
     # rsvmgmt -a unixGroupName numberOfNodes NodeType startDateTime endDateTime [optional reservationName]
@@ -410,10 +412,10 @@ def put(reservation):
     if not check_actualDate(starttime):
         return jsonify(error="Error creating reservation", description=f"'starttime' is in the pass (values entered: starttime='{starttime}')"), 400
 
-    [headers, ID] = get_tracing_headers(request.headers, tracing.get_span(request))
+    [headers, ID] = get_tracing_headers(request)
     # Update a reservation
     # rsvmgmt -u reservationName numberOfNodes NodeType StartDateTime EndDateTime
-    action = f"ID={ID} timeout {TIMEOUT} {RESERVATION_CMD} -u {reservation} {numberOfNodes} {nodeType} {starttime} {endtime}"
+    action = f"ID={ID} timeout {TIMEOUT} {RESERVATION_CMD} -u '{reservation}' {numberOfNodes} {nodeType} {starttime} {endtime}"
 
     #execute command
     retval = exec_remote_command(headers, system_name, system_addr, action)
@@ -489,7 +491,7 @@ def delete(reservation):
     if not check_name(reservation):
         return jsonify(error="Error deleting reservation", description=f"'reservation' parameter format is not valid (value entered:'{reservation}')"), 400
 
-    [headers, ID] = get_tracing_headers(request.headers, tracing.get_span(request))
+    [headers, ID] = get_tracing_headers(request)
 
     # rsvmgmt -d reservationName
     action = f"ID={ID} timeout {TIMEOUT} {RESERVATION_CMD} -d '{reservation}'"
