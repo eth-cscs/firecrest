@@ -3,3 +3,5 @@ keystoneauth1==4.3.0
 lxml==4.6.2
 paramiko==2.6.0
 python-keystoneclient==4.2.0
+jaeger_client
+flask_opentracing

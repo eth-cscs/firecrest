@@ -1,2 +1,4 @@
 -r ../base/requirements.txt
 redis==3.5.3
+jaeger_client
+flask_opentracing
