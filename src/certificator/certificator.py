@@ -267,7 +267,8 @@ def receive():
         force_opt = ''
         if force_command:
             force_opt = base64.urlsafe_b64decode(request.args.get("option", '')).decode("utf-8")
-            i = force_command.index(' ') + 1 # first position after space
+            # find first space and take substring to check command. If there isn't a space, .find() returns -1
+            i = force_command.find(' ') + 1
             tc = force_command[i:i + 4]
             if tc == 'curl':
                 exp_time = request.args.get("exptime", '')
