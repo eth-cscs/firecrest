@@ -17,7 +17,7 @@ log_file=/tmp/firecrest-ssh-$UID.log
 
 SOC="${SSH_ORIGINAL_COMMAND}"
 
-set -u  # -e (abort on command error),  -u (undefined var are errors), -o pipefail (pipe errors)
+set -u -e  # -e (abort on command error),  -u (undefined var are errors), -o pipefail (pipe errors)
 
 # msg="$(date +%Y-%m-%dT%H:%M:%S) - "${UID}" -"
 msg="FirecREST command execution user $USER ($UID) -"
@@ -42,19 +42,25 @@ case "$cert_type" in
     ;;
 esac
 
-command="${SSH_EXECUTE%% *}"    # remove all after first space
+if [ "${SSH_EXECUTE:0:3}" == "ID=" ]; then
+  actual="${SSH_EXECUTE#* }"    # remove before first space
+ else
+   actual="${SSH_EXECUTE}"
+fi
+
+command="${actual%% *}"    # remove all after first space
 
 case "$command" in
   cat|head|rm|touch|true)
     ;;
   timeout)
     # sintax: timeout number command options
-    tmp1=${SSH_EXECUTE#* }  # remove after first space
+    tmp1=${actual#* }  # remove after first space
     duration=${tmp1%% *}    # remove all after first space
     tmp2=${tmp1#* }
     command2=${tmp2%% *}   # remove options
     case "$command2" in
-      base64|cat|chmod|chown|cp|curl|id|file|head|ln|ls|mkdir|mv|rm|sbatch|scontrol|sha256sum|squeue|stat|tail|touch)
+      base64|cat|chmod|chown|cp|curl|file|head|id|ln|ls|mkdir|mv|rm|sbatch|scontrol|sha256sum|squeue|stat|tail|touch)
         ;;
       rsvmgmt)
         # advance reservation command
