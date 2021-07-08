@@ -16,6 +16,9 @@ from cscs_api_common import check_auth_header, get_boolean_var
 import paramiko
 import socket
 import os
+from flask_opentracing import FlaskTracing
+from jaeger_client import Config
+import opentracing
 
 
 AUTH_HEADER_NAME = 'Authorization'
@@ -52,6 +55,21 @@ debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 app = Flask(__name__)
 
+JAEGER_AGENT = os.environ.get("F7T_JAEGER_AGENT", "")
+if JAEGER_AGENT != "":
+    config = Config(
+        config={'sampler': {'type': 'const', 'param': 1 },
+            'local_agent': {'reporting_host': JAEGER_AGENT, 'reporting_port': 5775 },
+            'logging': True,
+            'reporter_batch_size': 1},
+            service_name = "status")
+    jaeger_tracer = config.initialize_tracer()
+    tracing = FlaskTracing(jaeger_tracer, True, app)
+else:
+    jaeger_tracer = None
+
+
+
 def set_services():
     for servicename in SERVICES:
 
@@ -63,15 +81,15 @@ def set_services():
             SERVICES_DICT[servicename] = serviceurl
 
 # test individual service function
-def test_service(servicename, status_list):
-    app.logger.info("Testing {servicename} microservice's status".format(servicename=servicename))
+def test_service(servicename, status_list, trace_header=None):
+    app.logger.info(f"Testing {servicename} microservice's status")
 
     try:
         serviceurl = SERVICES_DICT[servicename]
         #timeout set to 5 seconds
-        req = requests.get("{url}/status".format(url=serviceurl), timeout=5, verify= (SSL_CRT if USE_SSL else False))
+        req = requests.get(f"{serviceurl}/status", headers=trace_header, timeout=5, verify=(SSL_CRT if USE_SSL else False))
 
-        app.logger.info("Return code: {status_code}".format(status_code=req.status_code))
+        app.logger.info(f"Return code: {req.status_code}")
 
         # if status_code is 200 OK:
         if req.status_code == 200:
@@ -170,7 +188,7 @@ def test_system(machinename, status_list=[]):
 @app.route("/systems/<machinename>", methods=["GET"])
 @check_auth_header
 def status_system(machinename):
-    
+
     status_list = []
     test_system(machinename,status_list)
 
@@ -261,7 +279,14 @@ def status_service(servicename):
     # in compatibility with test all services
     status_list = []
 
-    test_service(servicename,status_list)
+    trace_header = {}
+    try:
+        current_span = tracing.get_span(request)
+        jaeger_tracer.inject(current_span, opentracing.Format.TEXT_MAP, trace_header)
+    except Exception as e:
+        app.logger.error(e)
+
+    test_service(servicename, status_list, trace_header)
 
     # as it's just 1 service tested, 0 index is always valid
     serv_status = status_list[0]["status"]
@@ -282,7 +307,6 @@ def status_service(servicename):
 @app.route("/services", methods=["GET"])
 @check_auth_header
 def status_services():
-    
     # update services:
     set_services()
 
@@ -297,9 +321,16 @@ def status_services():
     # create cross memory (between processes) list
     status_list = mgr.list()
 
+    trace_header = {}
+    try:
+        current_span = tracing.get_span(request)
+        jaeger_tracer.inject(current_span, opentracing.Format.TEXT_MAP, trace_header)
+    except Exception as e:
+        app.logger.error(e)
+
     # for each servicename, creates a process
     for servicename,serviceurl in SERVICES_DICT.items():
-        p = mp.Process(target=test_service, args=(servicename, status_list))
+        p = mp.Process(target=test_service, args=(servicename, status_list, trace_header))
         process_list.append(p)
         p.start()
 
@@ -335,7 +366,7 @@ def status_services():
 # get service information about all services
 @app.route("/parameters", methods=["GET"])
 @check_auth_header
-def parameters():    
+def parameters():
     # { <microservice>: [ "name": <parameter>,  "value": <value>, "unit": <unit> } , ... ] }
 
     systems = SYSTEMS_PUBLIC # list of systems
@@ -347,7 +378,7 @@ def parameters():
         mounted = filesystems[i].split(",")
         fs_list.append({"system": systems[i], "mounted": mounted})
 
-    
+
 
     parameters_list = { "utilities": [
                                         {"name": "UTILITIES_MAX_FILE_SIZE", "value": UTILITIES_MAX_FILE_SIZE, "unit": "MB" },
@@ -358,10 +389,10 @@ def parameters():
                                         {"name":"STORAGE_TEMPURL_EXP_TIME", "value":STORAGE_TEMPURL_EXP_TIME, "unit": "seconds"},
                                         {"name":"STORAGE_MAX_FILE_SIZE", "value":STORAGE_MAX_FILE_SIZE, "unit": "MB"},
                                         {"name":"FILESYSTEMS", "value":fs_list, "unit": ""}
-                                        
-                                        
-                                        
-                                        
+
+
+
+
                                 ]
                         }
 
@@ -385,7 +416,7 @@ if __name__ == "__main__":
     logger.addHandler(logHandler)
 
     # run app
-    if USE_SSL:        
-        app.run(debug=debug, host='0.0.0.0', port=STATUS_PORT, ssl_context=(SSL_CRT, SSL_KEY))        
+    if USE_SSL:
+        app.run(debug=debug, host='0.0.0.0', port=STATUS_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:
         app.run(debug=debug, host='0.0.0.0', port=STATUS_PORT)

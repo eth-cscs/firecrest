@@ -12,6 +12,9 @@ import async_task
 import os
 import logging
 from logging.handlers import TimedRotatingFileHandler
+from flask_opentracing import FlaskTracing
+from jaeger_client import Config
+
 from cscs_api_common import check_auth_header, get_username, check_header, get_boolean_var
 import tasks_persistence as persistence
 
@@ -45,6 +48,19 @@ debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 tasks = {}
 
 app = Flask(__name__)
+
+JAEGER_AGENT = os.environ.get("F7T_JAEGER_AGENT", "")
+if JAEGER_AGENT != "":
+    config = Config(
+        config={'sampler': {'type': 'const', 'param': 1 },
+            'local_agent': {'reporting_host': JAEGER_AGENT, 'reporting_port': 5775 },
+            'logging': True,
+            'reporter_batch_size': 1},
+            service_name = "tasks")
+    jaeger_tracer = config.initialize_tracer()
+    tracing = FlaskTracing(jaeger_tracer, True, app)
+else:
+    jaeger_tracer = None
 
 # redis connection object
 r = None
@@ -142,6 +158,8 @@ def create_task():
     # create task with service included
     t = async_task.AsyncTask(task_id=str(task_id), user=username, service=service)
     tasks[t.hash_id] = t
+    span = tracing.get_span(request)
+    span.set_tag('f7t_task_id', t.hash_id)
 
     exp_time = STORAGE_TASK_EXP_TIME
 
@@ -246,17 +264,16 @@ def update_task(id):
 
     # for better knowledge of what this id is
     hash_id = id
+    span = tracing.get_span(request)
+    span.set_tag('f7t_task_id', hash_id)
 
     # if username isn't taks owner, then deny access, unless is ***
     try:
         if owner_needed and not tasks[hash_id].is_owner(username):
             return jsonify(description="Operation not permitted. Invalid task owner."), 403
     except KeyError:
-        data = jsonify(error="Task {hash_id} does not exist".format(hash_id=hash_id))
+        data = jsonify(error=f"Task {hash_id} does not exist")
         return data, 404
-
-
-    # app.logger.info("Status {status}. Msg {msg}".format(status=status,msg=msg))
 
     # checks if status request is valid:
     if status not in async_task.status_codes:
