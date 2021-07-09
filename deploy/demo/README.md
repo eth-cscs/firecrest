@@ -44,6 +44,8 @@ To stop all containers:
 
 - To add or change a component, it's possible to disable it from "docker-compose.yml" and create a new file which uses the same network. This way, only that component needs to be rebuild and restarted.
 
+- To remove logs (avoid conflicts when rebuilding images): `sudo bash clean_logs.sh`
+
 - To rebuild and restart only containers that haver changed:
 
 `docker-compose up -d --build`
