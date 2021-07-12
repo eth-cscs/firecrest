@@ -12,6 +12,8 @@ import jwt
 import logging
 from logging.handlers import TimedRotatingFileHandler
 import base64
+from flask_opentracing import FlaskTracing
+from jaeger_client import Config
 import requests
 import re
 
@@ -65,6 +67,19 @@ debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 app = Flask(__name__)
 
+JAEGER_AGENT = os.environ.get("F7T_JAEGER_AGENT", "")
+if JAEGER_AGENT != "":
+    config = Config(
+        config={'sampler': {'type': 'const', 'param': 1 },
+            'local_agent': {'reporting_host': JAEGER_AGENT, 'reporting_port': 5775 },
+            'logging': True,
+            'reporter_batch_size': 1},
+            service_name = "certificator")
+    jaeger_tracer = config.initialize_tracer()
+    tracing = FlaskTracing(jaeger_tracer, True, app)
+else:
+    jaeger_tracer = None
+    tracing = None
 
 # check user authorization on endpoint
 # using Open Policy Agent
@@ -252,7 +267,10 @@ def receive():
         force_opt = ''
         if force_command:
             force_opt = base64.urlsafe_b64decode(request.args.get("option", '')).decode("utf-8")
-            if force_command == 'curl':
+            # find first space and take substring to check command. If there isn't a space, .find() returns -1
+            i = force_command.find(' ') + 1
+            tc = force_command[i:i + 4]
+            if tc == 'curl':
                 exp_time = request.args.get("exptime", '')
                 if exp_time:
                     ssh_expire = f"+{exp_time}s"

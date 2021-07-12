@@ -10,14 +10,22 @@ plugins:
 - name: jwt
   # global plugin: applies to all request
   config:
-    #_comment: "MUST add exp (expiration) and nbf, not enabled by default"
-    claims_to_verify: [exp,nbf]
+    #_comment: "MUST add exp (expiration), not enabled by default"
+    claims_to_verify: [exp]
 - name: request-termination
   route: reject
   config:
     status_code: 400
     message: "Invalid"
-
+- name: zipkin
+  config:
+    http_endpoint: http://192.168.220.50:9411/api/v2/spans
+    sample_ratio: 1
+    include_credential: true
+    traceid_byte_count: 16
+    header_type: preserve
+    default_header_type: jaeger
+#    tags_header: Zipkin-Tags
 
 consumers:
   - username: default2  # name is irrelevant but required

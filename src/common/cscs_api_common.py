@@ -72,6 +72,8 @@ USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
+TRACER_HEADER = "uber-trace-id"
+
 logging.getLogger().setLevel(logging.INFO)
 logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',datefmt='%Y-%m-%d:%H:%M:%S',level=logging.INFO)
 
@@ -157,7 +159,7 @@ def in_str(stringval,words):
 
 # SSH certificates creation
 # returns pub key certificate name
-def create_certificate(auth_header, cluster_name, cluster_addr,  command=None, options=None, exp_time=None):
+def create_certificate(headers, cluster_name, cluster_addr, command=None, options=None, exp_time=None):
     """
     Args:
       cluster_name = public name of system to be executed
@@ -168,7 +170,7 @@ def create_certificate(auth_header, cluster_name, cluster_addr,  command=None, o
     """
 
     if debug:
-        username = get_username(auth_header)
+        username = get_username(headers[AUTH_HEADER_NAME])
         logging.info(f"Create certificate for user {username}")
 
     reqURL = f"{CERTIFICATOR_URL}/?cluster={cluster_name}&addr={cluster_addr}"
@@ -189,7 +191,7 @@ def create_certificate(auth_header, cluster_name, cluster_addr,  command=None, o
     logging.info(f"Request: {reqURL}")
 
     try:
-        resp = requests.get(reqURL, headers={AUTH_HEADER_NAME: auth_header}, verify= (SSL_CRT if USE_SSL else False) )
+        resp = requests.get(reqURL, headers=headers, verify= (SSL_CRT if USE_SSL else False) )
 
         if resp.status_code != 200:
             return [None, resp.status_code, resp.json()["description"]]
@@ -222,11 +224,11 @@ def create_certificate(auth_header, cluster_name, cluster_addr,  command=None, o
 
 
 # execute remote commands with Paramiko:
-def exec_remote_command(auth_header, system_name, system_addr, action, file_transfer=None, file_content=None):
+def exec_remote_command(headers, system_name, system_addr, action, file_transfer=None, file_content=None):
 
     import paramiko, socket
 
-    logging.info('debug: cscs_common_api: exec_remote_command: system name: ' + system_name + '  -  action: ' + action)
+    logging.info(f'debug: cscs_common_api: exec_remote_command: system name: {system_name} - action: {action}')
 
     if file_transfer == "storage_cert":
         # storage is using a previously generated cert, save cert list from content
@@ -236,19 +238,20 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
         #   [2] path to the priv key for user
         #   [3] path to the dir containing 3 previous files
         cert_list = file_content
-        username = auth_header
+        username = headers
+        ID = ''
     else:
         # get certificate:
         # if OK returns: [pub_cert, pub_key, priv_key, temp_dir]
         # if FAILED returns: [None, errno, strerror]
-        cert_list = create_certificate(auth_header, system_name, system_addr, command=action)
+        cert_list = create_certificate(headers, system_name, system_addr, command=action)
 
         if cert_list[0] == None:
             result = {"error": cert_list[1], "msg": cert_list[2]}
             return result
 
-        username = get_username(auth_header)
-
+        username = get_username(headers[AUTH_HEADER_NAME])
+        ID = headers.get(TRACER_HEADER, '')
 
     [pub_cert, pub_key, priv_key, temp_dir] = cert_list
 
@@ -271,7 +274,7 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
                        allow_agent=False,
                        look_for_keys=False,
                        timeout=10)
-        logging.info(f"F7T_SSH_CERTIFICATE_WRAPPER: {F7T_SSH_CERTIFICATE_WRAPPER}")
+        logging.info(f"{ID} F7T_SSH_CERTIFICATE_WRAPPER: {F7T_SSH_CERTIFICATE_WRAPPER}")
         if F7T_SSH_CERTIFICATE_WRAPPER:
             # read cert to send it as a command to the server
             with open(pub_cert, 'r') as cert_file:
@@ -300,7 +303,7 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
         # in a permanent hang when remote output is larger than the current Transport or session’s window_size
         while True:
             if stderr.channel.exit_status_ready():
-                logging.info("stderr channel exit status ready")
+                logging.info(f"{ID} stderr channel exit status ready")
                 stderr_errno = stderr.channel.recv_exit_status()
                 endtime = time.time() + 30
                 eof_received = True
@@ -322,7 +325,7 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
         #for i in range(0,10):
         while True:
             if stdout.channel.exit_status_ready():
-                logging.info("stdout channel exit status ready")
+                logging.info(f"{ID} stdout channel exit status ready")
                 stdout_errno = stdout.channel.recv_exit_status()
                 endtime = time.time() + 30
                 eof_received = True
@@ -350,17 +353,17 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
         # hiding success results from utilities/download, since output is the content of the file
         if file_transfer == "download":
             if stderr_errno !=0:
-                logging.info(f"sdterr: ({stderr_errno}) --> {stderr_errda}")
-                logging.info(f"stdout: ({stdout_errno}) --> {stdout_errda}")
-                logging.info(f"sdtout: ({stdout_errno}) --> {outlines}")
+                logging.info(f"{ID} sdterr: ({stderr_errno}) --> {stderr_errda}")
+                logging.info(f"{ID} stdout: ({stdout_errno}) --> {stdout_errda}")
+                logging.info(f"{ID} sdtout: ({stdout_errno}) --> {outlines}")
             else:
-                logging.info(f"sdterr: ({stderr_errno}) --> Download OK (content hidden)")
-                logging.info(f"stdout: ({stdout_errno}) --> Download OK (content hidden)")
-                logging.info(f"sdtout: ({stdout_errno}) --> Download OK (content hidden)")
+                logging.info(f"{ID} sdterr: ({stderr_errno}) --> Download OK (content hidden)")
+                logging.info(f"{ID} stdout: ({stdout_errno}) --> Download OK (content hidden)")
+                logging.info(f"{ID} sdtout: ({stdout_errno}) --> Download OK (content hidden)")
         else:
-            logging.info(f"sdterr: ({stderr_errno}) --> {stderr_errda}")
-            logging.info(f"stdout: ({stdout_errno}) --> {stdout_errda}")
-            logging.info(f"sdtout: ({stdout_errno}) --> {outlines}")
+            logging.info(f"{ID} sdterr: ({stderr_errno}) --> {stderr_errda}")
+            logging.info(f"{ID} stdout: ({stdout_errno}) --> {stdout_errda}")
+            logging.info(f"{ID} sdtout: ({stdout_errno}) --> {outlines}")
 
         if stderr_errno == 0:
             if stderr_errda and not (in_str(stderr_errda,"Could not chdir to home directory") or in_str(stderr_errda,"scancel: Terminating job")):
@@ -392,30 +395,30 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
         logging.error(type(e), exc_info=True)
         if e.errors:
             for k, v in e.errors.items():
-                logging.error(f"errorno: {v.errno}")
-                logging.error(f"strerr: {v.strerror}")
+                logging.error(f"{ID} errorno: {v.errno}")
+                logging.error(f"{ID} strerr: {v.strerror}")
                 result = {"error": v.errno, "msg": v.strerror}
 
     except socket.gaierror as e:
-        logging.error(type(e), exc_info=True)
-        logging.error(e.errno)
-        logging.error(e.strerror)
+        logging.error(ID, type(e), exc_info=True)
+        logging.error(ID, e.errno)
+        logging.error(ID, e.strerror)
         result = {"error": e.errno, "msg": e.strerror}
 
     except paramiko.ssh_exception.SSHException as e:
-        logging.error(type(e), exc_info=True)
-        logging.error(e)
+        logging.error(ID, type(e), exc_info=True)
+        logging.error(ID, e)
         result = {"error": 1, "msg": str(e)}
 
     # second: time out
     except socket.timeout as e:
-        logging.error(type(e), exc_info=True)
+        logging.error(ID, type(e), exc_info=True)
         # timeout has not errno
         logging.error(e)
         result = {"error": 1, "msg": e.strerror}
 
     except Exception as e:
-        logging.error(type(e), exc_info=True)
+        logging.error(ID, type(e), exc_info=True)
         result = {"error": 1, "msg": str(e)}
 
     finally:
@@ -427,9 +430,9 @@ def exec_remote_command(auth_header, system_name, system_addr, action, file_tran
 
     # hiding results from utilities/download, since output is the content of the file
     if file_transfer == "download":
-        logging.info(f"Result: status_code {result['error']} -> Utilities download")
+        logging.info(f"{ID} Result: status_code {result['error']} -> Utilities download")
     else:
-        logging.info(f"Result: status_code {result['error']} -> {result['msg']}")
+        logging.info(f"{ID} Result: status_code {result['error']} -> {result['msg']}")
     return result
 
 
@@ -476,14 +479,14 @@ def parse_io_error(retval, operation, path):
 
 
 # function to call create task entry API in Queue FS, returns task_id for new task
-def create_task(auth_header,service=None):
+def create_task(headers, service=None):
 
     # returns {"task_id":task_id}
     # first try to get up task microservice:
     try:
         # X-Firecrest-Service: service that created the task
-        req = requests.post(f"{TASKS_URL}/",
-                           headers={AUTH_HEADER_NAME: auth_header, "X-Firecrest-Service":service}, verify=(SSL_CRT if USE_SSL else False))
+        headers["X-Firecrest-Service"] = service
+        req = requests.post(f"{TASKS_URL}/", headers=headers, verify=(SSL_CRT if USE_SSL else False))
 
     except requests.exceptions.ConnectionError as e:
         logging.error(type(e), exc_info=True)
@@ -501,33 +504,32 @@ def create_task(auth_header,service=None):
 
 
 # function to call update task entry API in Queue FS
-def update_task(task_id, auth_header, status, msg = None, is_json=False):
+def update_task(task_id, headers, status, msg=None, is_json=False):
 
     logging.info(f"Update {TASKS_URL}/{task_id} -> status: {status}")
 
+    data = {"status": status, "msg": msg}
     if is_json:
-        data = {"status": status, "msg": msg}
         req = requests.put(f"{TASKS_URL}/{task_id}",
-                            json=data, headers={AUTH_HEADER_NAME: auth_header}, verify=(SSL_CRT if USE_SSL else False))
+                            json=data, headers=headers, verify=(SSL_CRT if USE_SSL else False))
     else:
-        data = {"status": status, "msg": msg}
         req = requests.put(f"{TASKS_URL}/{task_id}",
-                            data=data, headers={AUTH_HEADER_NAME: auth_header}, verify=(SSL_CRT if USE_SSL else False))
+                            data=data, headers=headers, verify=(SSL_CRT if USE_SSL else False))
 
     resp = json.loads(req.content)
-
     return resp
 
 # function to call update task entry API in Queue FS
-def expire_task(task_id,auth_header,service):
+def expire_task(task_id, headers, service):
 
     logging.info(f"{TASKS_URL}/expire/{task_id}")
-
-
-    req = requests.post(f"{TASKS_URL}/expire/{task_id}",
-                            headers={AUTH_HEADER_NAME: auth_header, "X-Firecrest-Service": service}, verify=(SSL_CRT if USE_SSL else False))
-
-    # resp = json.loads(req.content)
+    try:
+        headers["X-Firecrest-Service"] = service
+        req = requests.post(f"{TASKS_URL}/expire/{task_id}",
+                            headers=headers, verify=(SSL_CRT if USE_SSL else False))
+    except Exception as e:
+        logging.error(type(e))
+        logging.error(e.args)
 
     if not req.ok:
         logging.info(req.json())
@@ -539,39 +541,32 @@ def expire_task(task_id,auth_header,service):
 
 
 # function to check task status:
-def get_task_status(task_id,auth_header):
+def get_task_status(task_id, headers):
 
     logging.info(f"{TASKS_URL}/{task_id}")
-
     try:
         retval = requests.get(f"{TASKS_URL}/{task_id}",
-                           headers={AUTH_HEADER_NAME: auth_header}, verify=(SSL_CRT if USE_SSL else False))
-
+                           headers=headers, verify=(SSL_CRT if USE_SSL else False))
         if retval.status_code != 200:
             return -1
 
         data = retval.json()
         logging.info(data["task"]["status"])
-
-        try:
-            return data["task"]["status"]
-        except KeyError as e:
-            logging.error(e)
-            return -1
-
-    except requests.exceptions.ConnectionError as e:
+        return data["task"]["status"]
+    except Exception as e:
         logging.error(type(e), exc_info=True)
         logging.error(e)
-        return -1
+
+    return -1
 
 
 # checks if {path} is a valid file (exists and user in {auth_header} has read permissions)
-def is_valid_file(path, auth_header, system_name, system_addr):
+def is_valid_file(path, headers, system_name, system_addr):
 
+    ID = headers.get(TRACER_HEADER, '')
     # checks user accessibility to path using head command with 0 bytes
-    action = f"head -c 1 -- {path} > /dev/null"
-
-    retval = exec_remote_command(auth_header,system_name, system_addr,action)
+    action = f"ID={ID} head -c 1 -- '{path}' > /dev/null"
+    retval = exec_remote_command(headers, system_name, system_addr, action)
 
     logging.info(retval)
 
@@ -607,12 +602,11 @@ def is_valid_file(path, auth_header, system_name, system_addr):
 # checks if {path} is a valid directory
 # 'path' should exists and be accesible to the user (write permissions)
 #
-def is_valid_dir(path, auth_header, system_name, system_addr):
+def is_valid_dir(path, headers, system_name, system_addr):
 
     # create an empty file for testing path accesibility
     # test file is a hidden file and has a timestamp in order to not overwrite other files created by user
     # after this, file should be deleted
-
 
     timestamp = datetime.datetime.today().strftime("%Y-%m-%dT%H:%M:%S.%f")
     # using a hash
@@ -620,10 +614,9 @@ def is_valid_dir(path, auth_header, system_name, system_addr):
     hashedTS.update(timestamp.encode("utf-8"))
 
     tempFileName = f".firecrest.{hashedTS.hexdigest()}"
-
-    action = f"touch -- {path}/{tempFileName}"
-
-    retval = exec_remote_command(auth_header,system_name, system_addr,action)
+    ID = headers.get(TRACER_HEADER, '')
+    action = f"ID={ID} touch -- '{path}/{tempFileName}'"
+    retval = exec_remote_command(headers, system_name, system_addr, action)
 
     logging.info(retval)
 
@@ -651,9 +644,8 @@ def is_valid_dir(path, auth_header, system_name, system_addr):
         return {"result":False, "headers":{"X-Error": retval["msg"]}}
 
     # delete test file created
-    action = f"rm -- {path}/{tempFileName}"
-    retval = exec_remote_command(auth_header,system_name, system_addr,action)
-
+    action = f"ID={ID} rm -- '{path}/{tempFileName}'"
+    retval = exec_remote_command(headers, system_name, system_addr, action)
 
     return {"result":True}
 

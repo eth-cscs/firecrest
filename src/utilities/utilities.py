@@ -15,6 +15,9 @@ import base64
 import io
 import json
 from math import ceil
+from flask_opentracing import FlaskTracing
+from jaeger_client import Config
+import opentracing
 
 from cscs_api_common import check_auth_header, exec_remote_command, check_command_error, get_boolean_var, validate_input
 
@@ -41,10 +44,41 @@ USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
+TRACER_HEADER = "uber-trace-id"
+
 app = Flask(__name__)
 # max content lenght for upload in bytes
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE_BYTES
 
+JAEGER_AGENT = os.environ.get("F7T_JAEGER_AGENT", "")
+if JAEGER_AGENT != "":
+    config = Config(
+        config={'sampler': {'type': 'const', 'param': 1 },
+            'local_agent': {'reporting_host': JAEGER_AGENT, 'reporting_port': 5775 },
+            'logging': True,
+            'reporter_batch_size': 1},
+            service_name = "utilities")
+    jaeger_tracer = config.initialize_tracer()
+    tracing = FlaskTracing(jaeger_tracer, True, app)
+else:
+    jaeger_tracer = None
+    tracing = None
+
+
+def get_tracing_headers(req):
+    """
+    receives a requests object, returns headers suitable for RPC and ID for logging
+    """
+    new_headers = {}
+    if JAEGER_AGENT != "":
+        try:
+            jaeger_tracer.inject(tracing.get_span(req), opentracing.Format.TEXT_MAP, new_headers)
+        except Exception as e:
+            app.logger.error(e)
+
+    new_headers[AUTH_HEADER_NAME] = req.headers[AUTH_HEADER_NAME]
+    ID = new_headers.get(TRACER_HEADER, '')
+    return new_headers, ID
 
 ## file: determines the type of file of path
 ## params:
@@ -241,9 +275,6 @@ def copy():
 
 ## common code for file operations:
 def common_fs_operation(request, command):
-    # check appropiate headers and identify machine
-    auth_header = request.headers[AUTH_HEADER_NAME]
-
     try:
         system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
@@ -302,7 +333,7 @@ def common_fs_operation(request, command):
             return jsonify(description="Error in chown operation", error="group or owner must be set"), 400
         v = validate_input(owner + group)
         if v != "":
-            return jsonify(description="Error in chown operation", error="group or owner {v}"), 400
+            return jsonify(description="Error in chown operation", error=f"group or owner {v}"), 400
         action = f"chown -v '{owner}':'{group}' -- '{targetPath}'"
     elif command == "copy":
         # -r is for recursivelly copy files into directories
@@ -365,10 +396,9 @@ def common_fs_operation(request, command):
         app.logger.error(f"Unknown command on common_fs_operation: {command}")
         return jsonify(description="Error on internal operation", error="Internal error"), 400
 
-
-    action = f"timeout {UTILITIES_TIMEOUT} {action}"
-    retval = exec_remote_command(auth_header, system_name ,system_addr, action, file_transfer, file_content)
-
+    [headers, ID] = get_tracing_headers(request)
+    action = f"ID={ID} timeout {UTILITIES_TIMEOUT} {action}"
+    retval = exec_remote_command(headers, system_name ,system_addr, action, file_transfer, file_content)
 
     if retval["error"] != 0:
         error_str   = retval["msg"]
