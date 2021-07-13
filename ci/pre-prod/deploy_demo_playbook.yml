@@ -235,7 +235,7 @@
     - name: Kong
       community.general.docker_container:
         name: kong
-        image: "kong:latest"
+        image: "kong:2.4"
         env:
           KONG_DATABASE: "off"
           KONG_DECLARATIVE_CONFIG: "/kong.yml"
