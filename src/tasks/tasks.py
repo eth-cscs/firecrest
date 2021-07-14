@@ -124,9 +124,9 @@ def create_task():
         logging.info('debug: tasks: create_task: remote_address: ' + remote_addr)
 
     # checks if request comes from allowed microservices
-    if not debug and remote_addr not in [COMPUTE_IP, STORAGE_IP]:
-        msg = f"Invalid remote address: {remote_addr}"
-        return jsonify(error=msg), 403
+    # if not debug and remote_addr not in [COMPUTE_IP, STORAGE_IP]:
+    #     msg = f"Invalid remote address: {remote_addr}"
+    #     return jsonify(error=msg), 403
 
     # checks if request has service header
     try:
@@ -222,9 +222,9 @@ def update_task(id):
     remote_addr = request.remote_addr
 
     # checks if request comes from allowed microservices
-    if not debug and remote_addr not in [COMPUTE_IP, STORAGE_IP]:
-        msg = f"Invalid remote address: {remote_addr}"
-        return jsonify(error=msg), 403
+    # if not debug and remote_addr not in [COMPUTE_IP, STORAGE_IP]:
+    #     msg = f"Invalid remote address: {remote_addr}"
+    #     return jsonify(error=msg), 403
 
     if request.is_json:
 
@@ -330,9 +330,9 @@ def delete_task(id):
     remote_addr = request.remote_addr
 
     # checks if request comes from allowed microservices
-    if not debug and remote_addr not in [COMPUTE_IP, STORAGE_IP]:
-        msg = f"Invalid remote address: {remote_addr}"
-        return jsonify(error=msg), 403
+    # if not debug and remote_addr not in [COMPUTE_IP, STORAGE_IP]:
+    #     msg = f"Invalid remote address: {remote_addr}"
+    #     return jsonify(error=msg), 403
 
     # getting username from auth_header
     username = get_username(auth_header)
@@ -372,9 +372,9 @@ def expire_task(id):
     remote_addr = request.remote_addr
 
     # checks if request comes from allowed microservices
-    if not debug and remote_addr not in [COMPUTE_IP, STORAGE_IP]:
-        msg = f"Invalid remote address: {remote_addr}"
-        return jsonify(error=msg), 403
+    # if not debug and remote_addr not in [COMPUTE_IP, STORAGE_IP]:
+    #     msg = f"Invalid remote address: {remote_addr}"
+    #     return jsonify(error=msg), 403
 
     # checks if request has service header
     try:
@@ -443,10 +443,10 @@ def tasklist():
     app.logger.info("STORAGE_IP is {storage_ip}".format(storage_ip=STORAGE_IP))
 
     # checks if request comes from allowed microservices
-    if not debug and request.remote_addr != STORAGE_IP:
-        msg = "Invalid remote address: {}".format(request.remote_addr)
-        app.logger.warning(msg)
-        return jsonify(error=msg), 403
+    # if not debug and request.remote_addr != STORAGE_IP:
+    #     msg = "Invalid remote address: {}".format(request.remote_addr)
+    #     app.logger.warning(msg)
+    #     return jsonify(error=msg), 403
 
     json = request.json
 

@@ -1,0 +1,22 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: svc-keycloak
+  spec:
+    type: ClusterIP
+    selector:
+      app: keycloak
+    ports:
+    - name: "8080"
+      port: 8080
+      targetPort: 8080
+    - name: "9990"
+      port: 9990
+      targetPort: 9990
+    selector:
+      app: keycloak
+  status:
+    loadBalancer: {}
+kind: List

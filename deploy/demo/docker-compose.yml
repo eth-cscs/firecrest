@@ -16,7 +16,6 @@ networks:
 
 
 services:
-  # base image
   f7t-base:
     container_name: f7t-base
     image: "f7t-base"

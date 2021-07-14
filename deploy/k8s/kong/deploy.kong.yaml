@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-kong
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kong
+  template:
+    metadata:
+      labels:
+        app: kong      
+    spec:
+      containers:
+      - image: kong:2.3
+        env:
+        - name: KONG_DECLARATIVE_CONFIG
+          value: /kong/kong.yaml
+        - name: KONG_DATABASE
+          value: "off"  
+        name: kong
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: common-env-file
+        volumeMounts:
+        - mountPath: /var/log
+          name: logs-endpoint  
+        - mountPath: /kong
+          name: kong-config      
+      volumes:
+      - emptyDir: {}
+        name: logs-endpoint 
+      - name: kong-config
+        configMap:
+          name: f7t-kong
