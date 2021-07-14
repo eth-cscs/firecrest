@@ -101,7 +101,7 @@ JAEGER_AGENT = os.environ.get("F7T_JAEGER_AGENT", "")
 if JAEGER_AGENT != "":
     config = Config(
         config={'sampler': {'type': 'const', 'param': 1 },
-            'local_agent': {'reporting_host': JAEGER_AGENT, 'reporting_port': 5775 },
+            'local_agent': {'reporting_host': JAEGER_AGENT, 'reporting_port': 6831 },
             'logging': True,
             'reporter_batch_size': 1},
             service_name = "compute")
