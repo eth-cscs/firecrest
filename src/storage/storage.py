@@ -124,7 +124,7 @@ debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 app = Flask(__name__)
 
-JAEGER_AGENT = os.environ.get("F7T_JAEGER_AGENT", "")
+JAEGER_AGENT = os.environ.get("F7T_JAEGER_AGENT", "").strip('\'"')
 if JAEGER_AGENT != "":
     config = Config(
         config={'sampler': {'type': 'const', 'param': 1 },

@@ -97,7 +97,7 @@ app.config['MAX_CONTENT_LENGTH'] = int(MAX_FILE_SIZE) * 1024 * 1024
 
 debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
-JAEGER_AGENT = os.environ.get("F7T_JAEGER_AGENT", "")
+JAEGER_AGENT = os.environ.get("F7T_JAEGER_AGENT", "").strip('\'"')
 if JAEGER_AGENT != "":
     config = Config(
         config={'sampler': {'type': 'const', 'param': 1 },

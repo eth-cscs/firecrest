@@ -50,7 +50,7 @@ app = Flask(__name__)
 # max content lenght for upload in bytes
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE_BYTES
 
-JAEGER_AGENT = os.environ.get("F7T_JAEGER_AGENT", "")
+JAEGER_AGENT = os.environ.get("F7T_JAEGER_AGENT", "").strip('\'"')
 if JAEGER_AGENT != "":
     config = Config(
         config={'sampler': {'type': 'const', 'param': 1 },
