@@ -7,14 +7,6 @@
 version: '3'
 
 services:
-  f7t-base:
-    container_name: f7t-base
-    image: "f7t-base"
-    build:
-      context: ../../
-      dockerfile: deploy/docker/base/Dockerfile
-      network: host
-
   certificator:
     build:
       context: ../../
