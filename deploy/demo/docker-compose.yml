@@ -195,7 +195,7 @@ services:
 
   # complementary 3rd party services
   keycloak:
-    image: "jboss/keycloak:4.8.3.Final"
+    image: "jboss/keycloak:9.0.2"
     container_name: fckeycloak
     env_file: keycloak/keycloak.env
     environment:
@@ -211,7 +211,7 @@ services:
       - ./logs/keycloak:/opt/jboss/keycloak/standalone/log/:delegated
 
   kong:
-    image: kong:2.4
+    image: kong:2.5.0
     container_name: kong
     environment:
       - KONG_DATABASE=off
