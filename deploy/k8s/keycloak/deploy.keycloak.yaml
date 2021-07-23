@@ -16,7 +16,7 @@ items:
           app: keycloak
       spec:
         containers:
-        - image: jboss/keycloak:4.8.3.Final
+        - image: jboss/keycloak:9.0.2
           env:
           - name: DB_VENDOR
             value: H2

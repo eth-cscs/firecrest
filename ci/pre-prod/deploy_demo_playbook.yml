@@ -217,7 +217,7 @@
     - name: Keycloack
       community.general.docker_container:
         name: fckeycloak
-        image: "jboss/keycloak:4.8.3.Final"
+        image: "jboss/keycloak:9.0.2"
         env_file:  "{{ firecrest_dir }}/deploy/demo/keycloak/keycloak.env" 
         env:
           KEYCLOAK_IMPORT: "/var/tmp/config.json"
@@ -235,7 +235,7 @@
     - name: Kong
       community.general.docker_container:
         name: kong
-        image: "kong:2.4"
+        image: "kong:2.5.0"
         env:
           KONG_DATABASE: "off"
           KONG_DECLARATIVE_CONFIG: "/kong.yml"

@@ -10,15 +10,15 @@ spec:
   template:
     metadata:
       labels:
-        app: kong      
+        app: kong
     spec:
       containers:
-      - image: kong:2.3
+      - image: kong:2.5.0
         env:
         - name: KONG_DECLARATIVE_CONFIG
           value: /kong/kong.yaml
         - name: KONG_DATABASE
-          value: "off"  
+          value: "off"
         name: kong
         ports:
         - containerPort: 8000
@@ -27,9 +27,9 @@ spec:
             name: common-env-file
         volumeMounts:
         - mountPath: /var/log
-          name: logs-endpoint  
+          name: logs-endpoint
         - mountPath: /kong
-          name: kong-config      
+          name: kong-config
       volumes:
       - emptyDir: {}
         name: logs-endpoint 
