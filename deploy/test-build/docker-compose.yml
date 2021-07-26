@@ -167,16 +167,16 @@ services:
       - ./ssl:/ssl
 
   openapi:
-    build:
-      context: ../../
-      dockerfile: ./deploy/docker/openapi/Dockerfile
+    image: swaggerapi/swagger-ui:v3.22.0
     networks:
       - backend
       - frontend
     ports:
       - "9090:8080"
     environment:
-      SWAGGER_JSON: /tmp/openapi.yaml
+      SWAGGER_JSON: /tmp/firecrest-developers-api.yaml
+    volumes:
+      - ../../doc/openapi/:/tmp/
 
 # For now all containers are attached to both networks.
 # Next step is to split microservices to the
