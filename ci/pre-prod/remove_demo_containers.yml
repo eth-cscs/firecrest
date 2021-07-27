@@ -7,7 +7,7 @@
 
 
 ---
-- name: Remove firecrest containers
+- name: Remove FirecREST containers
   gather_facts: No
   hosts: all
   vars:
@@ -50,6 +50,20 @@
         name: demo_default
         state: absent
         force: yes
+
+    - name: Delete FirecREST images
+      docker_image:
+        name: "{{ docker_registry_host }}/{{ item }}:{{ build_tag }}"
+        state: absent
+      with_items:
+        - tasks
+        - certificator
+        - compute
+        - reservations
+        - status
+        - storage
+        - utilities
+      
 
     - name: Clean firecrest deploy folder
       file:

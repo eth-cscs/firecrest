@@ -22,10 +22,11 @@ import json
 
 class S3v4(ObjectStorage):
 
-    def __init__(self, url, user, passwd):
+    def __init__(self, priv_url, publ_url, user, passwd):
         self.user = user
         self.passwd = passwd
-        self.url = url
+        self.priv_url = priv_url
+        self.publ_url = publ_url
 
     def get_object_storage(self):
         return "Amazon S3 - Signature v4"
@@ -48,8 +49,8 @@ class S3v4(ObjectStorage):
         aws_request = "aws4_request"
         aws_access_key_id = self.user
         aws_secret_access_key = self.passwd
-        endpoint_url = self.url
-        host = self.url.split("/")[-1]
+        endpoint_url = self.priv_url
+        host = endpoint_url.split("/")[-1]
         region = "us-east-1"
 
         # Create a date for headers and the credential string
@@ -57,28 +58,23 @@ class S3v4(ObjectStorage):
         amzdate = t.strftime('%Y%m%dT%H%M%SZ')
         datestamp = t.strftime('%Y%m%d')  # Date w/o time, used in credential scope
 
-        canonical_uri = "/" + containername
-
-        canonical_headers = 'host:' + host + "\n"  # + "x-amz-date:"+ amzdate + "\n"
-
-        signed_headers = "host"  # "host;x-amz-content-sha256;x-amz-date"
-
-        credential_scope = datestamp + '/' + region + '/' + service + '/' + aws_request
+        canonical_uri = f"/{containername}"
+        canonical_headers = f"host:{host}\n"
+        signed_headers = "host"
+        credential_scope = f"{datestamp}/{region}/{service}/{aws_request}"
 
         # canonical_querystring = bucket_name+"/"+object_name
-        canonical_querystring = 'X-Amz-Algorithm=AWS4-HMAC-SHA256'
-        canonical_querystring += '&X-Amz-Credential=' + urllib.parse.quote_plus(
-            aws_access_key_id + '/' + credential_scope)
-        canonical_querystring += '&X-Amz-Date=' + amzdate
-        canonical_querystring += '&X-Amz-Expires=' + str(ttl)
-        canonical_querystring += '&X-Amz-SignedHeaders=' + signed_headers
+        canonical_querystring = "X-Amz-Algorithm=AWS4-HMAC-SHA256"
+        canonical_querystring += f"&X-Amz-Credential={urllib.parse.quote_plus(f'{aws_access_key_id}/{credential_scope}')}"
+        canonical_querystring += f"&X-Amz-Date={amzdate}"
+        canonical_querystring += f"&X-Amz-Expires={str(ttl)}"
+        canonical_querystring += f"&X-Amz-SignedHeaders={signed_headers}"
 
-        payload_hash = "UNSIGNED-PAYLOAD"  # ???????? hashlib.sha256(("").encode("utf-8")).hexdigest()
+        payload_hash = "UNSIGNED-PAYLOAD"
 
-        canonical_request = httpVerb + "\n" + canonical_uri + "\n" + canonical_querystring + "\n" + canonical_headers + '\n' + signed_headers + "\n" + payload_hash
+        canonical_request = f"{httpVerb}\n{canonical_uri}\n{canonical_querystring}\n{canonical_headers}\n{signed_headers}\n{payload_hash}"
 
-        string_to_sign = algorithm + "\n" + amzdate + "\n" + credential_scope + "\n" + hashlib.sha256(
-            canonical_request.encode("utf-8")).hexdigest()
+        string_to_sign = f"{algorithm}\n{amzdate}\n{credential_scope}\n{hashlib.sha256(canonical_request.encode('utf-8')).hexdigest()}"
 
         # Create the signing key
         signing_key = self.getSignatureKey(aws_secret_access_key, datestamp, region, service)
@@ -86,30 +82,27 @@ class S3v4(ObjectStorage):
         # Sign the string_to_sign using the signing_key
         signature = hmac.new(signing_key, (string_to_sign).encode("utf-8"), hashlib.sha256).hexdigest()
 
-        canonical_querystring += '&X-Amz-Signature=' + signature
+        canonical_querystring += f"&X-Amz-Signature={signature}"
 
-        # print(f"Canonical request: \n{canonical_request}")
-        # print(f"String to Sign: \n{string_to_sign}")
+        url = f"{endpoint_url}{canonical_uri}?{canonical_querystring}"
 
-        url = endpoint_url + canonical_uri + "?" + canonical_querystring
-
-        logging.info("Deleting {}".format(containername))
-        logging.info("URL: {}".format(url))
+        logging.info(f"Creating container '{containername}'")
+        logging.info(f"URL: {url}")
 
         try:
             resp = requests.put(url)
-            print(resp.status_code)
-            print(resp.text)
-
+            
             if resp.ok:
                 logging.info("Container created succesfully")
 
                 return 0
             logging.error("Container couldn't be created")
+            logging.error(resp.content)
             return -1
         except Exception as e:
-            logging.error(e)
+            
             logging.error("Container couldn't be created")
+            logging.error(e)
             return -1
 
 
@@ -119,10 +112,10 @@ class S3v4(ObjectStorage):
         algorithm = 'AWS4-HMAC-SHA256'
         service = "s3"
         aws_request = "aws4_request"
-        aws_access_key_id = self.user  #
-        aws_secret_access_key = self.passwd  # 
-        endpoint_url = self.url  # 
-        host = self.url.split("/")[-1]  # 
+        aws_access_key_id = self.user
+        aws_secret_access_key = self.passwd
+        endpoint_url = self.priv_url
+        host = endpoint_url.split("/")[-1]
         region = "us-east-1"
 
         # Create a date for headers and the credential string
@@ -130,28 +123,21 @@ class S3v4(ObjectStorage):
         amzdate = t.strftime('%Y%m%dT%H%M%SZ')
         datestamp = t.strftime('%Y%m%d')  # Date w/o time, used in credential scope
 
-        canonical_uri = "/" + containername
+        canonical_uri = f"/{containername}"
+        canonical_headers = f"host:{host}\n"
+        signed_headers = "host"
+        credential_scope = f"{datestamp}/{region}/{service}/{aws_request}"
+        
+        canonical_querystring = "X-Amz-Algorithm=AWS4-HMAC-SHA256"
+        canonical_querystring += f"&X-Amz-Credential={urllib.parse.quote_plus(f'{aws_access_key_id}/{credential_scope}')}"
+        canonical_querystring += f"&X-Amz-Date={amzdate}"
+        canonical_querystring += f"&X-Amz-Expires={str(120)}"
+        canonical_querystring += f"&X-Amz-SignedHeaders={signed_headers}"
 
-        canonical_headers = 'host:' + host + "\n"  # + "x-amz-date:"+ amzdate + "\n"
+        payload_hash = "UNSIGNED-PAYLOAD" 
 
-        signed_headers = "host"  # "host;x-amz-content-sha256;x-amz-date"
-
-        credential_scope = datestamp + '/' + region + '/' + service + '/' + aws_request
-
-        # canonical_querystring = bucket_name+"/"+object_name
-        canonical_querystring = 'X-Amz-Algorithm=AWS4-HMAC-SHA256'
-        canonical_querystring += '&X-Amz-Credential=' + urllib.parse.quote_plus(
-            aws_access_key_id + '/' + credential_scope)
-        canonical_querystring += '&X-Amz-Date=' + amzdate
-        canonical_querystring += '&X-Amz-Expires=' + str(120)
-        canonical_querystring += '&X-Amz-SignedHeaders=' + signed_headers
-
-        payload_hash = "UNSIGNED-PAYLOAD"  # ???????? hashlib.sha256(("").encode("utf-8")).hexdigest()
-
-        canonical_request = httpVerb + "\n" + canonical_uri + "\n" + canonical_querystring + "\n" + canonical_headers + '\n' + signed_headers + "\n" + payload_hash
-
-        string_to_sign = algorithm + "\n" + amzdate + "\n" + credential_scope + "\n" + hashlib.sha256(
-            canonical_request.encode("utf-8")).hexdigest()
+        canonical_request = f"{httpVerb}\n{canonical_uri}\n{canonical_querystring}\n{canonical_headers}\n{signed_headers}\n{payload_hash}"
+        string_to_sign = f"{algorithm}\n{amzdate}\n{credential_scope}\n{hashlib.sha256(canonical_request.encode('utf-8')).hexdigest()}"
 
         # Create the signing key
         signing_key = self.getSignatureKey(aws_secret_access_key, datestamp, region, service)
@@ -159,19 +145,19 @@ class S3v4(ObjectStorage):
         # Sign the string_to_sign using the signing_key
         signature = hmac.new(signing_key, (string_to_sign).encode("utf-8"), hashlib.sha256).hexdigest()
 
-        canonical_querystring += '&X-Amz-Signature=' + signature
+        canonical_querystring += f"&X-Amz-Signature={signature}"
 
-        # print(f"Canonical request: \n{canonical_request}")
-        # print(f"String to Sign: \n{string_to_sign}")
-
-        url = endpoint_url + canonical_uri + "?" + canonical_querystring
+        url = f"{endpoint_url}{canonical_uri}?{canonical_querystring}"
 
         try:
-            response = requests.head(url)
-            if response.ok:
+            resp = requests.head(url)
+            if resp.ok:
                 return True
+            logging.error("Container couldn't be checked")
+            logging.error(resp.content)
             return False
         except requests.exceptions.ConnectionError as ce:
+            logging.error("Container couldn't be checked")
             logging.error(ce.strerror)
             return False
 
@@ -180,61 +166,47 @@ class S3v4(ObjectStorage):
         algorithm = 'AWS4-HMAC-SHA256'
         service = "s3"
         aws_request = "aws4_request"
-        aws_access_key_id = self.user  #
-        aws_secret_access_key = self.passwd  # 
-        endpoint_url = self.url  # 
-        host = self.url.split("/")[-1]  # 
+        aws_access_key_id = self.user
+        aws_secret_access_key = self.passwd
+        endpoint_url = self.priv_url
+        host = endpoint_url.split("/")[-1]
         region = "us-east-1"
 
         # Create a date for headers and the credential string
         t = datetime.utcnow()
         amzdate = t.strftime('%Y%m%dT%H%M%SZ')
         datestamp = t.strftime('%Y%m%d')  # Date w/o time, used in credential scope
+        
+        canonical_uri = "/"
+        canonical_headers = f"host:{host}\n"
+        signed_headers = "host"
+        credential_scope = f"{datestamp}/{region}/{service}/{aws_request}"
+        
+        canonical_querystring = "X-Amz-Algorithm=AWS4-HMAC-SHA256"
+        canonical_querystring += f"&X-Amz-Credential={urllib.parse.quote_plus(f'{aws_access_key_id}/{credential_scope}')}"
+        canonical_querystring += f"&X-Amz-Date={amzdate}"
+        canonical_querystring += f"&X-Amz-Expires={str(120)}"
+        canonical_querystring += f"&X-Amz-SignedHeaders={signed_headers}"
 
-        canonical_uri = "/" 
+        payload_hash = "UNSIGNED-PAYLOAD"
 
-        canonical_headers = 'host:' + host + "\n"  # + "x-amz-date:"+ amzdate + "\n"
-
-        signed_headers = "host"  # "host;x-amz-content-sha256;x-amz-date"
-
-        credential_scope = datestamp + '/' + region + '/' + service + '/' + aws_request
-
-        # canonical_querystring = bucket_name+"/"+object_name
-        canonical_querystring = 'X-Amz-Algorithm=AWS4-HMAC-SHA256'
-        canonical_querystring += '&X-Amz-Credential=' + urllib.parse.quote_plus(
-            aws_access_key_id + '/' + credential_scope)
-        canonical_querystring += '&X-Amz-Date=' + amzdate
-        canonical_querystring += '&X-Amz-Expires=' + str(120)
-        canonical_querystring += '&X-Amz-SignedHeaders=' + signed_headers
-
-        payload_hash = "UNSIGNED-PAYLOAD"  # ???????? hashlib.sha256(("").encode("utf-8")).hexdigest()
-
-        canonical_request = httpVerb + "\n" + canonical_uri + "\n" + canonical_querystring + "\n" + canonical_headers + '\n' + signed_headers + "\n" + payload_hash
-
-        string_to_sign = algorithm + "\n" + amzdate + "\n" + credential_scope + "\n" + hashlib.sha256(
-            canonical_request.encode("utf-8")).hexdigest()
-
+        canonical_request = f"{httpVerb}\n{canonical_uri}\n{canonical_querystring}\n{canonical_headers}\n{signed_headers}\n{payload_hash}"
+        string_to_sign = f"{algorithm}\n{amzdate}\n{credential_scope}\n{hashlib.sha256(canonical_request.encode('utf-8')).hexdigest()}"
+        
         # Create the signing key
         signing_key = self.getSignatureKey(aws_secret_access_key, datestamp, region, service)
 
         # Sign the string_to_sign using the signing_key
         signature = hmac.new(signing_key, (string_to_sign).encode("utf-8"), hashlib.sha256).hexdigest()
 
-        canonical_querystring += '&X-Amz-Signature=' + signature
+        canonical_querystring += f"&X-Amz-Signature={signature}"
 
-        # print(f"Canonical request: \n{canonical_request}")
-        # print(f"String to Sign: \n{string_to_sign}")
-
-        url = endpoint_url + canonical_uri + "?" + canonical_querystring
+        url = f"{endpoint_url}{canonical_uri}?{canonical_querystring}"
 
         try:
             resp = requests.get(url)
-
-            # logging.info(response.text)
-
             
             if resp.ok:
-                # logging.info(resp.content)
                 root = ElementTree.fromstring(resp.content)
 
                 for _, nsvalue in ElementTree.iterparse(BytesIO(resp.content), events=['start-ns']):
@@ -269,8 +241,8 @@ class S3v4(ObjectStorage):
             return None
 
         except Exception as e:
-            logging.error("Error: {}".format(e))
-            logging.error("Error: {}".format(type(e)))
+            logging.error(f"Error getting users: {e}")
+            logging.error(f"Error type: {type(e)}")
             return None
 
     def is_object_created(self, containername, prefix, objectname):
@@ -279,10 +251,10 @@ class S3v4(ObjectStorage):
         algorithm = 'AWS4-HMAC-SHA256'
         service = "s3"
         aws_request = "aws4_request"
-        aws_access_key_id = self.user  # "storage_access_key"
-        aws_secret_access_key = self.passwd  # "storage_secret_key"
-        endpoint_url = self.url  # "http://192.168.220.19:9000"
-        host = self.url.split("/")[-1]  # 192.168.220.19:9000"
+        aws_access_key_id = self.user
+        aws_secret_access_key = self.passwd
+        endpoint_url = self.priv_url
+        host = endpoint_url.split("/")[-1]
         region = "us-east-1"
 
         # Create a date for headers and the credential string
@@ -290,28 +262,21 @@ class S3v4(ObjectStorage):
         amzdate = t.strftime('%Y%m%dT%H%M%SZ')
         datestamp = t.strftime('%Y%m%d')  # Date w/o time, used in credential scope
 
-        canonical_uri = "/" + containername + "/" + prefix + "/" + objectname
+        canonical_uri = f"/{containername}/{prefix}/{objectname}"
+        canonical_headers = f"host:{host}\n"
+        signed_headers = "host"
+        credential_scope = f"{datestamp}/{region}/{service}/{aws_request}"
+        
+        canonical_querystring = "X-Amz-Algorithm=AWS4-HMAC-SHA256"
+        canonical_querystring += f"&X-Amz-Credential={urllib.parse.quote_plus(f'{aws_access_key_id}/{credential_scope}')}"
+        canonical_querystring += f"&X-Amz-Date={amzdate}"
+        canonical_querystring += f"&X-Amz-Expires={str(120)}"
+        canonical_querystring += f"&X-Amz-SignedHeaders={signed_headers}"
 
-        canonical_headers = 'host:' + host + "\n"  # + "x-amz-date:"+ amzdate + "\n"
+        payload_hash = "UNSIGNED-PAYLOAD" 
 
-        signed_headers = "host"  # "host;x-amz-content-sha256;x-amz-date"
-
-        credential_scope = datestamp + '/' + region + '/' + service + '/' + aws_request
-
-        # canonical_querystring = bucket_name+"/"+object_name
-        canonical_querystring = 'X-Amz-Algorithm=AWS4-HMAC-SHA256'
-        canonical_querystring += '&X-Amz-Credential=' + urllib.parse.quote_plus(
-            aws_access_key_id + '/' + credential_scope)
-        canonical_querystring += '&X-Amz-Date=' + amzdate
-        canonical_querystring += '&X-Amz-Expires=' + str(120)
-        canonical_querystring += '&X-Amz-SignedHeaders=' + signed_headers
-
-        payload_hash = "UNSIGNED-PAYLOAD"  # ???????? hashlib.sha256(("").encode("utf-8")).hexdigest()
-
-        canonical_request = httpVerb + "\n" + canonical_uri + "\n" + canonical_querystring + "\n" + canonical_headers + '\n' + signed_headers + "\n" + payload_hash
-
-        string_to_sign = algorithm + "\n" + amzdate + "\n" + credential_scope + "\n" + hashlib.sha256(
-            canonical_request.encode("utf-8")).hexdigest()
+        canonical_request = f"{httpVerb}\n{canonical_uri}\n{canonical_querystring}\n{canonical_headers}\n{signed_headers}\n{payload_hash}"
+        string_to_sign = f"{algorithm}\n{amzdate}\n{credential_scope}\n{hashlib.sha256(canonical_request.encode('utf-8')).hexdigest()}"
 
         # Create the signing key
         signing_key = self.getSignatureKey(aws_secret_access_key, datestamp, region, service)
@@ -319,12 +284,9 @@ class S3v4(ObjectStorage):
         # Sign the string_to_sign using the signing_key
         signature = hmac.new(signing_key, (string_to_sign).encode("utf-8"), hashlib.sha256).hexdigest()
 
-        canonical_querystring += '&X-Amz-Signature=' + signature
+        canonical_querystring += f"&X-Amz-Signature={signature}"
 
-        # print(f"Canonical request: \n{canonical_request}")
-        # print(f"String to Sign: \n{string_to_sign}")
-
-        url = endpoint_url + canonical_uri + "?" + canonical_querystring
+        url = f"{endpoint_url}{canonical_uri}?{canonical_querystring}"
 
         try:
             response = requests.head(url)
@@ -348,16 +310,19 @@ class S3v4(ObjectStorage):
     def renew_token(self):
         return True
 
-    def create_upload_form(self, sourcepath, containername, prefix, ttl, max_file_size):
+    ## returns a Temporary Form URL for uploading without client and tokens
+    # internal=True: by default the method asumes that the temp URL will be used in the internal network
+    def create_upload_form(self, sourcepath, containername, prefix, ttl, max_file_size, internal=True):
 
         httpVerb = "POST"
         algorithm = 'AWS4-HMAC-SHA256'
         service = "s3"
         aws_request = "aws4_request"
-        # aws_access_key_id = self.user
         aws_secret_access_key = self.passwd
-        endpoint_url = self.url  # "http://ip[:port]"
-        # host = self.url.split("/")[-1]  # ip[:port["
+        if internal:
+            endpoint_url = self.priv_url
+        else:
+            endpoint_url = self.publ_url
         region = "us-east-1"
         objectname = sourcepath.split("/")[-1]
 
@@ -417,8 +382,9 @@ class S3v4(ObjectStorage):
 
         return retval
         
-
-    def create_temp_url(self, containername, prefix, objectname, ttl):
+    ## returns a Temporary URL for downloading without client and tokens
+    # internal=True: by default the method asumes that the temp URL will be used in the internal network
+    def create_temp_url(self, containername, prefix, objectname, ttl, internal=True):
 
         httpVerb = "GET"
         algorithm = 'AWS4-HMAC-SHA256'
@@ -426,8 +392,12 @@ class S3v4(ObjectStorage):
         aws_request = "aws4_request"
         aws_access_key_id = self.user
         aws_secret_access_key = self.passwd 
-        endpoint_url = self.url 
-        host = self.url.split("/")[-1] 
+        if internal:
+            endpoint_url = self.priv_url
+        else:
+            endpoint_url = self.publ_url
+        
+        host = endpoint_url.split("/")[-1] 
         region = "us-east-1"
 
         # Create a date for headers and the credential string
@@ -435,28 +405,21 @@ class S3v4(ObjectStorage):
         amzdate = t.strftime('%Y%m%dT%H%M%SZ')
         datestamp = t.strftime('%Y%m%d')  # Date w/o time, used in credential scope
 
-        canonical_uri = "/" + containername + "/" + prefix + "/" + objectname
+        canonical_uri = f"/{containername}/{prefix}/{objectname}"
+        canonical_headers = f"host:{host}\n"
+        signed_headers = "host"
+        credential_scope = f"{datestamp}/{region}/{service}/{aws_request}"
+        
+        canonical_querystring = "X-Amz-Algorithm=AWS4-HMAC-SHA256"
+        canonical_querystring += f"&X-Amz-Credential={urllib.parse.quote_plus(f'{aws_access_key_id}/{credential_scope}')}"
+        canonical_querystring += f"&X-Amz-Date={amzdate}"
+        canonical_querystring += f"&X-Amz-Expires={str(ttl)}"
+        canonical_querystring += f"&X-Amz-SignedHeaders={signed_headers}"
 
-        canonical_headers = 'host:' + host + "\n"  # + "x-amz-date:"+ amzdate + "\n"
+        payload_hash = "UNSIGNED-PAYLOAD" 
 
-        signed_headers = "host"  # "host;x-amz-content-sha256;x-amz-date"
-
-        credential_scope = datestamp + '/' + region + '/' + service + '/' + aws_request
-
-        # canonical_querystring = bucket_name+"/"+object_name
-        canonical_querystring = 'X-Amz-Algorithm=AWS4-HMAC-SHA256'
-        canonical_querystring += '&X-Amz-Credential=' + urllib.parse.quote_plus(
-            aws_access_key_id + '/' + credential_scope)
-        canonical_querystring += '&X-Amz-Date=' + amzdate
-        canonical_querystring += '&X-Amz-Expires=' + str(ttl)
-        canonical_querystring += '&X-Amz-SignedHeaders=' + signed_headers
-
-        payload_hash = "UNSIGNED-PAYLOAD"  # ???????? hashlib.sha256(("").encode("utf-8")).hexdigest()
-
-        canonical_request = httpVerb + "\n" + canonical_uri + "\n" + canonical_querystring + "\n" + canonical_headers + '\n' + signed_headers + "\n" + payload_hash
-
-        string_to_sign = algorithm + "\n" + amzdate + "\n" + credential_scope + "\n" + hashlib.sha256(
-            canonical_request.encode("utf-8")).hexdigest()
+        canonical_request = f"{httpVerb}\n{canonical_uri}\n{canonical_querystring}\n{canonical_headers}\n{signed_headers}\n{payload_hash}"
+        string_to_sign = f"{algorithm}\n{amzdate}\n{credential_scope}\n{hashlib.sha256(canonical_request.encode('utf-8')).hexdigest()}"
 
         # Create the signing key
         signing_key = self.getSignatureKey(aws_secret_access_key, datestamp, region, service)
@@ -464,9 +427,9 @@ class S3v4(ObjectStorage):
         # Sign the string_to_sign using the signing_key
         signature = hmac.new(signing_key, (string_to_sign).encode("utf-8"), hashlib.sha256).hexdigest()
 
-        canonical_querystring += '&X-Amz-Signature=' + signature
+        canonical_querystring += f"&X-Amz-Signature={signature}"
 
-        url = endpoint_url + canonical_uri + "?" + canonical_querystring
+        url = f"{endpoint_url}{canonical_uri}?{canonical_querystring}"
 
         return url
 
@@ -477,8 +440,8 @@ class S3v4(ObjectStorage):
         aws_request = "aws4_request"
         aws_access_key_id = self.user  
         aws_secret_access_key = self.passwd  
-        endpoint_url = self.url  
-        host = self.url.split("/")[-1]  
+        endpoint_url = self.priv_url
+        host = endpoint_url.split("/")[-1]  
         region = "us-east-1"
 
         # Create a date for headers and the credential string
@@ -487,27 +450,21 @@ class S3v4(ObjectStorage):
         datestamp = t.strftime('%Y%m%d')  # Date w/o time, used in credential scope
 
         canonical_uri = f"/{containername}" 
+        canonical_headers = f"host:{host}\n"
+        signed_headers = "host"
+        credential_scope = f"{datestamp}/{region}/{service}/{aws_request}"
 
-        canonical_headers = 'host:' + host + "\n"  # + "x-amz-date:"+ amzdate + "\n"
+        
+        canonical_querystring = "X-Amz-Algorithm=AWS4-HMAC-SHA256"
+        canonical_querystring += f"&X-Amz-Credential={urllib.parse.quote_plus(f'{aws_access_key_id}/{credential_scope}')}"
+        canonical_querystring += f"&X-Amz-Date={amzdate}"
+        canonical_querystring += f"&X-Amz-Expires={str(120)}"
+        canonical_querystring += f"&X-Amz-SignedHeaders={signed_headers}"
 
-        signed_headers = "host"  # "host;x-amz-content-sha256;x-amz-date"
+        payload_hash = "UNSIGNED-PAYLOAD" 
 
-        credential_scope = datestamp + '/' + region + '/' + service + '/' + aws_request
-
-        # canonical_querystring = bucket_name+"/"+object_name
-        canonical_querystring = 'X-Amz-Algorithm=AWS4-HMAC-SHA256'
-        canonical_querystring += '&X-Amz-Credential=' + urllib.parse.quote_plus(
-            aws_access_key_id + '/' + credential_scope)
-        canonical_querystring += '&X-Amz-Date=' + amzdate
-        canonical_querystring += '&X-Amz-Expires=' + str(120)
-        canonical_querystring += '&X-Amz-SignedHeaders=' + signed_headers
-
-        payload_hash = "UNSIGNED-PAYLOAD"  # ???????? hashlib.sha256(("").encode("utf-8")).hexdigest()
-
-        canonical_request = httpVerb + "\n" + canonical_uri + "\n" + canonical_querystring + "\n" + canonical_headers + '\n' + signed_headers + "\n" + payload_hash
-
-        string_to_sign = algorithm + "\n" + amzdate + "\n" + credential_scope + "\n" + hashlib.sha256(
-            canonical_request.encode("utf-8")).hexdigest()
+        canonical_request = f"{httpVerb}\n{canonical_uri}\n{canonical_querystring}\n{canonical_headers}\n{signed_headers}\n{payload_hash}"
+        string_to_sign = f"{algorithm}\n{amzdate}\n{credential_scope}\n{hashlib.sha256(canonical_request.encode('utf-8')).hexdigest()}"
 
         # Create the signing key
         signing_key = self.getSignatureKey(aws_secret_access_key, datestamp, region, service)
@@ -515,9 +472,9 @@ class S3v4(ObjectStorage):
         # Sign the string_to_sign using the signing_key
         signature = hmac.new(signing_key, (string_to_sign).encode("utf-8"), hashlib.sha256).hexdigest()
 
-        canonical_querystring += '&X-Amz-Signature=' + signature
+        canonical_querystring += f"&X-Amz-Signature={signature}"
 
-        url = endpoint_url + canonical_uri + "?" + canonical_querystring
+        url = f"{endpoint_url}{canonical_uri}?{canonical_querystring}"
 
         try:
             resp = requests.get(url)
@@ -557,8 +514,8 @@ class S3v4(ObjectStorage):
             return None
 
         except Exception as e:
-            logging.error("Error: {}".format(e))
-            logging.error("Error: {}".format(type(e)))
+            logging.error(f"Error listing objects: {e}")
+            logging.error(f"Error type: {type(e)}")
             return None
 
     def _prepare_xml(self,prefix, expiration_date_value):
@@ -595,8 +552,7 @@ class S3v4(ObjectStorage):
         hash256 = hashlib.sha256()
         hash256.update(body)
         sha256sum =  hash256.hexdigest()
-        # sha256sum_decoded = sha256sum.decode()
-
+        
         return body, md5sum_decoded, sha256sum
 
     # For S3v4 delete_at only works at midnight UTC (from http://docs.aws.amazon.com/AmazonS3/latest/API/RESTBucketPUTlifecycle.html)
@@ -611,8 +567,8 @@ class S3v4(ObjectStorage):
         aws_request = "aws4_request"
         aws_access_key_id = self.user
         aws_secret_access_key = self.passwd
-        endpoint_url = self.url
-        host = self.url.split("/")[-1]
+        endpoint_url = self.priv_url
+        host = endpoint_url.split("/")[-1]
         region = "us-east-1"
 
         # Create a date for headers and the credential string
@@ -626,32 +582,22 @@ class S3v4(ObjectStorage):
         d1 = datetime.strptime(d1_str,"%Y-%m-%d") # convert to datetime        
         d2 = d1 + timedelta(days=1) # add 1 day        
         _delete_at_iso = d2.strftime("%Y-%m-%dT%H:%M:%SZ") # after adding 1 day, reconvert to str
-
         
         [body, content_md5, content_sha256] = self._prepare_xml(prefix, _delete_at_iso)
 
-        canonical_uri = "/" + containername 
-
+        canonical_uri = f"/{containername}"
         canonical_headers = f"content-md5:{content_md5}\nhost:{host}\nx-amz-content-sha256:{content_sha256}\nx-amz-date:{amzdate}"
-        
         signed_headers = "content-md5;host;x-amz-content-sha256;x-amz-date"
-
-        credential_scope = datestamp + '/' + region + '/' + service + '/' + aws_request
-        
-
+        credential_scope = f"{datestamp}/{region}/{service}/{aws_request}"
         canonical_querystring = "lifecycle="
-
-        
 
         headers = { "Content-MD5": content_md5, 
                     "Host": host,
                     "X-Amz-Content-Sha256": content_sha256,
                     "X-Amz-Date": amzdate}
 
-
-        canonical_request = httpVerb + "\n" + canonical_uri + "\n" + canonical_querystring + "\n" + canonical_headers + '\n\n' + signed_headers + "\n" + content_sha256
-       
-
+        canonical_request = f"{httpVerb}\n{canonical_uri}\n{canonical_querystring}\n{canonical_headers}\n\n{signed_headers}\n{content_sha256}"
+        
         canonical_request_hash = hashlib.sha256(canonical_request.encode("utf-8")).hexdigest()
 
         string_to_sign = f"{algorithm}\n{amzdate}\n{credential_scope}\n{canonical_request_hash}"
@@ -663,9 +609,8 @@ class S3v4(ObjectStorage):
         signature = hmac.new(signing_key, (string_to_sign).encode("utf-8"), hashlib.sha256).hexdigest()
 
         headers["Authorization"] = f"AWS4-HMAC-SHA256 Credential={aws_access_key_id}/{credential_scope}, SignedHeaders={signed_headers}, Signature={signature}"
-    
-        url = endpoint_url + canonical_uri +"?"+ canonical_querystring
-       
+
+        url = f"{endpoint_url}{canonical_uri}?{canonical_querystring}"
         
         try:
             resp = requests.put(url, data=body, headers=headers)
@@ -694,8 +639,8 @@ class S3v4(ObjectStorage):
         aws_request = "aws4_request"
         aws_access_key_id = self.user
         aws_secret_access_key = self.passwd 
-        endpoint_url = self.url 
-        host = self.url.split("/")[-1] 
+        endpoint_url = self.priv_url
+        host = endpoint_url.split("/")[-1] 
         region = "us-east-1"
 
         # Create a date for headers and the credential string
@@ -703,28 +648,23 @@ class S3v4(ObjectStorage):
         amzdate = t.strftime('%Y%m%dT%H%M%SZ')
         datestamp = t.strftime('%Y%m%d')  # Date w/o time, used in credential scope
 
-        canonical_uri = "/" + containername + "/" + prefix + "/" + objectname
+        canonical_uri = f"/{containername}/{prefix}/{objectname}"
+
+        canonical_headers = f"host:{host}\n"
+        signed_headers = "host"
+        credential_scope = f"{datestamp}/{region}/{service}/{aws_request}"
+
         
-        canonical_headers = 'host:' + host + "\n"  # + "x-amz-date:"+ amzdate + "\n"
+        canonical_querystring = "X-Amz-Algorithm=AWS4-HMAC-SHA256"
+        canonical_querystring += f"&X-Amz-Credential={urllib.parse.quote_plus(f'{aws_access_key_id}/{credential_scope}')}"
+        canonical_querystring += f"&X-Amz-Date={amzdate}"
+        canonical_querystring += f"&X-Amz-Expires={str(ttl)}"
+        canonical_querystring += f"&X-Amz-SignedHeaders={signed_headers}"
 
-        signed_headers = "host"  # "host;x-amz-content-sha256;x-amz-date"
+        payload_hash = "UNSIGNED-PAYLOAD" 
 
-        credential_scope = datestamp + '/' + region + '/' + service + '/' + aws_request
-
-        # canonical_querystring = bucket_name+"/"+object_name
-        canonical_querystring = 'X-Amz-Algorithm=AWS4-HMAC-SHA256'
-        canonical_querystring += '&X-Amz-Credential=' + urllib.parse.quote_plus(
-            aws_access_key_id + '/' + credential_scope)
-        canonical_querystring += '&X-Amz-Date=' + amzdate
-        canonical_querystring += '&X-Amz-Expires=' + str(ttl)
-        canonical_querystring += '&X-Amz-SignedHeaders=' + signed_headers
-
-        payload_hash = "UNSIGNED-PAYLOAD"  # ???????? hashlib.sha256(("").encode("utf-8")).hexdigest()
-
-        canonical_request = httpVerb + "\n" + canonical_uri + "\n" + canonical_querystring + "\n" + canonical_headers + '\n' + signed_headers + "\n" + payload_hash
-
-        string_to_sign = algorithm + "\n" + amzdate + "\n" + credential_scope + "\n" + hashlib.sha256(
-            canonical_request.encode("utf-8")).hexdigest()
+        canonical_request = f"{httpVerb}\n{canonical_uri}\n{canonical_querystring}\n{canonical_headers}\n{signed_headers}\n{payload_hash}"
+        string_to_sign = f"{algorithm}\n{amzdate}\n{credential_scope}\n{hashlib.sha256(canonical_request.encode('utf-8')).hexdigest()}"
 
         # Create the signing key
         signing_key = self.getSignatureKey(aws_secret_access_key, datestamp, region, service)
@@ -732,12 +672,12 @@ class S3v4(ObjectStorage):
         # Sign the string_to_sign using the signing_key
         signature = hmac.new(signing_key, (string_to_sign).encode("utf-8"), hashlib.sha256).hexdigest()
 
-        canonical_querystring += '&X-Amz-Signature=' + signature
+        canonical_querystring += f"&X-Amz-Signature={signature}"
         
-        url = endpoint_url + canonical_uri + "?" + canonical_querystring
+        url = f"{endpoint_url}{canonical_uri}?{canonical_querystring}"
 
-        logging.info(f"Deleting {canonical_uri}")
-        logging.info("URL: {}".format(url))
+        logging.info(f"Deleting object {canonical_uri}")
+        logging.info(f"URL: {url}")
 
         try:
             resp = requests.delete(url)
@@ -749,8 +689,8 @@ class S3v4(ObjectStorage):
             logging.error("Object couldn't be deleted")
             return -1
         except Exception as e:
-            logging.error(e)
             logging.error("Object couldn't be deleted")
+            logging.error(e)
             return -1
 
 

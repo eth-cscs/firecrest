@@ -171,6 +171,11 @@ node {
                 towerLogLevel: 'full',
                 removeColor: false,
                 verbose: true,
+                extraVars: """
+                docker_registry_host: 148.187.97.229:5000
+                build_tag: $shortCommit
+                commit_id: $longCommit
+                """,
                 async: false,
                 throwExceptionWhenFail: false
             )

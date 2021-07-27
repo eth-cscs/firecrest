@@ -51,7 +51,7 @@ class ObjectStorage:
         pass
 
     @abstractmethod
-    def create_temp_url(self,containername,prefix,objectname,ttl):
+    def create_temp_url(self,containername,prefix,objectname,ttl,internal):
         pass
 
     @abstractmethod
@@ -59,7 +59,7 @@ class ObjectStorage:
         pass
 
     @abstractmethod
-    def create_upload_form(self,sourcepath,containername,prefix,ttl,max_file_size):
+    def create_upload_form(self,sourcepath,containername,prefix,ttl,max_file_size,internal):
         pass
 
     @abstractmethod
