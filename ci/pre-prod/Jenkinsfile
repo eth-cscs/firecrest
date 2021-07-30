@@ -63,23 +63,6 @@ node {
             )
         }
 
-        /*
-        // This should be executed once from awx itself
-        // since the test server is a permanent host (not dynamically created)
-        stage('Provisioning of test environment') {
-
-            // Install docker, python etc
-            ansibleTower(
-                towerServer: 'awx-local',
-                templateType: 'job',
-                jobTemplate: 'Test server provisioning',
-                towerLogLevel: 'full',
-                removeColor: false,
-                verbose: true
-                async: false
-            )
-        }*/
-
         stage('Deploy firecrest in test environment') {
 
             ansibleTower(
