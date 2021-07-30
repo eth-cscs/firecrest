@@ -11,5 +11,4 @@ image_definitions:
   storage:
   tasks:
   utilities:
-  openapi:
   taskpersistence:
