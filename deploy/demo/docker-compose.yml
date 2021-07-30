@@ -88,7 +88,7 @@ services:
       - ./common/common.env
     environment:
       F7T_S3_PRIVATE_URL: http://192.168.220.19:9000
-      F7T_S3_PUBLIC_URL: http://127.0.0.1:9000
+      F7T_S3_PUBLIC_URL: http://192.168.220.19:9000
       F7T_S3_ACCESS_KEY: storage_access_key
       F7T_S3_SECRET_KEY: storage_secret_key
       F7T_STORAGE_POLLING_INTERVAL: 60 
