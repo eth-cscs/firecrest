@@ -5,7 +5,7 @@
 #  SPDX-License-Identifier: BSD-3-Clause
 #
 import subprocess, os, tempfile
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, g
 import functools
 import jwt
 
@@ -16,6 +16,7 @@ from flask_opentracing import FlaskTracing
 from jaeger_client import Config
 import requests
 import re
+import threading
 
 # Checks if an environment variable injected to F7T is a valid True value
 # var <- object
@@ -55,6 +56,8 @@ POLICY_PATH = os.environ.get("F7T_POLICY_PATH","v1/data/f7t/authz").strip('\'"')
 USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
+
+TRACER_HEADER = "uber-trace-id"
 
 realm_pubkey=os.environ.get("F7T_REALM_RSA_PUBLIC_KEY", '')
 if realm_pubkey != '':
@@ -125,13 +128,13 @@ def check_user_auth(username,system):
 # checks JWT from Keycloak, optionally validates signature. It only receives the content of header's auth pair (not key:content)
 def check_header(header):
     if debug:
-        logging.info('debug: cscs_api_common: check_header: ' + header)
+        logging.info('debug: header: ' + header)
 
     # header = "Bearer ey...", remove first 7 chars
     try:
         if realm_pubkey == '':
             if not debug:
-                logging.warning("WARNING: cscs_api_common: check_header: REALM_RSA_PUBLIC_KEY is empty, JWT tokens are NOT verified, setup is not set to debug.")
+                logging.warning("WARNING: REALM_RSA_PUBLIC_KEY is empty, JWT tokens are NOT verified, setup is not set to debug.")
             decoded = jwt.decode(header[7:], verify=False)
         else:
             if AUTH_AUDIENCE == '':
@@ -147,9 +150,6 @@ def check_header(header):
         if AUTH_REQUIRED_SCOPE != "":
             if AUTH_REQUIRED_SCOPE not in decoded["scope"].split():
                 return False
-
-        #if not (decoded['preferred_username'] in ALLOWED_USERS):
-        #    return False
 
         return True
 
@@ -169,8 +169,6 @@ def check_header(header):
 # receive the header, and extract the username from the token
 # returns username
 def get_username(header):
-    if debug:
-        logging.info('debug: cscs_api_common: get_username: ' + header)
     # header = "Bearer ey...", remove first 7 chars
     try:
         if realm_pubkey == '':
@@ -239,7 +237,6 @@ def receive():
     """
 
     if debug:
-        logging.getLogger().setLevel(logging.INFO)
         logging.info('debug: certificator: request.headers[AUTH_HEADER_NAME]: ' + request.headers[AUTH_HEADER_NAME])
 
     try:
@@ -318,16 +315,41 @@ def status():
     app.logger.info("Test status of service")
     return jsonify(success="ack"), 200
 
+@app.before_request
+def f_before_request():
+    g.TID = request.headers.get(TRACER_HEADER, '')
+
+
+@app.after_request
+def after_request(response):
+    # LogRequestFormatetter is used, this messages will get time, thread, etc
+    logger.info('%s %s %s %s %s', request.remote_addr, request.method, request.scheme, request.full_path, response.status)
+    return response
+
+
+# formatter is executed for every print log
+class LogRequestFormatter(logging.Formatter):
+    def format(self, record):
+        try:
+            # try to get TID from Flask g object, it's set on @app.before_request on each microservice
+            record.TID = g.TID
+        except:
+            try:
+                record.TID = threading.current_thread().name
+            except:
+                record.TID = 'notid'
+
+        return super().format(record)
+
 
 if __name__ == "__main__":
     # log handler definition
     # timed rotation: 1 (interval) rotation per day (when="D")
     logHandler = TimedRotatingFileHandler('/var/log/certificator.log', when='D', interval=1)
 
-    logFormatter = logging.Formatter('%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
+    logFormatter = LogRequestFormatter('%(asctime)s,%(msecs)d %(thread)s %(TID)s %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                                      '%Y-%m-%dT%H:%M:%S')
     logHandler.setFormatter(logFormatter)
-    logHandler.setLevel(logging.DEBUG)
 
     # get app log (Flask+werkzeug+python)
     logger = logging.getLogger()
@@ -347,6 +369,9 @@ if __name__ == "__main__":
         msg = f"ERROR: couldn't stat 'ca-key', message: {e.strerror} - Exiting."
         app.logger.error(msg)
         sys.exit(msg)
+
+    # propagates to modules
+    logging.getLogger().setLevel(logging.INFO)
 
     # run app
     # debug = False, so output redirects to log files

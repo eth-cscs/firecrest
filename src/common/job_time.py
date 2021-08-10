@@ -7,6 +7,7 @@
 import logging
 import datetime
 
+logging.getLogger(__name__)
 
 def check_sacctTime(sacctTime):
     # HH:MM[:SS] [AM|PM]

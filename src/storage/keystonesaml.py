@@ -15,7 +15,6 @@ import os
 from keystone import Keystone
 
 
-logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 class KeystoneSAML(Keystone):

@@ -15,7 +15,6 @@ import os
 from keystone import Keystone
 
 
-logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 class KeystoneOIDC(Keystone):
@@ -36,7 +35,7 @@ class KeystoneOIDC(Keystone):
         try:
 
             auth = V3OidcPassword(auth_url=self.OS_AUTH_URL, identity_provider=self.OS_IDENTITY_PROVIDER, protocol=self.OS_PROTOCOL,
-                                client_id=self.OS_CLIENT_ID, client_secret=self.OS_CLIENT_SECRET, discovery_endpoint=self.OS_DISCOVERY_ENDPOINT, 
+                                client_id=self.OS_CLIENT_ID, client_secret=self.OS_CLIENT_SECRET, discovery_endpoint=self.OS_DISCOVERY_ENDPOINT,
                                 username=username, password=password)
 
 

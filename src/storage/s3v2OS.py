@@ -16,8 +16,7 @@ import base64
 import hmac
 import hashlib
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logging.getLogger(__name__)
 
 class S3v2(ObjectStorage):
 

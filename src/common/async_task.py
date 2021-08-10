@@ -10,6 +10,7 @@ import json
 import logging
 import copy
 
+logging.getLogger(__name__)
 
 # common status codes
 QUEUED   = "100"

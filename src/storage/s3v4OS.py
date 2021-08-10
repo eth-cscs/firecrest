@@ -19,6 +19,7 @@ import hashlib
 from _datetime import datetime, timedelta
 import json
 
+logging.getLogger(__name__)
 
 class S3v4(ObjectStorage):
 

@@ -4,7 +4,7 @@
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
 #
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, g
 import paramiko
 from logging.handlers import TimedRotatingFileHandler
 import threading
@@ -14,7 +14,7 @@ import sys
 
 from cscs_api_common import check_auth_header, get_username, \
     exec_remote_command, create_task, update_task, clean_err_output, \
-    in_str, is_valid_file, get_boolean_var, validate_input
+    in_str, is_valid_file, get_boolean_var, validate_input, LogRequestFormatter
 
 from job_time import check_sacctTime
 
@@ -24,7 +24,7 @@ from math import ceil
 
 import json, urllib, tempfile, os
 from werkzeug.utils import secure_filename
-from werkzeug.exceptions import RequestEntityTooLarge
+from werkzeug.exceptions import RequestEntityTooLarge, HTTPException
 
 from datetime import datetime
 
@@ -267,7 +267,7 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, use_pl
 
 
 # checks with scontrol for out and err file location
-# - auth_header: coming from OIDC
+# - headers: coming from OIDC + tracing
 # - machine: machine where the command will be executed
 # - job_info: json containing jobid key
 # - output: True if StdErr and StdOut of the job need to be added to the jobinfo (default False)
@@ -292,7 +292,6 @@ def get_slurm_files(headers, system_name, system_addr, job_info, output=False):
 
     # if there was an error, the result will be SUCESS but not available outputs
     if resp["error"] != 0:
-        # update_task(task_id, auth_header, async_task.SUCCESS, control_info,True)
         return control_info
 
     # if it's ok, we can add information
@@ -327,7 +326,6 @@ def get_slurm_files(headers, system_name, system_addr, job_info, output=False):
         if resp["error"] == 0:
             control_info["job_data_err"] = resp["msg"]
 
-    # update_task(task_id, auth_header, async_task.SUCCESS, control_info,True)
     return control_info
 
 def submit_job_path_task(headers, system_name, system_addr, fileName, job_dir, use_plugin, task_id):
@@ -477,7 +475,7 @@ def submit_job_upload():
 
     try:
         # asynchronous task creation
-        aTask = threading.Thread(target=submit_job_task,
+        aTask = threading.Thread(target=submit_job_task, name=ID,
                              args=(headers, system_name, system_addr, job_file, job_dir, use_plugin, task_id))
 
         aTask.start()
@@ -558,7 +556,7 @@ def submit_job_path():
 
     try:
         # asynchronous task creation
-        aTask = threading.Thread(target=submit_job_path_task,
+        aTask = threading.Thread(target=submit_job_path_task, name=ID,
                              args=(headers, system_name, system_addr, targetPath, job_dir, use_plugin, task_id))
 
         aTask.start()
@@ -667,7 +665,7 @@ def list_jobs():
         update_task(task_id, headers, async_task.QUEUED)
 
         # asynchronous task creation
-        aTask = threading.Thread(target=list_job_task,
+        aTask = threading.Thread(target=list_job_task, name=ID,
                                  args=(headers, system_name, system_addr, action, task_id, pageSize, pageNumber))
 
         aTask.start()
@@ -702,7 +700,6 @@ def list_job_task(headers,system_name, system_addr,action,task_id,pageSize,pageN
         return
 
     if len(resp["msg"]) == 0:
-         #update_task(task_id, auth_header, async_task.SUCCESS, "You don't have active jobs on {machine}".format(machine=machine))
          update_task(task_id, headers, async_task.SUCCESS, {}, True)
          return
 
@@ -759,8 +756,6 @@ def list_job_task(headers,system_name, system_addr,action,task_id,pageSize,pageN
 @check_auth_header
 def list_job(jobid):
 
-    #auth_header = request.headers[AUTH_HEADER_NAME]
-
     try:
         system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
@@ -813,7 +808,7 @@ def list_job(jobid):
         update_task(task_id, headers, async_task.QUEUED)
 
         # asynchronous task creation
-        aTask = threading.Thread(target=list_job_task,
+        aTask = threading.Thread(target=list_job_task, name=ID,
                                  args=(headers, system_name, system_addr, action, task_id, 1, 1))
 
         aTask.start()
@@ -923,7 +918,7 @@ def cancel_job(jobid):
             return jsonify(description="Failed to delete job",error='Error creating task'), 400
 
         # asynchronous task creation
-        aTask = threading.Thread(target=cancel_job_task,
+        aTask = threading.Thread(target=cancel_job_task, name=ID,
                              args=(headers, system_name, system_addr, action, task_id))
 
         aTask.start()
@@ -1075,7 +1070,7 @@ def acct():
         update_task(task_id, headers, async_task.QUEUED)
 
         # asynchronous task creation
-        aTask = threading.Thread(target=acct_task,
+        aTask = threading.Thread(target=acct_task, name=ID,
                                  args=(headers, system_name, system_addr, action, task_id))
 
         aTask.start()
@@ -1094,23 +1089,40 @@ def status():
     # TODO: check compute reservation binary to truthfully respond this request
     return jsonify(success="ack"), 200
 
+@app.before_request
+def f_before_request():
+    new_headers = {}
+    try:
+        jaeger_tracer.inject(tracing.get_span(request), opentracing.Format.TEXT_MAP, new_headers)
+    except Exception as e:
+        logging.error(e)
+
+    g.TID = new_headers.get(TRACER_HEADER, '')
+
+@app.after_request
+def after_request(response):
+    # LogRequestFormatetter is used, this messages will get time, thread, etc
+    logger.info('%s %s %s %s %s', request.remote_addr, request.method, request.scheme, request.full_path, response.status)
+    return response
+
+
 
 if __name__ == "__main__":
     # log handler definition
     # timed rotation: 1 (interval) rotation per day (when="D")
     logHandler = TimedRotatingFileHandler('/var/log/compute.log', when='D', interval=1)
 
-    logFormatter = logging.Formatter('%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
+    logFormatter = LogRequestFormatter('%(asctime)s,%(msecs)d %(thread)s %(TID)s %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                                      '%Y-%m-%dT%H:%M:%S')
     logHandler.setFormatter(logFormatter)
-    logHandler.setLevel(logging.DEBUG)
 
     # get app log (Flask+werkzeug+python)
     logger = logging.getLogger()
-    # logger = app.logger
 
     # set handler to logger
     logger.addHandler(logHandler)
+    # propagates to modules
+    logging.getLogger().setLevel(logging.INFO)
 
     # set debug = False, so output goes to log files
     if USE_SSL:

@@ -4,7 +4,7 @@
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
 #
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, g
 import pickle
 
 # task states
@@ -15,7 +15,7 @@ from logging.handlers import TimedRotatingFileHandler
 from flask_opentracing import FlaskTracing
 from jaeger_client import Config
 
-from cscs_api_common import check_auth_header, get_username, check_header, get_boolean_var
+from cscs_api_common import check_auth_header, get_username, check_header, get_boolean_var, LogRequestFormatter
 import tasks_persistence as persistence
 
 AUTH_HEADER_NAME = 'Authorization'
@@ -41,6 +41,8 @@ COMPUTE_TASK_EXP_TIME = os.environ.get("F7T_COMPUTE_TASK_EXP_TIME", 86400)
 
 # expire time in seconds, for download/upload: default 30 days + 24 hours = 2678400 secs
 STORAGE_TASK_EXP_TIME = os.environ.get("F7T_STORAGE_TASK_EXP_TIME", 2678400)
+
+TRACER_HEADER = "uber-trace-id"
 
 debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
@@ -479,6 +481,15 @@ def tasklist():
 
     return jsonify(tasks=_tasks), 200
 
+@app.before_request
+def f_before_request():
+    g.TID = request.headers.get(TRACER_HEADER, '')
+
+@app.after_request
+def after_request(response):
+    # LogRequestFormatetter is used, this messages will get time, thread, etc
+    logger.info('%s %s %s %s %s', request.remote_addr, request.method, request.scheme, request.full_path, response.status)
+    return response
 
 
 if __name__ == "__main__":
@@ -486,16 +497,17 @@ if __name__ == "__main__":
     # timed rotation: 1 (interval) rotation per day (when="D")
     logHandler = TimedRotatingFileHandler('/var/log/tasks.log', when='D', interval=1)
 
-    logFormatter = logging.Formatter('%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
+    logFormatter = LogRequestFormatter('%(asctime)s,%(msecs)d %(thread)s %(TID)s %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                                      '%Y-%m-%dT%H:%M:%S')
     logHandler.setFormatter(logFormatter)
-    logHandler.setLevel(logging.DEBUG)
 
     # get app log (Flask+werkzeug+python)
     logger = logging.getLogger()
 
     # set handler to logger
     logger.addHandler(logHandler)
+    # propagates to modules
+    logging.getLogger().setLevel(logging.INFO)
 
     init_queue()
 

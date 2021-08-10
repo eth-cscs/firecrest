@@ -9,6 +9,8 @@ import redis.exceptions as redis_exceptions
 import logging
 import json
 
+logging.getLogger(__name__)
+
 # create redis server connection, and return StrictRedis object
 # otherwise returns None
 def create_connection(host,port,passwd="",db=0):
