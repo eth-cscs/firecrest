@@ -548,10 +548,11 @@ def status():
 @app.before_request
 def f_before_request():
     new_headers = {}
-    try:
-        jaeger_tracer.inject(tracing.get_span(request), opentracing.Format.TEXT_MAP, new_headers)
-    except Exception as e:
-        logging.error(e)
+    if JAEGER_AGENT != "":
+        try:
+            jaeger_tracer.inject(tracing.get_span(request), opentracing.Format.TEXT_MAP, new_headers)
+        except Exception as e:
+            logging.error(e)
 
     g.TID = new_headers.get(TRACER_HEADER, '')
 
