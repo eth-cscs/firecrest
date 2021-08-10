@@ -400,7 +400,7 @@ def download_task(headers, system_name, system_addr, sourcePath, task_id):
 
     # get Download Temp URL with [seconds] time expiration
     # create temp url for file: valid for STORAGE_TEMPURL_EXP_TIME seconds
-    temp_url = staging.create_temp_url(container_name, object_prefix, object_name, STORAGE_TEMPURL_EXP_TIME)
+    temp_url = staging.create_temp_url(container_name, object_prefix, object_name, STORAGE_TEMPURL_EXP_TIME,internal=False)
 
     # if error raises in temp url creation:
     if temp_url == None:
@@ -562,7 +562,7 @@ def upload_task(headers, system_name, system_addr, targetPath, sourcePath, task_
     object_prefix = task_id
 
     # create temporary upload form
-    resp = staging.create_upload_form(sourcePath, container_name, object_prefix, STORAGE_TEMPURL_EXP_TIME, STORAGE_MAX_FILE_SIZE)
+    resp = staging.create_upload_form(sourcePath, container_name, object_prefix, STORAGE_TEMPURL_EXP_TIME, STORAGE_MAX_FILE_SIZE, internal=False)
     data = uploaded_files[task_id]
 
     # create download URL for later download from Object Storage to filesystem
@@ -935,43 +935,46 @@ def create_staging():
 
     if OBJECT_STORAGE == "swift":
 
-        logger.info("Into swift")
+        app.logger.info("Object Storage selected: SWIFT")
 
         from swiftOS import Swift
 
         # Object Storage URL & data:
-        SWIFT_URL = os.environ.get("F7T_SWIFT_URL")
+        SWIFT_PRIVATE_URL = os.environ.get("F7T_SWIFT_PRIVATE_URL")
+        SWIFT_PUBLIC_URL = os.environ.get("F7T_SWIFT_PUBLIC_URL")
         SWIFT_API_VERSION = os.environ.get("F7T_SWIFT_API_VERSION")
         SWIFT_ACCOUNT = os.environ.get("F7T_SWIFT_ACCOUNT")
         SWIFT_USER = os.environ.get("F7T_SWIFT_USER")
         SWIFT_PASS = os.environ.get("F7T_SWIFT_PASS")
 
-        url = "{swift_url}/{swift_api_version}/AUTH_{swift_account}".format(
-            swift_url=SWIFT_URL, swift_api_version=SWIFT_API_VERSION, swift_account=SWIFT_ACCOUNT)
+        priv_url = f"{SWIFT_PRIVATE_URL}/{SWIFT_API_VERSION}/AUTH_{SWIFT_ACCOUNT}"
+        publ_url = f"{SWIFT_PUBLIC_URL}/{SWIFT_API_VERSION}/AUTH_{SWIFT_ACCOUNT}"
 
-        staging = Swift(url=url, user=SWIFT_USER, passwd=SWIFT_PASS, secret=SECRET_KEY)
+        staging = Swift(priv_url=priv_url,publ_url=publ_url, user=SWIFT_USER, passwd=SWIFT_PASS, secret=SECRET_KEY)
 
     elif OBJECT_STORAGE == "s3v2":
-        logger.info("Into s3v2")
+        app.logger.info("Object Storage selected: S3v2")
         from s3v2OS import S3v2
 
-        # For S#:
-        S3_URL = os.environ.get("F7T_S3_URL")
-        S3_ACCESS_KEY = os.environ.get("F7T_S3_ACCESS_KEY")
-        S3_SECRET_KEY = os.environ.get("F7T_S3_SECRET_KEY")
+        # For S3:
+        S3_PRIVATE_URL = os.environ.get("F7T_S3_PRIVATE_URL")
+        S3_PUBLIC_URL  = os.environ.get("F7T_S3_PUBLIC_URL")
+        S3_ACCESS_KEY  = os.environ.get("F7T_S3_ACCESS_KEY")
+        S3_SECRET_KEY  = os.environ.get("F7T_S3_SECRET_KEY")
 
-        staging = S3v2(url=S3_URL, user=S3_ACCESS_KEY, passwd=S3_SECRET_KEY)
+        staging = S3v2(priv_url=S3_PRIVATE_URL, publ_url=S3_PUBLIC_URL, user=S3_ACCESS_KEY, passwd=S3_SECRET_KEY)
 
     elif OBJECT_STORAGE == "s3v4":
-        logger.info("Into s3v4")
+        app.logger.info("Object Storage selected: S3v4")
         from s3v4OS import S3v4
 
-        # For S#:
-        S3_URL = os.environ.get("F7T_S3_URL")
-        S3_ACCESS_KEY = os.environ.get("F7T_S3_ACCESS_KEY")
-        S3_SECRET_KEY = os.environ.get("F7T_S3_SECRET_KEY")
+        # For S3:
+        S3_PRIVATE_URL = os.environ.get("F7T_S3_PRIVATE_URL")
+        S3_PUBLIC_URL  = os.environ.get("F7T_S3_PUBLIC_URL")
+        S3_ACCESS_KEY  = os.environ.get("F7T_S3_ACCESS_KEY")
+        S3_SECRET_KEY  = os.environ.get("F7T_S3_SECRET_KEY")
 
-        staging = S3v4(url=S3_URL, user=S3_ACCESS_KEY, passwd=S3_SECRET_KEY)
+        staging = S3v4(priv_url=S3_PRIVATE_URL, publ_url=S3_PUBLIC_URL, user=S3_ACCESS_KEY, passwd=S3_SECRET_KEY)
 
     else:
         logger.warning("No Object Storage for staging area was set.")
@@ -982,8 +985,9 @@ def get_upload_unfinished_tasks():
     global uploaded_files
     uploaded_files = {}
 
-    logger.info("Staging Area Used: {staging.url}")
-    logger.info("ObjectStorage Technology: {staging.get_object_storage()}")
+
+    app.logger.info("Staging Area Used: {}".format(staging.priv_url))
+    app.logger.info("ObjectStorage Technology: {}".format(staging.get_object_storage()))
 
     try:
         # query Tasks microservice for previous tasks. Allow 30 seconds to answer

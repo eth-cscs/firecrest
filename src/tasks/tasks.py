@@ -446,7 +446,7 @@ def tasklist():
 
     # checks if request comes from allowed microservices
     if not debug and request.remote_addr != STORAGE_IP:
-        msg = "Invalid remote address: {}".format(request.remote_addr)
+        msg = f"Invalid remote address: {request.remote_addr}"
         app.logger.warning(msg)
         return jsonify(error=msg), 403
 

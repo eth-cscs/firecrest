@@ -16,7 +16,6 @@ networks:
 
 
 services:
-  # base image
   f7t-base:
     container_name: f7t-base
     image: "f7t-base"
@@ -88,7 +87,8 @@ services:
     env_file:
       - ./common/common.env
     environment:
-      F7T_S3_URL: http://192.168.220.19:9000
+      F7T_S3_PRIVATE_URL: http://192.168.220.19:9000
+      F7T_S3_PUBLIC_URL: http://192.168.220.19:9000
       F7T_S3_ACCESS_KEY: storage_access_key
       F7T_S3_SECRET_KEY: storage_secret_key
       F7T_STORAGE_POLLING_INTERVAL: 60 
@@ -196,7 +196,7 @@ services:
 
   # complementary 3rd party services
   keycloak:
-    image: "jboss/keycloak:4.8.3.Final"
+    image: "jboss/keycloak:9.0.2"
     container_name: fckeycloak
     env_file: keycloak/keycloak.env
     environment:
@@ -212,7 +212,7 @@ services:
       - ./logs/keycloak:/opt/jboss/keycloak/standalone/log/:delegated
 
   kong:
-    image: kong:2.4
+    image: kong:2.5.0
     container_name: kong
     environment:
       - KONG_DATABASE=off
@@ -271,15 +271,14 @@ services:
       - ./ssl:/ssl
 
   openapi:
-    # image: swaggerapi/swagger-ui:v3.22.0
-    build:
-      context: ../../
-      dockerfile: ./deploy/docker/openapi/Dockerfile
+    image: swaggerapi/swagger-ui:v3.22.0
     container_name: openapi
     ports:
       - "9090:8080"
     environment:
-      SWAGGER_JSON: /tmp/openapi.yaml
+      SWAGGER_JSON: /tmp/firecrest-developers-api.yaml
+    volumes:
+      - ../../doc/openapi/:/tmp/
 
   jaeger:
     image: jaegertracing/all-in-one:1.24
