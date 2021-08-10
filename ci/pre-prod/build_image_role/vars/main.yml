@@ -16,6 +16,4 @@ image_definitions:
   tasks:
     build_path: /home/firecrest/awx-firecrest-build
   utilities:
-    build_path: /home/firecrest/awx-firecrest-build
-  openapi:
-    build_path: /home/firecrest/awx-firecrest-build
+    build_path: /home/firecrest/awx-firecrest-build  

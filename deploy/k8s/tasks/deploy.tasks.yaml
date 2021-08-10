@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-tasks
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tasks
+  template:
+    metadata:
+      labels:
+        app: tasks      
+    spec:
+      containers:
+      - name: taskpersistence
+        image: redis:5
+        args: ["redis-server", "/redis/redis.conf"]
+        lifecycle:
+          postStart:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 10"]
+        ports:
+        - containerPort: 6379
+        volumeMounts:
+        - mountPath: /var/log
+          name: logs-endpoint
+        - mountPath: /data
+          name: data-endpoint
+        - mountPath: /redis
+          name: redis-config          
+      - name: tasks
+        image: demo_tasks
+        env:       
+        - name: F7T_PERSIST_PORT
+          value: "6379"
+        - name: F7T_PERSIST_PWD
+          value: rediS2200
+        - name: F7T_DEBUG_MODE
+          value: "on"
+        - name: F7T_COMPUTE_TASK_EXP_TIME
+          value: "86400"
+        - name: F7T_STORAGE_TASK_EXP_TIME
+          value: "2678400"
+        imagePullPolicy: Never        
+        ports:
+        - containerPort: 5003
+        envFrom:
+        - configMapRef:
+            name: common-env-file
+        volumeMounts:
+        - mountPath: /var/log
+          name: logs-endpoint        
+      volumes:
+      - name: logs-endpoint      
+        emptyDir: {}        
+      - name: data-endpoint
+        emptyDir: {}        
+      - name: redis-config
+        configMap:
+          name: f7t-redis

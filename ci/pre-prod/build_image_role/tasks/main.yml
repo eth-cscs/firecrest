@@ -75,21 +75,10 @@
     state: present
     push: yes  
 
-- name: build client image
-  docker_image:
-    name: "localhost:5000/client:{{ build_tag }}"
-    build:
-      path: /home/firecrest/awx-firecrest-build/src/tests/template_client
-      dockerfile: ./Dockerfile
-      pull: yes
-    source: build
-    state: present
-    push: yes
-
 - name: Pull redis and push to local registry
   docker_image:
     name: redis:5
     repository: "localhost:5000/taskpersistence:{{ build_tag }}"
     push: yes
     source: pull
-
+    

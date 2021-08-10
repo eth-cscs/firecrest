@@ -11,9 +11,4 @@ image_definitions:
   storage:
   tasks:
   utilities:
-  openapi:
-  client:
   taskpersistence:
-  #minio:
-
-  

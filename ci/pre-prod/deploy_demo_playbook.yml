@@ -158,7 +158,8 @@
         image: "{{ docker_registry_host }}/storage:{{build_tag}}"
         env_file: "{{ firecrest_dir }}/deploy/demo/common/common.env"
         env: 
-          F7T_S3_URL: "http://192.168.220.19:9000"
+          F7T_S3_PRIVATE_URL: "http://192.168.220.19:9000"
+          F7T_S3_PUBLIC_URL: "http://192.168.220.19:9000"
           F7T_S3_ACCESS_KEY: "storage_access_key"
           F7T_S3_SECRET_KEY: "storage_secret_key"
           F7T_STORAGE_POLLING_INTERVAL: "60" 
@@ -217,7 +218,7 @@
     - name: Keycloack
       community.general.docker_container:
         name: fckeycloak
-        image: "jboss/keycloak:4.8.3.Final"
+        image: "jboss/keycloak:9.0.2"
         env_file:  "{{ firecrest_dir }}/deploy/demo/keycloak/keycloak.env" 
         env:
           KEYCLOAK_IMPORT: "/var/tmp/config.json"
@@ -235,7 +236,7 @@
     - name: Kong
       community.general.docker_container:
         name: kong
-        image: "kong:latest"
+        image: "kong:2.5.0"
         env:
           KONG_DATABASE: "off"
           KONG_DECLARATIVE_CONFIG: "/kong.yml"
