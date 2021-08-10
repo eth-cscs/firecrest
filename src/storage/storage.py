@@ -571,7 +571,7 @@ def upload_task(headers, system_name, system_addr, targetPath, sourcePath, task_
 
     # create certificate for later download from OS to filesystem
     ID = headers.get(TRACER_HEADER, '')
-    app.logger.info(f"{ID} Creating certificate for later download")
+    app.logger.info("Creating certificate for later download")
     options = f"-s -G -o {targetPath}/{fileName} -- '{download_url}'"
     exp_time = STORAGE_TEMPURL_EXP_TIME
     certs = create_certificate(headers, system_name, system_addr, f"ID={ID} curl", options, exp_time)
@@ -935,7 +935,7 @@ def create_staging():
 
     if OBJECT_STORAGE == "swift":
 
-        app.logger.info("Into swift")
+        logger.info("Into swift")
 
         from swiftOS import Swift
 
@@ -952,7 +952,7 @@ def create_staging():
         staging = Swift(url=url, user=SWIFT_USER, passwd=SWIFT_PASS, secret=SECRET_KEY)
 
     elif OBJECT_STORAGE == "s3v2":
-        app.logger.info("Into s3v2")
+        logger.info("Into s3v2")
         from s3v2OS import S3v2
 
         # For S#:
@@ -963,7 +963,7 @@ def create_staging():
         staging = S3v2(url=S3_URL, user=S3_ACCESS_KEY, passwd=S3_SECRET_KEY)
 
     elif OBJECT_STORAGE == "s3v4":
-        app.logger.info("Into s3v4")
+        logger.info("Into s3v4")
         from s3v4OS import S3v4
 
         # For S#:
@@ -974,7 +974,7 @@ def create_staging():
         staging = S3v4(url=S3_URL, user=S3_ACCESS_KEY, passwd=S3_SECRET_KEY)
 
     else:
-        app.logger.warning("No Object Storage for staging area was set.")
+        logger.warning("No Object Storage for staging area was set.")
 
 def get_upload_unfinished_tasks():
 
@@ -982,9 +982,8 @@ def get_upload_unfinished_tasks():
     global uploaded_files
     uploaded_files = {}
 
-
-    app.logger.info("Staging Area Used: {}".format(staging.url))
-    app.logger.info("ObjectStorage Technology: {}".format(staging.get_object_storage()))
+    logger.info("Staging Area Used: {staging.url}")
+    logger.info("ObjectStorage Technology: {staging.get_object_storage()}")
 
     try:
         # query Tasks microservice for previous tasks. Allow 30 seconds to answer
@@ -1105,7 +1104,6 @@ if __name__ == "__main__":
     # aynchronously checks uploaded_files for complete download to FS
     upload_check = threading.Thread(target=check_upload_files, name='storage-check-upload-files')
     upload_check.start()
-
 
     if USE_SSL:
         app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=STORAGE_PORT, ssl_context=(SSL_CRT, SSL_KEY))

@@ -16,10 +16,10 @@ import time
 import base64
 import hmac
 import hashlib
-from _datetime import datetime, timedelta
+from datetime import datetime, timedelta
 import json
 
-logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 class S3v4(ObjectStorage):
 
@@ -27,6 +27,7 @@ class S3v4(ObjectStorage):
         self.user = user
         self.passwd = passwd
         self.url = url
+        logger.info('Initialized s3v4')
 
     def get_object_storage(self):
         return "Amazon S3 - Signature v4"
@@ -89,28 +90,24 @@ class S3v4(ObjectStorage):
 
         canonical_querystring += '&X-Amz-Signature=' + signature
 
-        # print(f"Canonical request: \n{canonical_request}")
-        # print(f"String to Sign: \n{string_to_sign}")
-
         url = endpoint_url + canonical_uri + "?" + canonical_querystring
 
-        logging.info("Deleting {}".format(containername))
-        logging.info("URL: {}".format(url))
+        logger.info(f"Creating {containername}")
 
         try:
             resp = requests.put(url)
-            print(resp.status_code)
-            print(resp.text)
+            logger.info(resp.status_code)
+            logger.info(resp.text)
 
             if resp.ok:
-                logging.info("Container created succesfully")
-
+                logger.info("Container created succesfully")
                 return 0
-            logging.error("Container couldn't be created")
+
+            logger.error("Container couldn't be created")
             return -1
         except Exception as e:
-            logging.error(e)
-            logging.error("Container couldn't be created")
+            logger.error(e)
+            logger.error("Container couldn't be created")
             return -1
 
 
@@ -121,9 +118,9 @@ class S3v4(ObjectStorage):
         service = "s3"
         aws_request = "aws4_request"
         aws_access_key_id = self.user  #
-        aws_secret_access_key = self.passwd  # 
-        endpoint_url = self.url  # 
-        host = self.url.split("/")[-1]  # 
+        aws_secret_access_key = self.passwd  #
+        endpoint_url = self.url  #
+        host = self.url.split("/")[-1]  #
         region = "us-east-1"
 
         # Create a date for headers and the credential string
@@ -162,9 +159,6 @@ class S3v4(ObjectStorage):
 
         canonical_querystring += '&X-Amz-Signature=' + signature
 
-        # print(f"Canonical request: \n{canonical_request}")
-        # print(f"String to Sign: \n{string_to_sign}")
-
         url = endpoint_url + canonical_uri + "?" + canonical_querystring
 
         try:
@@ -173,7 +167,7 @@ class S3v4(ObjectStorage):
                 return True
             return False
         except requests.exceptions.ConnectionError as ce:
-            logging.error(ce.strerror)
+            logger.error(ce.strerror)
             return False
 
     def get_users(self):
@@ -182,9 +176,9 @@ class S3v4(ObjectStorage):
         service = "s3"
         aws_request = "aws4_request"
         aws_access_key_id = self.user  #
-        aws_secret_access_key = self.passwd  # 
-        endpoint_url = self.url  # 
-        host = self.url.split("/")[-1]  # 
+        aws_secret_access_key = self.passwd  #
+        endpoint_url = self.url  #
+        host = self.url.split("/")[-1]  #
         region = "us-east-1"
 
         # Create a date for headers and the credential string
@@ -192,7 +186,7 @@ class S3v4(ObjectStorage):
         amzdate = t.strftime('%Y%m%dT%H%M%SZ')
         datestamp = t.strftime('%Y%m%d')  # Date w/o time, used in credential scope
 
-        canonical_uri = "/" 
+        canonical_uri = "/"
 
         canonical_headers = 'host:' + host + "\n"  # + "x-amz-date:"+ amzdate + "\n"
 
@@ -223,19 +217,13 @@ class S3v4(ObjectStorage):
 
         canonical_querystring += '&X-Amz-Signature=' + signature
 
-        # print(f"Canonical request: \n{canonical_request}")
-        # print(f"String to Sign: \n{string_to_sign}")
-
         url = endpoint_url + canonical_uri + "?" + canonical_querystring
 
         try:
             resp = requests.get(url)
 
-            # logging.info(response.text)
-
-            
             if resp.ok:
-                # logging.info(resp.content)
+                # logger.info(resp.content)
                 root = ElementTree.fromstring(resp.content)
 
                 for _, nsvalue in ElementTree.iterparse(BytesIO(resp.content), events=['start-ns']):
@@ -266,12 +254,12 @@ class S3v4(ObjectStorage):
                 return bucket_list
             return None
         except requests.exceptions.ConnectionError as ce:
-            logging.error(ce.strerror)
+            logger.error(ce.strerror)
             return None
 
         except Exception as e:
-            logging.error("Error: {}".format(e))
-            logging.error("Error: {}".format(type(e)))
+            logger.error("Error: {}".format(e))
+            logger.error("Error: {}".format(type(e)))
             return None
 
     def is_object_created(self, containername, prefix, objectname):
@@ -322,23 +310,21 @@ class S3v4(ObjectStorage):
 
         canonical_querystring += '&X-Amz-Signature=' + signature
 
-        # print(f"Canonical request: \n{canonical_request}")
-        # print(f"String to Sign: \n{string_to_sign}")
-
         url = endpoint_url + canonical_uri + "?" + canonical_querystring
 
+        logger.info(f'Trying {url}')
         try:
             response = requests.head(url)
             if response.ok:
                 return True
             return False
         except requests.exceptions.ConnectionError as ce:
-            logging.error(ce.strerror)
+            logger.error(ce.strerror)
             return False
 
 
 
-    # Since S3 is used with signature, no token is needed, 
+    # Since S3 is used with signature, no token is needed,
     # but this is kept only for consistency with objectstorage class
     def authenticate(self, user, passwd):
         return True
@@ -413,11 +399,12 @@ class S3v4(ObjectStorage):
             command += f" -F '{k}={v}'"
 
         command+=f" -F file=@{retval['parameters']['files']}"
+        logger.info(f'Created {command}')
 
         retval["command"] = command
 
         return retval
-        
+
 
     def create_temp_url(self, containername, prefix, objectname, ttl):
 
@@ -426,9 +413,9 @@ class S3v4(ObjectStorage):
         service = "s3"
         aws_request = "aws4_request"
         aws_access_key_id = self.user
-        aws_secret_access_key = self.passwd 
-        endpoint_url = self.url 
-        host = self.url.split("/")[-1] 
+        aws_secret_access_key = self.passwd
+        endpoint_url = self.url
+        host = self.url.split("/")[-1]
         region = "us-east-1"
 
         # Create a date for headers and the credential string
@@ -476,10 +463,10 @@ class S3v4(ObjectStorage):
         algorithm = 'AWS4-HMAC-SHA256'
         service = "s3"
         aws_request = "aws4_request"
-        aws_access_key_id = self.user  
-        aws_secret_access_key = self.passwd  
-        endpoint_url = self.url  
-        host = self.url.split("/")[-1]  
+        aws_access_key_id = self.user
+        aws_secret_access_key = self.passwd
+        endpoint_url = self.url
+        host = self.url.split("/")[-1]
         region = "us-east-1"
 
         # Create a date for headers and the credential string
@@ -487,7 +474,7 @@ class S3v4(ObjectStorage):
         amzdate = t.strftime('%Y%m%dT%H%M%SZ')
         datestamp = t.strftime('%Y%m%d')  # Date w/o time, used in credential scope
 
-        canonical_uri = f"/{containername}" 
+        canonical_uri = f"/{containername}"
 
         canonical_headers = 'host:' + host + "\n"  # + "x-amz-date:"+ amzdate + "\n"
 
@@ -524,7 +511,7 @@ class S3v4(ObjectStorage):
             resp = requests.get(url)
 
             if resp.ok:
-                # logging.info(resp.content)
+                # logger.info(resp.content)
                 root = ElementTree.fromstring(resp.content)
 
                 for _, nsvalue in ElementTree.iterparse(BytesIO(resp.content), events=['start-ns']):
@@ -532,34 +519,29 @@ class S3v4(ObjectStorage):
 
                 object_list = []
 
-                
-
                 for contents in root.findall("{{{}}}Contents".format(namespace)):
                     key = contents.find("{{{}}}Key".format(namespace)).text
 
-                    
                     if prefix != None:
                         sep = key.split("/")
                         if prefix == sep[0]:
                             name = key.split("/")[-1]
                             object_list.append(name)
                             continue
-                    
+
                     object_list.append(key)
 
-
-                    
 
                 return object_list
             else:
                 return None
         except requests.exceptions.ConnectionError as ce:
-            logging.error(ce.strerror)
+            logger.error(ce.strerror)
             return None
 
         except Exception as e:
-            logging.error("Error: {}".format(e))
-            logging.error("Error: {}".format(type(e)))
+            logger.error(f"Error: {e}")
+            logger.error(f"Error: {type(e)}")
             return None
 
     def _prepare_xml(self,prefix, expiration_date_value):
@@ -576,19 +558,17 @@ class S3v4(ObjectStorage):
         filter_prefix.text = f"{prefix}/"
         rule_id = ElementTree.SubElement(rule_branch,"ID")
         rule_id.text= prefix
-        
-        
 
         import io
         body_data = io.BytesIO()
-        
+
         ElementTree.ElementTree(lc_root).write(body_data, encoding=None, xml_declaration=False)
         body = body_data.getvalue()
 
         import hashlib
         hasher = hashlib.md5()
         hasher.update(body)
-        
+
         import base64
         md5sum = base64.b64encode(hasher.digest())
         md5sum_decoded = md5sum.decode()
@@ -602,10 +582,10 @@ class S3v4(ObjectStorage):
 
     # For S3v4 delete_at only works at midnight UTC (from http://docs.aws.amazon.com/AmazonS3/latest/API/RESTBucketPUTlifecycle.html)
     # "The date value must conform to the ISO 8601 format. The time is always midnight UTC."
-    # 
+    #
     #  therefore the expiration time will be managed to the midnigt of the next day and timezone is Z (UTC+0)
     def delete_object_after(self,containername,prefix,objectname,ttl):
-        
+
         httpVerb = "PUT"
         algorithm = 'AWS4-HMAC-SHA256'
         service = "s3"
@@ -623,35 +603,31 @@ class S3v4(ObjectStorage):
 
         # since only midnight is allowed, deleting T%H:%M:%S
         d1_str = datetime.utcfromtimestamp(ttl).strftime("%Y-%m-%d")
-        
-        d1 = datetime.strptime(d1_str,"%Y-%m-%d") # convert to datetime        
-        d2 = d1 + timedelta(days=1) # add 1 day        
+
+        d1 = datetime.strptime(d1_str,"%Y-%m-%d") # convert to datetime
+        d2 = d1 + timedelta(days=1) # add 1 day
         _delete_at_iso = d2.strftime("%Y-%m-%dT%H:%M:%SZ") # after adding 1 day, reconvert to str
 
-        
         [body, content_md5, content_sha256] = self._prepare_xml(prefix, _delete_at_iso)
 
-        canonical_uri = "/" + containername 
+        canonical_uri = "/" + containername
 
         canonical_headers = f"content-md5:{content_md5}\nhost:{host}\nx-amz-content-sha256:{content_sha256}\nx-amz-date:{amzdate}"
-        
+
         signed_headers = "content-md5;host;x-amz-content-sha256;x-amz-date"
 
         credential_scope = datestamp + '/' + region + '/' + service + '/' + aws_request
-        
+
 
         canonical_querystring = "lifecycle="
 
-        
-
-        headers = { "Content-MD5": content_md5, 
+        headers = { "Content-MD5": content_md5,
                     "Host": host,
                     "X-Amz-Content-Sha256": content_sha256,
                     "X-Amz-Date": amzdate}
 
 
         canonical_request = httpVerb + "\n" + canonical_uri + "\n" + canonical_querystring + "\n" + canonical_headers + '\n\n' + signed_headers + "\n" + content_sha256
-       
 
         canonical_request_hash = hashlib.sha256(canonical_request.encode("utf-8")).hexdigest()
 
@@ -664,25 +640,24 @@ class S3v4(ObjectStorage):
         signature = hmac.new(signing_key, (string_to_sign).encode("utf-8"), hashlib.sha256).hexdigest()
 
         headers["Authorization"] = f"AWS4-HMAC-SHA256 Credential={aws_access_key_id}/{credential_scope}, SignedHeaders={signed_headers}, Signature={signature}"
-    
+
         url = endpoint_url + canonical_uri +"?"+ canonical_querystring
-       
-        
+
         try:
             resp = requests.put(url, data=body, headers=headers)
 
             if resp.ok:
-                logging.info(f"Object was marked as to be deleted at {_delete_at_iso}")
+                logger.info(f"Object was marked as to be deleted at {_delete_at_iso}")
 
                 return 0
-            
-            logging.error("Object couldn't be marked as delete-at")
-            logging.error(resp.content)
-            logging.error(resp.headers)
+
+            logger.error("Object couldn't be marked as delete-at")
+            logger.error(resp.content)
+            logger.error(resp.headers)
             return -1
         except Exception as e:
-            logging.error(e)
-            logging.error("Object couldn't be marked as delete-at")
+            logger.error(e)
+            logger.error("Object couldn't be marked as delete-at")
             return -1
 
 
@@ -694,9 +669,9 @@ class S3v4(ObjectStorage):
         service = "s3"
         aws_request = "aws4_request"
         aws_access_key_id = self.user
-        aws_secret_access_key = self.passwd 
-        endpoint_url = self.url 
-        host = self.url.split("/")[-1] 
+        aws_secret_access_key = self.passwd
+        endpoint_url = self.url
+        host = self.url.split("/")[-1]
         region = "us-east-1"
 
         # Create a date for headers and the credential string
@@ -705,7 +680,7 @@ class S3v4(ObjectStorage):
         datestamp = t.strftime('%Y%m%d')  # Date w/o time, used in credential scope
 
         canonical_uri = "/" + containername + "/" + prefix + "/" + objectname
-        
+
         canonical_headers = 'host:' + host + "\n"  # + "x-amz-date:"+ amzdate + "\n"
 
         signed_headers = "host"  # "host;x-amz-content-sha256;x-amz-date"
@@ -734,24 +709,24 @@ class S3v4(ObjectStorage):
         signature = hmac.new(signing_key, (string_to_sign).encode("utf-8"), hashlib.sha256).hexdigest()
 
         canonical_querystring += '&X-Amz-Signature=' + signature
-        
+
         url = endpoint_url + canonical_uri + "?" + canonical_querystring
 
-        logging.info(f"Deleting {canonical_uri}")
-        logging.info("URL: {}".format(url))
+        logger.info(f"Deleting {canonical_uri}")
+        logger.info("URL: {}".format(url))
 
         try:
             resp = requests.delete(url)
-            
+
             if resp.ok:
-                logging.info("Object deleted succesfully")
+                logger.info("Object deleted succesfully")
 
                 return 0
-            logging.error("Object couldn't be deleted")
+            logger.error("Object couldn't be deleted")
             return -1
         except Exception as e:
-            logging.error(e)
-            logging.error("Object couldn't be deleted")
+            logger.error(e)
+            logger.error("Object couldn't be deleted")
             return -1
 
 

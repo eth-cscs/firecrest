@@ -13,6 +13,7 @@ from datetime import datetime
 import hmac
 from hashlib import sha1
 
+logger = logging.getLogger(__name__)
 
 class Swift(ObjectStorage):
 
@@ -33,22 +34,22 @@ class Swift(ObjectStorage):
             self.keystone = KeystoneAuth()
         else:
             self.keystone = None
-        
+
 
     def get_object_storage(self):
         return "OpenStack Swift"
 
     def renew_token(self):
-        
+
         if self.is_token_valid():
-            logging.info("Token is still valid: Not renewal needed")
+            logger.info("Token is still valid: Not renewal needed")
             return True
 
         if self.authenticate():
-            logging.info("Token not valid: Successfuly renewed")
+            logger.info("Token not valid: Successfuly renewed")
             return True
 
-        logging.error("Token not valid: Token couldn't be renewed")
+        logger.error("Token not valid: Token couldn't be renewed")
         return False
 
 
@@ -58,13 +59,13 @@ class Swift(ObjectStorage):
 
         if not self.keystone:
             return False
-        
-        logging.info("GET TOKEN: {user} ".format(user=self.user))
+
+        logger.info(f"GET TOKEN: {self.user}")
 
         retVal = self.keystone.authenticate(self.user, self.passwd)
 
         if retVal["error"] == 1:
-            logging.error("Keystone Auth Error:\n{msg}".format(msg=retVal["msg"]))
+            logger.error(f"Keystone Auth Error: {retVal['msg']}")
             return False
 
         self.auth = retVal["OS_TOKEN"]
@@ -83,12 +84,12 @@ class Swift(ObjectStorage):
 
         query_url = "{url}?format=json".format(url=self.url)
 
-        logging.info("Storage URL: %s" % (query_url))
+        logger.info(f"Storage URL: {query_url}")
 
         try:
             # check token validation
             if not self.renew_token():
-                logging.error("Keystone token couldn't be renewed")
+                logger.error("Keystone token couldn't be renewed")
                 return None
 
 
@@ -96,8 +97,8 @@ class Swift(ObjectStorage):
 
             # if the request wasn't successful
             if not req.ok:
-                logging.info(req.content)
-                logging.info(req.status_code)
+                logger.info(req.content)
+                logger.info(req.status_code)
                 return None
 
             resp_json = req.json()
@@ -110,7 +111,7 @@ class Swift(ObjectStorage):
             return containers_names
 
         except requests.exceptions.ConnectionError as ce:
-            logging.error(ce)
+            logger.error(ce)
 
             return None
 
@@ -118,21 +119,21 @@ class Swift(ObjectStorage):
     # Checks if container is already created (in order to not override it)
     # if exists returns True, otherwise False
     def is_container_created(self,containername):
-        
+
         # check token validation
         if not self.renew_token():
-            logging.error("Keystone token couldn't be renewed")
+            logger.error("Keystone token couldn't be renewed")
             return False
 
         header = {"X-Auth-Token": self.auth}
         url = "{swift_url}/{containername}".format(
             swift_url=self.url,  containername=containername)
 
-        logging.info("Container URL: " + url)
+        logger.info("Container URL: " + url)
 
         ret = requests.get(url, headers=header)
         if ret.status_code == 200:
-            logging.info("container {containername} exists".format(containername=containername))
+            logger.info("container {containername} exists".format(containername=containername))
             return True
 
         return False
@@ -142,7 +143,7 @@ class Swift(ObjectStorage):
     def create_container(self,containername):
         url = "{swift_url}/{container}".format(swift_url=self.url,container=containername)
 
-        logging.info("Container name: %s" % containername)
+        logger.info("Container name: %s" % containername)
 
         try:
 
@@ -150,7 +151,7 @@ class Swift(ObjectStorage):
             # creating with FirecRest policy, so no backup to tape is made
             # check token validation
             if not self.renew_token():
-                logging.error("Keystone token couldn't be renewed")
+                logger.error("Keystone token couldn't be renewed")
                 return -1
 
             header = {"X-Auth-Token": self.auth, "X-Storage-Policy": "FirecRest"}
@@ -158,17 +159,17 @@ class Swift(ObjectStorage):
             req = requests.put(url, headers=header)
 
             if not req.ok:
-                logging.error("Couldn't create container {container}".format(container=containername))
-                logging.error("Response: {}".format(req.content))
-                logging.error("Status code: {}".format(req.status_code))
+                logger.error(f"Couldn't create container {containername}")
+                logger.error(f"Response: {req.content}")
+                logger.error(f"Status code: {req.status_code}")
                 return -1
 
-            logging.info("Container {} created succesfully".format(containername))
+            logger.info(f"Container {containername} created succesfully")
             return 0
 
 
         except Exception as ce:
-            logging.error(ce)
+            logger.error(ce)
             return -1
 
     # Checks if object is created in staging area
@@ -185,11 +186,11 @@ class Swift(ObjectStorage):
         try:
             # check token validation
             if not self.renew_token():
-                logging.error("Keystone token couldn't be renewed")
+                logger.error("Keystone token couldn't be renewed")
                 return False
 
             req = requests.head(url, headers={"X-Auth-Token": self.auth})
-            logging.info(req.headers)
+            logger.info(req.headers)
             headers = req.headers
 
             # if Content-Lenght == 0, then object doesn't exist
@@ -201,7 +202,7 @@ class Swift(ObjectStorage):
 
         except Exception as e:
 
-            logging.error(type(e))
+            logger.error(type(e))
 
             return False
 
@@ -289,7 +290,7 @@ class Swift(ObjectStorage):
             "method": "POST",
             "url": f"{swift_url}/{swift_version}/{swift_account}/{containername}/{prefix}/",
             "data": {
-                "max_file_size": max_file_size, 
+                "max_file_size": max_file_size,
                 "max_file_count": max_file_count,
                 "expires": expires,
                 "signature": signature,
@@ -303,7 +304,7 @@ class Swift(ObjectStorage):
         }
 
         retval["command"] = command
-        
+
 
         return retval
 
@@ -311,27 +312,27 @@ class Swift(ObjectStorage):
         # object_prefix = "{prefix}/{objectname}".format(prefix=prefix, objectname=objectname)
 
         url = f"{self.url}/{containername}"
-        
+
         try:
             # check token validation
             if not self.renew_token():
-                logging.error("Keystone token couldn't be renewed")
+                logger.error("Keystone token couldn't be renewed")
                 return None
 
             req = requests.get(url, headers={"X-Auth-Token": self.auth})
             if req.ok:
-                
+
                 values = req.content.decode("utf-8")
                 object_list = values.split("\n")[0:-1] # last element on the list is a ''
 
                 if prefix:
                     new_object_list = []
                     for obj in object_list:
-                        
+
                         key = obj.split("/")
                         val = key[1]
                         key = key[0]
-                        
+
                         if key == prefix:
                             new_object_list.append(val)
 
@@ -341,7 +342,7 @@ class Swift(ObjectStorage):
 
         except Exception as e:
 
-            logging.error(type(e))
+            logger.error(type(e))
 
             return None
 
@@ -352,28 +353,28 @@ class Swift(ObjectStorage):
         swift_account_url = f"{self.url}/{containername}/{prefix}/{objectname}"
         # check token validation
         if not self.renew_token():
-            logging.error("Keystone token couldn't be renewed")
+            logger.error("Keystone token couldn't be renewed")
             return -1
 
         header = {"X-Delete-At": str(ttl), "X-Auth-Token": self.auth}
 
         try:
-            logging.info(f"Setting {ttl} [s] as X-Delete-At")
+            logger.info(f"Setting {ttl} [s] as X-Delete-At")
 
             req = requests.post(swift_account_url, headers=header)
 
             if not req.ok:
-                logging.error("Object couldn't be marked as X-Delete-At")
-                logging.error(req.text)
+                logger.error("Object couldn't be marked as X-Delete-At")
+                logger.error(req.text)
                 return -1
             date_ttl = datetime.fromtimestamp(ttl).strftime("%Y-%m-%dT%H:%M:%S")
 
-            logging.info(f"Object was marked as to be deleted at {date_ttl}")
+            logger.info(f"Object was marked as to be deleted at {date_ttl}")
             return 0
 
         except Exception as e:
-            logging.error("Object couldn't be marked as X-Delete-At")
-            logging.error(e)
+            logger.error("Object couldn't be marked as X-Delete-At")
+            logger.error(e)
             return -1
 
     def delete_object(self,containername,prefix,objectname):
@@ -381,7 +382,7 @@ class Swift(ObjectStorage):
         swift_account_url = f"{self.url}/{containername}/{prefix}"
         # check token validation
         if not self.renew_token():
-            logging.error("Keystone token couldn't be renewed")
+            logger.error("Keystone token couldn't be renewed")
             return -1
 
         header = {"X-Auth-Token": self.auth}
@@ -389,21 +390,21 @@ class Swift(ObjectStorage):
 
         try:
 
-            logging.info(f"Deleting object: {containername}/{prefix}/{objectname}")
+            logger.info(f"Deleting object: {containername}/{prefix}/{objectname}")
 
             req = requests.delete(swift_account_url, headers=header)
 
             if not req.ok:
-                logging.error("Object couldn't be deleted")
-                logging.error(req.content)
+                logger.error("Object couldn't be deleted")
+                logger.error(req.content)
                 return -1
 
-            logging.info("Object deleted successfully")
+            logger.info("Object deleted successfully")
 
             return 0
 
         except Exception as e:
-            logging.error("Object couldn't be deleted")
-            logging.error(e)
+            logger.error("Object couldn't be deleted")
+            logger.error(e)
             return -1
 

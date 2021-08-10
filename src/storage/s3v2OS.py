@@ -16,7 +16,7 @@ import base64
 import hmac
 import hashlib
 
-logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 class S3v2(ObjectStorage):
 
@@ -54,7 +54,7 @@ class S3v2(ObjectStorage):
             url=self.url, containername=containername,
             awsAccessKeyId=self.user, signature=urllib.parse.quote(sig), expires=expires)
 
-        logging.info("Creating bucket {}".format(containername))
+        logger.info(f"Creating bucket {containername}")
 
         try:
             resp = requests.put(url)
@@ -63,7 +63,7 @@ class S3v2(ObjectStorage):
                 return 0
             return -1
         except Exception as e:
-            logging.error("Error: {}".format(e))
+            logger.error(f"Error: {e}")
             return -1
 
     def is_container_created(self, containername):
@@ -91,18 +91,18 @@ class S3v2(ObjectStorage):
         url = "{url}/{containername}?AWSAccessKeyId={awsAccessKeyId}&Expires={expires}&Signature={signature}".format(
             url=self.url, containername=containername, awsAccessKeyId=self.user, signature=urllib.parse.quote(sig), expires=expires)
 
-        logging.info("Checking for container {}".format(containername))
-        logging.info("URL: {}".format(url))
+        logger.info(f"Checking for container {containername}")
+        logger.info(f"URL: {url}")
         try:
             resp = requests.head(url)
 
-            logging.info(resp.status_code)
+            logger.info(resp.status_code)
 
             return resp.ok
 
         except Exception as e:
-            logging.error("Error: {}".format(e))
-            logging.error("Error: {}".format(type(e)))
+            logger.error(f"Error: {e}")
+            logger.error(f"Error: {type(e)}")
             return False
 
     def get_users(self):
@@ -124,14 +124,14 @@ class S3v2(ObjectStorage):
         url = "{url}?AWSAccessKeyId={awsAccessKeyId}&Expires={expires}&Signature={signature}".format(
             url=self.url, awsAccessKeyId=self.user, signature=urllib.parse.quote(sig), expires=expires)
 
-        logging.info("URL: {}".format(url))
+        logger.info(f"URL: {url}")
         try:
             resp = requests.get(url)
 
-            logging.info(resp.status_code)
+            logger.info(resp.status_code)
 
             if resp.ok:
-                # logging.info(resp.content)
+                # logger.info(resp.content)
                 root = ElementTree.fromstring(resp.content)
 
                 for _, nsvalue in ElementTree.iterparse(BytesIO(resp.content), events=['start-ns']):
@@ -164,13 +164,13 @@ class S3v2(ObjectStorage):
             return None
 
         except Exception as e:
-            logging.error("Error: {}".format(e))
-            logging.error("Error: {}".format(type(e)))
+            logger.error(f"Error: {e}")
+            logger.error(f"Error: {type(e)}")
             return None
 
     def list_objects(self,containername,prefix=None):
             # by default just 120 secs, since is done instantly
-        
+
         expires = 120 + int(time.time())
         httpVerb = "GET"
         contentMD5 = ""
@@ -195,14 +195,14 @@ class S3v2(ObjectStorage):
         url = "{url}/{containername}/?AWSAccessKeyId={awsAccessKeyId}&Expires={expires}&Signature={signature}".format(
             containername=containername,url=self.url, awsAccessKeyId=self.user, signature=urllib.parse.quote(sig), expires=expires)
 
-        logging.info("URL: {}".format(url))
+        logger.info("URL: {}".format(url))
         try:
             resp = requests.get(url)
 
-            logging.info(resp.status_code)
+            logger.info(resp.status_code)
 
             if resp.ok:
-                # logging.info(resp.content)
+                # logger.info(resp.content)
                 root = ElementTree.fromstring(resp.content)
 
                 for _, nsvalue in ElementTree.iterparse(BytesIO(resp.content), events=['start-ns']):
@@ -210,32 +210,32 @@ class S3v2(ObjectStorage):
 
                 object_list = []
 
-                
+
 
                 for contents in root.findall("{{{}}}Contents".format(namespace)):
                     key = contents.find("{{{}}}Key".format(namespace)).text
 
-                    
+
                     if prefix != None:
                         sep = key.split("/")
                         if prefix == sep[0]:
                             name = key.split("/")[-1]
                             object_list.append(name)
                             continue
-                    
+
                     object_list.append(key)
 
 
-                    
+
 
                 return object_list
 
-            logging.error(resp.content)
+            logger.error(resp.content)
             return None
 
         except Exception as e:
-            logging.error("Error: {}".format(e))
-            logging.error("Error: {}".format(type(e)))
+            logger.error(f"Error: {e}")
+            logger.error(f"Error: {type(e)}")
             return None
 
     def is_object_created(self, containername, prefix, objectname):
@@ -274,10 +274,10 @@ class S3v2(ObjectStorage):
                 return True
             return False
         except Exception as e:
-            logging.error("Error: {}".format(e))
+            logger.error(f"Error: {e}")
             return False
 
-    # Since S3 is used with signature, no token is needed, 
+    # Since S3 is used with signature, no token is needed,
     # but this is kept only for consistency with objectstorage class
     def authenticate(self, user, passwd):
         return True
@@ -311,14 +311,14 @@ class S3v2(ObjectStorage):
 
         # signature will be Bytes type in Pytho3, so it needs to be decoded to str again
         sig = sig.decode('latin-1')
-        
+
         url = "{url}/{containername}/{prefix}/{objectname}".format(
             url=self.url, containername=containername, prefix=prefix, objectname=objectname)
 
         retval = {}
 
         retval["parameters"] = {
-            
+
             "url": url,
             "method": httpVerb,
             "params": {
@@ -333,7 +333,7 @@ class S3v2(ObjectStorage):
         }
 
         command = f"curl --show-error -s -i -X {httpVerb} '{url}?AWSAccessKeyId={self.user}&Signature={sig}&Expires={expires}' -T {sourcepath}"
-        
+
         retval["command"] = command
 
         return retval
@@ -404,24 +404,23 @@ class S3v2(ObjectStorage):
             url=self.url, containername=containername, prefix=prefix,objectname=objectname,
             awsAccessKeyId=self.user, signature=sig, expires=expires)
 
-        print("Deleting {}/{}/{}".format(containername,prefix,objectname))
-        print("URL: {}".format(url))
+        logger.info(f"Deleting {containername}/{prefix}/{objectname}")
 
         try:
             resp = requests.delete(url)
-            logging.info(resp.status_code)
+            logger.info(resp.status_code)
 
             if resp.ok:
-                logging.info("Object deleted succesfully")
-
+                logger.info("Object deleted succesfully")
                 return 0
+
             # TODO: not working for some reason
-            logging.error(resp.content)
-            logging.error("Object couldn't be deleted "+url)
+            logger.error(resp.content)
+            logger.error(f"Object couldn't be deleted: {url}")
             return -1
         except Exception as e:
-            logging.info(e)
-            logging.error("Object couldn't be deleted "+url)
+            logger.info(e)
+            logger.error(f"Object couldn't be deleted: {url}")
             return -1
 
 
