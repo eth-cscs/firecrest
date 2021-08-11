@@ -4,7 +4,7 @@
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
 #
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, g
 import pickle
 
 # task states
@@ -15,7 +15,7 @@ from logging.handlers import TimedRotatingFileHandler
 from flask_opentracing import FlaskTracing
 from jaeger_client import Config
 
-from cscs_api_common import check_auth_header, get_username, check_header, get_boolean_var
+from cscs_api_common import check_auth_header, get_username, check_header, get_boolean_var, LogRequestFormatter
 import tasks_persistence as persistence
 
 AUTH_HEADER_NAME = 'Authorization'
@@ -42,6 +42,8 @@ COMPUTE_TASK_EXP_TIME = os.environ.get("F7T_COMPUTE_TASK_EXP_TIME", 86400)
 # expire time in seconds, for download/upload: default 30 days + 24 hours = 2678400 secs
 STORAGE_TASK_EXP_TIME = os.environ.get("F7T_STORAGE_TASK_EXP_TIME", 2678400)
 
+TRACER_HEADER = "uber-trace-id"
+
 debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 # task dict, key is the task_id
@@ -49,7 +51,7 @@ tasks = {}
 
 app = Flask(__name__)
 
-JAEGER_AGENT = os.environ.get("F7T_JAEGER_AGENT", "")
+JAEGER_AGENT = os.environ.get("F7T_JAEGER_AGENT", "").strip('\'"')
 if JAEGER_AGENT != "":
     config = Config(
         config={'sampler': {'type': 'const', 'param': 1 },
@@ -133,7 +135,7 @@ def create_task():
         service = request.headers["X-Firecrest-Service"]
 
         if service not in ["storage","compute"]:
-            return jsonify(description="Service {} is unknown".format(service)), 403
+            return jsonify(description=f"Service {service} is unknown"), 403
 
     except KeyError:
         return jsonify(description="No service informed"), 403
@@ -205,12 +207,12 @@ def get_task(id):
             return jsonify(description="Operation not permitted. Invalid task owner."), 403
 
         task_status=tasks[hash_id].get_status()
-        task_status["task_url"]="{KONG_URL}/tasks/{hash_id}".format(KONG_URL=KONG_URL, hash_id=hash_id)
+        task_status["task_url"] = f"{KONG_URL}/tasks/{hash_id}"
         data = jsonify(task=task_status)
         return data, 200
 
     except KeyError:
-        data = jsonify(error="Task {id} does not exist".format(id=id))
+        data = jsonify(error=f"Task {id} does not exist")
         return  data, 404
 
 
@@ -345,7 +347,7 @@ def delete_task(id):
         if not tasks[hash_id].is_owner(username):
             return jsonify(description="Operation not permitted. Invalid task owner."), 403
     except KeyError:
-        data = jsonify(error="Task {id} does not exist".format(id=id))
+        data = jsonify(error=f"Task {id} does not exist")
         return data, 404
 
     try:
@@ -381,7 +383,7 @@ def expire_task(id):
         service = request.headers["X-Firecrest-Service"]
 
         if service not in ["storage","compute"]:
-            return jsonify(description="Service {} is unknown".format(service)), 403
+            return jsonify(description=f"Service {service} is unknown"), 403
 
     except KeyError:
         return jsonify(description="No service informed"), 403
@@ -397,7 +399,7 @@ def expire_task(id):
         if not tasks[hash_id].is_owner(username):
             return jsonify(description="Operation not permitted. Invalid task owner."), 403
     except KeyError:
-        data = jsonify(error="Task {id} does not exist".format(id=id))
+        data = jsonify(error=f"Task {id} does not exist")
         return data, 404
 
 
@@ -415,7 +417,7 @@ def expire_task(id):
             app.logger.warning(f"Task couldn't be marked as expired")
             return jsonify(error="Failed to set expiration time on task in persistence server"), 400
 
-        data = jsonify(success="Task expiration time set to {exp_time} secs.".format(exp_time=exp_time))
+        data = jsonify(success=f"Task expiration time set to {exp_time} secs.")
         # tasks[hash_id].set_status(status=async_task.EXPIRED)
 
         return data, 200
@@ -440,7 +442,7 @@ def tasklist():
     global r
 
     app.logger.info("Getting service tasks")
-    app.logger.info("STORAGE_IP is {storage_ip}".format(storage_ip=STORAGE_IP))
+    app.logger.info(f"STORAGE_IP is {STORAGE_IP}")
 
     # checks if request comes from allowed microservices
     if not debug and request.remote_addr != STORAGE_IP:
@@ -474,11 +476,17 @@ def tasklist():
         return jsonify(error=f"Persistence server task retrieve error for service {json['service']}"), 404
 
     # return only the tasks that matches with the required status in json["status_code"] list
-
-
-
     return jsonify(tasks=_tasks), 200
 
+@app.before_request
+def f_before_request():
+    g.TID = request.headers.get(TRACER_HEADER, '')
+
+@app.after_request
+def after_request(response):
+    # LogRequestFormatetter is used, this messages will get time, thread, etc
+    logger.info('%s %s %s %s %s', request.remote_addr, request.method, request.scheme, request.full_path, response.status)
+    return response
 
 
 if __name__ == "__main__":
@@ -486,16 +494,16 @@ if __name__ == "__main__":
     # timed rotation: 1 (interval) rotation per day (when="D")
     logHandler = TimedRotatingFileHandler('/var/log/tasks.log', when='D', interval=1)
 
-    logFormatter = logging.Formatter('%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
+    logFormatter = LogRequestFormatter('%(asctime)s,%(msecs)d %(thread)s [%(TID)s] %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                                      '%Y-%m-%dT%H:%M:%S')
     logHandler.setFormatter(logFormatter)
-    logHandler.setLevel(logging.DEBUG)
 
     # get app log (Flask+werkzeug+python)
     logger = logging.getLogger()
 
     # set handler to logger
     logger.addHandler(logHandler)
+    logging.getLogger().setLevel(logging.INFO)
 
     init_queue()
 

@@ -4,14 +4,14 @@
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
 #
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, g
 import requests
 from logging.handlers import TimedRotatingFileHandler
 import logging
 import multiprocessing as mp
 
 # common modules
-from cscs_api_common import check_auth_header, get_boolean_var
+from cscs_api_common import check_auth_header, get_boolean_var, LogRequestFormatter
 
 import paramiko
 import socket
@@ -57,7 +57,7 @@ debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 app = Flask(__name__)
 
-JAEGER_AGENT = os.environ.get("F7T_JAEGER_AGENT", "")
+JAEGER_AGENT = os.environ.get("F7T_JAEGER_AGENT", "").strip('\'"')
 if JAEGER_AGENT != "":
     config = Config(
         config={'sampler': {'type': 'const', 'param': 1 },
@@ -89,17 +89,14 @@ def get_tracing_headers(req):
 
 def set_services():
     for servicename in SERVICES:
-
         URL_ENV_VAR = f"F7T_{servicename.upper()}_URL"
-
-
         serviceurl = os.environ.get(URL_ENV_VAR)
         if serviceurl:
             SERVICES_DICT[servicename] = serviceurl
 
 # test individual service function
 def test_service(servicename, status_list, trace_header=None):
-    app.logger.info(f"Testing {servicename} microservice's status")
+    app.logger.info(f"Testing {servicename} microservice status")
 
     try:
         serviceurl = SERVICES_DICT[servicename]
@@ -139,7 +136,7 @@ def test_service(servicename, status_list, trace_header=None):
 # test individual system function
 def test_system(machinename, status_list=[]):
 
-    app.logger.info("Testing {machinename} system's status".format(machinename=machinename))
+    app.logger.info(f"Testing {machinename} system status")
 
     if machinename not in SYSTEMS_PUBLIC:
         status_list.append( {"status": -3, "system": machinename} )
@@ -283,12 +280,6 @@ def status_systems():
 @app.route("/services/<servicename>",methods=["GET"])
 @check_auth_header
 def status_service(servicename):
-
-    # update services:
-    set_services()
-    # show services availables for query
-    # list_services()
-
     if servicename not in SERVICES_DICT.keys():
         return jsonify(description="Service does not exists"), 404
 
@@ -318,9 +309,6 @@ def status_service(servicename):
 @app.route("/services", methods=["GET"])
 @check_auth_header
 def status_services():
-    # update services:
-    set_services()
-
     # resp_list list to fill with responses from each service
     resp_list=[]
 
@@ -395,14 +383,28 @@ def parameters():
                                         {"name":"STORAGE_TEMPURL_EXP_TIME", "value":STORAGE_TEMPURL_EXP_TIME, "unit": "seconds"},
                                         {"name":"STORAGE_MAX_FILE_SIZE", "value":STORAGE_MAX_FILE_SIZE, "unit": "MB"},
                                         {"name":"FILESYSTEMS", "value":fs_list, "unit": ""}
-
-
-
-
                                 ]
                         }
 
     return jsonify(description="Firecrest's parameters", out=parameters_list), 200
+
+
+
+@app.before_request
+def f_before_request():
+    new_headers = {}
+    if JAEGER_AGENT != "":
+        try:
+            jaeger_tracer.inject(tracing.get_span(request), opentracing.Format.TEXT_MAP, new_headers)
+        except Exception as e:
+            logging.error(e)
+    g.TID = new_headers.get(TRACER_HEADER, '')
+
+@app.after_request
+def after_request(response):
+    # LogRequestFormatetter is used, this messages will get time, thread, etc
+    logger.info('%s %s %s %s %s', request.remote_addr, request.method, request.scheme, request.full_path, response.status)
+    return response
 
 
 if __name__ == "__main__":
@@ -410,16 +412,19 @@ if __name__ == "__main__":
     # timed rotation: 1 (interval) rotation per day (when="D")
     logHandler=TimedRotatingFileHandler('/var/log/status.log', when='D', interval=1)
 
-    logFormatter = logging.Formatter('%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
-                                    '%Y-%m-%dT%H:%M:%S')
+    logFormatter = LogRequestFormatter('%(asctime)s,%(msecs)d %(thread)s [%(TID)s] %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
+                                     '%Y-%m-%dT%H:%M:%S')
     logHandler.setFormatter(logFormatter)
-    logHandler.setLevel(logging.DEBUG)
 
     # get app log (Flask+werkzeug+python)
     logger = logging.getLogger()
 
     # set handler to logger
     logger.addHandler(logHandler)
+    logging.getLogger().setLevel(logging.INFO)
+
+    # create services list
+    set_services()
 
     # run app
     if USE_SSL:

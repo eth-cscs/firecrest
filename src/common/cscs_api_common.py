@@ -13,19 +13,20 @@ import hashlib
 import tempfile
 import json
 import functools
-from flask import request, jsonify
+from flask import request, jsonify, g
 import requests
 import urllib
 import base64
 import io
 import re
 import time
+import threading
+
 
 # Checks if an environment variable injected to F7T is a valid True value
 # var <- object
 # returns -> boolean
 def get_boolean_var(var):
-
     # ensure variable to be a string
     var = str(var)
     # True, true or TRUE
@@ -74,20 +75,17 @@ SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
 TRACER_HEADER = "uber-trace-id"
 
-logging.getLogger().setLevel(logging.INFO)
-logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',datefmt='%Y-%m-%d:%H:%M:%S',level=logging.INFO)
-
 
 # checks JWT from Keycloak, optionally validates signature. It only receives the content of header's auth pair (not key:content)
 def check_header(header):
     if debug:
-        logging.info('debug: cscs_api_common: check_header: ' + header)
+        logging.info('debug: header: ' + header)
 
     # header = "Bearer ey...", remove first 7 chars
     try:
         if realm_pubkey == '':
             if not debug:
-                logging.warning("WARNING: cscs_api_common: check_header: REALM_RSA_PUBLIC_KEY is empty, JWT tokens are NOT verified, setup is not set to debug.")
+                logging.warning("WARNING: REALM_RSA_PUBLIC_KEY is empty, JWT tokens are NOT verified, setup is not set to debug.")
             decoded = jwt.decode(header[7:], verify=False)
         else:
             if AUTH_AUDIENCE == '':
@@ -116,8 +114,6 @@ def check_header(header):
 
 # returns username
 def get_username(header):
-    if debug:
-        logging.info('debug: cscs_api_common: get_username: ' + header)
     # header = "Bearer ey...", remove first 7 chars
     try:
         if realm_pubkey == '':
@@ -228,7 +224,7 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
 
     import paramiko, socket
 
-    logging.info(f'debug: cscs_common_api: exec_remote_command: system name: {system_name} - action: {action}')
+    logging.info(f'debug: system name: {system_name} - action: {action}')
 
     if file_transfer == "storage_cert":
         # storage is using a previously generated cert, save cert list from content
@@ -239,7 +235,6 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
         #   [3] path to the dir containing 3 previous files
         cert_list = file_content
         username = headers
-        ID = ''
     else:
         # get certificate:
         # if OK returns: [pub_cert, pub_key, priv_key, temp_dir]
@@ -251,7 +246,6 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
             return result
 
         username = get_username(headers[AUTH_HEADER_NAME])
-        ID = headers.get(TRACER_HEADER, '')
 
     [pub_cert, pub_key, priv_key, temp_dir] = cert_list
 
@@ -274,7 +268,7 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
                        allow_agent=False,
                        look_for_keys=False,
                        timeout=10)
-        logging.info(f"{ID} F7T_SSH_CERTIFICATE_WRAPPER: {F7T_SSH_CERTIFICATE_WRAPPER}")
+        logging.info(f"F7T_SSH_CERTIFICATE_WRAPPER: {F7T_SSH_CERTIFICATE_WRAPPER}")
         if F7T_SSH_CERTIFICATE_WRAPPER:
             # read cert to send it as a command to the server
             with open(pub_cert, 'r') as cert_file:
@@ -303,7 +297,7 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
         # in a permanent hang when remote output is larger than the current Transport or session’s window_size
         while True:
             if stderr.channel.exit_status_ready():
-                logging.info(f"{ID} stderr channel exit status ready")
+                logging.info(f"stderr channel exit status ready")
                 stderr_errno = stderr.channel.recv_exit_status()
                 endtime = time.time() + 30
                 eof_received = True
@@ -325,7 +319,7 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
         #for i in range(0,10):
         while True:
             if stdout.channel.exit_status_ready():
-                logging.info(f"{ID} stdout channel exit status ready")
+                logging.info(f"stdout channel exit status ready")
                 stdout_errno = stdout.channel.recv_exit_status()
                 endtime = time.time() + 30
                 eof_received = True
@@ -353,17 +347,17 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
         # hiding success results from utilities/download, since output is the content of the file
         if file_transfer == "download":
             if stderr_errno !=0:
-                logging.info(f"{ID} sdterr: ({stderr_errno}) --> {stderr_errda}")
-                logging.info(f"{ID} stdout: ({stdout_errno}) --> {stdout_errda}")
-                logging.info(f"{ID} sdtout: ({stdout_errno}) --> {outlines}")
+                logging.info(f"stderr: ({stderr_errno}) --> {stderr_errda}")
+                logging.info(f"stdout: ({stdout_errno}) --> {stdout_errda}")
+                logging.info(f"stdout: ({stdout_errno}) --> {outlines}")
             else:
-                logging.info(f"{ID} sdterr: ({stderr_errno}) --> Download OK (content hidden)")
-                logging.info(f"{ID} stdout: ({stdout_errno}) --> Download OK (content hidden)")
-                logging.info(f"{ID} sdtout: ({stdout_errno}) --> Download OK (content hidden)")
+                logging.info(f"stderr: ({stderr_errno}) --> Download OK (content hidden)")
+                logging.info(f"stdout: ({stdout_errno}) --> Download OK (content hidden)")
+                logging.info(f"stdout: ({stdout_errno}) --> Download OK (content hidden)")
         else:
-            logging.info(f"{ID} sdterr: ({stderr_errno}) --> {stderr_errda}")
-            logging.info(f"{ID} stdout: ({stdout_errno}) --> {stdout_errda}")
-            logging.info(f"{ID} sdtout: ({stdout_errno}) --> {outlines}")
+            logging.info(f"stderr: ({stderr_errno}) --> {stderr_errda}")
+            logging.info(f"stdout: ({stdout_errno}) --> {stdout_errda}")
+            logging.info(f"stdout: ({stdout_errno}) --> {outlines}")
 
         if stderr_errno == 0:
             if stderr_errda and not (in_str(stderr_errda,"Could not chdir to home directory") or in_str(stderr_errda,"scancel: Terminating job")):
@@ -395,30 +389,30 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
         logging.error(type(e), exc_info=True)
         if e.errors:
             for k, v in e.errors.items():
-                logging.error(f"{ID} errorno: {v.errno}")
-                logging.error(f"{ID} strerr: {v.strerror}")
+                logging.error(f"errorno: {v.errno}")
+                logging.error(f"strerr: {v.strerror}")
                 result = {"error": v.errno, "msg": v.strerror}
 
     except socket.gaierror as e:
-        logging.error(ID, type(e), exc_info=True)
-        logging.error(ID, e.errno)
-        logging.error(ID, e.strerror)
+        logging.error(type(e), exc_info=True)
+        logging.error(e.errno)
+        logging.error(e.strerror)
         result = {"error": e.errno, "msg": e.strerror}
 
     except paramiko.ssh_exception.SSHException as e:
-        logging.error(ID, type(e), exc_info=True)
-        logging.error(ID, e)
+        logging.error(type(e), exc_info=True)
+        logging.error(e)
         result = {"error": 1, "msg": str(e)}
 
     # second: time out
     except socket.timeout as e:
-        logging.error(ID, type(e), exc_info=True)
+        logging.error(type(e), exc_info=True)
         # timeout has not errno
         logging.error(e)
         result = {"error": 1, "msg": e.strerror}
 
     except Exception as e:
-        logging.error(ID, type(e), exc_info=True)
+        logging.error(type(e), exc_info=True)
         result = {"error": 1, "msg": str(e)}
 
     finally:
@@ -430,9 +424,9 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
 
     # hiding results from utilities/download, since output is the content of the file
     if file_transfer == "download":
-        logging.info(f"{ID} Result: status_code {result['error']} -> Utilities download")
+        logging.info(f"Result: status_code {result['error']} -> Utilities download")
     else:
-        logging.info(f"{ID} Result: status_code {result['error']} -> {result['msg']}")
+        logging.info(f"Result: status_code {result['error']} -> {result['msg']}")
     return result
 
 
@@ -583,7 +577,7 @@ def is_valid_file(path, headers, system_name, system_addr):
 
         # error no such file
         if in_str(error_str,"No such file"):
-            return {"result":False, "headers":{"X-Invalid-Path": "{path} is an invalid path.".format(path=path)}}
+            return {"result":False, "headers":{"X-Invalid-Path": f"{path} is an invalid path."}}
 
 
         # permission denied
@@ -591,7 +585,7 @@ def is_valid_file(path, headers, system_name, system_addr):
             return {"result":False, "headers":{"X-Permission-Denied": "User does not have permissions to access machine or path"}}
 
         if in_str(error_str, "directory"):
-            return {"result":False, "headers":{"X-A-Directory": "{path} is a directory".format(path=path)}}
+            return {"result":False, "headers":{"X-A-Directory": f"{path} is a directory"}}
 
         return {"result":False, "headers":{"X-Error": retval["msg"]}}
 
@@ -631,7 +625,7 @@ def is_valid_dir(path, headers, system_name, system_addr):
 
         # error no such file
         if in_str(error_str,"No such file"):
-            return {"result":False, "headers":{"X-Invalid-Path": "{path} is an invalid path.".format(path=path)}}
+            return {"result":False, "headers":{"X-Invalid-Path": f"{path} is an invalid path."}}
 
         # permission denied
         if in_str(error_str,"Permission denied") or in_str(error_str,"OPENSSH"):
@@ -639,7 +633,7 @@ def is_valid_dir(path, headers, system_name, system_addr):
 
         # not a directory
         if in_str(error_str,"Not a directory"):
-            return {"result":False, "headers":{"X-Not-A-Directory": "{path} is not a directory".format(path=path)}}
+            return {"result":False, "headers":{"X-Not-A-Directory": f"{path} is not a directory"}}
 
         return {"result":False, "headers":{"X-Error": retval["msg"]}}
 
@@ -803,3 +797,16 @@ def validate_input(text):
         return "has invalid char"
     return ""
 
+# formatter is executed for every log
+class LogRequestFormatter(logging.Formatter):
+    def format(self, record):
+        try:
+            # try to get TID from Flask g object, it's set on @app.before_request on each microservice
+            record.TID = g.TID
+        except:
+            try:
+                record.TID = threading.current_thread().name
+            except:
+                record.TID = 'notid'
+
+        return super().format(record)
