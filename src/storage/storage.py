@@ -4,7 +4,7 @@
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
 #
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, g
 import json, tempfile, os
 import urllib
 import datetime
@@ -19,7 +19,7 @@ from cscs_api_common import create_task, update_task, get_task_status
 from cscs_api_common import exec_remote_command
 from cscs_api_common import create_certificate
 from cscs_api_common import in_str
-from cscs_api_common import is_valid_file, is_valid_dir, check_command_error, get_boolean_var, validate_input
+from cscs_api_common import is_valid_file, is_valid_dir, check_command_error, get_boolean_var, validate_input, LogRequestFormatter
 
 # job_time_checker for correct SLURM job time in /xfer-internal tasks
 import job_time
@@ -115,7 +115,7 @@ TRACER_HEADER = "uber-trace-id"
 storage_tasks = {}
 
 # relationship between upload task and filesystem
-# {hash_id : {'user':user,'system':system,'target':path,'source':fileName,'status':status_code, hash_id':task_id}}
+# {hash_id : {'user':user,'system':system,'target':path,'source':fileName,'status':status_code, 'hash_id':task_id, 'trace_id':trace_id}}
 uploaded_files = {}
 
 # debug on console
@@ -124,7 +124,7 @@ debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 app = Flask(__name__)
 
-JAEGER_AGENT = os.environ.get("F7T_JAEGER_AGENT", "")
+JAEGER_AGENT = os.environ.get("F7T_JAEGER_AGENT", "").strip('\'"')
 if JAEGER_AGENT != "":
     config = Config(
         config={'sampler': {'type': 'const', 'param': 1 },
@@ -190,11 +190,11 @@ def os_to_fs(task_id):
     system_addr = upl_file["system_addr"]
     username = upl_file["user"]
     objectname = upl_file["source"]
-
+    headers = {}
+    headers[TRACER_HEADER] = upl_file['trace_id']
 
     try:
         app.logger.info(upl_file["msg"])
-        action = upl_file["msg"]["action"]
 
         # certificate is encrypted with CERT_CIPHER_KEY key
         # here is decrypted
@@ -203,7 +203,6 @@ def os_to_fs(task_id):
         # the decryption process produces a byte type
         # remember that is stored as str not as byte in the JSON
         pub_cert = cipher.decrypt(cert[0].encode('utf-8')).decode('utf-8')
-
 
         # cert_pub in 0 /user-key-cert.pub
         # temp-dir in 1
@@ -226,15 +225,14 @@ def os_to_fs(task_id):
         cert_list = [f"{td}/user-key-cert.pub", f"{td}/user-key.pub", f"{td}/user-key", td]
 
         # start download from OS to FS
-        update_task(task_id,None,async_task.ST_DWN_BEG)
+        update_task(task_id, headers, async_task.ST_DWN_BEG)
 
         # execute download
         result = exec_remote_command(username, system_name, system_addr, "", "storage_cert", cert_list)
 
         # if no error, then download is complete
         if result["error"] == 0:
-
-            update_task(task_id, None, async_task.ST_DWN_END)
+            update_task(task_id, headers, async_task.ST_DWN_END)
 
             # No need to delete the dictionary, it will be cleaned on next iteration
 
@@ -256,7 +254,7 @@ def os_to_fs(task_id):
             uploaded_files[task_id] = upl_file
 
             # update but conserv "msg" as the data for download to OS, to be used for retry in next iteration
-            update_task(task_id,None, async_task.ST_DWN_ERR, msg =  upl_file, is_json = True)
+            update_task(task_id, headers, async_task.ST_DWN_ERR, msg=upl_file, is_json=True)
 
     except Exception as e:
         app.logger.error(e)
@@ -278,7 +276,6 @@ def check_upload_files():
         app.logger.info(f"Check files in Object Storage {timestamp}")
         app.logger.info(f"Pendings uploads: {len(uploaded_files)}")
 
-
         # create STATIC auxiliary upload list in order to avoid "RuntimeError: dictionary changed size during iteration"
         # (this occurs since upload_files dictionary is shared between threads and since Python3 dict.items() trigger that error)
         upl_list= [(task_id, upload) for task_id,upload in uploaded_files.items()]
@@ -286,9 +283,9 @@ def check_upload_files():
         for task_id,upload in upl_list:
             #checks if file is ready or not for download to FileSystem
             try:
-
                 task_status = async_task.status_codes[upload['status']]
 
+                headers = {}
                 app.logger.info(f"Status of {task_id}: {task_status}")
 
                 #if upload["status"] in [async_task.ST_URL_REC,async_task.ST_DWN_ERR] :
@@ -301,16 +298,17 @@ def check_upload_files():
                     containername = upl["user"]
                     prefix = task_id
                     objectname = upl["source"]
+                    headers[TRACER_HEADER] = upl['trace_id']
 
                     if not staging.is_object_created(containername,prefix,objectname):
                         app.logger.info(f"{containername}/{prefix}/{objectname} isn't created in staging area, continue polling")
                         continue
 
                     # confirms that file is in OS (auth_header is not needed)
-                    update_task(task_id, None, async_task.ST_UPL_CFM, msg = upload, is_json = True)
+                    update_task(task_id, headers, async_task.ST_UPL_CFM, msg=upload, is_json=True)
                     upload["status"] = async_task.ST_UPL_CFM
                     uploaded_files["task_id"] = upload
-                    os_to_fs_task = threading.Thread(target=os_to_fs,args=(task_id,))
+                    os_to_fs_task = threading.Thread(target=os_to_fs, name=upl['trace_id'], args=(task_id,))
                     os_to_fs_task.start()
                 # if the upload to OS is done but the download to FS failed, then resume
                 elif upload["status"] == async_task.ST_DWN_ERR:
@@ -318,21 +316,21 @@ def check_upload_files():
                     containername = upl["user"]
                     prefix = task_id
                     objectname = upl["source"]
+                    headers[TRACER_HEADER] = upl['trace_id']
                     # if file has been deleted from OS, then erroneous upload process. Restart.
                     if not staging.is_object_created(containername,prefix,objectname):
                         app.logger.info(f"{containername}/{prefix}/{objectname} isn't created in staging area, task marked as erroneous")
-                        update_task(task_id, None ,async_task.ERROR, "File was deleted from staging area. Start a new upload process")
+                        update_task(task_id, headers ,async_task.ERROR, "File was deleted from staging area. Start a new upload process")
                         upload["status"] = async_task.ERROR
                         continue
 
                     # if file is still in OS, proceed to new download to FS
-                    update_task(task_id, None, async_task.ST_DWN_BEG)
+                    update_task(task_id, headers, async_task.ST_DWN_BEG)
                     upload["status"] = async_task.ST_DWN_BEG
                     uploaded_files["task_id"] = upload
-                    os_to_fs_task = threading.Thread(target=os_to_fs,args=(task_id,))
+                    os_to_fs_task = threading.Thread(target=os_to_fs, name=upl['trace_id'], args=(task_id,))
                     os_to_fs_task.start()
             except Exception as e:
-
                 app.logger.error(type(e), e)
                 continue
 
@@ -408,7 +406,7 @@ def download_task(headers, system_name, system_addr, sourcePath, task_id):
     retval = staging.delete_object_after(containername=container_name,prefix=object_prefix,objectname=object_name,ttl=int(time.time()) + STORAGE_TEMPURL_EXP_TIME)
 
     if retval == 0:
-        app.logger.info("Setting {seconds} [s] as X-Delete-At".format(seconds=STORAGE_TEMPURL_EXP_TIME))
+        app.logger.info(f"Setting {STORAGE_TEMPURL_EXP_TIME} [s] as X-Delete-At")
     else:
         app.logger.error("Object couldn't be marked as X-Delete-At")
 
@@ -441,19 +439,17 @@ def download_request():
     if task_id == -1:
         return jsonify(error="Couldn't create task"), 400
 
-    # asynchronous task creation
-    aTask = threading.Thread(target=download_task,
+    try:
+        # asynchronous task creation
+        aTask = threading.Thread(target=download_task, name=ID,
                              args=(headers, system_name, system_addr, sourcePath, task_id))
 
-    storage_tasks[task_id] = aTask
-
-    try:
+        storage_tasks[task_id] = aTask
         update_task(task_id, headers, async_task.QUEUED)
 
         storage_tasks[task_id].start()
 
         task_url = f"{KONG_URL}/tasks/{task_id}"
-
         data = jsonify(success="Task created", task_url=task_url, task_id=task_id)
         return data, 201
 
@@ -512,7 +508,7 @@ def upload_task(headers, system_name, system_addr, targetPath, sourcePath, task_
 
     # container to bind:
     container_name = get_username(headers[AUTH_HEADER_NAME])
-
+    ID = headers.get(TRACER_HEADER, '')
     # change hash_id for task_id since is not longer needed for (failed) redirection
     uploaded_files[task_id] = {"user": container_name,
                                "system_name": system_name,
@@ -520,7 +516,8 @@ def upload_task(headers, system_name, system_addr, targetPath, sourcePath, task_
                                "target": targetPath,
                                "source": fileName,
                                "status": async_task.ST_URL_ASK,
-                               "hash_id": task_id}
+                               "hash_id": task_id,
+                               "trace_id": ID}
 
     data = uploaded_files[task_id]
 
@@ -532,20 +529,16 @@ def upload_task(headers, system_name, system_addr, targetPath, sourcePath, task_
 
     # check if staging token is valid
     if not staging.renew_token():
-        data = uploaded_files[task_id]
         msg = "Staging Area auth error, try again later"
         data["msg"] = msg
         data["status"] = async_task.ERROR
         update_task(task_id, headers, async_task.ERROR, data, is_json=True)
         return
 
-
     # create or return container
     if not staging.is_container_created(container_name):
         errno = staging.create_container(container_name)
-
         if errno == -1:
-            data = uploaded_files[task_id]
             msg = f"Could not create container {container_name} in Staging Area ({staging.get_object_storage()})"
             data["msg"] = msg
             data["status"] = async_task.ERROR
@@ -556,22 +549,19 @@ def upload_task(headers, system_name, system_addr, targetPath, sourcePath, task_
 
     # create temporary upload form
     resp = staging.create_upload_form(sourcePath, container_name, object_prefix, STORAGE_TEMPURL_EXP_TIME, STORAGE_MAX_FILE_SIZE, internal=False)
-    data = uploaded_files[task_id]
 
     # create download URL for later download from Object Storage to filesystem
     app.logger.info("Creating URL for later download")
     download_url = staging.create_temp_url(container_name, object_prefix, fileName, STORAGE_TEMPURL_EXP_TIME)
 
     # create certificate for later download from OS to filesystem
-    ID = headers.get(TRACER_HEADER, '')
-    app.logger.info(f"{ID} Creating certificate for later download")
+    app.logger.info(f"Creating certificate for later download")
     options = f"-s -G -o {targetPath}/{fileName} -- '{download_url}'"
     exp_time = STORAGE_TEMPURL_EXP_TIME
     certs = create_certificate(headers, system_name, system_addr, f"ID={ID} curl", options, exp_time)
 
     if not certs[0]:
-        data = uploaded_files[task_id]
-        msg="Could not create credentials for download from Staging Area to filesystem"
+        msg = "Could not create certificate for download from Staging Area to filesystem"
         app.logger.error(msg)
         data["msg"] = msg
         data["status"] = async_task.ERROR
@@ -589,7 +579,6 @@ def upload_task(headers, system_name, system_addr, targetPath, sourcePath, task_
     # data to be encrypted should be encoded to bytes
     # in order to save it as json, the cert encrypted should be decoded to string
     cert_pub_enc = cipher.encrypt(cert_pub.encode('utf-8')).decode('utf-8')
-
 
     resp["download_url"] = download_url
     resp["action"] = f"curl {options}"
@@ -640,7 +629,7 @@ def upload_request():
     try:
         update_task(task_id, headers, async_task.QUEUED)
 
-        aTask = threading.Thread(target=upload_task,
+        aTask = threading.Thread(target=upload_task, name=ID,
                              args=(headers, system_name, system_addr, targetPath, sourcePath, task_id))
 
         storage_tasks[task_id] = aTask
@@ -978,9 +967,8 @@ def get_upload_unfinished_tasks():
     global uploaded_files
     uploaded_files = {}
 
-
-    app.logger.info("Staging Area Used: {}".format(staging.priv_url))
-    app.logger.info("ObjectStorage Technology: {}".format(staging.get_object_storage()))
+    app.logger.info(f"Staging Area Used: {staging.priv_url}")
+    app.logger.info(f"ObjectStorage Technology: {staging.get_object_storage()}")
 
     try:
         # query Tasks microservice for previous tasks. Allow 30 seconds to answer
@@ -1023,8 +1011,9 @@ def get_upload_unfinished_tasks():
                 if task["status"] == async_task.ST_DWN_BEG:
                     task["status"] = async_task.ST_DWN_ERR
                     task["description"] = "Storage has been restarted, process will be resumed"
-
-                    update_task(task["hash_id"], None, async_task.ST_DWN_ERR, data, is_json=True)
+                    headers = {}
+                    headers[TRACER_HEADER] = data['trace_id']
+                    update_task(task["hash_id"], headers, async_task.ST_DWN_ERR, data, is_json=True)
 
                 uploaded_files[task["hash_id"]] = data
 
@@ -1036,12 +1025,11 @@ def get_upload_unfinished_tasks():
                 app.logger.error(key)
 
             except Exception as e:
-                # app.logger.error("hash_id={hash_id}".format(hash_id=data["hash_id"]))
                 app.logger.error(data)
                 app.logger.error(e)
                 app.logger.error(type(e))
 
-        app.logger.info("Not finished upload tasks recovered from taskpersistance: {n}".format(n=n_tasks))
+        app.logger.info(f"Not finished upload tasks recovered from taskpersistance: {n_tasks}")
 
     except Exception as e:
         app.logger.warning("TASKS microservice is down")
@@ -1049,38 +1037,51 @@ def get_upload_unfinished_tasks():
         app.logger.error(e)
 
 
+@app.before_request
+def f_before_request():
+    new_headers = {}
+    if JAEGER_AGENT != "":
+        try:
+            jaeger_tracer.inject(tracing.get_span(request), opentracing.Format.TEXT_MAP, new_headers)
+        except Exception as e:
+            logging.error(e)
+    g.TID = new_headers.get(TRACER_HEADER, '')
+
+@app.after_request
+def after_request(response):
+    # LogRequestFormatetter is used, this messages will get time, thread, etc
+    logger.info('%s %s %s %s %s', request.remote_addr, request.method, request.scheme, request.full_path, response.status)
+    return response
+
+
 def init_storage():
     # should check Tasks tasks than belongs to storage
-
     create_staging()
     get_upload_unfinished_tasks()
 
 
-
 if __name__ == "__main__":
-
     # log handler definition
     # timed rotation: 1 (interval) rotation per day (when="D")
     logHandler = TimedRotatingFileHandler('/var/log/storage.log', when='D', interval=1)
 
-    logFormatter = logging.Formatter('%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
+    logFormatter = LogRequestFormatter('%(asctime)s,%(msecs)d %(thread)s [%(TID)s] %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                                      '%Y-%m-%dT%H:%M:%S')
     logHandler.setFormatter(logFormatter)
-    logHandler.setLevel(logging.DEBUG)
 
     # get app log (Flask+werkzeug+python)
     logger = logging.getLogger()
 
     # set handler to logger
     logger.addHandler(logHandler)
+    logging.getLogger().setLevel(logging.INFO)
 
     # checks QueuePersistence and retakes all tasks
     init_storage()
 
     # aynchronously checks uploaded_files for complete download to FS
-    upload_check = threading.Thread(target=check_upload_files)
+    upload_check = threading.Thread(target=check_upload_files, name='storage-check-upload-files')
     upload_check.start()
-
 
     if USE_SSL:
         app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=STORAGE_PORT, ssl_context=(SSL_CRT, SSL_KEY))
