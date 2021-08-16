@@ -166,7 +166,7 @@ def get_tracing_headers(req):
     return new_headers, ID
 
 # copies file and submits with sbatch
-def submit_job_task(headers, system_name, system_addr, job_file, job_dir, use_plugin, task_id):
+def submit_job_task(headers, system_name, system_addr, job_file, job_dir, account, use_plugin, task_id):
 
     try:
         # get scopes from token
@@ -223,8 +223,9 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, use_pl
         # execute sbatch
 
         plugin_option = ("" if not use_plugin else SPANK_PLUGIN_OPTION)
+        account_option = ("" if not account else f" --account={account} ")
 
-        action = f"ID={ID} sbatch {plugin_option} --chdir={job_dir} {scopes_parameters} -- '{job_file['filename']}'"
+        action = f"ID={ID} sbatch {account_option} {plugin_option} --chdir={job_dir} {scopes_parameters} -- '{job_file['filename']}'"
         app.logger.info(action)
 
         retval = exec_remote_command(headers, system_name, system_addr, action)
@@ -328,7 +329,7 @@ def get_slurm_files(headers, system_name, system_addr, job_info, output=False):
 
     return control_info
 
-def submit_job_path_task(headers, system_name, system_addr, fileName, job_dir, use_plugin, task_id):
+def submit_job_path_task(headers, system_name, system_addr, fileName, job_dir, account, use_plugin, task_id):
 
     try:
         # get scopes from token
@@ -358,8 +359,12 @@ def submit_job_path_task(headers, system_name, system_addr, fileName, job_dir, u
 
 
     plugin_option = ("" if not use_plugin else SPANK_PLUGIN_OPTION)
+    account_option = ("" if not account else f" --account={account} ")
+
     ID = headers.get(TRACER_HEADER, '')
-    action=f"ID={ID} sbatch {plugin_option} --chdir={job_dir} {scopes_parameters} -- '{fileName}'"
+    
+
+    action=f"ID={ID} sbatch {account_option} {plugin_option} --chdir={job_dir} {scopes_parameters} -- '{fileName}'"
 
     resp = exec_remote_command(headers, system_name, system_addr, action)
 
@@ -412,6 +417,14 @@ def submit_job_upload():
     if system_name not in SYSTEMS_PUBLIC:
         header={"X-Machine-Does-Not-Exists":"Machine does not exists"}
         return jsonify(description="Failed to submit job file",error="Machine does not exists"), 400, header
+
+    # check "account parameter"
+    account = request.form.get("account", None)
+    if account != None:
+        v = validate_input(account)
+        if v != "":
+            return jsonify(description="Invalid account", error=f"'account' {v}"), 400
+        
 
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
@@ -476,7 +489,7 @@ def submit_job_upload():
     try:
         # asynchronous task creation
         aTask = threading.Thread(target=submit_job_task, name=ID,
-                             args=(headers, system_name, system_addr, job_file, job_dir, use_plugin, task_id))
+                             args=(headers, system_name, system_addr, job_file, job_dir, account, use_plugin, task_id))
 
         aTask.start()
         retval = update_task(task_id, headers, async_task.QUEUED)
@@ -518,6 +531,13 @@ def submit_job_path():
     if v != "":
         return jsonify(description="Failed to submit job", error=f"'targetPath' {v}"), 400
 
+    # check "account parameter"
+    account = request.form.get("account", None)
+    if account != None:
+        v = validate_input(account)
+        if v != "":
+            return jsonify(description="Invalid account", error=f"'account' {v}"), 400
+    
     [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
     resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true")
@@ -557,7 +577,7 @@ def submit_job_path():
     try:
         # asynchronous task creation
         aTask = threading.Thread(target=submit_job_path_task, name=ID,
-                             args=(headers, system_name, system_addr, targetPath, job_dir, use_plugin, task_id))
+                             args=(headers, system_name, system_addr, targetPath, job_dir, account, use_plugin, task_id))
 
         aTask.start()
         retval = update_task(task_id, headers, async_task.QUEUED, TASKS_URL)
