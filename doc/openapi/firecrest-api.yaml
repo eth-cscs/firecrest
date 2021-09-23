@@ -989,7 +989,7 @@ paths:
                   description: SBATCH script file to be submitted to SLURM
                 account:
                   type: string
-                  description:Name of the account associated to the user in the scheduler. If not set, the one incuded in the sbatch file is taken.
+                  description: Name of the account associated to the user in the scheduler. If not set, the one incuded in the sbatch file is taken.
               required:
                 - file
       responses:
