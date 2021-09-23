@@ -9,7 +9,7 @@ servers:
   - url: 'http://FIRECREST_URL'
   - url: 'https://FIRECREST_URL'
 info:
-  version: 1.7.5-beta1
+  version: 1.8.0-beta1
   title: FirecREST Developers API
   description: >
     This API specification is intended for FirecREST developers only. There're some endpoints that are not available in the public version for client developers.
@@ -987,6 +987,9 @@ paths:
                   type: string
                   format: binary
                   description: SBATCH script file to be submitted to SLURM
+                account:
+                  type: string
+                  description:Name of the account associated to the user in the scheduler. If not set, the one incuded in the sbatch file is taken.
               required:
                 - file
       responses:
@@ -1048,6 +1051,9 @@ paths:
                 targetPath:
                   type: string
                   description: path to the SBATCH script file stored in {X-Machine-Name} machine to be submitted to SLURM
+                account:
+                  type: string
+                  description: Name of the account associated to the user in the scheduler. If not set, the one incuded in the sbatch file is taken.
               required:
                 - targetPath
       responses:
@@ -1317,7 +1323,7 @@ paths:
                   default: null
                 account:
                   type: string
-                  description: Name of the bank account to be used in SLURM. If not set, system default is taken.
+                  description: Name of the account associated to the user in the scheduler. If not set, system default is taken.
                   default: null
               required:
                 - sourcePath
@@ -1401,7 +1407,7 @@ paths:
                   default: null
                 account:
                   type: string
-                  description: Name of the bank account to be used in SLURM. If not set, system default is taken.
+                  description: Name of the account associated to the user in the scheduler. If not set, system default is taken.
                   default: null
               required:
                 - sourcePath
@@ -1485,7 +1491,7 @@ paths:
                   default: null
                 account:
                   type: string
-                  description: Name of the bank account to be used in SLURM. If not set, system default is taken.
+                  description: Name of the account associated to the user in the scheduler. If not set, system default is taken.
                   default: null
               required:
                 - sourcePath
@@ -1566,7 +1572,7 @@ paths:
                   default: null
                 account:
                   type: string
-                  description: Name of the bank account to be used in SLURM. If not set, system default is taken.
+                  description: Name of the account associated to the user in the scheduler. If not set, system default is taken.
                   default: null
               required:
                 - targetPath

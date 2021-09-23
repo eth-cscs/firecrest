@@ -37,6 +37,15 @@ def submit_job_upload(machine, headers):
 	resp = requests.post(f"{JOBS_URL}/upload", headers=headers, files=files, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	return resp
 
+# Helper function for job submittings with accounts
+def submit_job_upload_account(machine, account, headers):
+	print(f"COMPUTE_URL {COMPUTE_URL}")
+	files = {'file': ('upload.txt', open('testsbatch.sh', 'rb'))}
+	data = {"account":account}
+	headers.update({"X-Machine-Name": machine})
+	resp = requests.post(f"{JOBS_URL}/upload", headers=headers, data=data, files=files, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	return resp
+
 
 # Test send a job to the systems
 @pytest.mark.parametrize("machine, expected_response_code", [ (SERVER_COMPUTE, 201) , ("someservernotavailable", 400)])
@@ -45,19 +54,46 @@ def test_submit_job_upload(machine, expected_response_code, headers):
 	print(resp.content)
 	assert resp.status_code == expected_response_code
 
+@pytest.mark.parametrize("machine, account, expected_response_code", [ 
+	(SERVER_COMPUTE, "test", 201) , 
+	(SERVER_COMPUTE, None, 201),
+	(SERVER_COMPUTE, "", 400),	
+	])
+def test_submit_job_upload_account(machine, account, expected_response_code, headers):
+	resp = submit_job_upload_account(machine, account, headers)
+	print(resp.content)
+	assert resp.status_code == expected_response_code
+
 # Test send a job to the systems
 @pytest.mark.parametrize("machine, targetPath, expected_response_code", [ 
+	(SERVER_COMPUTE, "/srv/f7t/test_sbatch.sh", 201), 
 (SERVER_COMPUTE, "/srv/f7t/test_sbatch.sh", 201), 
-(SERVER_COMPUTE, "/srv/f7t/test_sbatch_forbidden.sh", 400),
-(SERVER_COMPUTE, "/srv/f7t", 400),
-(SERVER_COMPUTE, "notexists", 400),
-(SERVER_COMPUTE, "", 400),
-(SERVER_COMPUTE, None, 400),
-("someservernotavailable", "/srv/f7t/test_sbatch.sh", 400)]
+	(SERVER_COMPUTE, "/srv/f7t/test_sbatch.sh", 201), 
+(SERVER_COMPUTE, "/srv/f7t/test_sbatch.sh", 201), 
+	(SERVER_COMPUTE, "/srv/f7t/test_sbatch.sh", 201), 
+	(SERVER_COMPUTE, "/srv/f7t/test_sbatch_forbidden.sh", 400),
+	(SERVER_COMPUTE, "/srv/f7t", 400),
+	(SERVER_COMPUTE, "notexists", 400),
+	(SERVER_COMPUTE, "", 400),
+	(SERVER_COMPUTE, None, 400),
+	("someservernotavailable", "/srv/f7t/test_sbatch.sh", 400)]
 
 )
 def test_submit_job_path(machine, targetPath, expected_response_code, headers):
 	data = {"targetPath" : targetPath}
+	headers.update({"X-Machine-Name": machine})
+	resp = requests.post(f"{JOBS_URL}/path", headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	print(resp.content)
+	print(resp.headers)
+	assert resp.status_code == expected_response_code
+
+@pytest.mark.parametrize("machine, targetPath, account, expected_response_code", [ 
+	(SERVER_COMPUTE, "/srv/f7t/test_sbatch.sh", "test", 201), 
+	(SERVER_COMPUTE, "/srv/f7t/test_sbatch.sh", None, 201), 	
+	(SERVER_COMPUTE, "/srv/f7t/test_sbatch.sh", "", 400), 
+	] )
+def test_submit_job_path_account(machine, targetPath, account, expected_response_code, headers):
+	data = {"targetPath" : targetPath, "account": account}
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.post(f"{JOBS_URL}/path", headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
