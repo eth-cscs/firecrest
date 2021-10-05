@@ -170,8 +170,6 @@ def test_system(machinename, headers, status_list=[]):
 
 
         ## TESTING FILESYSTEMS
-        app.logger.info(f"Headers {headers}")
-
         headers["X-Machine-Name"] = machinename
 
         username = get_username(headers[AUTH_HEADER_NAME])
@@ -261,6 +259,9 @@ def status_system(machinename):
 @app.route("/systems",methods=["GET"])
 @check_auth_header
 def status_systems():
+
+    [headers, ID] = get_tracing_headers(request)
+
     # resp_list list to fill with responses from each service
     resp_list = []
 
@@ -274,7 +275,7 @@ def status_systems():
 
     # for each servicename, creates a process
     for machinename in SYSTEMS_PUBLIC:
-        p = mp.Process(target=test_system, args=(machinename, status_list))
+        p = mp.Process(target=test_system, args=(machinename, headers, status_list))
         process_list.append(p)
         p.start()
 
