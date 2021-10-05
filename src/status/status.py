@@ -33,6 +33,7 @@ SERVICES = os.environ.get("F7T_STATUS_SERVICES").strip('\'"').split(";") # ; sep
 SYSTEMS  = os.environ.get("F7T_STATUS_SYSTEMS").strip('\'"').split(";")  # ; separated systems names
 
 STATUS_PORT = os.environ.get("F7T_STATUS_PORT", 5000)
+UTILITIES_URL = os.environ.get("F7T_UTILITIES_URL","")
 
 SERVICES_DICT = {}
 
@@ -103,8 +104,6 @@ def test_service(servicename, status_list, trace_header=None):
         #timeout set to 5 seconds
         req = requests.get(f"{serviceurl}/status", headers=trace_header, timeout=5, verify=(SSL_CRT if USE_SSL else False))
 
-        app.logger.info(f"Return code: {req.status_code}")
-
         # if status_code is 200 OK:
         if req.status_code == 200:
             status_list.append({"status": 0, "service": servicename})
@@ -136,7 +135,7 @@ def test_service(servicename, status_list, trace_header=None):
 # test individual system function
 def test_system(machinename, headers, status_list=[]):
 
-    app.logger.info(f"Testing {machinename} system status Headers: {headers}")
+    app.logger.info(f"Testing {machinename} system status")
 
     if machinename not in SYSTEMS_PUBLIC:
         status_list.append( {"status": -3, "system": machinename} )
@@ -171,9 +170,6 @@ def test_system(machinename, headers, status_list=[]):
 
 
         ## TESTING FILESYSTEMS
-
-        UTILITIES_URL = os.environ.get("F7T_UTILITIES_URL","")
-
         app.logger.info(f"Headers {headers}")
 
         headers["X-Machine-Name"] = machinename
@@ -186,8 +182,6 @@ def test_system(machinename, headers, status_list=[]):
                                 params={"targetPath":f"{fs}/{username}"}, 
                                 headers=headers,
                                 verify=(SSL_CRT if USE_SSL else False))
-
-            app.logger.info(r.status_code)
 
             if not r.ok:
                 app.logger.error("Status: -4")
