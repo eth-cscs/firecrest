@@ -23,31 +23,52 @@ SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_PATH = "../../../deploy/test-build"
 
 
-@pytest.mark.parametrize("system",SYSTEMS)
-def test_status_system(system, headers):
-	url = "{}/systems/{}".format(STATUS_URL, system)
+STATUS_CODES_SYSTEMS = []
+
+for system in SYSTEMS:
+	STATUS_CODES_SYSTEMS.append((system,200))
+
+STATUS_CODES_SYSTEMS.append(("not-a-system",404))
+
+SERVICES = ["certificator", "utilities", "compute", "tasks", "storage","reservations"]
+
+STATUS_CODES_SERVICES = []
+
+for service in SERVICES:
+	STATUS_CODES_SERVICES.append((service,200))
+
+STATUS_CODES_SERVICES.append(("not-a-service",404))
+
+
+
+
+@pytest.mark.parametrize("system,status_code",STATUS_CODES_SYSTEMS)
+def test_status_system(system, status_code, headers):
+	url = f"{STATUS_URL}/systems/{system}"
 	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
-	assert 'description' in resp.json()
+	# assert 'description' in resp.json()
+	assert status_code == resp.status_code
 	 
 
 def test_status_systems(headers):
-	url = "{}/systems".format(STATUS_URL)
+	url = f"{STATUS_URL}/systems"
 	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
 	assert 'description' in resp.json()
 
 
-@pytest.mark.parametrize("service",["certificator", "utilities", "compute", "tasks", "storage","reservations"])
-def test_status_service(service, headers):
-	url = "{}/services/{}".format(STATUS_URL, service)
+@pytest.mark.parametrize("service,status_code",STATUS_CODES_SERVICES)
+def test_status_service(service, status_code, headers):
+	url = f"{STATUS_URL}/services/{service}"
 	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
-	assert 'description' in resp.json()
+	# assert 'description' in resp.json()
+	assert status_code == resp.status_code
 
 
 def test_status_services(headers):
-	url = "{}/services".format(STATUS_URL)
+	url = f"{STATUS_URL}/services"
 	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
 	print(resp.json())
@@ -56,7 +77,7 @@ def test_status_services(headers):
 
 def test_parameters(headers):
 	print(STATUS_URL)
-	url = "{}/parameters".format(STATUS_URL)
+	url = f"{STATUS_URL}/parameters"
 	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
 	assert resp.status_code == 200

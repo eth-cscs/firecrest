@@ -9,7 +9,7 @@ servers:
   - url: 'http://FIRECREST_URL'
   - url: 'https://FIRECREST_URL'
 info:
-  version: 1.8.0-beta1
+  version: 1.8.1-beta1
   title: FirecREST API
   description: >
     FirecREST platform, a RESTful Services Gateway to HPC resources, is a
@@ -45,7 +45,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Services'
         '400':
-          $ref: '#/components/responses/Standard400Error'
+          $ref: '#/components/responses/Standard400Error'        
   '/status/services/{servicename}':
     parameters:
       - name: servicename
