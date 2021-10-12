@@ -408,9 +408,9 @@ def after_request(response):
 
 
 if __name__ == "__main__":
-    # log handler definition
+    LOG_PATH = os.environ.get("F7T_LOG_PATH", '/var/log').strip('\'"')
     # timed rotation: 1 (interval) rotation per day (when="D")
-    logHandler=TimedRotatingFileHandler('/var/log/status.log', when='D', interval=1)
+    logHandler=TimedRotatingFileHandler(f'{LOG_PATH}/status.log', when='D', interval=1)
 
     logFormatter = LogRequestFormatter('%(asctime)s,%(msecs)d %(thread)s [%(TID)s] %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                                      '%Y-%m-%dT%H:%M:%S')
@@ -426,7 +426,6 @@ if __name__ == "__main__":
     # create services list
     set_services()
 
-    # run app
     if USE_SSL:
         app.run(debug=debug, host='0.0.0.0', port=STATUS_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:

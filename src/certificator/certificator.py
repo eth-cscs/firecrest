@@ -22,7 +22,6 @@ import threading
 # var <- object
 # returns -> boolean
 def get_boolean_var(var):
-
     # ensure variable to be a string
     var = str(var)
     # True, true or TRUE
@@ -93,7 +92,6 @@ def check_user_auth(username,system):
 
     # check if OPA is active
     if OPA_USE:
-        logging.info(f"{OPA_URL}/{POLICY_PATH}")
         input = {"input":{"user": f"{username}", "system": f"{system}"}}
 
         try:
@@ -128,7 +126,7 @@ def check_user_auth(username,system):
 # checks JWT from Keycloak, optionally validates signature. It only receives the content of header's auth pair (not key:content)
 def check_header(header):
     if debug:
-        logging.info('debug: header: ' + header)
+        logging.info(f'debug: header: {header}')
 
     # header = "Bearer ey...", remove first 7 chars
     try:
@@ -141,10 +139,6 @@ def check_header(header):
                 decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, options={'verify_aud': False})
             else:
                 decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, audience=AUTH_AUDIENCE)
-
-        # if AUTH_REQUIRED_SCOPE != '':
-        #     if not (AUTH_REQUIRED_SCOPE in decoded['realm_access']['roles']):
-        #         return False
 
         # {"scope": "openid profile firecrest email"}
         if AUTH_REQUIRED_SCOPE != "":
@@ -179,7 +173,6 @@ def get_username(header):
         # check if it's a service account token
         try:
             if AUTH_ROLE in decoded["realm_access"]["roles"]:
-
                 clientId = decoded["clientId"]
                 username = decoded["resource_access"][clientId]["roles"][0]
                 return username
@@ -231,13 +224,9 @@ def receive():
     - option (optional): options for command
     - exptime (optional): expiration time given to the certificate in seconds (default +5m)
     - cluster (required): public name of the system where to exec the command
-    - addr (required): private IP or DNS (including port if needed) of the system where to exec the command
     Returns:
     - certificate (json)
     """
-
-    if debug:
-        logging.info('debug: certificator: request.headers[AUTH_HEADER_NAME]: ' + request.headers[AUTH_HEADER_NAME])
 
     try:
         auth_header = request.headers[AUTH_HEADER_NAME]
@@ -245,7 +234,6 @@ def receive():
         if username == None:
             app.logger.error("No username")
             return jsonify(description="Invalid user"), 401
-
 
         # Check if user is authorized in OPA
         cluster = request.args.get("cluster","")
@@ -255,6 +243,8 @@ def receive():
         auth_result = check_user_auth(username,cluster)
         if not auth_result["allow"]:
             return jsonify(description=auth_result["description"]), auth_result["status_code"]
+
+        app.logger.info(f"Generating cert for user: {username}")
 
         # default expiration time for certificates
         ssh_expire = '+5m'
@@ -271,6 +261,10 @@ def receive():
                 exp_time = request.args.get("exptime", '')
                 if exp_time:
                     ssh_expire = f"+{exp_time}s"
+                # don't log full URL
+                app.logger.info(f"Command (truncated): {force_command} {force_opt[:200]}")
+            else:
+                app.logger.info(f"Command: {force_command} {force_opt}")
         else:
             return jsonify(description='No command specified'), 400
 
@@ -284,13 +278,11 @@ def receive():
         td = tempfile.mkdtemp(prefix = "cert")
         os.symlink(os.getcwd() + "/user-key.pub", td + "/user-key.pub")  # link on temp dir
 
-        app.logger.info(f"Generating cert for user: {username}")
-        app.logger.info(f"SSH keygen command: {force_command}")
         command = f"ssh-keygen -s ca-key -n {username} -V {ssh_expire} -I ca-key {force_command} {td}/user-key.pub "
 
     except Exception as e:
         logging.error(e)
-        return jsonify(description=f"Error creating certificate. {e}", error=-1), 400
+        return jsonify(description=f"Error creating certificate: {e}", error=-1), 400
 
     try:
         result = subprocess.check_output([command], shell=True)
@@ -322,7 +314,8 @@ def f_before_request():
 @app.after_request
 def after_request(response):
     # LogRequestFormatetter is used, this messages will get time, thread, etc
-    logger.info('%s %s %s %s %s', request.remote_addr, request.method, request.scheme, request.full_path, response.status)
+    # don't use request.full_path here
+    logger.info('%s %s %s %s %s', request.remote_addr, request.method, request.scheme, request.path, response.status)
     return response
 
 # formatter is executed for every log
@@ -341,9 +334,9 @@ class LogRequestFormatter(logging.Formatter):
 
 
 if __name__ == "__main__":
-    # log handler definition
+    LOG_PATH = os.environ.get("F7T_LOG_PATH", '/var/log').strip('\'"')
     # timed rotation: 1 (interval) rotation per day (when="D")
-    logHandler = TimedRotatingFileHandler('/var/log/certificator.log', when='D', interval=1)
+    logHandler = TimedRotatingFileHandler(f'{LOG_PATH}/certificator.log', when='D', interval=1)
 
     logFormatter = LogRequestFormatter('%(asctime)s,%(msecs)d %(thread)s [%(TID)s] %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                                      '%Y-%m-%dT%H:%M:%S')
@@ -354,6 +347,11 @@ if __name__ == "__main__":
 
     # set handler to logger
     logger.addHandler(logHandler)
+
+    logging.getLogger().setLevel(logging.INFO)
+
+    # disable Flask internal logging to avoid full url exposure
+    logging.getLogger('werkzeug').disabled = True
 
     # check that CA private key has proper permissions: 400 (no user write, and no access for group and others)
     import stat, sys
@@ -368,13 +366,12 @@ if __name__ == "__main__":
         app.logger.error(msg)
         sys.exit(msg)
 
-    logging.getLogger().setLevel(logging.INFO)
+    if OPA_USE:
+        logging.info(f"OPA: enabled, using {OPA_URL}/{POLICY_PATH}")
+    else:
+        logging.info(f"OPA: disabled")
 
-    # run app
-    # debug = False, so output redirects to log files
     if USE_SSL:
         app.run(debug=debug, host='0.0.0.0', port=CERTIFICATOR_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:
         app.run(debug=debug, host='0.0.0.0', port=CERTIFICATOR_PORT)
-
-
