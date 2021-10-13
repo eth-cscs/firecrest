@@ -321,7 +321,7 @@ def get_slurm_files(headers, system_name, system_addr, job_info, output=False):
     return control_info
 
 
-def submit_job_path_task(headers, system_name, system_addr, fileName, job_dir, use_plugin, task_id):
+def submit_job_path_task(headers, system_name, system_addr, fileName, job_dir, account, use_plugin, task_id):
 
     try:
         # get scopes from token
@@ -550,7 +550,7 @@ def submit_job_path():
     try:
         # asynchronous task creation
         aTask = threading.Thread(target=submit_job_path_task, name=ID,
-                             args=(headers, system_name, system_addr, targetPath, job_dir, use_plugin, task_id))
+                             args=(headers, system_name, system_addr, targetPath, job_dir, account, use_plugin, task_id))
 
         aTask.start()
         retval = update_task(task_id, headers, async_task.QUEUED, TASKS_URL)
