@@ -160,7 +160,7 @@ def get_tracing_headers(req):
     return new_headers, ID
 
 # copies file and submits with sbatch
-def submit_job_task(headers, system_name, system_addr, job_file, job_dir, use_plugin, task_id):
+def submit_job_task(headers, system_name, system_addr, job_file, job_dir, account, use_plugin, task_id):
 
     try:
         # get scopes from token
@@ -213,11 +213,10 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, use_pl
                 update_task(task_id, headers, async_task.ERROR, "Failed to upload file")
                 return
 
-        # execute sbatch
-
         plugin_option = ("" if not use_plugin else SPANK_PLUGIN_OPTION)
+        account_option = ("" if not account else f" --account={account} ")
 
-        action = f"ID={ID} sbatch {plugin_option} --chdir={job_dir} {scopes_parameters} -- '{job_file['filename']}'"
+        action = f"ID={ID} sbatch {account_option} {plugin_option} --chdir={job_dir} {scopes_parameters} -- '{job_file['filename']}'"
         app.logger.info(action)
 
         retval = exec_remote_command(headers, system_name, system_addr, action)
@@ -351,8 +350,9 @@ def submit_job_path_task(headers, system_name, system_addr, fileName, job_dir, a
 
 
     plugin_option = ("" if not use_plugin else SPANK_PLUGIN_OPTION)
+    account_option = ("" if not account else f" --account={account} ")
     ID = headers.get(TRACER_HEADER, '')
-    action=f"ID={ID} sbatch {plugin_option} --chdir={job_dir} {scopes_parameters} -- '{fileName}'"
+    action=f"ID={ID} sbatch {account_option} {plugin_option} --chdir={job_dir} {scopes_parameters} -- '{fileName}'"
 
     resp = exec_remote_command(headers, system_name, system_addr, action)
 
@@ -409,6 +409,13 @@ def submit_job_upload():
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
     system_addr = SYS_INTERNALS[system_idx]
+
+    # check "account parameter"
+    account = request.form.get("account", None)
+    if account != None:
+        v = validate_input(account)
+        if v != "":
+            return jsonify(description="Invalid account", error=f"'account' {v}"), 400
 
     [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
@@ -469,7 +476,7 @@ def submit_job_upload():
     try:
         # asynchronous task creation
         aTask = threading.Thread(target=submit_job_task, name=ID,
-                             args=(headers, system_name, system_addr, job_file, job_dir, use_plugin, task_id))
+                             args=(headers, system_name, system_addr, job_file, job_dir, account, use_plugin, task_id))
 
         aTask.start()
         retval = update_task(task_id, headers, async_task.QUEUED)
@@ -510,6 +517,13 @@ def submit_job_path():
     v = validate_input(targetPath)
     if v != "":
         return jsonify(description="Failed to submit job", error=f"'targetPath' {v}"), 400
+
+    # check "account parameter"
+    account = request.form.get("account", None)
+    if account != None:
+        v = validate_input(account)
+        if v != "":
+            return jsonify(description="Invalid account", error=f"'account' {v}"), 400
 
     [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
