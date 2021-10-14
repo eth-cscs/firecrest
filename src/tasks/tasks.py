@@ -471,7 +471,6 @@ def tasklist():
         app.logger.error(f"Key {e.args} in 'json' parameter is missing")
         return jsonify(error=f"{e.args} parameter missing"), 401
 
-    # app.logger.info(storage_tasks)
     if _tasks == None:
         return jsonify(error=f"Persistence server task retrieve error for service {json['service']}"), 404
 
@@ -490,9 +489,9 @@ def after_request(response):
 
 
 if __name__ == "__main__":
-    # log handler definition
+    LOG_PATH = os.environ.get("F7T_LOG_PATH", '/var/log').strip('\'"')
     # timed rotation: 1 (interval) rotation per day (when="D")
-    logHandler = TimedRotatingFileHandler('/var/log/tasks.log', when='D', interval=1)
+    logHandler = TimedRotatingFileHandler(f'{LOG_PATH}/tasks.log', when='D', interval=1)
 
     logFormatter = LogRequestFormatter('%(asctime)s,%(msecs)d %(thread)s [%(TID)s] %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                                      '%Y-%m-%dT%H:%M:%S')
@@ -507,7 +506,6 @@ if __name__ == "__main__":
 
     init_queue()
 
-    # set to debug = False, so stderr and stdout go to log file
     if USE_SSL:
         app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=TASKS_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:

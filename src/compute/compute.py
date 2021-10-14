@@ -5,12 +5,10 @@
 #  SPDX-License-Identifier: BSD-3-Clause
 #
 from flask import Flask, request, jsonify, g
-import paramiko
 from logging.handlers import TimedRotatingFileHandler
 import threading
 import async_task
-import traceback
-import sys
+#import traceback
 
 from cscs_api_common import check_auth_header, get_username, \
     exec_remote_command, create_task, update_task, clean_err_output, \
@@ -22,7 +20,7 @@ import logging
 
 from math import ceil
 
-import json, urllib, tempfile, os
+import json, os
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import RequestEntityTooLarge
 
@@ -116,22 +114,18 @@ def is_jobid(jobid):
         jobid = int(jobid)
         if jobid > 0:
             return True
-        app.logger.error("Wrong SLURM sbatch return string")
-        app.logger.error(f"{jobid} isn't > 0")
+        app.logger.error(f"Wrong SLURM sbatch return string: {jobid} isn't > 0")
 
     except ValueError as e:
-        app.logger.error("Wrong SLURM sbatch return string")
-        app.logger.error("Couldn't convert to int")
-        app.logger.error(e)
+        app.logger.error("Wrong SLURM sbatch return string: couldn't convert to int")
     except IndexError as e:
-        app.logger.error("Wrong SLURM sbatch return string")
-        app.logger.error("String is empty")
-        app.logger.error(e)
+        app.logger.error("Wrong SLURM sbatch return string: string is empty")
     except Exception as e:
-        app.logger.error("Wrong SLURM sbatch return string")
-        app.logger.error("Generic error")
+        app.logger.error("Wrong SLURM sbatch return string: generic error")
         app.logger.error(e)
+
     return False
+
 
 # Extract jobid number from SLURM sbatch returned string when it's OK
 # Commonly  "Submitted batch job 9999" being 9999 a jobid
@@ -190,7 +184,7 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
             if scopes_parameters != '':
                 scopes_parameters = '--firecrest=' + scopes_parameters
 
-        app.logger.info("scope parameters: " + scopes_parameters)
+            app.logger.info(f"scope parameters: {scopes_parameters}")
 
     except Exception as e:
         app.logger.error(type(e))
@@ -204,11 +198,10 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
         ID = headers.get(TRACER_HEADER, '')
         # create tmpdir for sbatch file
         action = f"ID={ID} timeout {TIMEOUT} mkdir -p -- '{job_dir}'"
-        app.logger.info(action)
         retval = exec_remote_command(headers, system_name, system_addr, action)
 
         if retval["error"] != 0:
-            app.logger.error(f"(Error: {retval['msg']}")
+            app.logger.error(f"(Error creating directory: {retval['msg']}")
             update_task(task_id, headers, async_task.ERROR, retval["msg"])
             return
 
@@ -216,11 +209,9 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
             action = f"ID={ID} cat > {job_dir}/{job_file['filename']}"
             retval = exec_remote_command(headers, system_name, system_addr, action, file_transfer="upload", file_content=job_file['content'])
             if retval["error"] != 0:
-                app.logger.error(f"(Error: {retval['msg']}")
+                app.logger.error(f"(Error uploading file: {retval['msg']}")
                 update_task(task_id, headers, async_task.ERROR, "Failed to upload file")
                 return
-
-        # execute sbatch
 
         plugin_option = ("" if not use_plugin else SPANK_PLUGIN_OPTION)
         account_option = ("" if not account else f" --account={account} ")
@@ -260,7 +251,7 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
     except Exception as e:
         app.logger.error(type(e), exc_info=True, stack_info=True)
         app.logger.error(e)
-        traceback.print_exc(file=sys.stdout)
+        #traceback.print_exc(file=sys.stdout)
         update_task(task_id, headers, async_task.ERROR)
 
     return
@@ -269,13 +260,14 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
 
 # checks with scontrol for out and err file location
 # - headers: coming from OIDC + tracing
-# - machine: machine where the command will be executed
+# - system_name, system_addr: machine where the command will be executed
 # - job_info: json containing jobid key
 # - output: True if StdErr and StdOut of the job need to be added to the jobinfo (default False)
 def get_slurm_files(headers, system_name, system_addr, job_info, output=False):
     # now looking for log and err files location
 
-    app.logger.info("Recovering data from job")
+    if debug:
+        app.logger.info("Recovering data from job")
 
     # save msg, so we can add it later:
     control_info = job_info
@@ -287,7 +279,7 @@ def get_slurm_files(headers, system_name, system_addr, job_info, output=False):
     # -o for "one line output"
     action = f"ID={ID} scontrol -o show job={control_info['jobid']}"
 
-    app.logger.info(f"sControl command: {action}")
+    app.logger.info(f"scontrol command: {action}")
 
     resp = exec_remote_command(headers, system_name, system_addr, action)
 
@@ -307,7 +299,6 @@ def get_slurm_files(headers, system_name, system_addr, job_info, output=False):
     control_info["job_file"] = control_dict.get("Command", "command-not-found")
     control_info["job_data_out"] = ""
     control_info["job_data_err"] = ""
-    # if all fine:
 
     if output:
         # to add data from StdOut and StdErr files in Task
@@ -320,7 +311,6 @@ def get_slurm_files(headers, system_name, system_addr, job_info, output=False):
         resp = exec_remote_command(headers, system_name, system_addr, action)
         if resp["error"] == 0:
             control_info["job_data_out"] = resp["msg"]
-
 
         action = f"ID={ID} timeout {TIMEOUT} tail -c {TAIL_BYTES} '{control_info['job_file_err']}'"
         resp = exec_remote_command(headers, system_name, system_addr, action)
@@ -362,8 +352,6 @@ def submit_job_path_task(headers, system_name, system_addr, fileName, job_dir, a
     account_option = ("" if not account else f" --account={account} ")
 
     ID = headers.get(TRACER_HEADER, '')
-    
-
     action=f"ID={ID} sbatch {account_option} {plugin_option} --chdir={job_dir} {scopes_parameters} -- '{fileName}'"
 
     resp = exec_remote_command(headers, system_name, system_addr, action)
@@ -429,6 +417,13 @@ def submit_job_upload():
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
     system_addr = SYS_INTERNALS[system_idx]
+
+    # check "account parameter"
+    account = request.form.get("account", None)
+    if account != None:
+        v = validate_input(account)
+        if v != "":
+            return jsonify(description="Invalid account", error=f"'account' {v}"), 400
 
     [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
@@ -537,7 +532,7 @@ def submit_job_path():
         v = validate_input(account)
         if v != "":
             return jsonify(description="Invalid account", error=f"'account' {v}"), 400
-    
+
     [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
     resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true")
@@ -726,7 +721,7 @@ def list_job_task(headers,system_name, system_addr,action,task_id,pageSize,pageN
 
     # on success:
     jobList = resp["msg"].split("$")
-    app.logger.info("Size jobs: %d" % len(jobList))
+    app.logger.info(f"Size jobs: {len(jobList)}")
 
     # pagination
     totalSize   = len(jobList)
@@ -735,12 +730,11 @@ def list_job_task(headers,system_name, system_addr,action,task_id,pageSize,pageN
 
     totalPages = int(ceil(float(totalSize) / float(pageSize)))
 
-    app.logger.info(f"Total Size: {totalSize}")
-    app.logger.info(f"Total Pages: {totalPages}")
+    if debug:
+        app.logger.info(f"Total Size: {totalSize} - Total Pages: {totalPages}")
 
     if pageNumber < 0 or pageNumber > totalPages-1:
-        app.logger.warning(f"pageNumber ({pageNumber}) greater than total pages ({totalPages})")
-        app.logger.warning("set to default")
+        app.logger.warning(f"pageNumber ({pageNumber}) greater than total pages ({totalPages}), set to default = 0")
         pageNumber = 0
 
     beg_reg = int(pageNumber * pageSize)
@@ -1127,9 +1121,9 @@ def after_request(response):
 
 
 if __name__ == "__main__":
-    # log handler definition
+    LOG_PATH = os.environ.get("F7T_LOG_PATH", '/var/log').strip('\'"')
     # timed rotation: 1 (interval) rotation per day (when="D")
-    logHandler = TimedRotatingFileHandler('/var/log/compute.log', when='D', interval=1)
+    logHandler = TimedRotatingFileHandler(f'{LOG_PATH}/compute.log', when='D', interval=1)
 
     logFormatter = LogRequestFormatter('%(asctime)s,%(msecs)d %(thread)s [%(TID)s] %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                                      '%Y-%m-%dT%H:%M:%S')
@@ -1142,7 +1136,6 @@ if __name__ == "__main__":
     logger.addHandler(logHandler)
     logging.getLogger().setLevel(logging.INFO)
 
-    # set debug = False, so output goes to log files
     if USE_SSL:
         app.run(debug=debug, host='0.0.0.0', port=COMPUTE_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:

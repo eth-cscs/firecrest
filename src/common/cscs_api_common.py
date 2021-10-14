@@ -165,17 +165,13 @@ def create_certificate(headers, cluster_name, cluster_addr, command=None, option
       exp_time = expiration time for SSH certificate
     """
 
-    if debug:
-        username = get_username(headers[AUTH_HEADER_NAME])
-        logging.info(f"Create certificate for user {username}")
-
     reqURL = f"{CERTIFICATOR_URL}/?cluster={cluster_name}&addr={cluster_addr}"
 
     if command:
         logging.info(f"\tCommand: {command}")
         reqURL += "&command=" + base64.urlsafe_b64encode(command.encode()).decode()
         if options:
-            logging.info(f"\tOptions: {options}")
+            logging.info(f"\tOptions (truncated): {options:80}")
             reqURL += "&option=" + base64.urlsafe_b64encode(options.encode()).decode()
             if exp_time:
                 logging.info(f"\tExpiration: {exp_time} [s]")
@@ -184,7 +180,13 @@ def create_certificate(headers, cluster_name, cluster_addr, command=None, option
         logging.error('Tried to create certificate without command')
         return [None, 1, 'Internal error']
 
-    logging.info(f"Request: {reqURL}")
+    if debug:
+        username = get_username(headers[AUTH_HEADER_NAME])
+        logging.info(f"Create certificate for user {username}")
+        if options:
+            # may contain Storage URL
+            logging.info(f"\tOptions (complete): {options}")
+        logging.info(f"Request URL: {reqURL}")
 
     try:
         resp = requests.get(reqURL, headers=headers, verify= (SSL_CRT if USE_SSL else False) )
@@ -224,7 +226,7 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
 
     import paramiko, socket
 
-    logging.info(f'debug: system name: {system_name} - action: {action}')
+    logging.info(f'System name: {system_name} - action: {action}')
 
     if file_transfer == "storage_cert":
         # storage is using a previously generated cert, save cert list from content
@@ -268,8 +270,11 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
                        allow_agent=False,
                        look_for_keys=False,
                        timeout=10)
-        logging.info(f"F7T_SSH_CERTIFICATE_WRAPPER: {F7T_SSH_CERTIFICATE_WRAPPER}")
+
         if F7T_SSH_CERTIFICATE_WRAPPER:
+            if debug:
+                logging.info(f"Using F7T_SSH_CERTIFICATE_WRAPPER.")
+
             # read cert to send it as a command to the server
             with open(pub_cert, 'r') as cert_file:
                cert = cert_file.read().rstrip("\n")  # remove newline at the end
@@ -352,7 +357,6 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
                 logging.info(f"stdout: ({stdout_errno}) --> {outlines}")
             else:
                 logging.info(f"stderr: ({stderr_errno}) --> Download OK (content hidden)")
-                logging.info(f"stdout: ({stdout_errno}) --> Download OK (content hidden)")
                 logging.info(f"stdout: ({stdout_errno}) --> Download OK (content hidden)")
         else:
             logging.info(f"stderr: ({stderr_errno}) --> {stderr_errda}")
@@ -677,8 +681,8 @@ def check_user_auth(username,system):
     if OPA_USE:
         try:
             input = {"input":{"user": f"{username}", "system": f"{system}"}}
-            #resp_opa = requests.post(f"{OPA_URL}/{POLICY_PATH}", json=input)
-            logging.info(f"{OPA_URL}/{POLICY_PATH}")
+            if debug:
+                logging.info(f"OPA: enabled, using {OPA_URL}/{POLICY_PATH}")
 
             resp_opa = requests.post(f"{OPA_URL}/{POLICY_PATH}", json=input)
 

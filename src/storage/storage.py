@@ -247,9 +247,8 @@ def os_to_fs(task_id):
 
             staging.delete_object_after(containername=username,prefix=task_id,objectname=objectname, ttl = int(time.time())+600)
 
-        # if error, should be prepared for try again
         else:
-            # app.logger.error(result["msg"])
+            # if error, should be prepared for try again
             upl_file["status"] = async_task.ST_DWN_ERR
             uploaded_files[task_id] = upl_file
 
@@ -270,11 +269,7 @@ def check_upload_files():
         # Get updated task status from Tasks microservice DB backend (TaskPersistence)
         get_upload_unfinished_tasks()
 
-        # Timestampo for logs
-        timestamp = time.asctime( time.localtime(time.time()) )
-
-        app.logger.info(f"Check files in Object Storage {timestamp}")
-        app.logger.info(f"Pendings uploads: {len(uploaded_files)}")
+        app.logger.info(f"Check files in Object Storage - Pendings uploads: {len(uploaded_files)}")
 
         # create STATIC auxiliary upload list in order to avoid "RuntimeError: dictionary changed size during iteration"
         # (this occurs since upload_files dictionary is shared between threads and since Python3 dict.items() trigger that error)
@@ -293,7 +288,6 @@ def check_upload_files():
                     app.logger.info(f"Task {task_id} -> File ready to upload or already downloaded")
 
                     upl = uploaded_files[task_id]
-                    # app.logger.info(upl)
 
                     containername = upl["user"]
                     prefix = task_id
@@ -967,8 +961,7 @@ def get_upload_unfinished_tasks():
     global uploaded_files
     uploaded_files = {}
 
-    app.logger.info(f"Staging Area Used: {staging.priv_url}")
-    app.logger.info(f"ObjectStorage Technology: {staging.get_object_storage()}")
+    app.logger.info(f"Staging Area Used: {staging.priv_url} - ObjectStorage Technology: {staging.get_object_storage()}")
 
     try:
         # query Tasks microservice for previous tasks. Allow 30 seconds to answer
@@ -978,10 +971,7 @@ def get_upload_unfinished_tasks():
         retval=requests.get(f"{TASKS_URL}/taskslist", json={"service": "storage", "status_code":status_code}, timeout=30, verify=(SSL_CRT if USE_SSL else False))
 
         if not retval.ok:
-            app.logger.error("Error getting tasks from Tasks microservice")
-            app.logger.warning("TASKS microservice is down")
-            app.logger.warning("STORAGE microservice will not be fully functional")
-            app.logger.warning(f"Next try in {STORAGE_POLLING_INTERVAL} seconds")
+            app.logger.error("Error getting tasks from Tasks microservice: query failed with status {retval.status_code}, STORAGE microservice will not be fully functional. Next try will be in {STORAGE_POLLING_INTERVAL} seconds")
             return
 
         queue_tasks = retval.json()
@@ -1032,8 +1022,7 @@ def get_upload_unfinished_tasks():
         app.logger.info(f"Not finished upload tasks recovered from taskpersistance: {n_tasks}")
 
     except Exception as e:
-        app.logger.warning("TASKS microservice is down")
-        app.logger.warning("STORAGE microservice will not be fully functional")
+        app.logger.warning("Error querying TASKS microservice: STORAGE microservice will not be fully functional")
         app.logger.error(e)
 
 
@@ -1061,9 +1050,9 @@ def init_storage():
 
 
 if __name__ == "__main__":
-    # log handler definition
+    LOG_PATH = os.environ.get("F7T_LOG_PATH", '/var/log').strip('\'"')
     # timed rotation: 1 (interval) rotation per day (when="D")
-    logHandler = TimedRotatingFileHandler('/var/log/storage.log', when='D', interval=1)
+    logHandler = TimedRotatingFileHandler(f'{LOG_PATH}/storage.log', when='D', interval=1)
 
     logFormatter = LogRequestFormatter('%(asctime)s,%(msecs)d %(thread)s [%(TID)s] %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                                      '%Y-%m-%dT%H:%M:%S')

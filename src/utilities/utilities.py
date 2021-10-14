@@ -7,7 +7,7 @@
 from flask import Flask, request, jsonify, send_file, g
 
 from logging.handlers import TimedRotatingFileHandler
-import tempfile, os, socket, logging
+import os, logging
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import BadRequestKeyError
 
@@ -144,30 +144,31 @@ def ls_parse(request, retval):
     totalSize = len(fileList)
 
     # if pageSize and number were set:
-    pageSize = request.args.get("pageSize")
-    pageNumber = request.args.get("pageNumber")
+    pageSize = request.args.get("pageSize", None)
+    pageNumber = request.args.get("pageNumber", None)
 
-    app.logger.info(f"PageSize: {pageSize}. PageNumber: {pageNumber}")
+    if debug:
+        app.logger.info(f"PageSize: {pageSize}. PageNumber: {pageNumber}")
 
     # calculate the list to retrieve
     if pageSize and pageNumber:
-        pageNumber = float(pageNumber)
-        pageSize   = float(pageSize)
+        try:
+            pageNumber = float(pageNumber)
+            pageSize   = float(pageSize)
 
-        totalPages = int(ceil(float(totalSize) / float(pageSize)))
+            totalPages = int(ceil(float(totalSize) / float(pageSize)))
 
-        app.logger.info(f"Total Size: {totalSize}")
-        app.logger.info(f"Total Pages: {totalPages}")
+            app.logger.info(f"Total Size: {totalSize} - Total Pages: {totalPages}")
 
-        if pageNumber < 1 or pageNumber>totalPages:
-            app.logger.warning(f"pageNumber ({pageNumber}) greater than total pages ({totalPages})")
-            #app.logger.warning("Showing all results")
-        else:
-            beg_reg=int((pageNumber-1)*pageSize)
-            end_reg=int(pageNumber*pageSize-1)
-            app.logger.info(f"Initial reg {beg_reg}, final reg: {end_reg}")
-            fileList = fileList[beg_reg:end_reg+1]
-
+            if pageNumber < 1 or pageNumber>totalPages:
+                app.logger.info(f"pageNumber ({pageNumber}) greater than total pages ({totalPages})")
+            else:
+                beg_reg=int((pageNumber-1)*pageSize)
+                end_reg=int(pageNumber*pageSize-1)
+                app.logger.info(f"Initial reg {beg_reg}, final reg: {end_reg}")
+                fileList = fileList[beg_reg:end_reg+1]
+        except:
+            app.logger.info(f"Invalid pageSize ({pageSize}) and/or pageNumber ({pageSize}), returning full list")
 
     outLabels = ["name","type","link_target","user","group","permissions","last_modified","size"]
 
@@ -381,7 +382,6 @@ def common_fs_operation(request, command):
                 return jsonify(description="Failed to upload file", error="No file in query"), 400
             file = request.files['file']
             app.logger.info(f"Upload length: {file.content_length}")
-            #app.logger.info(f"Upload headers: {file.headers}")
             v = validate_input(file.filename)
             if v != "":
                 return jsonify(description="Failed to upload file", error=f"Filename {v}"), 400
@@ -561,9 +561,9 @@ def after_request(response):
 
 
 if __name__ == "__main__":
-    # log handler definition
+    LOG_PATH = os.environ.get("F7T_LOG_PATH", '/var/log').strip('\'"')
     # timed rotation: 1 (interval) rotation per day (when="D")
-    logHandler = TimedRotatingFileHandler('/var/log/utilities.log', when='D', interval=1)
+    logHandler = TimedRotatingFileHandler(f'{LOG_PATH}/utilities.log', when='D', interval=1)
 
     logFormatter = LogRequestFormatter('%(asctime)s,%(msecs)d %(thread)s [%(TID)s] %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                                      '%Y-%m-%dT%H:%M:%S')
@@ -576,8 +576,6 @@ if __name__ == "__main__":
     logger.addHandler(logHandler)
     logging.getLogger().setLevel(logging.INFO)
 
-    # run app
-    # debug = False, so output redirects to log files
     if USE_SSL:
         app.run(debug=debug, host='0.0.0.0', port=UTILITIES_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:
