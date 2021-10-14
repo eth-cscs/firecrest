@@ -11,7 +11,7 @@ import logging
 import multiprocessing as mp
 
 # common modules
-from cscs_api_common import check_auth_header, get_boolean_var, LogRequestFormatter
+from cscs_api_common import check_auth_header, get_boolean_var, LogRequestFormatter, get_username
 
 import paramiko
 import socket
@@ -33,6 +33,7 @@ SERVICES = os.environ.get("F7T_STATUS_SERVICES").strip('\'"').split(";") # ; sep
 SYSTEMS  = os.environ.get("F7T_STATUS_SYSTEMS").strip('\'"').split(";")  # ; separated systems names
 
 STATUS_PORT = os.environ.get("F7T_STATUS_PORT", 5000)
+UTILITIES_URL = os.environ.get("F7T_UTILITIES_URL","")
 
 SERVICES_DICT = {}
 
@@ -103,8 +104,6 @@ def test_service(servicename, status_list, trace_header=None):
         #timeout set to 5 seconds
         req = requests.get(f"{serviceurl}/status", headers=trace_header, timeout=5, verify=(SSL_CRT if USE_SSL else False))
 
-        app.logger.info(f"Return code: {req.status_code}")
-
         # if status_code is 200 OK:
         if req.status_code == 200:
             status_list.append({"status": 0, "service": servicename})
@@ -134,7 +133,7 @@ def test_service(servicename, status_list, trace_header=None):
 
 
 # test individual system function
-def test_system(machinename, status_list=[]):
+def test_system(machinename, headers, status_list=[]):
 
     app.logger.info(f"Testing {machinename} system status")
 
@@ -145,6 +144,7 @@ def test_system(machinename, status_list=[]):
     for i in range(len(SYSTEMS_PUBLIC)):
         if SYSTEMS_PUBLIC[i] == machinename:
             machine = SYSTEMS[i]
+            filesystems = FILESYSTEMS[i]
             break
 
     # try to connect (unsuccesfully) with dummy user and pwd, catching SSH exception
@@ -167,6 +167,25 @@ def test_system(machinename, status_list=[]):
         # host up and SSH working, but returns (with reasons) authentication error
         app.logger.error(type(e))
         app.logger.error(e)
+
+
+        ## TESTING FILESYSTEMS
+        headers["X-Machine-Name"] = machinename
+
+        username = get_username(headers[AUTH_HEADER_NAME])
+
+        for fs in filesystems.split(","):
+        
+            r = requests.get(f"{UTILITIES_URL}/ls", 
+                                params={"targetPath":f"{fs}/{username}"}, 
+                                headers=headers,
+                                verify=(SSL_CRT if USE_SSL else False))
+
+            if not r.ok:
+                app.logger.error("Status: -4")
+                status_list.append({"status": -4, "system": machinename, "filesystem": fs})
+                return
+
         status_list.append({"status": 0, "system": machinename})
 
     except paramiko.ssh_exception.NoValidConnectionsError as e:
@@ -194,7 +213,6 @@ def test_system(machinename, status_list=[]):
     finally:
         client.close()
 
-
     return
 
 
@@ -203,16 +221,24 @@ def test_system(machinename, status_list=[]):
 @check_auth_header
 def status_system(machinename):
 
+    [headers, ID] = get_tracing_headers(request)
+
     status_list = []
-    test_system(machinename,status_list)
+    test_system(machinename,headers,status_list)
 
     # possible responses:
     # 0: host up and SSH running
     # -1: host up but no SSH running
     # -2: host down
     # -3: host not in the list (does not exist)
+    # -4: host up but Filesystem not ready
 
     status = status_list[0]["status"]
+
+    if status == -4:
+        filesystem = status_list[0]["filesystem"]
+        out={"system":machinename, "status":"not available", "description": f"Filesystem {filesystem} is not available"}
+        return jsonify(description="Filesystem is not available.", out=out), 200
 
     if status == -3:
         return jsonify(description="System does not exists."), 404
@@ -224,6 +250,7 @@ def status_system(machinename):
     if status == -1:
         out={"system":machinename, "status":"not available", "description":"System does not accept connections"}
         return jsonify(description="System information", out=out), 200
+    
 
     out = {"system": machinename, "status": "available", "description": "System ready"}
     return jsonify(description="System information", out=out), 200
@@ -232,6 +259,9 @@ def status_system(machinename):
 @app.route("/systems",methods=["GET"])
 @check_auth_header
 def status_systems():
+
+    [headers, ID] = get_tracing_headers(request)
+
     # resp_list list to fill with responses from each service
     resp_list = []
 
@@ -245,7 +275,7 @@ def status_systems():
 
     # for each servicename, creates a process
     for machinename in SYSTEMS_PUBLIC:
-        p = mp.Process(target=test_system, args=(machinename, status_list))
+        p = mp.Process(target=test_system, args=(machinename, headers, status_list))
         process_list.append(p)
         p.start()
 
@@ -261,7 +291,10 @@ def status_systems():
          # -1: host up but no SSH running
          # -2: host down
     #
-        if status == -2:
+        if status == -4:
+            filesystem = status_list[0]["filesystem"]
+            ret_dict={"system":machinename, "status":"not available", "description": f"Filesystem {filesystem} is not available"}            
+        elif status == -2:
              ret_dict = {"system": system, "status": "not available", "description": "System down"}
         elif status == -1:
              ret_dict = {"system": system, "status": "not available",
@@ -296,13 +329,15 @@ def status_service(servicename):
     if serv_status == -2:
         status = "not available"
         description = "server down"
+        return jsonify(service=servicename,status=status,description=description), 200
     elif serv_status == -1:
         status = "not available"
         description = "server up, flask down"
-    else:
-        status="available"
-        description="server up & flask running"
+        return jsonify(service=servicename,status=status,description=description), 200
 
+    
+    status="available"
+    description="server up & flask running"
     return jsonify(service=servicename,status=status,description=description), 200
 
 # get service information about all services

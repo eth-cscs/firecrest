@@ -319,7 +319,6 @@ def get_slurm_files(headers, system_name, system_addr, job_info, output=False):
 
     return control_info
 
-
 def submit_job_path_task(headers, system_name, system_addr, fileName, job_dir, account, use_plugin, task_id):
 
     try:
@@ -351,6 +350,7 @@ def submit_job_path_task(headers, system_name, system_addr, fileName, job_dir, a
 
     plugin_option = ("" if not use_plugin else SPANK_PLUGIN_OPTION)
     account_option = ("" if not account else f" --account={account} ")
+
     ID = headers.get(TRACER_HEADER, '')
     action=f"ID={ID} sbatch {account_option} {plugin_option} --chdir={job_dir} {scopes_parameters} -- '{fileName}'"
 
@@ -405,6 +405,14 @@ def submit_job_upload():
     if system_name not in SYSTEMS_PUBLIC:
         header={"X-Machine-Does-Not-Exists":"Machine does not exists"}
         return jsonify(description="Failed to submit job file",error="Machine does not exists"), 400, header
+
+    # check "account parameter"
+    account = request.form.get("account", None)
+    if account != None:
+        v = validate_input(account)
+        if v != "":
+            return jsonify(description="Invalid account", error=f"'account' {v}"), 400
+        
 
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
