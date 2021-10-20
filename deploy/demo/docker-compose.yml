@@ -271,7 +271,7 @@ services:
       - ./ssl:/ssl
 
   openapi:
-    image: swaggerapi/swagger-ui:v3.22.0
+    image: swaggerapi/swagger-ui:v3.23.0
     container_name: openapi
     ports:
       - "9090:8080"

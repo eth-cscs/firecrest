@@ -1801,8 +1801,8 @@ paths:
               Current status of a task with `taskid`.
               Depending on the type of task (`Compute` or `Storage`) and of the current status, the schema could change.
               Check the field `status` to match the specific response.
-          content:
-            application/json:
+          content: 
+            object:
               schema:
                 oneOf:
                   - $ref: '#/components/schemas/Task-100'
