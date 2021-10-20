@@ -101,7 +101,8 @@ class AsyncTask():
     # return status for internal info (returns SSH "cert"ificate or "action")
     def get_internal_status(self):
 
-        return {"hash_id":self.hash_id,
+        return {"task_id":self.hash_id,
+                "hash_id":self.hash_id,
                 "user": self.user,
                 "status":self.status_code,
                 "description":self.status_desc,                
@@ -135,7 +136,9 @@ class AsyncTask():
         else:
             _data = self.data
 
-        return {"hash_id":self.hash_id,
+        return {
+                "task_id": self.hash_id,
+                "hash_id":self.hash_id,
                 "user": self.user,
                 "status":self.status_code,
                 "description":self.status_desc,                
