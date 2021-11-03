@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-status
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: status
+  template:
+    metadata:
+      labels:
+        app: status
+        role: microservice
+    spec:
+      containers:
+      - image: "{{ .Values.registry }}/status:{{ .Values.tag }}"
+        imagePullPolicy: Always
+        name: status
+        ports:
+        - containerPort: 5001
+        envFrom:
+        - configMapRef:
+            name: common-env-file
+        volumeMounts:
+        - mountPath: /var/log
+          name: logs-endpoint
+        startupProbe:
+          tcpSocket:
+            port: 5001
+          initialDelaySeconds: 5
+          failureThreshold: 1
+      {{ if .Values.registry_secret_creds }}
+      imagePullSecrets:
+      - name: "{{ .Values.registry_secret_creds }}"
+      {{ end }}
+      volumes:
+      - emptyDir: {}
+        name: logs-endpoint

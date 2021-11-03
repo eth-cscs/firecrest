@@ -8,10 +8,13 @@ import pytest
 import requests
 import json
 import os
-from markers import host_environment_test
+# from markers import host_environment_test
+from markers import skipif_uses_gateway, skipif_not_uses_gateway
 
-FIRECREST_URL = os.environ.get("FIRECREST_URL")
-if FIRECREST_URL:
+FIRECREST_URL = os.environ.get("FIRECREST_URL","")
+USE_GATEWAY  = (os.environ.get("USE_GATEWAY","false").lower() == "true")
+
+if FIRECREST_URL and USE_GATEWAY: 
 	TASKS_URL = os.environ.get("FIRECREST_URL") + "/tasks"
 else:
     TASKS_URL = os.environ.get("F7T_TASKS_URL")
@@ -65,6 +68,7 @@ def create_task(headers):
 
 
 # Test list all tasks
+@skipif_not_uses_gateway
 def test_list_tasks(headers):
 	url = "{}/".format(TASKS_URL)
 	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
@@ -74,14 +78,14 @@ def test_list_tasks(headers):
 	
 
 # Test task creation
-@host_environment_test
+@skipif_uses_gateway
 def test_create_task(headers):
 	resp = create_task(headers)
 	assert resp.status_code == 201
 	
 
 # Test query task status
-@host_environment_test
+@skipif_uses_gateway
 def test_get_task(headers):
 	resp = create_task(headers)
 	hash_id = resp.json()["hash_id"]	
@@ -92,6 +96,7 @@ def test_get_task(headers):
 
 
 # Test query tasks which doesn't exists
+@skipif_not_uses_gateway
 def test_get_task_not_exists(headers):
 	hash_id = "IDONTEXIST"
 	url = "{}/{}".format(TASKS_URL, hash_id)
@@ -101,7 +106,7 @@ def test_get_task_not_exists(headers):
 
 
 # Test update status by form data
-@host_environment_test
+@skipif_uses_gateway
 @pytest.mark.parametrize("status, msg, expected_response_code", STATUS_CODES)
 def test_update_task_formdata(headers, status, msg, expected_response_code):
 	resp = create_task(headers)
@@ -116,7 +121,7 @@ def test_update_task_formdata(headers, status, msg, expected_response_code):
 
 
 # Test update status by json data
-@host_environment_test
+@skipif_uses_gateway
 @pytest.mark.parametrize("status, msg, expected_response_code", STATUS_CODES)
 def test_update_task_jsondata(headers, status, msg, expected_response_code):
 	resp = create_task(headers)
@@ -132,7 +137,7 @@ def test_update_task_jsondata(headers, status, msg, expected_response_code):
 
 
 # Test delete task that exists
-@host_environment_test
+@skipif_uses_gateway
 def test_delete_task_id_exists(headers):
 	resp = create_task(headers)
 	hash_id = resp.json()["hash_id"]
@@ -142,7 +147,7 @@ def test_delete_task_id_exists(headers):
 
 
 # Test delete task that doesn't exists
-@host_environment_test
+@skipif_uses_gateway
 def test_delete_task_id_not_exists(headers):
 	hash_id = "IDONTEXIST"
 	url = "{}/{}".format(TASKS_URL, hash_id)
@@ -151,7 +156,7 @@ def test_delete_task_id_not_exists(headers):
 
 
 # Test expire task 
-@host_environment_test
+@skipif_uses_gateway
 def test_expire_task(headers):
 	resp = create_task(headers)
 	hash_id = resp.json()["hash_id"]
@@ -161,7 +166,7 @@ def test_expire_task(headers):
 
 
 # Test expire task that doesn't exists
-@host_environment_test
+@skipif_uses_gateway
 def test_expire_task_id_not_exists(headers):
 	hash_id = "IDONTEXIST"
 	url = "{}/expire/{}".format(TASKS_URL, hash_id)
@@ -169,14 +174,14 @@ def test_expire_task_id_not_exists(headers):
 	assert resp.status_code == 404 and "error" in resp.json()
 
 
-@host_environment_test
+@skipif_uses_gateway
 def test_status():
 	url = "{}/status".format(TASKS_URL)
 	resp = requests.get(url, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	assert resp.status_code == 200
 
 
-@host_environment_test
+@skipif_uses_gateway
 def test_taskslist():
 	url = "{}/taskslist".format(TASKS_URL)
 	json = {"service": "storage", "status_code":[]}

@@ -7,20 +7,20 @@
 import pytest
 import requests
 import os
-import json
 import datetime
-import time
-from conftest import headers  # header fixture
+from markers import skipif_not_uses_gateway
 
 pytestmark = pytest.mark.reservations
 
 # Requests Parameters
 FIRECREST_URL = os.environ.get("FIRECREST_URL")
-if FIRECREST_URL:
+USE_GATEWAY  = (os.environ.get("USE_GATEWAY","false").lower() == "true")
+
+if FIRECREST_URL and USE_GATEWAY:
 	RESERVATIONS_URL = os.environ.get("FIRECREST_URL") + "/reservations"
 else:
     RESERVATIONS_URL = os.environ.get("F7T_RESERVATIONS_URL")
-SYSTEM = os.environ.get("F7T_SYSTEMS_PUBLIC").split(";")[0]
+SYSTEM = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")[0]
 
 # SSL parameters
 USE_SSL = os.environ.get("F7T_USE_SSL", False)
@@ -36,13 +36,13 @@ d4 = (datetime.datetime.now() + datetime.timedelta(days=13)).strftime("%Y-%m-%dT
 d5 = (datetime.datetime.now() + datetime.timedelta(days=12)).strftime("%Y-%m-%dT%H:%M:%S")
 d6 = (datetime.datetime.now() + datetime.timedelta(days=13)).strftime("%Y-%m-%dT%H:%M:%S")
 
-
+@skipif_not_uses_gateway
 def test_list_reservations_empty(headers):
 	url = RESERVATIONS_URL
 	headers["X-Machine-Name"] = SYSTEM
 	check_no_reservations(url, headers)
 
-
+@skipif_not_uses_gateway
 def test_list_reservations_wrong(headers):
 	url = RESERVATIONS_URL
 	headers["X-Machine-Name"] = "notavalidsystem"
@@ -82,6 +82,7 @@ BASE_DATA = [
 	(400, "validrsvname", "test", "1",  "f7t", d2,     d1,   "\'endtime\' occurs before \'starttime\'"),
 ]
 @pytest.mark.parametrize("status_code,reservation,account,numberOfNodes,nodeType,starttime,endtime,msg",POST_DATA + BASE_DATA)
+@skipif_not_uses_gateway
 def test_post_reservation_wrong(status_code,reservation,account,numberOfNodes,nodeType,starttime,endtime,msg,headers):
 	url = RESERVATIONS_URL
 	headers["X-Machine-Name"] = SYSTEM
@@ -95,7 +96,7 @@ def test_post_reservation_wrong(status_code,reservation,account,numberOfNodes,no
 	resp = requests.post(url, headers=headers, data=data, verify=VERIFY)
 	check_response(resp, status_code, msg)
 
-
+@skipif_not_uses_gateway
 @pytest.mark.parametrize("status_code,reservation,account,numberOfNodes,nodeType,starttime,endtime,msg", BASE_DATA)
 def test_put_reservation_wrong(status_code,reservation,account,numberOfNodes,nodeType,starttime,endtime,msg,headers):
 	url = f"{RESERVATIONS_URL}/{reservation}"
@@ -108,7 +109,7 @@ def test_put_reservation_wrong(status_code,reservation,account,numberOfNodes,nod
 	resp = requests.put(url, headers=headers, data=data, verify=VERIFY)
 	check_response(resp, status_code, msg)
 
-
+@skipif_not_uses_gateway
 @pytest.mark.parametrize("status_code,reservation,msg",[
 						(400, "wrongname", "You are not an owner of the wrongname reservation"),
 						(400, "1_",        "\'reservation\' parameter format is not valid"),
@@ -120,7 +121,7 @@ def test_delete_reservation_wrong(status_code, reservation, msg, headers):
 	resp = requests.delete(url, headers=headers, verify=VERIFY)
 	check_response(resp, status_code, msg)
 
-
+@skipif_not_uses_gateway
 def test_reservation_crud_conflicts(dummy_resevation, headers):
 	url = RESERVATIONS_URL
 	headers["X-Machine-Name"] = SYSTEM
@@ -138,7 +139,7 @@ def test_reservation_crud_conflicts(dummy_resevation, headers):
 		expected_des = "Error creating the reservation: Requested node configuration is not available"
 	check_response(resp, 400, expected_des)
 
-
+@skipif_not_uses_gateway
 def test_reservation_crud_ok(dummy_resevation, headers):
 	url = RESERVATIONS_URL
 	headers["X-Machine-Name"] = SYSTEM
@@ -158,7 +159,6 @@ def test_reservation_crud_ok(dummy_resevation, headers):
 	}
 	resp = requests.put(f"{RESERVATIONS_URL}/testrsvok01", headers=headers, data=upd, verify=VERIFY)
 	check_response(resp, 200)
-
 
 @pytest.fixture
 def dummy_resevation(headers):

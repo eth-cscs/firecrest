@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-cluster
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: cluster
+  template:
+    metadata:
+      labels:
+        app: cluster
+    spec:
+      hostname: cluster
+      containers:
+      - name: f7t-cluster
+        image: "{{ .Values.registry }}/cluster:{{ .Values.tag }}"
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 22
+        startupProbe:
+          tcpSocket:
+            port: 22
+          initialDelaySeconds: 10
+          failureThreshold: 1
+      {{ if .Values.registry_secret_creds }}
+      imagePullSecrets:
+      - name: "{{ .Values.registry_secret_creds }}"
+      {{ end }}

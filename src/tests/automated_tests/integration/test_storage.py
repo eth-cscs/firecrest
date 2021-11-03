@@ -10,6 +10,7 @@ import os
 import time
 from test_globals import *
 import urllib.request, urllib.parse, urllib.error
+from markers import skipif_not_uses_gateway
 
 FIRECREST_URL = os.environ.get("FIRECREST_URL")
 if FIRECREST_URL:
@@ -22,7 +23,7 @@ else:
     UTILITIES_URL = os.environ.get("F7T_UTILITIES_URL")
 
 # same server used for utilities and external upload storage
-SERVER_UTILITIES_STORAGE = os.environ.get("F7T_SYSTEMS_PUBLIC").split(";")[0]
+SERVER_UTILITIES_STORAGE = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")[0]
 OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE")
 
 ### SSL parameters
@@ -48,6 +49,7 @@ def check_task_status(task_id, headers, final_expected_status = 200): # could be
 
 
 # test external file upload
+@skipif_not_uses_gateway
 def test_post_upload_request(headers):
 
     # request upload form
@@ -66,7 +68,13 @@ def test_post_upload_request(headers):
 
     # upload file to storage server
     msg = resp.json()["task"]["data"]["msg"]
-    url = msg["parameters"]["url"]
+    url = msg["parameters"]["url"] # "http://svc-minio:9000/service-account-firecrest-sample"
+
+    #ix = url.index("//")
+    #jx = url.index(":",ix)
+    #url=url.replace(url[ix+2:jx],"127.0.0.1")
+
+
 
     resp = None
 
@@ -97,6 +105,8 @@ def test_post_upload_request(headers):
         with open(data["sourcePath"], 'rb') as data:
             resp= requests.put(url, data=data, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 
+    print(resp.text)
+
     assert resp.status_code == 200 or resp.status_code == 204 #TODO: check 204 is right
 
     # download from OS to FS is automatic
@@ -117,6 +127,7 @@ def test_post_upload_request(headers):
 
 # Test storage internal copy and then use utilities list command
 # to check copied file
+@skipif_not_uses_gateway
 @pytest.mark.parametrize("machine", [SERVER_UTILITIES_STORAGE])
 def test_internal_cp(machine, headers):
     # jobName, time, stageOutJobId

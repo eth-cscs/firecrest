@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-storage
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: storage
+  template:
+    metadata:
+      labels:
+        app: storage
+    spec:
+      containers:
+      - image: "{{ .Values.registry }}/storage:{{ .Values.tag }}"
+        imagePullPolicy: Always
+        name: storage
+        ports:
+        - containerPort: 5002
+        envFrom:
+        - configMapRef:
+            name: common-env-file
+        env:
+        - name: F7T_CERT_CIPHER_KEY
+          value: Df6UZuoPoJ2u5yRwxNfFQ46Nwy8eW1OGTcuhlqn4ONo=
+        - name: F7T_STORAGE_POLLING_INTERVAL
+          value: "60"
+        - name: F7T_S3_SECRET_KEY
+          value: storage_secret_key
+        - name: F7T_S3_ACCESS_KEY
+          value: storage_access_key
+        - name: F7T_S3_URL
+          value: "http://svc-minio.{{ .Values.namespace }}:9000"
+        volumeMounts:
+        - mountPath: /var/log
+          name: logs-endpoint
+        - mountPath: /user-key
+          subPath: user-key
+          name: user-key-public
+        startupProbe:
+          tcpSocket:
+            port: 5002
+          initialDelaySeconds: 5
+          failureThreshold: 1
+      {{ if .Values.registry_secret_creds }}
+      imagePullSecrets:
+      - name: "{{ .Values.registry_secret_creds }}"
+      {{ end }}
+      volumes:
+      - emptyDir: {}
+        name: logs-endpoint
+      - name: user-key-public
+        configMap:
+          name: f7t-user-ssh-keys

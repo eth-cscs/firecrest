@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-f7t-client
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: f7t-client
+  template:
+    metadata:
+      labels:
+        app: f7t-client
+    spec:
+      containers:
+      - name: f7t-client
+        image: "{{ .Values.registry }}/client:{{ .Values.tag }}"
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5000
+        volumeMounts:
+        - name: logs-endpoint
+          mountPath: /var/log
+        - name: f7t-client-config
+          mountPath: /app/config.py
+          subPath: config.py
+          readOnly: True
+        - name: f7t-client-secrets
+          mountPath: /app/client_secrets.json
+          subPath: client_secrets.json
+          readOnly: True
+        startupProbe:
+          tcpSocket:
+             port: 5000
+          initialDelaySeconds: 5
+          failureThreshold: 1
+      {{ if .Values.registry_secret_creds }}
+      imagePullSecrets:
+      - name: "{{ .Values.registry_secret_creds }}"
+      {{ end }}
+      volumes:
+      - emptyDir: {}
+        name: logs-endpoint
+      - name: f7t-client-config
+        configMap:
+          name: f7t-client-config-configmap
+      - name: f7t-client-secrets
+        configMap:
+          name: f7t-client-secrets-configmap

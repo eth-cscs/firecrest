@@ -1,4 +1,5 @@
-from f7t-base
+ARG BASE_IMAGE=f7t-base
+from $BASE_IMAGE
 
 ADD deploy/docker/reservations/requirements.txt deps/requirements.txt
 RUN pip3 install -r deps/requirements.txt
