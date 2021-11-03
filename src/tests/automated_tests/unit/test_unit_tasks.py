@@ -193,7 +193,7 @@ def test_taskslist():
 	url = f"{TASKS_URL}/taskslist"
 	json = {"service": "storage", "status_code":[]}
 	resp = requests.get(url, json=json, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
-	assert resp.status_code == 400
+	assert resp.status_code == 401
 
 
 if __name__ == '__main__':

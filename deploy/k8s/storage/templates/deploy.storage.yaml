@@ -31,7 +31,9 @@ spec:
           value: storage_secret_key
         - name: F7T_S3_ACCESS_KEY
           value: storage_access_key
-        - name: F7T_S3_URL
+        - name: F7T_S3_PRIVATE_URL
+          value: "http://svc-minio.{{ .Values.namespace }}:9000"
+        - name: F7T_S3_PUBLIC_URL
           value: "http://svc-minio.{{ .Values.namespace }}:9000"
         volumeMounts:
         - mountPath: /var/log
