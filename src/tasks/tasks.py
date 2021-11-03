@@ -20,8 +20,6 @@ import tasks_persistence as persistence
 
 AUTH_HEADER_NAME = 'Authorization'
 
-STORAGE_IP  = os.environ.get("F7T_STORAGE_IP")
-COMPUTE_IP     = os.environ.get("F7T_COMPUTE_IP")
 KONG_URL    = os.environ.get("F7T_KONG_URL")
 
 TASKS_PORT    = os.environ.get("F7T_TASKS_PORT", 5000)
@@ -119,16 +117,6 @@ def list_tasks():
 # create a new task, response should be task_id of created task
 @app.route("/",methods=["POST"])
 def create_task():
-    # remote address request by Flask
-    remote_addr= request.remote_addr
-
-    if debug:
-        logging.info('debug: tasks: create_task: remote_address: ' + remote_addr)
-
-    # checks if request comes from allowed microservices
-    if not debug and remote_addr not in [COMPUTE_IP, STORAGE_IP]:
-        msg = f"Invalid remote address: {remote_addr}"
-        return jsonify(error=msg), 403
 
     # checks if request has service header
     try:
@@ -219,14 +207,6 @@ def get_task(id):
 # update status of the task with task_id = id
 @app.route("/<id>",methods=["PUT"])
 def update_task(id):
-
-    # remote address request by Flask
-    remote_addr = request.remote_addr
-
-    # checks if request comes from allowed microservices
-    if not debug and remote_addr not in [COMPUTE_IP, STORAGE_IP]:
-        msg = f"Invalid remote address: {remote_addr}"
-        return jsonify(error=msg), 403
 
     if request.is_json:
 
@@ -323,18 +303,10 @@ def update_task(id):
 
 
 
-@app.route("/<id>",methods=["DELETE"])
+@app.route("/<id>", methods=["DELETE"])
 @check_auth_header
 def delete_task(id):
     auth_header = request.headers[AUTH_HEADER_NAME]
-
-    # remote address request by Flask
-    remote_addr = request.remote_addr
-
-    # checks if request comes from allowed microservices
-    if not debug and remote_addr not in [COMPUTE_IP, STORAGE_IP]:
-        msg = f"Invalid remote address: {remote_addr}"
-        return jsonify(error=msg), 403
 
     # getting username from auth_header
     username = get_username(auth_header)
@@ -370,13 +342,6 @@ def delete_task(id):
 def expire_task(id):
 
     auth_header = request.headers[AUTH_HEADER_NAME]
-    # remote address request by Flask
-    remote_addr = request.remote_addr
-
-    # checks if request comes from allowed microservices
-    if not debug and remote_addr not in [COMPUTE_IP, STORAGE_IP]:
-        msg = f"Invalid remote address: {remote_addr}"
-        return jsonify(error=msg), 403
 
     # checks if request has service header
     try:
@@ -436,19 +401,12 @@ def status():
 
 # entry point for all tasks by all users (only used by internal)
 # used by storage for the upload tasks, but it can be used for all tasks status and services
-@app.route("/taskslist",methods=["GET"])
+@app.route("/taskslist", methods=["GET"])
 def tasklist():
 
     global r
 
     app.logger.info("Getting service tasks")
-    app.logger.info(f"STORAGE_IP is {STORAGE_IP}")
-
-    # checks if request comes from allowed microservices
-    if not debug and request.remote_addr != STORAGE_IP:
-        msg = f"Invalid remote address: {request.remote_addr}"
-        app.logger.warning(msg)
-        return jsonify(error=msg), 403
 
     json = request.json
 

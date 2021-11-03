@@ -14,7 +14,7 @@ from markers import skipif_uses_gateway, skipif_not_uses_gateway
 FIRECREST_URL = os.environ.get("FIRECREST_URL","")
 USE_GATEWAY  = (os.environ.get("USE_GATEWAY","false").lower() == "true")
 
-if FIRECREST_URL and USE_GATEWAY: 
+if FIRECREST_URL and USE_GATEWAY:
 	TASKS_URL = os.environ.get("FIRECREST_URL") + "/tasks"
 else:
     TASKS_URL = os.environ.get("F7T_TASKS_URL")
@@ -52,8 +52,8 @@ ST_UPL_ERR = "118" # on download process: upload from filesystem to Object Stora
 
 
 # for testing update task status
-STATUS_CODES = [(QUEUED, "queued", 200), (PROGRESS, "progress", 200), (SUCCESS, "success", 200), (DELETED, "deleted", 200), (EXPIRED, "expired", 200), (ERROR, "error", 200), (ST_URL_ASK, "st_url_ask", 200), (ST_URL_REC, "st_url_rec", 200), (ST_UPL_CFM, "st_upl_cfm", 200), (ST_DWN_BEG, "st_dwn_beg", 200), (ST_DWN_END, "st_dwn_end", 200), (ST_DWN_ERR, "std_dwn_err", 200), (ST_UPL_BEG, "st_upl_beg", 200), (ST_UPL_END, "st_upl_end", 200), (ST_UPL_ERR, "stl_up_err", 200), 
-(INVALID_CODE1, "invalid_code1", 400), (INVALID_CODE2, "invalid_code2", 400), 
+STATUS_CODES = [(QUEUED, "queued", 200), (PROGRESS, "progress", 200), (SUCCESS, "success", 200), (DELETED, "deleted", 200), (EXPIRED, "expired", 200), (ERROR, "error", 200), (ST_URL_ASK, "st_url_ask", 200), (ST_URL_REC, "st_url_rec", 200), (ST_UPL_CFM, "st_upl_cfm", 200), (ST_DWN_BEG, "st_dwn_beg", 200), (ST_DWN_END, "st_dwn_end", 200), (ST_DWN_ERR, "std_dwn_err", 200), (ST_UPL_BEG, "st_upl_beg", 200), (ST_UPL_END, "st_upl_end", 200), (ST_UPL_ERR, "stl_up_err", 200),
+(INVALID_CODE1, "invalid_code1", 400), (INVALID_CODE2, "invalid_code2", 400),
 (QUEUED, None, 200), (INVALID_CODE2, None, 400)]
 
 
@@ -70,25 +70,25 @@ def create_task(headers):
 # Test list all tasks
 @skipif_not_uses_gateway
 def test_list_tasks(headers):
-	url = "{}/".format(TASKS_URL)
+	url = f"{TASKS_URL}/"
 	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(json.dumps(resp.json(),indent=2))
 	print(url)
 	assert resp.status_code == 200
-	
+
 
 # Test task creation
 @skipif_uses_gateway
 def test_create_task(headers):
 	resp = create_task(headers)
 	assert resp.status_code == 201
-	
+
 
 # Test query task status
 @skipif_uses_gateway
 def test_get_task(headers):
 	resp = create_task(headers)
-	hash_id = resp.json()["hash_id"]	
+	hash_id = resp.json()["hash_id"]
 	url = "{}/{}".format(TASKS_URL, hash_id)
 	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(json.dumps(resp.json(),indent=2))
@@ -115,9 +115,9 @@ def test_update_task_formdata(headers, status, msg, expected_response_code):
 
 	url = "{}/{}".format(TASKS_URL, hash_id)
 
-	#FORM data	
+	#FORM data
 	resp = requests.put(url, headers=headers, data={'status': status, 'msg': msg}, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
-	assert resp.status_code == expected_response_code 
+	assert resp.status_code == expected_response_code
 
 
 # Test update status by json data
@@ -155,7 +155,7 @@ def test_delete_task_id_not_exists(headers):
 	assert resp.status_code == 404 and "error" in resp.json()
 
 
-# Test expire task 
+# Test expire task
 @skipif_uses_gateway
 def test_expire_task(headers):
 	resp = create_task(headers)
@@ -183,10 +183,17 @@ def test_status():
 
 @skipif_uses_gateway
 def test_taskslist():
-	url = "{}/taskslist".format(TASKS_URL)
+	url = f"{TASKS_URL}/taskslist"
 	json = {"service": "storage", "status_code":[]}
 	resp = requests.get(url, json=json, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	assert resp.status_code == 200
+
+@skipif_not_uses_gateway
+def test_taskslist():
+	url = f"{TASKS_URL}/taskslist"
+	json = {"service": "storage", "status_code":[]}
+	resp = requests.get(url, json=json, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	assert resp.status_code == 400
 
 
 if __name__ == '__main__':
