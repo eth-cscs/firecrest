@@ -19,6 +19,7 @@ spec:
     }
     environment {
         REGISTRY = credentials('REGISTRY')
+        REGISTRY_GROUP = credentials('REGISTRY_GROUP')
         REGISTRY_USER = credentials('REGISTRY_USER')
         REPO_PREFIX = credentials('REPO_PREFIX')
         K8S_CLUSTER_URL = credentials('K8S_CLUSTER_URL')
@@ -220,8 +221,8 @@ spec:
 
                     # remove images
                     for ms in certificator compute reservations status storage tasks tester utilities; do
-                        img="$REPO_PREFIX/$ms/$GIT_COMMIT_SHORT"
-                        curl -u $REGISTRY_USER:$JFROG_API_KEY -XDELETE $img  && echo "Deleted: $img" || echo "Failed to delete: $img"
+                        img="https://$REGISTRY/artifactory/$REGISTRY_GROUP/$ms/$GIT_COMMIT_SHORT"
+                        curl --connect-timeout 10 -u $REGISTRY_USER:$JFROG_API_KEY -XDELETE $img  && echo "Deleted: $img" || echo "Failed to delete: $img"
                     done
                 '''
             }
