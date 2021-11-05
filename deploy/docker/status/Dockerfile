@@ -4,7 +4,8 @@
 ##  Please, refer to the LICENSE file in the root directory.
 ##  SPDX-License-Identifier: BSD-3-Clause
 ##
-FROM f7t-base
+ARG BASE_IMAGE=f7t-base
+from $BASE_IMAGE
 
 ADD deploy/docker/status/requirements.txt deps/requirements.txt
 RUN pip3 install -r deps/requirements.txt

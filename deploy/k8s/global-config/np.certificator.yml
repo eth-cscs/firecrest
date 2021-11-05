@@ -1,0 +1,28 @@
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: allow-certificator-ingress
+  namespace: firecrest
+spec:
+  podSelector: 
+    matchLabels:
+      app: certificator
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: compute
+    - podSelector:
+        matchLabels:
+          app: reservations
+    - podSelector:
+        matchLabels:
+          app: status
+    - podSelector:
+        matchLabels:
+          app: storage
+    - podSelector:
+        matchLabels:
+          app: utilities
+
+

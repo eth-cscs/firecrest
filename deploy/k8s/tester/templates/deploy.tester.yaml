@@ -1,0 +1,42 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: job-tester
+  namespace: {{ .Values.namespace }}
+spec:
+#  selector:
+#    matchLabels:
+#      app: tester
+  template:
+    metadata:
+      labels:
+        app: tester
+        role: microservice
+    spec:
+      containers:
+      - image: "{{ .Values.registry }}/tester:{{ .Values.tag }}"
+        imagePullPolicy: Always
+        name: tester
+        command: ['bash']
+        workingDir: {{ .Values.workingDir }}
+        args: ['./tester_run.sh'] # ['-m', '{{ .Values.tester_arg_mod }}', '-c', '{{ .Values.tester_arg_config }}', '{{ .Values.tester_arg_test }}']
+        envFrom:
+        - configMapRef:
+            name: common-env-file
+        env:
+        - name: USE_GATEWAY
+          value: '{{ .Values.use_gateway }}'
+        - name: PYTEST_CONFIG_FILE
+          value: '{{ .Values.pytest_config_file }}'
+        volumeMounts:
+        - mountPath: /var/log
+          name: logs-endpoint
+      restartPolicy: Never
+      {{ if .Values.registry_secret_creds }}
+      imagePullSecrets:
+      - name: "{{ .Values.registry_secret_creds }}"
+      {{ end }}
+      volumes:
+      - emptyDir: {}
+        name: logs-endpoint
+  backoffLimit: 0

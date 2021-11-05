@@ -4,7 +4,8 @@
 ##  Please, refer to the LICENSE file in the root directory.
 ##  SPDX-License-Identifier: BSD-3-Clause
 ##
-from f7t-base
+ARG BASE_IMAGE=f7t-base
+from $BASE_IMAGE
 
 RUN yum install -y openssh-7.4p1
 

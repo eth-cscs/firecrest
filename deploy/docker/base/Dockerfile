@@ -14,3 +14,4 @@ RUN yum install -y python3-pip
 RUN pip3 install --upgrade pip
 
 ADD deploy/docker/base/requirements.txt base/requirements.txt
+RUN pip3 install -r base/requirements.txt

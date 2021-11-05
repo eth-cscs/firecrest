@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-compute
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: compute
+  template:
+    metadata:
+      labels:
+        app: compute
+    spec:
+      containers:
+      - image: "{{ .Values.registry }}/compute:{{ .Values.tag }}"
+        imagePullPolicy: Always
+        name: compute
+        ports:
+        - containerPort: 5006
+        envFrom:
+        - configMapRef:
+            name: common-env-file
+        volumeMounts:
+        - mountPath: /var/log
+          name: logs-endpoint
+        - mountPath: /user-key
+          subPath: user-key
+          name: user-key-public 
+        startupProbe:
+          tcpSocket:
+            port: 5006
+          initialDelaySeconds: 5
+          failureThreshold: 1
+      restartPolicy: Always
+      {{ if .Values.registry_secret_creds }}
+      imagePullSecrets:
+      - name: "{{ .Values.registry_secret_creds }}"
+      {{ end }}    
+      volumes:
+      - emptyDir: {}
+        name: logs-endpoint
+      - name: user-key-public
+        configMap:
+          name: f7t-user-ssh-keys

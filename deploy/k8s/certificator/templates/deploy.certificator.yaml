@@ -1,0 +1,66 @@
+apiVersion: v1
+items:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: deploy-certificator
+    namespace: {{ .Values.namespace }}
+  spec:
+    selector:
+      matchLabels:
+        app: certificator
+    template:
+      metadata:
+        labels:
+          app: certificator
+      spec:
+        containers:
+        - name: f7t-opa
+          image: openpolicyagent/opa:0.22.0
+          args: ["run", "--server", "--log-level=debug", "--log-format=json-pretty", "/opa-files/data.json", "/opa-files/policy.rego"]
+          ports:
+          - containerPort: 8181
+          volumeMounts:
+          - mountPath: /opa-files/
+            name: f7t-opa-vol
+          startupProbe:
+            tcpSocket:
+              port: 8181
+            initialDelaySeconds: 5
+            failureThreshold: 1
+        - name: f7t-certificator
+          image: "{{ .Values.registry }}/certificator:{{ .Values.tag }}"
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 5010
+          envFrom:
+            - configMapRef:
+                name: common-env-file
+          volumeMounts:
+          - mountPath: /ca-key #since ConfiMap mount
+            name: f7t-cert-vol
+            subPath: ca-key
+          - mountPath: /user-key.pub
+            name: f7t-cert-user-pub-vol
+            subPath: user-key.pub
+          startupProbe:
+            tcpSocket:
+              port: 5010
+            initialDelaySeconds: 5
+            failureThreshold: 1
+        {{ if .Values.registry_secret_creds }}
+        imagePullSecrets:
+        - name: "{{ .Values.registry_secret_creds }}"
+        {{ end }}
+        volumes:
+        - name: f7t-opa-vol
+          configMap:
+            name: f7t-opa-configmap
+        - name: f7t-cert-vol
+          configMap:
+            name: f7t-ca-ssh-keys
+            defaultMode: 0400
+        - name: f7t-cert-user-pub-vol
+          configMap:
+            name: f7t-user-ssh-pub-keys
+kind: List

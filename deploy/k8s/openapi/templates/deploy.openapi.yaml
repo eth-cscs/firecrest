@@ -1,0 +1,43 @@
+apiVersion: v1
+items:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: deploy-openapi
+    namespace: {{ .Values.namespace }}
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: openapi
+    strategy: {}
+    template:
+      metadata:
+        labels:
+          app: openapi
+      spec:
+        containers:
+        - image: swaggerapi/swagger-ui:v3.22.0
+          env:
+          - name: SWAGGER_JSON
+            value: /tmp/openapi.yaml
+          name: openapi-k8-ci
+          volumeMounts:
+          - mountPath: /tmp
+            name: openapi-spec
+          # ports:
+          # - containerPort: 9090
+          startupProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 5
+            failureThreshold: 1
+          resources: {}
+        volumes:
+        - name: openapi-spec
+          configMap:
+            name: cm-openapi
+        restartPolicy: Always
+  status: {}
+kind: List
+metadata: {}

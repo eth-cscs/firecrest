@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-kong
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kong
+  template:
+    metadata:
+      labels:
+        app: kong    
+        role: gateway  
+    spec:
+      containers:
+      - image: kong:2.5
+        env:
+        - name: KONG_DECLARATIVE_CONFIG
+          value: /kong/kong.yaml
+        - name: KONG_DATABASE
+          value: "off"  
+        name: kong
+        ports:
+        - containerPort: 8000
+        volumeMounts:
+        - mountPath: /var/log
+          name: logs-endpoint  
+        - mountPath: /kong
+          name: kong-config  
+        startupProbe:
+          tcpSocket:
+            port: 8000
+          initialDelaySeconds: 5
+          failureThreshold: 1    
+      volumes:
+      - emptyDir: {}
+        name: logs-endpoint 
+      - name: kong-config
+        configMap:
+          name: f7t-kong

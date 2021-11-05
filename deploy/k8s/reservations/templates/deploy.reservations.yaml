@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-reservations
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reservations
+  template:
+    metadata:
+      labels:
+        app: reservations
+    spec:
+      containers:
+      - image: "{{ .Values.registry }}/reservations:{{ .Values.tag }}"
+        imagePullPolicy: Always
+        name: reservations
+        ports:
+        - containerPort: 5005
+        envFrom:
+        - configMapRef:
+            name: common-env-file
+        volumeMounts:
+        - mountPath: /var/log
+          name: logs-endpoint
+        - mountPath: /user-key
+          subPath: user-key
+          name: user-key-public
+        startupProbe:
+          tcpSocket:
+            port: 5005
+          initialDelaySeconds: 5
+          failureThreshold: 1
+      {{ if .Values.registry_secret_creds }}
+      imagePullSecrets:
+      - name: "{{ .Values.registry_secret_creds }}"
+      {{ end }}
+      volumes:
+      - emptyDir: {}
+        name: logs-endpoint
+      - name: user-key-public
+        configMap:
+          name: f7t-user-ssh-keys

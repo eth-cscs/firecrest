@@ -1,0 +1,254 @@
+pipeline {
+    agent {
+        kubernetes {
+            //label 'kaniko'
+            yaml """
+kind: Pod
+metadata:
+  name: kaniko
+spec:
+  containers:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:debug
+    imagePullPolicy: Always
+    command:
+    - /busybox/cat
+    tty: true
+"""
+        }
+    }
+    environment {
+        REGISTRY = credentials('REGISTRY')
+        REGISTRY_GROUP = credentials('REGISTRY_GROUP')
+        REGISTRY_USER = credentials('REGISTRY_USER')
+        REPO_PREFIX = credentials('REPO_PREFIX')
+        K8S_CLUSTER_URL = credentials('K8S_CLUSTER_URL')
+        DEPLOY_NAMESPACE = "firecrest-dev"
+        GIT_COMMIT = "${env.GIT_COMMIT}"
+        GIT_COMMIT_SHORT = "${env.GIT_COMMIT.take(7)}"
+    }
+
+    stages {
+        /*
+        stage('SCM Checkout') {
+            steps {
+                sh '''
+                    mkdir ${BUILD_NUMBER}
+                    cd ${BUILD_NUMBER}
+                    git clone https://github.com/eth-cscs/firecrest.git
+                    cd firecrest
+                    git checkout $GIT_COMMIT
+                    git log -n 1 --pretty=format:'%h' > GIT_COMMIT_SHORT
+                '''
+            }
+        }
+        */
+        stage("Kaniko Config") {
+            steps {
+               container(name: 'kaniko') {
+                withCredentials([string(credentialsId: 'JFROG_API_KEY', variable: 'JFROG_API_KEY')]) {
+                sh '''
+                    mkdir -p /kaniko/.docker
+                    echo '{"auths":{"'$REGISTRY'":{"username":"'$REGISTRY_USER'","password":"'$JFROG_API_KEY'"}}}' > /kaniko/.docker/config.json
+                '''
+                }
+            }
+          }
+        }
+
+        stage("Kaniko Build & Push to registry") {
+            steps {
+                container(name: 'kaniko') {
+
+                    sh '''
+                        #cd ${BUILD_NUMBER}/firecrest
+                        pwd
+                        ls -la
+
+                        #/kaniko/executor --context ./ --dockerfile deploy/docker/base/Dockerfile\
+                        #   --destination $REPO_PREFIX/f7t-base:$GIT_COMMIT_SHORT --cleanup
+
+                        for ms in certificator compute reservations status storage tasks utilities; do
+                            /kaniko/executor --build-arg BASE_IMAGE=$REPO_PREFIX/f7t-base:latest --registry-mirror $REGISTRY \
+                              --context ./ --dockerfile deploy/docker/$ms/Dockerfile --destination $REPO_PREFIX/$ms:$GIT_COMMIT_SHORT --cleanup
+                        done
+
+                        #/kaniko/executor --context deploy/test-build --dockerfile ./cluster/Dockerfile \
+                        #--destination $REPO_PREFIX/cluster:$GIT_COMMIT_SHORT --cleanup
+
+                        /kaniko/executor --context src/tests/template_client --dockerfile ./Dockerfile \
+                        --destination $REPO_PREFIX/client:$GIT_COMMIT_SHORT --cleanup
+
+                        /kaniko/executor --context ./ --dockerfile deploy/docker/tester/Dockerfile \
+                        --destination $REPO_PREFIX/tester:$GIT_COMMIT_SHORT --cleanup
+                    '''
+                }
+            }
+        }
+
+        stage("F7T+Infra Pods Deployment") {
+            steps {
+                withKubeConfig([credentialsId: 'firecrest-cicd-secret', serverUrl: K8S_CLUSTER_URL]) {
+                    sh '''
+                        curl -s -O https://get.helm.sh/helm-v3.7.1-linux-amd64.tar.gz
+                        tar -xvf helm-v3.7.1-linux-amd64.tar.gz
+
+                        export PATH=$PATH:$(pwd)/linux-amd64
+                        helm list -n "$DEPLOY_NAMESPACE"
+                        #cd ${BUILD_NUMBER}/firecrest
+
+                        cd deploy/k8s
+                        ls -la
+                        echo "registry: $REPO_PREFIX\ntag: '$GIT_COMMIT_SHORT'\nnamespace: "$DEPLOY_NAMESPACE"\nregistry_secret_creds: registry-credentials\n" > values-dev.yaml
+
+                        for app in config certificator client compute jaeger keycloak kong minio openapi reservations status storage tasks utilities; do
+                          helm uninstall "$app-env-dev" -n "$DEPLOY_NAMESPACE" || true
+                          helm install  --wait --wait-for-jobs --timeout 60s  "$app-env-dev" $app -n "$DEPLOY_NAMESPACE"  -f values-dev.yaml
+                        done
+                        helm ls -n "$DEPLOY_NAMESPACE"
+                    '''
+
+                }
+            }
+        }
+        stage("Cluster Pod Deployment For Microservices Tests") {
+            steps {
+                withKubeConfig([credentialsId: 'firecrest-cicd-secret', serverUrl: K8S_CLUSTER_URL]) {
+                    sh '''
+                        curl -s -O https://get.helm.sh/helm-v3.7.1-linux-amd64.tar.gz
+                        tar -xvf helm-v3.7.1-linux-amd64.tar.gz
+                        export PATH=$PATH:$(pwd)/linux-amd64
+                        helm list -n "$DEPLOY_NAMESPACE"
+                        #cd ${BUILD_NUMBER}/firecrest
+
+                        cd deploy/k8s
+                        ls -la
+
+                        # Cluster is deployed separatelly ALWAYS with tag = tds
+
+                        echo "registry: $REPO_PREFIX\ntag: latest \nnamespace: "$DEPLOY_NAMESPACE"\nregistry_secret_creds: registry-credentials\n" > values-cluster-dev.yaml
+
+                        helm uninstall cluster-env-dev -n "$DEPLOY_NAMESPACE" || true
+                        helm install --wait --timeout 60s  cluster-env-dev cluster -n "$DEPLOY_NAMESPACE"  -f values-cluster-dev.yaml
+
+                        helm ls -n "$DEPLOY_NAMESPACE"
+                    '''
+                }
+            }
+        }
+
+        stage("Performing Microservices Tests") {
+            steps {
+                withKubeConfig([credentialsId: 'firecrest-cicd-secret', serverUrl: K8S_CLUSTER_URL]) {
+                    sh '''
+                        # installing helm
+                        curl -s -O https://get.helm.sh/helm-v3.7.1-linux-amd64.tar.gz
+                        tar -xvf helm-v3.7.1-linux-amd64.tar.gz
+                        export PATH=$PATH:$(pwd)/linux-amd64
+
+                        # installing kubectl
+                        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+                        chmod +x kubectl
+                        export PATH=$PATH:$(pwd)
+
+                        helm list -n "$DEPLOY_NAMESPACE"
+                        kubectl get pods -n "$DEPLOY_NAMESPACE"
+
+                        #cd ${BUILD_NUMBER}/firecrest
+
+                        cd deploy/k8s
+                        ls -la
+                        echo "registry: $REPO_PREFIX\ntag: '$GIT_COMMIT_SHORT'\nnamespace: "$DEPLOY_NAMESPACE"\nregistry_secret_creds: registry-credentials\n" > values-dev.yaml
+
+                        for use_gateway in True False; do
+
+                            helm uninstall tester-env-dev -n "$DEPLOY_NAMESPACE" || true
+
+                            echo "Test using gateway: $use_gateway"
+                            helm install --wait --timeout 120s tester-env-dev tester -n "$DEPLOY_NAMESPACE"  -f values-dev.yaml --set tag=$GIT_COMMIT_SHORT \
+                                --set workingDir="/firecrest/src/tests/automated_tests" \
+                                --set use_gateway="$use_gateway" \
+                                --set pytest_config_file="firecrest-dev.ini"
+
+                            while :
+                            do
+                                sleep 20s
+
+                                tester_pod=$(kubectl get pods --selector=job-name=job-tester -n "$DEPLOY_NAMESPACE" --output=jsonpath='{.items[*].metadata.name}')
+                                echo "Tester pod is: $tester_pod"
+                                pdstatus=$(kubectl get pods -n "$DEPLOY_NAMESPACE" $tester_pod -o jsonpath="{.status.phase}")
+
+                                if [ "$pdstatus" = "Running" ]; then echo "$tester_pod is still $pdstatus"; continue; fi
+                                kubectl logs $tester_pod -n firecrest-dev
+                                if [ "$pdstatus" = "Failed" ]; then echo "$tester_pod has $pdstatus"; exit 1; fi
+                                if [ "$pdstatus" = "Succeeded" ]; then echo "$tester_pod has $pdstatus"; break; fi
+                            done
+
+                        done
+                    '''
+                }
+            }
+        }
+
+    }
+    post{
+        always {
+            withKubeConfig([credentialsId: 'firecrest-cicd-secret', serverUrl: K8S_CLUSTER_URL]) {
+              withCredentials([string(credentialsId: 'JFROG_API_KEY', variable: 'JFROG_API_KEY')]) {
+                sh '''
+                    # installing kubectl
+                    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+                    chmod +x kubectl
+                    export PATH=$PATH:$(pwd)
+
+                    # install helm
+                    curl -s -O https://get.helm.sh/helm-v3.7.1-linux-amd64.tar.gz
+                    tar -xvf helm-v3.7.1-linux-amd64.tar.gz
+                    pwd
+                    export PATH=$PATH:$(pwd)/linux-amd64
+
+                    # getting logs from all pods
+                    pods=$(kubectl get pods -n "$DEPLOY_NAMESPACE" --output=jsonpath='{.items[*].metadata.name}' --selector=app!=tester)
+
+                    for pod in $pods; do
+                        kubectl logs $pod -n "$DEPLOY_NAMESPACE"  --all-containers=true || true
+                    done
+
+                    # removing infrastructure
+                    for app in config certificator client cluster compute jaeger keycloak kong minio openapi reservations status storage tasks tester utilities; do
+                        helm uninstall "$app-env-dev" -n "$DEPLOY_NAMESPACE" || true
+                    done
+
+                    # remove images
+                    for ms in certificator compute reservations status storage tasks tester utilities; do
+                        img="https://$REGISTRY/artifactory/$REGISTRY_GROUP/$ms/$GIT_COMMIT_SHORT"
+                        curl --connect-timeout 10 -u $REGISTRY_USER:$JFROG_API_KEY -XDELETE $img  && echo "Deleted: $img" || echo "Failed to delete: $img"
+                    done
+                '''
+            }
+          }
+        }
+        success {
+            script {
+                // Notify Github on success
+                withCredentials([string(credentialsId: 'firecrestci_github_access_token', variable: 'accessToken')]) {
+                    sh 'curl -H "Authorization: token ' + "${accessToken}"  + '" "https://api.github.com/repos/eth-cscs/firecrest/statuses/' + "${env.GIT_COMMIT}" + '" \\' +
+                    '-H "Content-Type: application/json" \\' +
+                    '-X POST \\' +
+                    '-d "{\\"state\\": \\"success\\",\\"context\\": \\"continuous-integration/jenkins\\", \\"description\\": \\"Jenkins\\", \\"target_url\\": \\"' + "${env.BUILD_URL}" + '/console\\"}"'
+                }
+            }
+        }
+        unsuccessful{
+            script {
+                // Notify Github on failure
+                withCredentials([string(credentialsId: 'firecrestci_github_access_token', variable: 'accessToken')]) {
+                    sh 'curl -H "Authorization: token ' + "${accessToken}"  + '" "https://api.github.com/repos/eth-cscs/firecrest/statuses/' + "${env.GIT_COMMIT}" + '" \\' +
+                    '-H "Content-Type: application/json" \\' +
+                    '-X POST \\' +
+                    '-d "{\\"state\\": \\"failure\\",\\"context\\": \\"continuous-integration/jenkins\\", \\"description\\": \\"Jenkins\\", \\"target_url\\": \\"' + "${env.BUILD_URL}" + '/console\\"}"'
+                }
+            }
+        }
+    }
+}
