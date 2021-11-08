@@ -34,8 +34,7 @@ spec:
         K8S_CLUSTER_URL = credentials('K8S_CLUSTER_URL')
         DEPLOY_NAMESPACE = "firecrest-dev"
         GIT_COMMIT = "${env.GIT_COMMIT}"
-        GIT_COMMIT_SHORT = "${env.GIT_COMMIT.take(7)}"
-        JFROG_API_KEY
+        GIT_COMMIT_SHORT = "${env.GIT_COMMIT.take(7)}"        
     }
 
     stages {
