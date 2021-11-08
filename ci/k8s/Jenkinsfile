@@ -1,3 +1,12 @@
+def secrets = [ 
+                [path: 'firecrest/dev', engineVersion: 2, secretValues: [
+                        [envVar: 'JFROG_API_KEY', vaultKey: 'JFROG_API_KEY'],
+                    ]
+                ],
+            ]
+
+
+
 pipeline {
     agent {
         kubernetes {
@@ -29,29 +38,15 @@ spec:
     }
 
     stages {
-        /*
-        stage('SCM Checkout') {
-            steps {
-                sh '''
-                    mkdir ${BUILD_NUMBER}
-                    cd ${BUILD_NUMBER}
-                    git clone https://github.com/eth-cscs/firecrest.git
-                    cd firecrest
-                    git checkout $GIT_COMMIT
-                    git log -n 1 --pretty=format:'%h' > GIT_COMMIT_SHORT
-                '''
-            }
-        }
-        */
         stage("Kaniko Config") {
             steps {
                container(name: 'kaniko') {
-                withCredentials([string(credentialsId: 'JFROG_API_KEY', variable: 'JFROG_API_KEY')]) {
+                // withCredentials([string(credentialsId: 'JFROG_API_KEY', variable: 'JFROG_API_KEY')]) {
                 sh '''
                     mkdir -p /kaniko/.docker
                     echo '{"auths":{"'$REGISTRY'":{"username":"'$REGISTRY_USER'","password":"'$JFROG_API_KEY'"}}}' > /kaniko/.docker/config.json
                 '''
-                }
+                // }
             }
           }
         }
@@ -194,7 +189,7 @@ spec:
     post{
         always {
             withKubeConfig([credentialsId: 'firecrest-cicd-secret', serverUrl: K8S_CLUSTER_URL]) {
-              withCredentials([string(credentialsId: 'JFROG_API_KEY', variable: 'JFROG_API_KEY')]) {
+              // withCredentials([string(credentialsId: 'JFROG_API_KEY', variable: 'JFROG_API_KEY')]) {
                 sh '''
                     # installing kubectl
                     curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
@@ -225,7 +220,7 @@ spec:
                         curl --connect-timeout 10 -u $REGISTRY_USER:$JFROG_API_KEY -XDELETE $img  && echo "Deleted: $img" || echo "Failed to delete: $img"
                     done
                 '''
-            }
+            // }
           }
         }
         success {
