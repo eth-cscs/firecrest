@@ -35,6 +35,7 @@ spec:
         DEPLOY_NAMESPACE = "firecrest-dev"
         GIT_COMMIT = "${env.GIT_COMMIT}"
         GIT_COMMIT_SHORT = "${env.GIT_COMMIT.take(7)}"
+        JFROG_API_KEY
     }
 
     stages {
@@ -42,10 +43,12 @@ spec:
             steps {
                container(name: 'kaniko') {
                 // withCredentials([string(credentialsId: 'JFROG_API_KEY', variable: 'JFROG_API_KEY')]) {
-                sh '''
-                    mkdir -p /kaniko/.docker
-                    echo '{"auths":{"'$REGISTRY'":{"username":"'$REGISTRY_USER'","password":"'$JFROG_API_KEY'"}}}' > /kaniko/.docker/config.json
-                '''
+                withVault([vaultSecrets: secrets]){
+                    sh '''
+                        mkdir -p /kaniko/.docker
+                        echo '{"auths":{"'$REGISTRY'":{"username":"'$REGISTRY_USER'","password":"'$JFROG_API_KEY'"}}}' > /kaniko/.docker/config.json
+                    '''
+                }
                 // }
             }
           }
@@ -190,36 +193,38 @@ spec:
         always {
             withKubeConfig([credentialsId: 'firecrest-cicd-secret', serverUrl: K8S_CLUSTER_URL]) {
               // withCredentials([string(credentialsId: 'JFROG_API_KEY', variable: 'JFROG_API_KEY')]) {
-                sh '''
-                    # installing kubectl
-                    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-                    chmod +x kubectl
-                    export PATH=$PATH:$(pwd)
+                withVault([vaultSecrets: secrets]){
+                    sh '''
+                        # installing kubectl
+                        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+                        chmod +x kubectl
+                        export PATH=$PATH:$(pwd)
 
-                    # install helm
-                    curl -s -O https://get.helm.sh/helm-v3.7.1-linux-amd64.tar.gz
-                    tar -xvf helm-v3.7.1-linux-amd64.tar.gz
-                    pwd
-                    export PATH=$PATH:$(pwd)/linux-amd64
+                        # install helm
+                        curl -s -O https://get.helm.sh/helm-v3.7.1-linux-amd64.tar.gz
+                        tar -xvf helm-v3.7.1-linux-amd64.tar.gz
+                        pwd
+                        export PATH=$PATH:$(pwd)/linux-amd64
 
-                    # getting logs from all pods
-                    pods=$(kubectl get pods -n "$DEPLOY_NAMESPACE" --output=jsonpath='{.items[*].metadata.name}' --selector=app!=tester)
+                        # getting logs from all pods
+                        pods=$(kubectl get pods -n "$DEPLOY_NAMESPACE" --output=jsonpath='{.items[*].metadata.name}' --selector=app!=tester)
 
-                    for pod in $pods; do
-                        kubectl logs $pod -n "$DEPLOY_NAMESPACE"  --all-containers=true || true
-                    done
+                        for pod in $pods; do
+                            kubectl logs $pod -n "$DEPLOY_NAMESPACE"  --all-containers=true || true
+                        done
 
-                    # removing infrastructure
-                    for app in config certificator client cluster compute jaeger keycloak kong minio openapi reservations status storage tasks tester utilities; do
-                        helm uninstall "$app-env-dev" -n "$DEPLOY_NAMESPACE" || true
-                    done
+                        # removing infrastructure
+                        for app in config certificator client cluster compute jaeger keycloak kong minio openapi reservations status storage tasks tester utilities; do
+                            helm uninstall "$app-env-dev" -n "$DEPLOY_NAMESPACE" || true
+                        done
 
-                    # remove images
-                    for ms in certificator compute reservations status storage tasks tester utilities; do
-                        img="https://$REGISTRY/artifactory/$REGISTRY_GROUP/$ms/$GIT_COMMIT_SHORT"
-                        curl --connect-timeout 10 -u $REGISTRY_USER:$JFROG_API_KEY -XDELETE $img  && echo "Deleted: $img" || echo "Failed to delete: $img"
-                    done
-                '''
+                        # remove images
+                        for ms in certificator compute reservations status storage tasks tester utilities; do
+                            img="https://$REGISTRY/artifactory/$REGISTRY_GROUP/$ms/$GIT_COMMIT_SHORT"
+                            curl --connect-timeout 10 -u $REGISTRY_USER:$JFROG_API_KEY -XDELETE $img  && echo "Deleted: $img" || echo "Failed to delete: $img"
+                        done
+                    '''
+                }
             // }
           }
         }
