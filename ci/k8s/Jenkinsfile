@@ -39,15 +39,16 @@ spec:
 
     stages {
         stage("Kaniko Config") {
+
             steps {
-                withVault([vaultSecrets: secrets]) {
+                // withVault([vaultSecrets: secrets]) {
                     container(name: 'kaniko') {
-                // withCredentials([string(credentialsId: 'JFROG_API_KEY', variable: 'JFROG_API_KEY')]) {
-                
-                    sh '''
-                        mkdir -p /kaniko/.docker
-                        echo '{"auths":{"'$REGISTRY'":{"username":"'$REGISTRY_USER'","password":"'$JFROG_API_KEY'"}}}' > /kaniko/.docker/config.json
-                    '''
+                        withCredentials([string(credentialsId: 'JFROG_API_KEY', variable: 'JFROG_API_KEY')]) {
+                    
+                        sh '''
+                            mkdir -p /kaniko/.docker
+                            echo '{"auths":{"'$REGISTRY'":{"username":"'$REGISTRY_USER'","password":"'$JFROG_API_KEY'"}}}' > /kaniko/.docker/config.json
+                        '''
                 }
                 // }
             }
