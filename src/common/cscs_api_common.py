@@ -210,8 +210,9 @@ def create_certificate(headers, cluster_name, cluster_addr, command=None, option
         # keys: [pub_cert, pub_key, priv_key, temp_dir]
         return [td + "/user-key-cert.pub", td + "/user-key.pub", td + "/user-key", td]
     except requests.exceptions.SSLError as ssle:
+        logging.error(f"(-2) -> {ssle}")
         logging.error(f"(-2) -> {ssle.strerror}")
-        return [None, -2, ssle.strerror]
+        return [None, -2, ssle]
     except IOError as ioe:
         logging.error(f"({ioe.errno}) -> {ioe.strerror}", exc_info=True)
         return [None, ioe.errno, ioe.strerror]
