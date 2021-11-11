@@ -6,6 +6,7 @@ def vault_secrets = [
                         [envVar: 'REGISTRY_USER', vaultKey: 'REGISTRY_USER'],
                         [envVar: 'REPO_PREFIX', vaultKey: 'REPO_PREFIX'],
                         [envVar: 'K8S_CLUSTER_URL', vaultKey: 'K8S_CLUSTER_URL'],
+                        [envVar: 'firecrestci_github_access_token', vaultKey: 'firecrestci_github_access_token'], 
                     ]
                 ],
             ]
@@ -245,8 +246,9 @@ spec:
         success {
             script {
                 // Notify Github on success
-                withCredentials([string(credentialsId: 'firecrestci_github_access_token', variable: 'accessToken')]) {
-                    sh 'curl -H "Authorization: token ' + "${accessToken}"  + '" "https://api.github.com/repos/eth-cscs/firecrest/statuses/' + "${env.GIT_COMMIT}" + '" \\' +
+                // withCredentials([string(credentialsId: 'firecrestci_github_access_token', variable: 'accessToken')]) {
+                withVault([vaultSecrets: vault_secrets, configuration: vault_config]){
+                    sh 'curl -H "Authorization: token ' + "${firecrestci_github_access_token}"  + '" "https://api.github.com/repos/eth-cscs/firecrest/statuses/' + "${env.GIT_COMMIT}" + '" \\' +
                     '-H "Content-Type: application/json" \\' +
                     '-X POST \\' +
                     '-d "{\\"state\\": \\"success\\",\\"context\\": \\"continuous-integration/jenkins\\", \\"description\\": \\"Jenkins\\", \\"target_url\\": \\"' + "${env.BUILD_URL}" + '/console\\"}"'
@@ -257,8 +259,9 @@ spec:
         unsuccessful{
             script {
                 // Notify Github on failure
-                withCredentials([string(credentialsId: 'firecrestci_github_access_token', variable: 'accessToken')]) {
-                    sh 'curl -H "Authorization: token ' + "${accessToken}"  + '" "https://api.github.com/repos/eth-cscs/firecrest/statuses/' + "${env.GIT_COMMIT}" + '" \\' +
+                // withCredentials([string(credentialsId: 'firecrestci_github_access_token', variable: 'accessToken')]) {
+                withVault([vaultSecrets: vault_secrets, configuration: vault_config]){
+                    sh 'curl -H "Authorization: token ' + "${firecrestci_github_access_token}"  + '" "https://api.github.com/repos/eth-cscs/firecrest/statuses/' + "${env.GIT_COMMIT}" + '" \\' +
                     '-H "Content-Type: application/json" \\' +
                     '-X POST \\' +
                     '-d "{\\"state\\": \\"failure\\",\\"context\\": \\"continuous-integration/jenkins\\", \\"description\\": \\"Jenkins\\", \\"target_url\\": \\"' + "${env.BUILD_URL}" + '/console\\"}"'
