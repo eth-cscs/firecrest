@@ -95,8 +95,8 @@ spec:
 
         stage("F7T+Infra Pods Deployment") {
             steps {
-                withKubeConfig([credentialsId: 'firecrest-cicd-secret', serverUrl: K8S_CLUSTER_URL]) {
-                    withVault([vaultSecrets: vault_secrets, configuration: vault_config]) {
+                withVault([vaultSecrets: vault_secrets, configuration: vault_config]) {
+                    withKubeConfig([credentialsId: 'firecrest-cicd-secret', serverUrl: K8S_CLUSTER_URL]) {
                         sh '''
                             curl -s -O https://get.helm.sh/helm-v3.7.1-linux-amd64.tar.gz
                             tar -xvf helm-v3.7.1-linux-amd64.tar.gz
@@ -122,8 +122,9 @@ spec:
         }
         stage("Cluster Pod Deployment For Microservices Tests") {
             steps {
-                withKubeConfig([credentialsId: 'firecrest-cicd-secret', serverUrl: K8S_CLUSTER_URL]) {
-                    withVault([vaultSecrets: vault_secrets, configuration: vault_config]) {
+                withVault([vaultSecrets: vault_secrets, configuration: vault_config]) {
+                    withKubeConfig([credentialsId: 'firecrest-cicd-secret', serverUrl: K8S_CLUSTER_URL]) {
+                    
                         sh '''
                             curl -s -O https://get.helm.sh/helm-v3.7.1-linux-amd64.tar.gz
                             tar -xvf helm-v3.7.1-linux-amd64.tar.gz
@@ -150,8 +151,8 @@ spec:
 
         stage("Performing Microservices Tests") {
             steps {
-                withKubeConfig([credentialsId: 'firecrest-cicd-secret', serverUrl: K8S_CLUSTER_URL]) {
-                    withVault([vaultSecrets: vault_secrets, configuration: vault_config]) {
+                withVault([vaultSecrets: vault_secrets, configuration: vault_config]) {
+                    withKubeConfig([credentialsId: 'firecrest-cicd-secret', serverUrl: K8S_CLUSTER_URL]) {
                         sh '''
                             # installing helm
                             curl -s -O https://get.helm.sh/helm-v3.7.1-linux-amd64.tar.gz
@@ -206,9 +207,8 @@ spec:
     }
     post{
         always {
-            withKubeConfig([credentialsId: 'firecrest-cicd-secret', serverUrl: K8S_CLUSTER_URL]) {
-              // withCredentials([string(credentialsId: 'JFROG_API_KEY', variable: 'JFROG_API_KEY')]) {
-                withVault([vaultSecrets: vault_secrets, configuration: vault_config]){
+            withVault([vaultSecrets: vault_secrets, configuration: vault_config]){
+                withKubeConfig([credentialsId: 'firecrest-cicd-secret', serverUrl: K8S_CLUSTER_URL]) {
                     sh '''
                         # installing kubectl
                         curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
