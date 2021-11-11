@@ -35,11 +35,6 @@ spec:
         }
     }
     environment {
-        /*REGISTRY = credentials('REGISTRY')
-        REGISTRY_GROUP = credentials('REGISTRY_GROUP')
-        REGISTRY_USER = credentials('REGISTRY_USER')
-        REPO_PREFIX = credentials('REPO_PREFIX')
-        K8S_CLUSTER_URL = credentials('K8S_CLUSTER_URL')*/
         DEPLOY_NAMESPACE = "firecrest-dev"
         GIT_COMMIT = "${env.GIT_COMMIT}"
         GIT_COMMIT_SHORT = "${env.GIT_COMMIT.take(7)}"
@@ -239,14 +234,12 @@ spec:
                             curl --connect-timeout 10 -u $REGISTRY_USER:$JFROG_API_KEY -XDELETE $img  && echo "Deleted: $img" || echo "Failed to delete: $img"
                         done
                     '''
-                }
-            // }
-          }
+                }            
+            }
         }
         success {
             script {
                 // Notify Github on success
-                // withCredentials([string(credentialsId: 'firecrestci_github_access_token', variable: 'accessToken')]) {
                 withVault([vaultSecrets: vault_secrets, configuration: vault_config]){
                     sh 'curl -H "Authorization: token ' + "${firecrestci_github_access_token}"  + '" "https://api.github.com/repos/eth-cscs/firecrest/statuses/' + "${env.GIT_COMMIT}" + '" \\' +
                     '-H "Content-Type: application/json" \\' +
@@ -254,12 +247,11 @@ spec:
                     '-d "{\\"state\\": \\"success\\",\\"context\\": \\"continuous-integration/jenkins\\", \\"description\\": \\"Jenkins\\", \\"target_url\\": \\"' + "${env.BUILD_URL}" + '/console\\"}"'
                 }
             }
-            // slackSend message: "Feature branch: ${env.BRANCH_NAME} -> ${env.BUILD_DISPLAY_NAME} successful - details: ${env.BUILD_URL}"
+            slackSend (message: "Feature branch: ${env.BRANCH_NAME} -> ${env.BUILD_DISPLAY_NAME} successful - details: ${env.BUILD_URL}", color: "good")
         }
         unsuccessful{
             script {
                 // Notify Github on failure
-                // withCredentials([string(credentialsId: 'firecrestci_github_access_token', variable: 'accessToken')]) {
                 withVault([vaultSecrets: vault_secrets, configuration: vault_config]){
                     sh 'curl -H "Authorization: token ' + "${firecrestci_github_access_token}"  + '" "https://api.github.com/repos/eth-cscs/firecrest/statuses/' + "${env.GIT_COMMIT}" + '" \\' +
                     '-H "Content-Type: application/json" \\' +
@@ -267,7 +259,7 @@ spec:
                     '-d "{\\"state\\": \\"failure\\",\\"context\\": \\"continuous-integration/jenkins\\", \\"description\\": \\"Jenkins\\", \\"target_url\\": \\"' + "${env.BUILD_URL}" + '/console\\"}"'
                 }
             }
-            // slackSend message: "Feature branch: ${env.BRANCH_NAME} -> ${env.BUILD_DISPLAY_NAME} failed - details: ${env.BUILD_URL}"
+            slackSend (message: "Feature branch: ${env.BRANCH_NAME} -> ${env.BUILD_DISPLAY_NAME} failed - details: ${env.BUILD_URL}",  color: "danger")
         }
     }
 }
