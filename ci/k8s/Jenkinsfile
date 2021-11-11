@@ -1,9 +1,11 @@
-def secrets = [
+def vault_secrets = [
                 [path: 'firecrest/dev', engineVersion: 2, secretValues: [
                         [envVar: 'JFROG_API_KEY', vaultKey: 'JFROG_API_KEY'],
                     ]
                 ],
             ]
+
+def vault_config = [timeout: 5]
 
 
 
@@ -42,7 +44,7 @@ spec:
 
             steps {
                     container(name: 'kaniko') {
-                        withVault([vaultSecrets: secrets]) {
+                        withVault([vaultSecrets: vault_secrets, configuration: vault_config]) {
                         //withCredentials([string(credentialsId: 'JFROG_API_KEY', variable: 'JFROG_API_KEY')]) {
 
                         sh '''
