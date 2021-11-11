@@ -5,7 +5,7 @@ def vault_secrets = [
                 ],
             ]
 
-def vault_config = [timeout: 5]
+def vault_config = [timeout: 10]
 
 
 
@@ -195,7 +195,7 @@ spec:
         always {
             withKubeConfig([credentialsId: 'firecrest-cicd-secret', serverUrl: K8S_CLUSTER_URL]) {
               // withCredentials([string(credentialsId: 'JFROG_API_KEY', variable: 'JFROG_API_KEY')]) {
-                withVault([vaultSecrets: secrets]){
+                withVault([vaultSecrets: vault_secrets, configuration: vault_config]){
                     sh '''
                         # installing kubectl
                         curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
