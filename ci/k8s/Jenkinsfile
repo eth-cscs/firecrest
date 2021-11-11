@@ -1,4 +1,4 @@
-def secrets = [ 
+def secrets = [
                 [path: 'firecrest/dev', engineVersion: 2, secretValues: [
                         [envVar: 'JFROG_API_KEY', vaultKey: 'JFROG_API_KEY'],
                     ]
@@ -34,7 +34,7 @@ spec:
         K8S_CLUSTER_URL = credentials('K8S_CLUSTER_URL')
         DEPLOY_NAMESPACE = "firecrest-dev"
         GIT_COMMIT = "${env.GIT_COMMIT}"
-        GIT_COMMIT_SHORT = "${env.GIT_COMMIT.take(7)}"        
+        GIT_COMMIT_SHORT = "${env.GIT_COMMIT.take(7)}"
     }
 
     stages {
@@ -44,7 +44,7 @@ spec:
                 // withVault([vaultSecrets: secrets]) {
                     container(name: 'kaniko') {
                         withCredentials([string(credentialsId: 'JFROG_API_KEY', variable: 'JFROG_API_KEY')]) {
-                    
+
                         sh '''
                             mkdir -p /kaniko/.docker
                             echo '{"auths":{"'$REGISTRY'":{"username":"'$REGISTRY_USER'","password":"'$JFROG_API_KEY'"}}}' > /kaniko/.docker/config.json
@@ -239,6 +239,7 @@ spec:
                     '-d "{\\"state\\": \\"success\\",\\"context\\": \\"continuous-integration/jenkins\\", \\"description\\": \\"Jenkins\\", \\"target_url\\": \\"' + "${env.BUILD_URL}" + '/console\\"}"'
                 }
             }
+            slackSend message: "Feature branch: ${env.BRANCH_NAME} -> ${env.BUILD_DISPLAY_NAME} successful - details: ${env.BUILD_URL}"
         }
         unsuccessful{
             script {
@@ -250,6 +251,7 @@ spec:
                     '-d "{\\"state\\": \\"failure\\",\\"context\\": \\"continuous-integration/jenkins\\", \\"description\\": \\"Jenkins\\", \\"target_url\\": \\"' + "${env.BUILD_URL}" + '/console\\"}"'
                 }
             }
+            slackSend message: "Feature branch: ${env.BRANCH_NAME} -> ${env.BUILD_DISPLAY_NAME} failed - details: ${env.BUILD_URL}"
         }
     }
 }
