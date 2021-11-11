@@ -41,16 +41,15 @@ spec:
         stage("Kaniko Config") {
 
             steps {
-                // withVault([vaultSecrets: secrets]) {
                     container(name: 'kaniko') {
-                        withCredentials([string(credentialsId: 'JFROG_API_KEY', variable: 'JFROG_API_KEY')]) {
+                        withVault([vaultSecrets: secrets]) {
+                        //withCredentials([string(credentialsId: 'JFROG_API_KEY', variable: 'JFROG_API_KEY')]) {
 
                         sh '''
                             mkdir -p /kaniko/.docker
                             echo '{"auths":{"'$REGISTRY'":{"username":"'$REGISTRY_USER'","password":"'$JFROG_API_KEY'"}}}' > /kaniko/.docker/config.json
                         '''
-                }
-                // }
+                }                
             }
           }
         }
@@ -239,7 +238,7 @@ spec:
                     '-d "{\\"state\\": \\"success\\",\\"context\\": \\"continuous-integration/jenkins\\", \\"description\\": \\"Jenkins\\", \\"target_url\\": \\"' + "${env.BUILD_URL}" + '/console\\"}"'
                 }
             }
-            slackSend message: "Feature branch: ${env.BRANCH_NAME} -> ${env.BUILD_DISPLAY_NAME} successful - details: ${env.BUILD_URL}"
+            // slackSend message: "Feature branch: ${env.BRANCH_NAME} -> ${env.BUILD_DISPLAY_NAME} successful - details: ${env.BUILD_URL}"
         }
         unsuccessful{
             script {
@@ -251,7 +250,7 @@ spec:
                     '-d "{\\"state\\": \\"failure\\",\\"context\\": \\"continuous-integration/jenkins\\", \\"description\\": \\"Jenkins\\", \\"target_url\\": \\"' + "${env.BUILD_URL}" + '/console\\"}"'
                 }
             }
-            slackSend message: "Feature branch: ${env.BRANCH_NAME} -> ${env.BUILD_DISPLAY_NAME} failed - details: ${env.BUILD_URL}"
+            // slackSend message: "Feature branch: ${env.BRANCH_NAME} -> ${env.BUILD_DISPLAY_NAME} failed - details: ${env.BUILD_URL}"
         }
     }
 }
