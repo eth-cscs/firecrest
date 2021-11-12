@@ -91,7 +91,7 @@ spec:
         stage("F7T+Infra Pods Deployment") {
             steps {
                 withVault([vaultSecrets: vault_secrets, configuration: vault_config]) {
-                    withKubeConfig([credentialsId: 'firecrest-cicd-secret', serverUrl: K8S_CLUSTER_URL]) {
+                    withKubeConfig([credentialsId: 'firecrest-cicd-secret-hcv', serverUrl: K8S_CLUSTER_URL]) {
                         sh '''
                             curl -s -O https://get.helm.sh/helm-v3.7.1-linux-amd64.tar.gz
                             tar -xvf helm-v3.7.1-linux-amd64.tar.gz
@@ -118,7 +118,7 @@ spec:
         stage("Cluster Pod Deployment For Microservices Tests") {
             steps {
                 withVault([vaultSecrets: vault_secrets, configuration: vault_config]) {
-                    withKubeConfig([credentialsId: 'firecrest-cicd-secret', serverUrl: K8S_CLUSTER_URL]) {
+                    withKubeConfig([credentialsId: 'firecrest-cicd-secret-hcv', serverUrl: K8S_CLUSTER_URL]) {
                     
                         sh '''
                             curl -s -O https://get.helm.sh/helm-v3.7.1-linux-amd64.tar.gz
@@ -147,7 +147,7 @@ spec:
         stage("Performing Microservices Tests") {
             steps {
                 withVault([vaultSecrets: vault_secrets, configuration: vault_config]) {
-                    withKubeConfig([credentialsId: 'firecrest-cicd-secret', serverUrl: K8S_CLUSTER_URL]) {
+                    withKubeConfig([credentialsId: 'firecrest-cicd-secret-hcv', serverUrl: K8S_CLUSTER_URL]) {
                         sh '''
                             # installing helm
                             curl -s -O https://get.helm.sh/helm-v3.7.1-linux-amd64.tar.gz
@@ -203,7 +203,7 @@ spec:
     post{
         always {
             withVault([vaultSecrets: vault_secrets, configuration: vault_config]){
-                withKubeConfig([credentialsId: 'firecrest-cicd-secret', serverUrl: K8S_CLUSTER_URL]) {
+                withKubeConfig([credentialsId: 'firecrest-cicd-secret-hcv', serverUrl: K8S_CLUSTER_URL]) {
                     sh '''
                         # installing kubectl
                         curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
