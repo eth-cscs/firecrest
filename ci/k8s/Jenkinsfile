@@ -233,7 +233,7 @@ spec:
                             img="https://$REGISTRY/artifactory/$REGISTRY_GROUP/$ms/$GIT_COMMIT_SHORT"
                             # curl --connect-timeout 10 -u $REGISTRY_USER:$JFROG_API_KEY -XDELETE $img  && echo "Deleted: $img" || echo "Failed to delete: $img"
                             response=$(curl -s -o /dev/null -w "%{http_code}" -u $REGISTRY_USER:$JFROG_API_KEY -XDELETE $img)
-                            if [ $response == 204 ]; then echo "Image $ms/$GIT_COMMIT_SHORT deleted successfully (status_code=$response)"; else "Image $ms/$GIT_COMMIT_SHORT couldn't be deleted (status_code=$response)"; fi
+                            if [ "$response" == "204" ]; then echo "Image $ms/$GIT_COMMIT_SHORT deleted successfully (status_code=$response)"; else "Image $ms/$GIT_COMMIT_SHORT couldn't be deleted (status_code=$response)"; fi
                             wait 5s
                             
                         done
