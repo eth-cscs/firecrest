@@ -231,11 +231,9 @@ spec:
                         # remove images
                         for ms in certificator compute reservations status storage tasks tester utilities; do
                             img="https://$REGISTRY/artifactory/$REGISTRY_GROUP/$ms/$GIT_COMMIT_SHORT"
-                            # curl --connect-timeout 10 -u $REGISTRY_USER:$JFROG_API_KEY -XDELETE $img  && echo "Deleted: $img" || echo "Failed to delete: $img"
-                            response=$(curl -s -o /dev/null -w "%{http_code}" -u $REGISTRY_USER:$JFROG_API_KEY -XDELETE $img)
+                            response=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 10 -u $REGISTRY_USER:$JFROG_API_KEY -XDELETE $img)
                             if [ "$response" = "204" ]; then echo "Image $ms/$GIT_COMMIT_SHORT deleted successfully (status_code=$response)"; else echo "Image $ms/$GIT_COMMIT_SHORT couldn't be deleted (status_code=$response)"; fi
-                            sleep 5s
-                            
+                            sleep 10s
                         done
                     '''
                 }            
