@@ -198,6 +198,24 @@ spec:
                 }
             }
         }
+        stage('Tag for TDS'){
+            when {
+                branch 'dev-k8s'
+            }
+            steps {
+                withVault([vaultSecrets: vault_secrets, configuration: vault_config]) {
+                    sh  '''
+                        for ms in certificator client compute reservations status storage tasks utilities; do
+                            img="https://$REGISTRY/artifactory/api/copy/$REGISTRY_GROUP/$ms/$GIT_COMMIT_SHORT?to=/$REGISTRY_GROUP/$ms/tds"
+                            echo "URL: $img"
+                            response=$(curl -s -o /dev/null -w "%{http_code}" -u $REGISTRY_USER:$JFROG_API_KEY -X POST $img)
+                            if [ "$response" = "204" ]; then echo "Image $ms/$GIT_COMMIT_SHORT deleted successfully (status_code=$response)"; else echo "Image $ms/$GIT_COMMIT_SHORT couldn't be deleted (status_code=$response)"; fi
+                        done
+                    '''
+                }
+
+            }
+        }
 
     }
     post{
@@ -229,11 +247,11 @@ spec:
                         done
 
                         # remove images
-                        for ms in certificator compute reservations status storage tasks tester utilities; do
+                        for ms in certificator client compute reservations status storage tasks tester utilities; do
                             img="https://$REGISTRY/artifactory/$REGISTRY_GROUP/$ms/$GIT_COMMIT_SHORT"
-                            response=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 10 -u $REGISTRY_USER:$JFROG_API_KEY -XDELETE $img)
+                            response=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 20 -u $REGISTRY_USER:$JFROG_API_KEY -XDELETE $img)
                             if [ "$response" = "204" ]; then echo "Image $ms/$GIT_COMMIT_SHORT deleted successfully (status_code=$response)"; else echo "Image $ms/$GIT_COMMIT_SHORT couldn't be deleted (status_code=$response)"; fi
-                            sleep 10s
+                            sleep 20s
                         done
                     '''
                 }            
