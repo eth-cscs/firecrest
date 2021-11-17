@@ -412,18 +412,10 @@ def submit_job_upload():
         v = validate_input(account)
         if v != "":
             return jsonify(description="Invalid account", error=f"'account' {v}"), 400
-        
 
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
     system_addr = SYS_INTERNALS[system_idx]
-
-    # check "account parameter"
-    account = request.form.get("account", None)
-    if account != None:
-        v = validate_input(account)
-        if v != "":
-            return jsonify(description="Invalid account", error=f"'account' {v}"), 400
 
     [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
