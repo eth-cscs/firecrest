@@ -210,7 +210,8 @@ spec:
                             img="https://$REGISTRY/artifactory/api/copy/$REGISTRY_GROUP/$ms/$GIT_COMMIT_SHORT?to=/$REGISTRY_GROUP/$ms/$tag"
                             echo "URL: $img"
                             response=$(curl -s -o /dev/null -w "%{http_code}" -u $REGISTRY_USER:$JFROG_API_KEY -X POST $img)
-                            if [ "$response" = "200" ]; then echo "Image $ms/$GIT_COMMIT_SHORT copued successfully to $tag  (status_code=$response)"; else echo "Image $ms/$GIT_COMMIT_SHORT couldn't be copied (status_code=$response)"; fi
+                            if [ "$response" = "200" ]; then echo "Image $ms:$GIT_COMMIT_SHORT tagged successfully to $ms:$tag  (status_code=$response)"; else echo "Image $ms/$GIT_COMMIT_SHORT couldn't be tagged (status_code=$response)"; fi
+                            sleep 20s
                         done
                     '''
                 }
