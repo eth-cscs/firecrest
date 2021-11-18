@@ -4,7 +4,7 @@
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
 #
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, g
 
 from werkzeug.exceptions import BadRequestKeyError, InternalServerError, MethodNotAllowed
 
@@ -12,11 +12,13 @@ from werkzeug.exceptions import BadRequestKeyError, InternalServerError, MethodN
 import os
 import logging
 from logging.handlers import TimedRotatingFileHandler
-from cscs_api_common import check_auth_header, exec_remote_command, in_str, get_boolean_var
+from cscs_api_common import check_auth_header, exec_remote_command, in_str, get_boolean_var, LogRequestFormatter
 
-import re
 import datetime
-
+import re
+from flask_opentracing import FlaskTracing
+from jaeger_client import Config
+import opentracing
 
 AUTH_HEADER_NAME = 'Authorization'
 
@@ -37,10 +39,27 @@ SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
 RESERVATION_CMD = os.environ.get("F7T_RESERVATION_CMD", "rsvmgmt")
 
+TRACER_HEADER = "uber-trace-id"
+
 debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 
 app = Flask(__name__)
+
+JAEGER_AGENT = os.environ.get("F7T_JAEGER_AGENT", "").strip('\'"')
+if JAEGER_AGENT != "":
+    config = Config(
+        config={'sampler': {'type': 'const', 'param': 1 },
+            'local_agent': {'reporting_host': JAEGER_AGENT, 'reporting_port': 6831 },
+            'logging': True,
+            'reporter_batch_size': 1},
+            service_name = "reservations")
+    jaeger_tracer = config.initialize_tracer()
+    tracing = FlaskTracing(jaeger_tracer, True, app)
+else:
+    jaeger_tracer = None
+    tracing = None
+
 
 # checks if reservation/account name are valid
 # accepts identifier names format and includes dash and underscore names.
@@ -96,14 +115,25 @@ def check_actualDate(start_date):
     return check_dateDiff(actual_date,start_date)
 
 
+def get_tracing_headers(req):
+    """
+    receives a requests object, returns headers suitable for RPC and ID for logging
+    """
+    new_headers = {}
+    if JAEGER_AGENT != "":
+        try:
+            jaeger_tracer.inject(tracing.get_span(req), opentracing.Format.TEXT_MAP, new_headers)
+        except Exception as e:
+            app.logger.error(e)
 
+    new_headers[AUTH_HEADER_NAME] = req.headers[AUTH_HEADER_NAME]
+    ID = new_headers.get(TRACER_HEADER, '')
+    return new_headers, ID
 
 
 @app.route("/",methods=["GET"])
 @check_auth_header
 def get():
-
-    auth_header = request.headers[AUTH_HEADER_NAME]
 
     # checks if machine name is set
     try:
@@ -121,11 +151,12 @@ def get():
     system_idx = SYSTEMS_PUBLIC.index(system_name)
     system_addr = SYS_INTERNALS[system_idx]
 
+    [headers, ID] = get_tracing_headers(request)
     # list reservations
-    action = f"timeout {TIMEOUT} {RESERVATION_CMD} -l"
+    action = f"ID={ID} timeout {TIMEOUT} {RESERVATION_CMD} -l"
 
     #execute command
-    retval = exec_remote_command(auth_header, system_name, system_addr, action)
+    retval = exec_remote_command(headers, system_name, system_addr, action)
 
     error_str = retval["msg"]
 
@@ -209,9 +240,6 @@ def get():
 @check_auth_header
 def post():
 
-    auth_header = request.headers[AUTH_HEADER_NAME]
-
-    # checks if machine name is set
     try:
         system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
@@ -282,12 +310,14 @@ def post():
     if not check_actualDate(starttime):
         return jsonify(error="Error creating reservation", description=f"'starttime' is in the pass (values entered: starttime='{starttime}')"), 400
 
+    [headers, ID] = get_tracing_headers(request)
+
     # create a reservation
     # rsvmgmt -a unixGroupName numberOfNodes NodeType startDateTime endDateTime [optional reservationName]
-    action = f"timeout {TIMEOUT} {RESERVATION_CMD} -a {account} {numberOfNodes} {nodeType} {starttime} {endtime} {reservation}"
+    action = f"ID={ID} timeout {TIMEOUT} {RESERVATION_CMD} -a {account} {numberOfNodes} {nodeType} {starttime} {endtime} '{reservation}'"
 
     #execute command
-    retval = exec_remote_command(auth_header, system_name, system_addr, action)
+    retval = exec_remote_command(headers, system_name, system_addr, action)
 
     error_str = retval["msg"]
 
@@ -325,9 +355,6 @@ def post():
 @check_auth_header
 def put(reservation):
 
-    auth_header = request.headers[AUTH_HEADER_NAME]
-
-    # checks if machine name is set
     try:
         system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
@@ -385,12 +412,13 @@ def put(reservation):
     if not check_actualDate(starttime):
         return jsonify(error="Error creating reservation", description=f"'starttime' is in the pass (values entered: starttime='{starttime}')"), 400
 
+    [headers, ID] = get_tracing_headers(request)
     # Update a reservation
     # rsvmgmt -u reservationName numberOfNodes NodeType StartDateTime EndDateTime
-    action = f"timeout {TIMEOUT} {RESERVATION_CMD} -u {reservation} {numberOfNodes} {nodeType} {starttime} {endtime}"
+    action = f"ID={ID} timeout {TIMEOUT} {RESERVATION_CMD} -u '{reservation}' {numberOfNodes} {nodeType} {starttime} {endtime}"
 
     #execute command
-    retval = exec_remote_command(auth_header, system_name, system_addr, action)
+    retval = exec_remote_command(headers, system_name, system_addr, action)
     error_str = retval["msg"]
 
     if retval["error"] != 0:
@@ -440,13 +468,10 @@ def cleanup_rsvmgmt_error(error_msg):
     return error_msg
 
 
-@app.route("/<reservation>",methods=["DELETE"])
+@app.route("/<reservation>", methods=["DELETE"])
 @check_auth_header
 def delete(reservation):
 
-    auth_header = request.headers[AUTH_HEADER_NAME]
-
-    # checks if machine name is set
     try:
         system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
@@ -466,12 +491,13 @@ def delete(reservation):
     if not check_name(reservation):
         return jsonify(error="Error deleting reservation", description=f"'reservation' parameter format is not valid (value entered:'{reservation}')"), 400
 
-    # Update a reservation
+    [headers, ID] = get_tracing_headers(request)
+
     # rsvmgmt -d reservationName
-    action = f"timeout {TIMEOUT} {RESERVATION_CMD} -d {reservation}"
+    action = f"ID={ID} timeout {TIMEOUT} {RESERVATION_CMD} -d '{reservation}'"
 
     #execute command
-    retval = exec_remote_command(auth_header, system_name, system_addr, action)
+    retval = exec_remote_command(headers, system_name, system_addr, action)
 
     error_str = retval["msg"]
 
@@ -518,26 +544,39 @@ def internal_error(e):
     app.logger.error(e.original_exception)
     return jsonify(error='FirecREST Internal error', description=e.description), 500
 
+@app.before_request
+def f_before_request():
+    new_headers = {}
+    if JAEGER_AGENT != "":
+        try:
+            jaeger_tracer.inject(tracing.get_span(request), opentracing.Format.TEXT_MAP, new_headers)
+        except Exception as e:
+            logging.error(e)
+    g.TID = new_headers.get(TRACER_HEADER, '')
+
+@app.after_request
+def after_request(response):
+    # LogRequestFormatetter is used, this messages will get time, thread, etc
+    logger.info('%s %s %s %s %s', request.remote_addr, request.method, request.scheme, request.full_path, response.status)
+    return response
+
 
 if __name__ == "__main__":
-    # log handler definition
+    LOG_PATH = os.environ.get("F7T_LOG_PATH", '/var/log').strip('\'"')
     # timed rotation: 1 (interval) rotation per day (when="D")
-    logHandler = TimedRotatingFileHandler('/var/log/reservations.log', when='D', interval=1)
+    logHandler = TimedRotatingFileHandler(f'{LOG_PATH}/reservations.log', when='D', interval=1)
 
-    logFormatter = logging.Formatter('%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
-                                     '%Y-%m-%d:%H:%M:%S')
+    logFormatter = LogRequestFormatter('%(asctime)s,%(msecs)d %(thread)s [%(TID)s] %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
+                                     '%Y-%m-%dT%H:%M:%S')
     logHandler.setFormatter(logFormatter)
-    logHandler.setLevel(logging.DEBUG)
 
     # get app log (Flask+werkzeug+python)
     logger = logging.getLogger()
 
     # set handler to logger
     logger.addHandler(logHandler)
+    logging.getLogger().setLevel(logging.INFO)
 
-    # set to debug = False, so stderr and stdout go to log file
-
-    # run app
     if USE_SSL:
         app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=RESERVATIONS_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:

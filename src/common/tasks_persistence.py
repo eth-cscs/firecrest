@@ -13,8 +13,7 @@ import json
 # otherwise returns None
 def create_connection(host,port,passwd="",db=0):
 
-    logging.info("Trying to start taskpersistance connection")
-    logging.info("Host: {}".format(host))
+    logging.info(f"Trying to start taskpersistance connection on host: {host}")
 
     try:
         r = redis.StrictRedis(host=host,port=port,db=db,password=passwd)
@@ -54,7 +53,7 @@ def save_task(r,id,task,exp_time=None):
 
     task_id = "task_{id}".format(id=id)
     # mapping = {"status":status, "user":user, "data":data}
-    logging.info("save_task {task_id} in REDIS".format(task_id=task_id))    
+    logging.info(f"save_task {task_id} in REDIS")
 
     try:
         # serialize json from task:
@@ -80,7 +79,7 @@ def set_expire_task(r,id,secs):
         # redis.expire (key, seconds_to_live_from_now)
         logging.info(f"Marking as expired task {task_id} with TTL={secs} secs")
         return r.expire(task_id,secs)
-        
+
     except Exception as e:
         logging.error("Error on expire task")
         logging.error(e)
@@ -167,7 +166,7 @@ def get_service_tasks(r,service,status_code=None):
 
             # if service is the requested one
             if serv == service:
-                
+
                 # if status_code is required to be filtered
                 if status_code != None:
                     # if the status doesn't match the list, then is skipped
@@ -176,7 +175,7 @@ def get_service_tasks(r,service,status_code=None):
 
                 d = r.get(task_id)
                 d = d.decode('latin-1')
-                
+
                 task_dict[task_id] = d
 
         return task_dict

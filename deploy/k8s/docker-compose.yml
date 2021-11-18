@@ -1,0 +1,318 @@
+##
+##  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
+##
+##  Please, refer to the LICENSE file in the root directory.
+##  SPDX-License-Identifier: BSD-3-Clause
+##
+version: '3.4'
+
+networks:
+  firecrest-internal:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+      - subnet: 192.168.220.0/24
+
+
+services:
+  f7t-base:
+    container_name: f7t-base
+    image: "${registry}/f7t-base:k8s"
+    build:
+      context: ../../
+      dockerfile: deploy/docker/base/Dockerfile
+      network: host
+  # FirecREST microservices
+  certificator:
+    container_name: certificator
+    image: "${registry}/certificator:k8s"
+    build:
+      context: ../../
+      dockerfile: deploy/docker/certificator/Dockerfile
+      network: host
+    env_file:
+      - ../demo/common/common.env
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.11
+    ports:
+      - 5010:5010
+    volumes:
+      - ./logs/firecrest:/var/log:delegated
+      - ../test-build/environment/keys/user-key.pub:/user-key.pub:ro
+      - ../test-build/environment/keys/ca-key:/ca-key:ro
+      - ./ssl:/ssl
+
+  compute:
+    container_name: compute
+    image: "${registry}/compute:k8s"
+    build:
+      context: ../../
+      dockerfile: deploy/docker/compute/Dockerfile
+      network: host
+    env_file:
+      - ../demo/common/common.env
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.9
+    ports:
+      - 5006:5006
+    volumes:
+      - ./logs/firecrest:/var/log:delegated
+      - ../test-build/environment/keys/user-key:/user-key:ro
+      - ./ssl:/ssl
+
+  status:
+    container_name: status
+    image: "${registry}/status:k8s"
+    build:
+      context: ../../
+      dockerfile: deploy/docker/status/Dockerfile
+      network: host
+    env_file:
+      - ../demo/common/common.env
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.4
+    ports:
+      - 5001:5001
+    volumes:
+      - ./logs/firecrest:/var/log:delegated
+      - ./ssl:/ssl
+
+  storage:
+    container_name: storage
+    image: "${registry}/storage:k8s"
+    build:
+      context: ../../
+      dockerfile: deploy/docker/storage/Dockerfile
+      network: host
+    env_file:
+      - ../demo/common/common.env
+    environment:
+      F7T_S3_URL: http://192.168.220.19:9000
+      F7T_S3_ACCESS_KEY: storage_access_key
+      F7T_S3_SECRET_KEY: storage_secret_key
+      F7T_STORAGE_POLLING_INTERVAL: 60 
+      F7T_CERT_CIPHER_KEY: 'Df6UZuoPoJ2u5yRwxNfFQ46Nwy8eW1OGTcuhlqn4ONo='
+      #debug: "True"
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.5
+    volumes:
+      - ./logs/firecrest:/var/log:delegated
+      - ../test-build/environment/keys/user-key:/user-key:ro
+      - ./ssl:/ssl
+
+  tasks:
+    container_name: tasks
+    image: "${registry}/tasks:k8s"
+    build: 
+      context: ../../
+      dockerfile: deploy/docker/tasks/Dockerfile
+      network: host
+    env_file:
+      - ../demo/common/common.env
+    environment:
+      - F7T_PERSIST_PORT=6379
+      - F7T_PERSIST_PWD=rediS2200
+      - F7T_DEBUG_MODE=True
+      - F7T_COMPUTE_TASK_EXP_TIME=86400
+      - F7T_STORAGE_TASK_EXP_TIME=2678400
+    depends_on:
+      - "taskpersistence"
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.6
+    ports:
+      - 5003:5003
+    volumes:
+      - ./logs/firecrest:/var/log:delegated
+      - ./ssl:/ssl
+
+  utilities:
+    container_name: utilities
+    image: "${registry}/utilities:k8s"
+    build: 
+      context: ../../
+      dockerfile: deploy/docker/utilities/Dockerfile
+      network: host
+    env_file:
+      - ../demo/common/common.env
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.7
+    ports:
+      - 5004:5004
+    volumes:
+      - ./logs/firecrest:/var/log:delegated
+      - ../test-build/environment/keys/user-key:/user-key:ro
+      - ./ssl:/ssl
+
+  reservations:
+    container_name: reservations
+    image: "${registry}/reservations:k8s"
+    build: 
+      context: ../../
+      dockerfile: deploy/docker/reservations/Dockerfile
+      network: host
+    env_file:
+      - ../demo/common/common.env
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.8
+    ports:
+      - 5005:5005
+    volumes:
+      - ./logs/firecrest:/var/log:delegated
+      - ../test-build/environment/keys/user-key:/user-key:ro
+      - ./ssl:/ssl
+
+  # web client
+  client:
+    container_name: client
+    image: "${registry}/client:k8s"
+    build:
+      context: ../../src/tests/template_client
+      dockerfile: ./Dockerfile
+      network: host
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.30
+    ports:
+      - "7000:5000"
+    volumes:
+      - ./demo_client/config.py:/app/config.py:ro
+      - ./demo_client/client_secrets.json:/app/client_secrets.json:ro
+      - ./logs/client:/var/log:delegated
+
+  # dummy cluster
+  cluster:
+    container_name: cluster
+    image: "${registry}/cluster:k8s"
+    build: 
+      context: ../test-build
+      dockerfile: ./cluster/Dockerfile
+      network: host
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.12
+    hostname: cluster
+    volumes:
+      - ./logs/cluster/:/var/log/slurm/:delegated
+
+  # complementary 3rd party services
+  keycloak:
+    image: "jboss/keycloak:9.0.2"
+    container_name: fckeycloak
+    env_file: ../demo/keycloak/keycloak.env
+    environment:
+      KEYCLOAK_IMPORT: /var/tmp/config.json
+      Dkeycloak.migration.realmName: kcrealm
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.20
+    ports:
+      - "${KEYCLOAK_PORT:-8080}:8080"
+    volumes:
+      - ./keycloak/config.json:/var/tmp/config.json:ro
+      - ./logs/keycloak:/opt/jboss/keycloak/standalone/log/:delegated
+
+  kong:
+    image: kong:2.5.0
+    container_name: kong
+    environment:
+      - KONG_DATABASE=off
+      - KONG_DECLARATIVE_CONFIG=/kong.yml
+      #- KONG_ADMIN_ACCESS_LOG='/usr/local/kong/logs/admin_access.log'
+      #- KONG_ADMIN_ERROR_LOG='/usr/local/kong/logs/admin_error.log'
+      #- KONG_PROXY_ACCESS_LOG='/usr/local/kong/logs/proxy_access.log'
+      #- KONG_PROXY_ERROR_LOG='/usr/local/kong/logs/proxy_error.log'
+    volumes:
+      - ./kong/kong.yml:/kong.yml:ro
+      #- ./logs/kong/:/usr/local/kong/logs/:delegated
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.21
+    ports:
+      - 8000:8000
+
+  minio:
+    image: minio/minio:RELEASE.2021-02-01T22-56-52Z
+    command: minio server /data
+    container_name: minio
+    environment:
+     MINIO_ACCESS_KEY: storage_access_key
+     MINIO_SECRET_KEY: storage_secret_key
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.19
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./minio:/data:delegated
+
+  taskpersistence:
+    container_name: taskpersistence
+    image: redis:5
+    command: redis-server /redis.conf
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.13
+    volumes:
+      - ./taskpersistence/redis.conf:/redis.conf:ro
+      - ./taskpersistence-data:/data:delegated
+      - ./logs:/var/log:delegated
+
+  opa:
+    image: openpolicyagent/opa:0.22.0
+    container_name: opa
+    command: run --server --log-level=debug --log-format=json-pretty --tls-cert-file=/ssl/f7t_internal.crt --tls-private-key-file=/ssl/f7t_internal.key /opa-files/data.json /opa-files/policy.rego
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.40
+    ports: 
+      - "8181:8181"    
+    volumes: 
+      - ./opa:/opa-files
+      - ./ssl:/ssl
+
+  openapi:
+    image: swaggerapi/swagger-ui:v3.22.0
+    container_name: openapi
+    ports:
+      - "9090:8080"
+    environment:
+      SWAGGER_JSON: /tmp/firecrest-developers-api.yaml
+    volumes:
+      - ../../doc/openapi/:/tmp/
+
+  # openapi:
+  #   # image: swaggerapi/swagger-ui:v3.22.0
+  #   build:
+  #     context: ../../
+  #     dockerfile: ./deploy/docker/openapi/Dockerfile
+  #   container_name: openapi
+  #   ports:
+  #     - "9090:8080"
+  #   environment:
+  #     SWAGGER_JSON: /tmp/openapi.yaml
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.24
+    container_name: jaeger
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.50
+    environment:
+       COLLECTOR_ZIPKIN_HOST_PORT: "9411"
+    ports:
+      #- 5775:5775/udp
+      - 6831:6831/udp
+      - 6832:6832/udp
+      - 5778:5778
+      - 16686:16686
+      - 14268:14268
+      - 14250:14250
+      - 9411:9411

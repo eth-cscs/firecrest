@@ -1,0 +1,39 @@
+apiVersion: v1
+items:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: deploy-minio
+    namespace: {{ .Values.namespace }}
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: minio
+    strategy: {}
+    template:
+      metadata:
+        labels:
+          app: minio
+      spec:
+        containers:
+        - args: ["minio", "server", "/data"]
+          env:
+          - name: MINIO_ACCESS_KEY
+            value: storage_access_key
+          - name: MINIO_SECRET_KEY
+            value: storage_secret_key
+          image: minio/minio:RELEASE.2021-02-01T22-56-52Z
+          name: minio-k8-ci
+          ports:
+          - containerPort: 9000
+          resources: {}
+          startupProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 5
+            failureThreshold: 1
+        restartPolicy: Always
+  status: {}
+kind: List
+metadata: {}

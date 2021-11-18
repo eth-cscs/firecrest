@@ -16,10 +16,10 @@ from python:3.8.5-slim
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-ADD deploy/docker/base/requirements.txt base/requirements.txt
 ADD deploy/docker/tester/requirements.txt deps/requirements.txt
 RUN pip3 install -r deps/requirements.txt
 
+ADD src/tests/automated_tests /firecrest/src/tests/automated_tests
 WORKDIR /firecrest/src/tests/automated_tests
 
 CMD [ "python3" ]

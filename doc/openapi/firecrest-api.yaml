@@ -9,7 +9,7 @@ servers:
   - url: 'http://FIRECREST_URL'
   - url: 'https://FIRECREST_URL'
 info:
-  version: 1.7.5-beta1
+  version: 1.8.1-beta2
   title: FirecREST Developers API
   description: >
     This API specification is intended for FirecREST developers only. There're some endpoints that are not available in the public version for client developers.
@@ -987,21 +987,24 @@ paths:
                   type: string
                   format: binary
                   description: SBATCH script file to be submitted to SLURM
+                account:
+                  type: string
+                  description: Name of the account associated to the user in the scheduler. If not set, the one incuded in the sbatch file is taken.
               required:
                 - file
       responses:
         '201':
-          description: Task for job creation queued successfully
+          description: Task created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Upload-ok'
+                $ref: '#/components/schemas/Task-Creation-Success'
         '400':
-          description: Failed to submit job file
+          description: Task creation error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Upload-notok'
+                $ref: '#/components/schemas/Task-Creation-Error'
           headers:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
@@ -1048,21 +1051,24 @@ paths:
                 targetPath:
                   type: string
                   description: path to the SBATCH script file stored in {X-Machine-Name} machine to be submitted to SLURM
+                account:
+                  type: string
+                  description: Name of the account associated to the user in the scheduler. If not set, the one incuded in the sbatch file is taken.
               required:
                 - targetPath
       responses:
         '201':
-          description: Task for job creation queued successfully
+          description: Task created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Upload-ok'
+                $ref: '#/components/schemas/Task-Creation-Success'
         '400':
-          description: Failed to submit job file
+          description: Task creation error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Upload-notok'
+                $ref: '#/components/schemas/Task-Creation-Error'
           headers:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
@@ -1105,17 +1111,17 @@ paths:
         - $ref: '#/components/parameters/pageNumber'
       responses:
         '200':
-          description: Job found
+          description: Task created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Jobs'
+                $ref: '#/components/schemas/Task-Creation-Success'
         '400':
-          description: Failed to retrieve job information
+          description: Task creation error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Upload-notok'
+                $ref: '#/components/schemas/Task-Creation-Error'
           headers:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
@@ -1150,17 +1156,17 @@ paths:
         - Compute
       responses:
         '200':
-          description: Job found
+          description: Task created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Job'
+                $ref: '#/components/schemas/Task-Creation-Success'
         '400':
-          description: Failed to retrieve jobs information
+          description: Task creation error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Upload-notok'
+                $ref: '#/components/schemas/Task-Creation-Error'
           headers:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
@@ -1181,17 +1187,17 @@ paths:
         - Compute
       responses:
         '204':
-          description: Job deleted
+          description: Task created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Jobs'
+                $ref: '#/components/schemas/Task-Creation-Success'
         '400':
-          description: Failed to delete job
+          description: Task creation error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Upload-notok'
+                $ref: '#/components/schemas/Task-Creation-Error'
           headers:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
@@ -1251,17 +1257,17 @@ paths:
             type: string
       responses:
         '200':
-          description: Job found
+          description: Task created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Jobs'
+                $ref: '#/components/schemas/Task-Creation-Success'
         '400':
-          description: Failed to retrieve account information
+          description: Task creation error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Upload-notok'
+                $ref: '#/components/schemas/Task-Creation-Error'
           headers:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
@@ -1317,7 +1323,7 @@ paths:
                   default: null
                 account:
                   type: string
-                  description: Name of the bank account to be used in SLURM. If not set, system default is taken.
+                  description: Name of the account associated to the user in the scheduler. If not set, system default is taken.
                   default: null
               required:
                 - sourcePath
@@ -1330,17 +1336,17 @@ paths:
                 time: "2-03:00:00"
       responses:
         '201':
-          description: operation queued. Task Id returned.
+          description: Task created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Upload-ok'
+                $ref: '#/components/schemas/Task-Creation-Success'
         '400':
-          description: Error on operation
+          description: Task creation error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Upload-notok'
+                $ref: '#/components/schemas/Task-Creation-Error'
           headers:
             X-Permission-Denied:
               description: User does not have permissions to access paths
@@ -1401,7 +1407,7 @@ paths:
                   default: null
                 account:
                   type: string
-                  description: Name of the bank account to be used in SLURM. If not set, system default is taken.
+                  description: Name of the account associated to the user in the scheduler. If not set, system default is taken.
                   default: null
               required:
                 - sourcePath
@@ -1414,17 +1420,17 @@ paths:
                 time: "2-03:00:00"
       responses:
         '201':
-          description: operation queued. Task Id returned.
+          description: Task created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Upload-ok'
+                $ref: '#/components/schemas/Task-Creation-Success'
         '400':
-          description: Error on operation
+          description: Task creation error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Upload-notok'
+                $ref: '#/components/schemas/Task-Creation-Error'
           headers:
             X-Permission-Denied:
               description: User does not have permissions to access paths
@@ -1485,7 +1491,7 @@ paths:
                   default: null
                 account:
                   type: string
-                  description: Name of the bank account to be used in SLURM. If not set, system default is taken.
+                  description: Name of the account associated to the user in the scheduler. If not set, system default is taken.
                   default: null
               required:
                 - sourcePath
@@ -1498,17 +1504,17 @@ paths:
                 time: "2-03:00:00"
       responses:
         '201':
-          description: operation queued. Task Id returned.
+          description: Task created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Upload-ok'
+                $ref: '#/components/schemas/Task-Creation-Success'
         '400':
-          description: Error on operation
+          description: Task creation error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Upload-notok'
+                $ref: '#/components/schemas/Task-Creation-Error'
           headers:
             X-Permission-Denied:
               description: User does not have permissions to access paths
@@ -1566,7 +1572,7 @@ paths:
                   default: null
                 account:
                   type: string
-                  description: Name of the bank account to be used in SLURM. If not set, system default is taken.
+                  description: Name of the account associated to the user in the scheduler. If not set, system default is taken.
                   default: null
               required:
                 - targetPath
@@ -1577,17 +1583,17 @@ paths:
                 time: "2-03:00:00"
       responses:
         '201':
-          description: operation queued. Task Id returned.
+          description: Task created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Upload-ok'
+                $ref: '#/components/schemas/Task-Creation-Success'
         '400':
-          description: Error on operation
+          description: Task creation error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Upload-notok'
+                $ref: '#/components/schemas/Task-Creation-Error'
           headers:
             X-Permission-Denied:
               description: User does not have permissions to access paths
@@ -1635,17 +1641,17 @@ paths:
                 targetPath: /home/user/destination
       responses:
         '201':
-          description: operation queued. Task Id returned.
+          description: Task created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Upload-ok'
+                $ref: '#/components/schemas/Task-Creation-Success'
         '400':
-          description: Error on operation
+          description: Task creation error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Upload-notok'
+                $ref: '#/components/schemas/Task-Creation-Error'
           headers:
             X-Permission-Denied:
               description: User does not have permissions to access path
@@ -1695,17 +1701,17 @@ paths:
                 sourcePath: /home/user/file
       responses:
         '201':
-          description: operation queued. Task Id returned.
+          description: Task created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Upload-ok'
+                $ref: '#/components/schemas/Task-Creation-Success'
         '400':
-          description: Error on operation
+          description: Task creation error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Upload-notok'
+                $ref: '#/components/schemas/Task-Creation-Error'
           headers:
             X-Permission-Denied:
               description: User does not have permissions to access path
@@ -1743,17 +1749,17 @@ paths:
             type: string
       responses:
         '201':
-          description: operation queued. Task Id returned.
+          description: URL invalidated correctly
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Invalidate-ok'
         '400':
-          description: Error on operation
+          description: Error invalidating URL
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Upload-notok'
+                $ref: '#/components/schemas/Task-Creation-Error'
   '/tasks':
     get:
       summary: Returns all tasks
@@ -1825,12 +1831,32 @@ paths:
         - Tasks
       responses:
         '200':
-          description: task in Tasks
+          description: >-
+              Current status of a task with `taskid`.
+              Depending on the type of task (`Compute` or `Storage`) and of the current status, the schema could change.
+              Check the field `status` to match the specific response.
           content:
-            application/json:
+            object:
               schema:
-                $ref: '#/components/schemas/Task'
-
+                oneOf:
+                  - $ref: '#/components/schemas/Task-100'
+                  - $ref: '#/components/schemas/Task-Storage-Ext-Upload-110'
+                  - $ref: '#/components/schemas/Task-Storage-Ext-Upload-111'
+                  - $ref: '#/components/schemas/Task-Storage-Ext-Upload-112'
+                  - $ref: '#/components/schemas/Task-Storage-Ext-Upload-113'
+                  - $ref: '#/components/schemas/Task-Storage-Ext-Upload-114'
+                  - $ref: '#/components/schemas/Task-Storage-Ext-Upload-115'
+                  - $ref: '#/components/schemas/Task-Storage-Ext-Download-116'
+                  - $ref: '#/components/schemas/Task-Storage-Ext-Download-117'
+                  - $ref: '#/components/schemas/Task-Storage-Ext-Download-118'
+                  - $ref: '#/components/schemas/Task-Compute-Job-Submitted-200'
+                  - $ref: '#/components/schemas/Task-Compute-Job-Submitted-400'
+                  - $ref: '#/components/schemas/Task-Compute-Job-Listed-200'
+                  - $ref: '#/components/schemas/Task-Compute-Job-Listed-400'
+                  - $ref: '#/components/schemas/Task-Compute-Acct-200'
+                  - $ref: '#/components/schemas/Task-Compute-Acct-400'
+                  - $ref: '#/components/schemas/Task-Compute-Delete-200'
+                  - $ref: '#/components/schemas/Task-Compute-Delete-400'
     put:
      summary: Updates a task
      description: Updates a task entry that keeps track of progress
@@ -1957,7 +1983,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Upload-notok'
+                $ref: '#/components/schemas/Task-Creation-Error'
           headers:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
@@ -1976,7 +2002,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Upload-notok'
+                $ref: '#/components/schemas/Task-Creation-Error'
           headers:
             X-Permission-Denied:
               description: User does not have permissions to access machine
@@ -2517,9 +2543,9 @@ components:
           description: Standard error returned by application.
     Task:
       type: object
-      required:
-        - hash_id
       properties:
+        task_id:
+          type: string
         hash_id:
           type: string
         description:
@@ -2540,7 +2566,7 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/Task'
-    Upload-ok:
+    Task-Creation-Success:
       type: object
       properties:
         success:
@@ -2549,7 +2575,7 @@ components:
           type: string
         task_id:
           type: string
-    Upload-notok:
+    Task-Creation-Error:
       type: object
       properties:
         error:
@@ -2567,6 +2593,7 @@ components:
         description:
           type: string
         error:
+          type: string
     Invalidate-ok:
       type: object
       properties:
@@ -2612,6 +2639,888 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/Reservation'
+    Task-100:
+      type: object
+      description: Task has been created and is queued
+      properties:
+        task_id:
+          type: string
+          description: task unique public identifier
+        hash_id:
+          type: string
+          description: Same value than task_id (preserved for backward compatibility)
+        description:
+          type: string
+          description: Description of the status of the task (Queued)
+        data:
+          type: object
+          description: Data concerning the status of the task
+        last_modify:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
+        user:
+          type: string
+          description: Task owner user name
+        status:
+          type: string
+          description: Status code for this task (`"100"``)
+        service:
+          type: string
+          description: FirecREST service that is related to the task (`"compute"` or `"storage"`)
+        task_url:
+          type: string
+          description: URL of the task
+    Task-Storage-Ext-Upload-110:
+      type: object
+      description: Task information about progress in a task created with `POST /storage/xfer-external/upload`
+      properties:
+        task_id:
+          type: string
+          description: task unique public identifier
+        hash_id:
+          type: string
+          description: Same value than task_id (preserved for backward compatibility)
+        description:
+          type: string
+          description: Description of the status of the task ('Waiting for Form URL from Object Storage to be retrieved')
+        data:
+          type: object
+          description: Data concerning the status of the task
+          properties:
+            user: 
+              type: string
+              description: Task owner user name
+            msg:
+              type: string
+              description: Message concerning current operations on the task
+            system_name:
+              type: string
+              description: Target system public name
+            system_addr:
+              type: string
+              description: Target system private name
+            target:
+              type: string
+              description: Path to the destination of the file in target system
+            source:
+              type: string
+              description: Local path to the file to be uploaded
+            status:
+              type: string
+              description: Status code (`"110"`)
+            hash_id:
+              type: string
+              description: for internal use of FirecREST
+            trace_id:
+              type: string
+              description: for internal use of FirecREST
+        last_modify:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
+        user:
+          type: string
+          description: Task owner user name
+        status:
+          type: string
+          description: Status code for this task (`"110"`)
+        service:
+          type: string
+          description: FirecREST service that is related to the task (in this case is always `"storage"`)
+        task_url:
+          type: string
+          description: URL of the task
+    Task-Storage-Ext-Upload-111:
+      type: object
+      description: Task information about progress in a task created with `POST /storage/xfer-external/upload`
+      properties:
+        task_id:
+          type: string
+          description: task unique public identifier
+        hash_id:
+          type: string
+          description: Same value than task_id (preserved for backward compatibility)
+        description:
+          type: string
+          description: Description of the status of the task (Form URL from Object Storage received)
+        data:
+          type: object
+          description: Data concerning the status of the task
+          properties:
+            user: 
+              type: string
+              description: Task owner user name
+            msg:
+              type: object
+              description: Data concerning current operations on the task
+              properties:
+                command: 
+                  type: string
+                  description: cURL command to execute object upload to Object Storage server
+                parameters:
+                  type: object
+                  description: parameters to be used with an data transfer software or library
+                  properties:
+                    method: 
+                      type: string
+                      description: 'HTTP method to be used (POST, PUT). eg: with cURL `curl -X {method}`'
+                    url:
+                      type: string
+                      description: URL to be used to upload the object
+                    data:
+                      type: object
+                      description: 'HTTP POST Data object in the form "key: value" (for cURL, option `-d`)'
+                    files:
+                      type: string
+                      description: 'file object in HTTP form form with `-H "Content-Type: multipart/form-data"`'
+                    json:
+                      type: object
+                      description: 'HTTP JSON object in the form key: value, to be used in HTTP with `-H "Content-Type: application/json"`'
+                      default: {}
+                    headers:
+                      description: 'HTTP Header object in the form key: value'
+                      default: {}
+                    params:
+                      description: 'HTTP Parameter object in the form key: value'
+                      default: {}
+            system_name:
+              type: string
+              description: Target system public name
+            system_addr:
+              type: string
+              description: Target system private name
+            target:
+              type: string
+              description: Path to the destination of the file in target system
+            source:
+              type: string
+              description: Local path to the file to be uploaded
+            status:
+              type: string
+              description: Status code ("111")
+            hash_id:
+              type: string
+              description: for internal use of FirecREST
+            trace_id:
+              type: string
+              description: for internal use of FirecREST
+        last_modify:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
+        user:
+          type: string
+          description: Task owner user name
+        status:
+          type: string
+          description: Status code for this task (`"111"`)
+        service:
+          type: string
+          description: FirecREST service that is related to the task (in this case is always `"storage"`)
+        task_url:
+          type: string
+          description: URL of the task
+    Task-Storage-Ext-Upload-112:
+      type: object
+      description: Task information about progress in a task created with `POST /storage/xfer-external/upload`
+      properties:
+        task_id:
+          type: string
+          description: task unique public identifier
+        hash_id:
+          type: string
+          description: Same value than task_id (preserved for backward compatibility)
+        description:
+          type: string
+          description: Description of the status of the task ('Object Storage confirms that upload to Object Storage has finished')
+        data:
+          type: object
+          description: Data concerning the status of the task
+          properties:
+            user: 
+              type: string
+              description: Task owner user name
+            msg:
+              type: object
+              description: Data concerning current operations on the task
+              properties:
+                command: 
+                  type: string
+                  description: cURL command to execute object upload to Object Storage server
+                parameters:
+                  type: object
+                  description: parameters to be used with an data transfer software or library
+                  properties:
+                    method: 
+                      type: string
+                      description: 'HTTP method to be used (POST, PUT). eg: with cURL `curl -X {method}`'
+                    url:
+                      type: string
+                      description: URL to be used to upload the object
+                    data:
+                      type: object
+                      description: 'HTTP POST Data object in the form "key: value" (for cURL, option `-d`)'
+                    files:
+                      type: string
+                      description: 'file object in HTTP form form with `-H "Content-Type: multipart/form-data"`'
+                    json:
+                      type: object
+                      description: 'HTTP JSON object in the form key: value, to be used in HTTP with `-H "Content-Type: application/json"`'
+                      default: {}
+                    headers:
+                      description: 'HTTP Header object in the form key: value'
+                      default: {}
+                    params:
+                      description: 'HTTP Parameter object in the form key: value'
+                      default: {}
+            system_name:
+              type: string
+              description: Target system public name
+            system_addr:
+              type: string
+              description: Target system private name
+            target:
+              type: string
+              description: Path to the destination of the file in target system
+            source:
+              type: string
+              description: Local path to the file to be uploaded
+            status:
+              type: string
+              description: Status code (`"112"`)
+            hash_id:
+              type: string
+              description: for internal use of FirecREST
+            trace_id:
+              type: string
+              description: for internal use of FirecREST
+        last_modify:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
+        user:
+          type: string
+          description: Task owner user name
+        status:
+          type: string
+          description: Status code for this task (`"112"`)
+        service:
+          type: string
+          description: FirecREST service that is related to the task (in this case is always `"storage"`)
+        task_url:
+          type: string
+          description: URL of the task
+    Task-Storage-Ext-Upload-113:
+      type: object
+      description: Task information about progress in a task created with `POST /storage/xfer-external/upload`
+      properties:
+        task_id:
+          type: string
+          description: task unique public identifier
+        hash_id:
+          type: string
+          description: Same value than task_id (preserved for backward compatibility)
+        description:
+          type: string
+          description: Description of the status of the task ('Download from Object Storage to server has started')
+        data:
+          type: object
+          description: Data concerning the status of the task
+          properties:
+            user: 
+              type: string
+              description: Task owner user name
+            msg:
+              type: string
+              description: Data concerning current operations on the task
+              default: "Download from Object Storage to server has started"
+            system_name:
+              type: string
+              description: Target system public name
+            system_addr:
+              type: string
+              description: Target system private name
+            target:
+              type: string
+              description: Path to the destination of the file in target system
+            source:
+              type: string
+              description: Local path to the file to be uploaded
+            status:
+              type: string
+              description: Status code (`"113"`)
+            hash_id:
+              type: string
+              description: for internal use of FirecREST
+            trace_id:
+              type: string
+              description: for internal use of FirecREST
+        last_modify:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
+        user:
+          type: string
+          description: Task owner user name
+        status:
+          type: string
+          description: Status code for this task (`"113"`)
+        service:
+          type: string
+          description: FirecREST service that is related to the task (in this case is always `storage`)
+        task_url:
+          type: string
+          description: URL of the task
+    Task-Storage-Ext-Upload-114:
+      description: Task information about successful results in a task created with `POST /storage/xfer-external/upload`
+      type: object
+      properties:
+        task_id:
+          type: string
+          description: task unique public identifier
+        hash_id:
+          type: string
+          description: Same value than task_id (preserved for backward compatibility)
+        description:
+          type: string
+          description: Description of the status of the task ('Download from Object Storage to server has finished')
+        data:
+          type: object
+          description: Data concerning the status of the task
+          properties:
+            user: 
+              type: string
+              description: Task owner user name
+            msg:
+              type: string
+              description: Data concerning current operations on the task
+              default: "Download from Object Storage to server has finished"
+            system_name:
+              type: string
+              description: Target system public name
+            system_addr:
+              type: string
+              description: Target system private name
+            target:
+              type: string
+              description: Path to the destination of the file in target system
+            source:
+              type: string
+              description: Local path to the file to be uploaded
+            status:
+              type: string
+              description: Status code (`"114"`)
+            hash_id:
+              type: string
+              description: for internal use of FirecREST
+            trace_id:
+              type: string
+              description: for internal use of FirecREST
+        last_modify:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
+        user:
+          type: string
+          description: Task owner user name
+        status:
+          type: string
+          description: Status code for this task (`"114"`)
+        service:
+          type: string
+          description: FirecREST service that is related to the task (in this case is always `storage`)
+        task_url:
+          type: string
+          description: URL of the task
+    Task-Storage-Ext-Upload-115:
+      type: object
+      description: Task information about error results in a task created with `POST /storage/xfer-external/upload`
+      properties:
+        task_id:
+          type: string
+          description: task unique public identifier
+        hash_id:
+          type: string
+          description: Same value than task_id (preserved for backward compatibility)
+        description:
+          type: string
+          description: Description of the status of the task ('Download from Object Storage error')
+        data:
+          type: object
+          description: Data concerning the status of the task
+          properties:
+            user: 
+              type: string
+              description: Task owner user name
+            msg:
+              type: string
+              description: Data concerning current operations on the task
+              default: "Download from Object Storage error"
+            system_name:
+              type: string
+              description: Target system public name
+            system_addr:
+              type: string
+              description: Target system private name
+            target:
+              type: string
+              description: Path to the destination of the file in target system
+            source:
+              type: string
+              description: Local path to the file to be uploaded
+            status:
+              type: string
+              description: Status code (`"115"`)
+            hash_id:
+              type: string
+              description: for internal use of FirecREST
+            trace_id:
+              type: string
+              description: for internal use of FirecREST
+        last_modify:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
+        user:
+          type: string
+          description: Task owner user name
+        status:
+          type: string
+          description: Status code for this task (`"115"`)
+        service:
+          type: string
+          description: FirecREST service that is related to the task (in this case is always `"storage"`)
+        task_url:
+          type: string
+          description: URL of the task
+    Task-Storage-Ext-Download-116:
+      type: object
+      description: Task information about progress in a task created with `POST /storage/xfer-external/download`
+      properties:
+        task_id:
+          type: string
+          description: task unique public identifier
+        hash_id:
+          type: string
+          description: Same value than task_id (preserved for backward compatibility)
+        description:
+          type: string
+          description: Description of the status of the task ('Started upload from filesystem to Object Storage')
+        data:
+          type: string
+          description: Data concerning the status of the task
+          default: "Started upload from filesystem to Object Storage"
+        last_modify:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
+        user:
+          type: string
+          description: Task owner user name
+        status:
+          type: string
+          description: Status code for this task (`"116"`)
+        service:
+          type: string
+          description: FirecREST service that is related to the task (in this case is always `"storage"`)
+        task_url:
+          type: string
+          description: URL of the task
+    Task-Storage-Ext-Download-117:
+      type: object
+      description: Task information about successful results in a task created with `POST /storage/xfer-external/download`
+      properties:
+        task_id:
+          type: string
+          description: task unique public identifier
+        hash_id:
+          type: string
+          description: Same value than task_id (preserved for backward compatibility)
+        description:
+          type: string
+          description: Description of the status of the task ('Upload from filesystem to Object Storage has finished succesfully')
+        data:
+          type: string
+          description: Temporary URL for downloading object from Object Storage location          
+        last_modify:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
+        user:
+          type: string
+          description: Task owner user name
+        status:
+          type: string
+          description: Status code for this task (`"117"`)
+        service:
+          type: string
+          description: FirecREST service that is related to the task (in this case is always `"storage"`)
+        task_url:
+          type: string
+          description: URL of the task
+    Task-Storage-Ext-Download-118:
+      type: object
+      description: Task information about error results in a task created with `POST /storage/xfer-external/download`
+      properties:
+        task_id:
+          type: string
+          description: task unique public identifier
+        hash_id:
+          type: string
+          description: Same value than task_id (preserved for backward compatibility)
+        description:
+          type: string
+          description: Description of the status of the task ('Upload from filesystem to Object Storage has finished with errors')
+        data:
+          type: string
+          description: Error message describing the failure in the action          
+        last_modify:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
+        user:
+          type: string
+          description: Task owner user name
+        status:
+          type: string
+          description: Status code for this task (`"118"`)
+        service:
+          type: string
+          description: FirecREST service that is related to the task (in this case is always `"storage"`)
+        task_url:
+          type: string
+          description: URL of the task
+    Task-Compute-Job-Submitted-200:
+      type: object
+      description: Task information about success results in a task created with `POST /compute/jobs/*`
+      properties:
+        task_id:
+          type: string
+          description: task unique public identifier
+        hash_id:
+          type: string
+          description: Same value than task_id (preserved for backward compatibility)
+        description:
+          type: string
+          description: Description of the status of the task ('Finished successfully')
+        data:
+          type: object
+          description: Job submission information
+          properties:
+            result:
+              type: string
+              description: result of the job submission
+              default: "Job submitted"
+            jobid:
+              type: string
+              description: SLURM jobid of the job submitted
+            job_file:
+              type: string
+              description: path (in the target system) of the job batch file executed
+              default: "command-not-found"
+            job_file_out:
+              type: string
+              description: path (in the target system) of the job output file
+              default: "stdout-file-not-found"
+            job_file_err:
+              type: string
+              description: path (in the target system) of the error job file
+              default: "stderr-file-not-found"
+            job_data_out:
+              type: string
+              description: latest content of the job output file
+              default: ""
+            job_data_err:
+              type: string
+              description: latest content of the error job file
+              default: ""            
+        last_modify:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
+        user:
+          type: string
+          description: Task owner user name
+        status:
+          type: string
+          description: Status code for this task (`"200"`)
+        service:
+          type: string
+          description: FirecREST service that is related to the task (in this case is always `"compute"`)
+        task_url:
+          type: string
+          description: URL of the task
+    Task-Compute-Job-Submitted-400:
+      type: object
+      description: Task information about error results in a task created with `POST /compute/jobs/*`
+      properties:
+        task_id:
+          type: string
+          description: task unique public identifier
+        hash_id:
+          type: string
+          description: Same value than task_id (preserved for backward compatibility)
+        description:
+          type: string
+          description: Description of the status of the task ('Finished successfully')
+        data:
+          type: string
+          description: Description of the job submission error
+        last_modify:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
+        user:
+          type: string
+          description: Task owner user name
+        status:
+          type: string
+          description: Status code for this task (`"400"`)
+        service:
+          type: string
+          description: FirecREST service that is related to the task (in this case is always `"compute"`)
+        task_url:
+          type: string
+          description: URL of the task
+    Task-Compute-Job-Listed-200:
+      type: object
+      description: Task information about success results in a task created with `GET /compute/jobs/{jobid}`
+      properties:
+        task_id:
+          type: string
+          description: task unique public identifier
+        hash_id:
+          type: string
+          description: Same value than task_id (preserved for backward compatibility)
+        description:
+          type: string
+          description: Description of the status of the task ('Finished successfully')
+        data:
+          type: object
+          description: Job listing information
+          default: {}
+          properties:
+            "index":
+              type: object 
+              description: index of the individual job
+              default: "0"
+              properties: 
+                schema:
+                  type: object
+                  $ref: "#/components/schemas/Job-Listed-Object"
+        last_modify:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
+        user:
+          type: string
+          description: Task owner user name
+        status:
+          type: string
+          description: Status code for this task (`"200"`)
+        service:
+          type: string
+          description: FirecREST service that is related to the task (in this case is always `"compute"`)
+        task_url:
+          type: string
+          description: URL of the task
+    Task-Compute-Job-Listed-400:
+      type: object
+      description: Task information about error results in a task created with `GET /compute/jobs/{jobid}`
+      properties:
+        task_id:
+          type: string
+          description: task unique public identifier
+        hash_id:
+          type: string
+          description: Same value than task_id (preserved for backward compatibility)
+        description:
+          type: string
+          description: Description of the status of the task ('Finished with errors')
+        data:
+          type: string
+          description: Description of the job query error
+        last_modify:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
+        user:
+          type: string
+          description: Task owner user name
+        status:
+          type: string
+          description: Status code for this task (`"400"`)
+        service:
+          type: string
+          description: FirecREST service that is related to the task (in this case is always `"compute"`)
+        task_url:
+          type: string
+          description: URL of the task
+    Task-Compute-Acct-200:
+      type: object
+      description: Task information about success results in a task created with `GET /compute/acct/{jobid}`
+      properties:
+        task_id:
+          type: string
+          description: task unique public identifier
+        hash_id:
+          type: string
+          description: Same value than task_id (preserved for backward compatibility)
+        description:
+          type: string
+          description: Description of the status of the task ('Finished successfully')
+        data:
+          type: array          
+          items:
+            $ref: "#/components/schemas/Job-Listed-Object"
+        last_modify:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
+        user:
+          type: string
+          description: Task owner user name
+        status:
+          type: string
+          description: Status code for this task (`"200"`)
+        service:
+          type: string
+          description: FirecREST service that is related to the task (in this case is always `"compute"`)
+        task_url:
+          type: string
+          description: URL of the task
+    Task-Compute-Acct-400:
+      type: object
+      description: Task information about error results in a task created with `GET /compute/acct/{jobid}`
+      properties:
+        task_id:
+          type: string
+          description: task unique public identifier
+        hash_id:
+          type: string
+          description: Same value than task_id (preserved for backward compatibility)
+        description:
+          type: string
+          description: Description of the status of the task ('Finished with errors')
+        data:
+          type: string
+          description: Description of the job accounting error
+        last_modify:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
+        user:
+          type: string
+          description: Task owner user name
+        status:
+          type: string
+          description: Status code for this task (`"400"`)
+        service:
+          type: string
+          description: FirecREST service that is related to the task (in this case is always `"compute"`)
+        task_url:
+          type: string
+          description: URL of the task   
+    Task-Compute-Delete-200:
+      type: object
+      description: Task information about success results in a task created with `DELETE /compute/jobs/{jobid}`
+      properties:
+        task_id:
+          type: string
+          description: task unique public identifier
+        hash_id:
+          type: string
+          description: Same value than task_id (preserved for backward compatibility)
+        description:
+          type: string
+          description: Description of the status of the task ('Finished successfully')
+        data:
+          type: string          
+          description: Success message of job cancelation
+        last_modify:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
+        user:
+          type: string
+          description: Task owner user name
+        status:
+          type: string
+          description: Status code for this task (`"200"`)
+        service:
+          type: string
+          description: FirecREST service that is related to the task (in this case is always `"compute"`)
+        task_url:
+          type: string
+          description: URL of the task 
+    Task-Compute-Delete-400:
+      type: object
+      description: Task information about error results in a task created with `DELETE /compute/jobs/{jobid}`
+      properties:
+        task_id:
+          type: string
+          description: task unique public identifier
+        hash_id:
+          type: string
+          description: Same value than task_id (preserved for backward compatibility)
+        description:
+          type: string
+          description: Description of the status of the task ('Finished with errors')
+        data:
+          type: string          
+          description: Message describing job cancelation error
+        last_modify:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
+        user:
+          type: string
+          description: Task owner user name
+        status:
+          type: string
+          description: Status code for this task (`"400"`)
+        service:
+          type: string
+          description: FirecREST service that is related to the task (in this case is always `"compute"`)
+        task_url:
+          type: string
+          description: URL of the task 
+    Job-Listed-Object:
+      type: object      
+      properties:
+        jobid:
+          type: string
+          description: SLURM jobid of the job submitted
+        partition:
+          type: string
+          description: partition where the job is running
+        name:
+          type: string
+          description: job name
+        user:
+          type: string
+          description: user name of the job owner
+        state:
+          type: string
+          description: job state as described in https://slurm.schedmd.com/squeue.html#SECTION_JOB-STATE-CODES            
+        start_time:
+          type: string
+          description: job actual or expected start time, as described in https://slurm.schedmd.com/squeue.html#OPT_StartTime
+        time:
+          type: string
+          description: job consumed time, as described in https://slurm.schedmd.com/squeue.html#OPT_%M
+        time_left:
+          type: string
+          description: time left for the job to execute, as described in https://slurm.schedmd.com/squeue.html#OPT_%L
+        nodes:
+          type: string
+          description: number of nodes allocated by the job, as described in https://slurm.schedmd.com/squeue.html#OPT_%D
+        nodelist:
+          type: string
+          description: list of nodes allocated by the job, as described in https://slurm.schedmd.com/squeue.html#OPT_%N
+        job_file:
+          type: string
+          description: path (in the target system) of the job batch file executed
+          default: "command-not-found"
+        job_file_out:
+          type: string
+          description: path (in the target system) of the job output file
+          default: "stdout-file-not-found"
+        job_file_err:
+          type: string
+          description: path (in the target system) of the error job file
+          default: "stderr-file-not-found"
+        job_data_out:
+          type: string
+          description: latest content of the job output file
+          default: ""
+        job_data_err:
+          type: string
+          description: latest content of the error job file
+          default: "" 
 tags:
   - name: Status
     description: Status information of infrastructure and services.

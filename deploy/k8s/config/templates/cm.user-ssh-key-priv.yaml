@@ -1,0 +1,34 @@
+apiVersion: v1
+data:
+  user-key: |
+    -----BEGIN RSA PRIVATE KEY-----
+    MIIEpgIBAAKCAQEAseKlREc5K1EA672ha+eXcebb967Y7gMrs8WZ6Oj+rskeSWr1
+    168DDR+J3q7KhX9R58rhJrYPKyk7P9bzbOI0nyrJXA33Cve2t1q1drHyhkLeWlBX
+    lHctUSDk0VdDvlnkFFHcJ9WZd5vQwJaoYEeIGClq5dN9pz9g46GfmxpTm8ouEzAq
+    QRNFtz5/AhP291CxTjgAlhTLwwNfnJZ9hZk1bPz1IxrFv3uR90s5gX/6N1H+dePE
+    uHcoxGehT32lV+f/NoqsDvbWGREZShYh27RrNMNwQZKKSEdhSCvQLif0R0PovK1B
+    3gysWEEoHtUfz1Bm/acSn90xStniEtcK0OULIwIDAQABAoIBAQCO9fWYYB1EAL/a
+    tfZLQD7oXX8fGbhh4M54ljBRjR9R3XSn0HxvsMmk/FnTS2qby21J+jTk5aBfMa3a
+    aqgMM+fSm5JklxyaBeckiJQaJn0hBhCpSLR6LyWOc/8xdw6MprW01u02XmYOSH2G
+    qg38AsEPmgm9VzE+/qKhjr006/2Rz54e6iUcp4Xn6S9Qw72cCyqKCVh3JLh2/lCo
+    trjx8iWMKb0VRr96gMShxiCCoxLC5onPP+nZh0oc/EEvOHn4WSf0B7tc4tmjrV0n
+    F6b+j5mqoD2jaK5N0f8z3trF6/9ST3JUnuubqGWOUh9Gc9kdI229PmNKDk1fKceR
+    D1UTQF6xAoGBANc2Ndw3k64zaIVBGx8WKs2SIBU/0LcE5YcZtt3cr27rGdNkY95t
+    CdYW+41DUNjVODOm0bTNVZewIcJGlsPakOM3ESfE0R8DAWeSE72yCvpFxJ9IkNFS
+    OlciCe8AVgHU9QF8TlzpjzHeTC75fBTFF5hbZO8efBWNWB9t1egXdL4vAoGBANOZ
+    aA2/trJqXJ0nGD/sYbCT1vizamScaRFapEd6bqclb2h6o8nkCvMCszkkyRBXs+no
+    Ncz0Mfe2Dl+vCyJN+XxieVDJCILS8/nTg/1r5bCxH01h7EKY03UvvH9Gpzyxewr3
+    OXo8dDfdgqDRp7Tv5SKUjR+HAnzkwRkjFwRJDtlNAoGBAL5H7x0zgn6ec4aGRw2Y
+    UuYJkhZXoxl+2dY21Smayv4eHmp6s5ZhADZrgaSn5R6ifxukHnxmpIwGrgKQ2RJ3
+    +Gz9LkzkRyXNSXuie5PYjL4126Adz/VTZ8PMk83elSzvdmUG3F5oHzSvYNqTubK/
+    hJowDLEjWgDQRR8cxOl9e7n/AoGBALSvODUVUdKEFFV1frWHCdwYQebYfa8wCF/z
+    QHhwyXAc/UcAAkBxZBAibBwNl0tHOLAxw08h7lERurBl7mH6p2FZTTJ4l7XuoLrh
+    rMGHkvkQJiSTy4UKrvZQLuuXz1J6UxEIDqKcYLkbg2ID5OsSNl0S8HbNeIhhZaor
+    VoooQG+5AoGBAMpe/5nhjxu8TtkdEyt1ER23c+wW81ouuPwzifTJj96Q8lOtZ52I
+    1yn6AYFeXxu6r4+FG0hWG/tvhwuRcY6sxeyldmOAPLvlap+qV5Qau67AwD1jsOVQ
+    uCzkaODVpsXo2savVLne69Y2XigkXnyCZ9K9x6hEgESSvNloqOrbQkKF
+    -----END RSA PRIVATE KEY-----
+kind: ConfigMap
+metadata:
+  name: f7t-user-ssh-keys
+  namespace: {{ .Values.namespace }}

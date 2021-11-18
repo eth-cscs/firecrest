@@ -1,4 +1,10 @@
--r ../base/requirements.txt
-# dev-specific below:
+#
+#  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
+#
+#  Please, refer to the LICENSE file in the root directory.
+#  SPDX-License-Identifier: BSD-3-Clause
+#
 pytest==6.2.1
 pytest-dotenv==0.5.2
+PyJWT==1.7.1
+requests==2.22.0

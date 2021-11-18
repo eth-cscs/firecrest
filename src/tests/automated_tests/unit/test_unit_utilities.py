@@ -8,17 +8,19 @@ import pytest
 import requests
 import os
 from test_globals import *
-from markers import host_environment_test
+from markers import skipif_not_uses_gateway, skipif_uses_gateway
 import json
 
 
-FIRECREST_URL = os.environ.get("FIRECREST_URL")
-if FIRECREST_URL:
+FIRECREST_URL = os.environ.get("FIRECREST_URL","")
+USE_GATEWAY  = (os.environ.get("USE_GATEWAY","false").lower() == "true")
+
+if FIRECREST_URL and USE_GATEWAY: 
 	UTILITIES_URL = os.environ.get("FIRECREST_URL") + "/utilities"
 else:
     UTILITIES_URL = os.environ.get("F7T_UTILITIES_URL")
 
-SERVER_UTILITIES = os.environ.get("F7T_SYSTEMS_PUBLIC").split(";")[0]
+SERVER_UTILITIES = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")[0]
 
 ### SSL parameters
 USE_SSL = os.environ.get("F7T_USE_SSL", False)
@@ -69,6 +71,7 @@ DATA_VIEW = [ (SERVER_UTILITIES, "/srv/f7t/test_sbatch.sh", 200),
 (SERVER_UTILITIES, USER_HOME + "/", 400),
 ("someservernotavailable", USER_HOME + "/" ,400)]
 
+@skipif_not_uses_gateway
 @pytest.mark.parametrize("machine, targetPath, expected_response_code", DATA_VIEW)
 def test_view(machine, targetPath, expected_response_code, headers):
 	params = {"targetPath": targetPath}
@@ -83,6 +86,7 @@ def test_view(machine, targetPath, expected_response_code, headers):
 
 	assert expected_response_code == resp.status_code
 
+@skipif_not_uses_gateway
 @pytest.mark.parametrize("machine, targetPath, expected_response_code", DATA_CK)
 def test_checksum(machine, targetPath, expected_response_code, headers):
 	params = {"targetPath": targetPath}
@@ -97,9 +101,7 @@ def test_checksum(machine, targetPath, expected_response_code, headers):
 
 	assert expected_response_code == resp.status_code
 
-
-
-# Test upload command
+@skipif_not_uses_gateway
 @pytest.mark.parametrize("machine, expected_response_code", DATA_201)
 def test_upload(machine, expected_response_code, headers):
 	data = {"targetPath": USER_HOME + "/"}
@@ -113,7 +115,7 @@ def test_upload(machine, expected_response_code, headers):
 	assert resp.status_code == expected_response_code
 
 
-# Test exec file command on remote system
+@skipif_not_uses_gateway
 @pytest.mark.parametrize("machine, expected_response_code,file_name", DATA_FILE)
 def test_file_type(machine, expected_response_code, file_name, headers):
 	url = f"{UTILITIES_URL}/file"
@@ -124,7 +126,7 @@ def test_file_type(machine, expected_response_code, file_name, headers):
 	print(resp.headers)
 	assert resp.status_code == expected_response_code
 
-# Test exec file command on remote system
+@skipif_not_uses_gateway
 @pytest.mark.parametrize("machine, expected_response_code", DATA)
 def test_file_type_error(machine, expected_response_code, headers):
 	url = f"{UTILITIES_URL}/file"
@@ -144,7 +146,7 @@ def exec_chmod(machine, headers, data):
 	return resp
 
 
-# Test chmod with valid arguments
+@skipif_not_uses_gateway
 @pytest.mark.parametrize("machine, expected_response_code", DATA)
 def test_chmod_valid_args(machine, expected_response_code, headers):
 	data = {"targetPath": "testsbatch.sh", "mode" : "777"}
@@ -153,7 +155,7 @@ def test_chmod_valid_args(machine, expected_response_code, headers):
 	assert resp.status_code == expected_response_code
 
 
-# Test chmod with invalid arguments
+@skipif_not_uses_gateway
 @pytest.mark.parametrize("machine, expected_response_code", DATA)
 def test_chmod_invalid_args(machine, expected_response_code, headers):
 	data = {"targetPath": "testsbatch.sh", "mode" : "999"}
@@ -163,7 +165,7 @@ def test_chmod_invalid_args(machine, expected_response_code, headers):
 
 
 
-# Test chown method
+@skipif_not_uses_gateway
 @pytest.mark.parametrize("machine, expected_response_code", DATA)
 def test_chown(machine, expected_response_code, headers):
 	data = {"targetPath": USER_HOME + "/testsbatch.sh", "owner" : CURRENT_USER , "group": CURRENT_USER}
@@ -173,7 +175,7 @@ def test_chown(machine, expected_response_code, headers):
 	print(resp.content)
 	assert resp.status_code == expected_response_code
 
-# Test ls command
+@skipif_not_uses_gateway
 @pytest.mark.parametrize("machine, targetPath, expected_response_code", DATA_LS)
 def test_list_directory(machine, targetPath, expected_response_code, headers):
 	params = {"targetPath": targetPath, "showhidden" : "true"}
@@ -185,7 +187,7 @@ def test_list_directory(machine, targetPath, expected_response_code, headers):
 	assert resp.status_code == expected_response_code
 
 
-# Test mkdir command
+@skipif_not_uses_gateway
 @pytest.mark.parametrize("machine, expected_response_code", DATA_201)
 def test_make_directory(machine, expected_response_code, headers):
 	data = {"targetPath": USER_HOME + "/samplefolder/samplesubfolder", "p" : "true"}
@@ -196,7 +198,7 @@ def test_make_directory(machine, expected_response_code, headers):
 	assert resp.status_code == expected_response_code
 
 
-# Test rename command
+@skipif_not_uses_gateway
 @pytest.mark.parametrize("machine, expected_response_code", DATA)
 def test_rename(machine, expected_response_code, headers):
 	data = {"sourcePath": USER_HOME + "/samplefolder/", "targetPath" : USER_HOME + "/sampleFolder/"}
@@ -208,7 +210,7 @@ def test_rename(machine, expected_response_code, headers):
 
 
 
-# Test cp command
+@skipif_not_uses_gateway
 @pytest.mark.parametrize("machine, expected_response_code", DATA_201)
 def test_copy(machine, expected_response_code, headers):
 	data = {"sourcePath": USER_HOME + "/sampleFolder", "targetPath" : USER_HOME + "/sampleFoldercopy"}
@@ -219,7 +221,7 @@ def test_copy(machine, expected_response_code, headers):
 	assert resp.status_code == expected_response_code
 
 
-# Test symlink command
+@skipif_not_uses_gateway
 @pytest.mark.parametrize("machine, expected_response_code", DATA_201)
 def test_symlink(machine, expected_response_code, headers):
 	data = {"targetPath": USER_HOME + "/testsbatch.sh", "linkPath" : USER_HOME + "/sampleFolder/testlink"}
@@ -233,6 +235,7 @@ def test_symlink(machine, expected_response_code, headers):
 
 #  Test rm command: remove sampleFolder
 # TODO: test file which doesn't exist (must return 400)
+@skipif_not_uses_gateway
 @pytest.mark.parametrize("machine, expected_response_code", [ (SERVER_UTILITIES, 204) , ("someservernotavailable", 400)])
 def test_rm(machine, expected_response_code, headers):
 	data = {"targetPath": USER_HOME + "/sampleFolder/"}
@@ -243,7 +246,7 @@ def test_rm(machine, expected_response_code, headers):
 	assert resp.status_code == expected_response_code
 
 
-# Test download command
+@skipif_not_uses_gateway
 @pytest.mark.parametrize("machine, expected_response_code", DATA)
 def test_download(machine, expected_response_code, headers):
 	params = {"sourcePath": USER_HOME + "/testsbatch.sh"}
@@ -254,7 +257,7 @@ def test_download(machine, expected_response_code, headers):
 
 
 # Test utilities microservice status
-@host_environment_test
+@skipif_uses_gateway
 def test_status():
 	url = "{}/status".format(UTILITIES_URL)
 	resp = requests.get(url, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))

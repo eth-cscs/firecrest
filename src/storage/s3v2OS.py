@@ -17,14 +17,14 @@ import hmac
 import hashlib
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 class S3v2(ObjectStorage):
 
-    def __init__(self, url, user, passwd):
+    def __init__(self, priv_url, publ_url, user, passwd):
         self.user = user
         self.passwd = passwd
-        self.url = url
+        self.priv_url = priv_url
+        self.publ_url = publ_url
 
     def get_object_storage(self):
         return "Amazon S3 - Signature V2"
@@ -36,10 +36,9 @@ class S3v2(ObjectStorage):
         contentMD5 = ""
         contentType = ""
         canonicalizedAmzHeaders = ""
-        canonicalizedResource = "/{containername}".format(containername=containername)
+        canonicalizedResource = f"/{containername}"
 
-        string_to_sign = httpVerb + "\n" + contentMD5 + "\n" + contentType + "\n" + \
-                         str(expires) + "\n" + canonicalizedAmzHeaders + canonicalizedResource
+        string_to_sign = f"{httpVerb}\n{contentMD5}\n{contentType}\n{str(expires)}\n{canonicalizedAmzHeaders}{canonicalizedResource}"
 
         # sig = base64.b64encode(hmac.new(self.passwd, string_to_sign, hashlib.sha1).digest())
         # to be used in hmac.new(key,msg,digestmode), the strings key (passwd) and msg (strin_to_sign) need to be byte type
@@ -51,11 +50,9 @@ class S3v2(ObjectStorage):
         # signature will be Bytes type in Pytho3, so it needs to be decoded to str again
         sig = sig.decode('latin-1')
 
-        url = "{url}/{containername}?AWSAccessKeyId={awsAccessKeyId}&Signature={signature}&Expires={expires}".format(
-            url=self.url, containername=containername,
-            awsAccessKeyId=self.user, signature=urllib.parse.quote(sig), expires=expires)
+        url = f"{self.priv_url}/{containername}?AWSAccessKeyId={self.user}&Signature={urllib.parse.quote(sig)}&Expires={expires}"
 
-        logging.info("Creating bucket {}".format(containername))
+        logging.info(f"Creating container '{containername}'")
 
         try:
             resp = requests.put(url)
@@ -64,7 +61,7 @@ class S3v2(ObjectStorage):
                 return 0
             return -1
         except Exception as e:
-            logging.error("Error: {}".format(e))
+            logging.error(f"Error creating container: {e}")
             return -1
 
     def is_container_created(self, containername):
@@ -74,10 +71,9 @@ class S3v2(ObjectStorage):
         contentMD5 = ""
         contentType = ""
         canonicalizedAmzHeaders = ""
-        canonicalizedResource = "/{containername}".format(containername=containername)
+        canonicalizedResource = f"/{containername}"
 
-        string_to_sign = httpVerb + "\n" + contentMD5 + "\n" + contentType + "\n" + \
-                         str(expires) + "\n" + canonicalizedAmzHeaders + canonicalizedResource
+        string_to_sign = f"{httpVerb}\n{contentMD5}\n{contentType}\n{str(expires)}\n{canonicalizedAmzHeaders}{canonicalizedResource}"
 
         # sig = base64.b64encode(hmac.new(self.passwd, string_to_sign, hashlib.sha1).digest())
         # to be used in hmac.new(key,msg,digestmode), the strings key (passwd) and msg (strin_to_sign) need to be byte type
@@ -89,11 +85,10 @@ class S3v2(ObjectStorage):
         # signature will be Bytes type in Pytho3, so it needs to be decoded to str again
         sig = sig.decode('latin-1')
 
-        url = "{url}/{containername}?AWSAccessKeyId={awsAccessKeyId}&Expires={expires}&Signature={signature}".format(
-            url=self.url, containername=containername, awsAccessKeyId=self.user, signature=urllib.parse.quote(sig), expires=expires)
-
-        logging.info("Checking for container {}".format(containername))
-        logging.info("URL: {}".format(url))
+        url = f"{self.priv_url}/{containername}?AWSAccessKeyId={self.user}&Signature={urllib.parse.quote(sig)}&Expires={expires}"
+        
+        logging.info(f"Checking for container {containername}")
+        logging.info(f"URL: {url}")
         try:
             resp = requests.head(url)
 
@@ -102,8 +97,8 @@ class S3v2(ObjectStorage):
             return resp.ok
 
         except Exception as e:
-            logging.error("Error: {}".format(e))
-            logging.error("Error: {}".format(type(e)))
+            logging.error(f"Error checking container: {e}")
+            logging.error(f"Error type: {type(e)}")
             return False
 
     def get_users(self):
@@ -111,7 +106,7 @@ class S3v2(ObjectStorage):
         expires = 120 + int(time.time())
 
 
-        string_to_sign = "GET\n\n\n%s\n/" % (expires)
+        string_to_sign = f"GET\n\n\n{expires}\n/"
 
         # to be used in hmac.new(key,msg,digestmode), the strings key (passwd) and msg (string_to_sign) need to be byte type
         string_to_sign = string_to_sign.encode('latin-1')
@@ -122,10 +117,9 @@ class S3v2(ObjectStorage):
         # signature will be Bytes type in Python3, so it needs to be decoded to str again
         sig = sig.decode('latin-1')
 
-        url = "{url}?AWSAccessKeyId={awsAccessKeyId}&Expires={expires}&Signature={signature}".format(
-            url=self.url, awsAccessKeyId=self.user, signature=urllib.parse.quote(sig), expires=expires)
-
-        logging.info("URL: {}".format(url))
+        url = f"{self.priv_url}?AWSAccessKeyId={self.user}&Signature={urllib.parse.quote(sig)}&Expires={expires}"
+        
+        logging.info(f"Get Users URL: {url}")
         try:
             resp = requests.get(url)
 
@@ -165,8 +159,8 @@ class S3v2(ObjectStorage):
             return None
 
         except Exception as e:
-            logging.error("Error: {}".format(e))
-            logging.error("Error: {}".format(type(e)))
+            logging.error(f"Error Get Users: {e}")
+            logging.error(f"Error type: {type(e)}")
             return None
 
     def list_objects(self,containername,prefix=None):
@@ -179,10 +173,7 @@ class S3v2(ObjectStorage):
         canonicalizedAmzHeaders = ""
         canonicalizedResource = f"/{containername}/"
 
-        string_to_sign = httpVerb + "\n" + contentMD5 + "\n" + contentType + "\n" + \
-                         str(expires) + "\n" + canonicalizedAmzHeaders + canonicalizedResource
-
-        # string_to_sign = f"GET\n\n\n{str(expires)}\n/"
+        string_to_sign = f"{httpVerb}\n{contentMD5}\n{contentType}\n{str(expires)}\n{canonicalizedAmzHeaders}{canonicalizedResource}"
 
         # to be used in hmac.new(key,msg,digestmode), the strings key (passwd) and msg (strin_to_sign) need to be byte type
         string_to_sign = string_to_sign.encode('latin-1')
@@ -190,13 +181,12 @@ class S3v2(ObjectStorage):
 
         sig = base64.b64encode(hmac.new(_passwd, string_to_sign, hashlib.sha1).digest())
 
-        # signature will be Bytes type in Pytho3, so it needs to be decoded to str again
+        # signature will be Bytes type in Python3, so it needs to be decoded to str again
         sig = sig.decode('latin-1')
 
-        url = "{url}/{containername}/?AWSAccessKeyId={awsAccessKeyId}&Expires={expires}&Signature={signature}".format(
-            containername=containername,url=self.url, awsAccessKeyId=self.user, signature=urllib.parse.quote(sig), expires=expires)
+        url = f"{self.priv_url}/{containername}?AWSAccessKeyId={self.user}&Signature={urllib.parse.quote(sig)}&Expires={expires}"
 
-        logging.info("URL: {}".format(url))
+        logging.info(f"List objects URL: {url}")
         try:
             resp = requests.get(url)
 
@@ -235,8 +225,8 @@ class S3v2(ObjectStorage):
             return None
 
         except Exception as e:
-            logging.error("Error: {}".format(e))
-            logging.error("Error: {}".format(type(e)))
+            logging.error(f"Get Objects Error: {e}")
+            logging.error(f"Error type: {type(e)}")
             return None
 
     def is_object_created(self, containername, prefix, objectname):
@@ -246,14 +236,10 @@ class S3v2(ObjectStorage):
         contentMD5 = ""
         contentType = ""
         canonicalizedAmzHeaders = ""
-        canonicalizedResource = "/{containername}/{prefix}/{objectname}".format(
-            containername=containername, prefix=prefix, objectname=objectname)
+        canonicalizedResource = f"/{containername}/{prefix}/{objectname}"
 
-        string_to_sign = httpVerb + "\n" + contentMD5 + "\n" + contentType + "\n" + \
-                         str(expires) + "\n" + canonicalizedAmzHeaders + canonicalizedResource
-
-
-
+        string_to_sign = f"{httpVerb}\n{contentMD5}\n{contentType}\n{str(expires)}\n{canonicalizedAmzHeaders}{canonicalizedResource}"
+        
         # sig = base64.b64encode(hmac.new(self.passwd, string_to_sign, hashlib.sha1).digest())
         # to be used in hmac.new(key,msg,digestmode), the strings key (passwd) and msg (strin_to_sign) need to be byte type
         string_to_sign = string_to_sign.encode('latin-1')
@@ -264,9 +250,7 @@ class S3v2(ObjectStorage):
         # signature will be Bytes type in Pytho3, so it needs to be decoded to str again
         sig = sig.decode('latin-1')
 
-        url = "{url}/{containername}/{prefix}/{objectname}?AWSAccessKeyId={awsAccessKeyId}&Signature={signature}&Expires={expires}".format(
-            url=self.url, containername=containername, prefix=prefix, objectname=objectname,
-            awsAccessKeyId=self.user, signature=urllib.parse.quote(sig), expires=expires)
+        url = f"{self.priv_url}/{containername}/{prefix}/{objectname}?AWSAccessKeyId={self.user}&Signature={urllib.parse.quote(sig)}&Expires={expires}"
 
         try:
             resp = requests.head(url)
@@ -275,7 +259,7 @@ class S3v2(ObjectStorage):
                 return True
             return False
         except Exception as e:
-            logging.error("Error: {}".format(e))
+            logging.error(f"Error checking object: {e}")
             return False
 
     # Since S3 is used with signature, no token is needed, 
@@ -289,7 +273,9 @@ class S3v2(ObjectStorage):
     def renew_token(self):
         return True
 
-    def create_upload_form(self, sourcepath, containername, prefix, ttl, max_file_size):
+    ## returns a Temporary Form URL for uploading without client and tokens
+    # internal=True: by default the method asumes that the temp URL will be used in the internal network
+    def create_upload_form(self, sourcepath, containername, prefix, ttl, max_file_size,internal=True):
 
         objectname = sourcepath.split("/")[-1]
 
@@ -298,11 +284,9 @@ class S3v2(ObjectStorage):
         contentMD5 = ""
         contentType = ""
         canonicalizedAmzHeaders = ""
-        canonicalizedResource = "/{containername}/{prefix}/{objectname}".format(
-            containername=containername, prefix=prefix, objectname=objectname)
+        canonicalizedResource = f"/{containername}/{prefix}/{objectname}"
 
-        string_to_sign = httpVerb + "\n" + contentMD5 + "\n" + contentType + "\n" + \
-                         str(expires) + "\n" + canonicalizedAmzHeaders + canonicalizedResource
+        string_to_sign = f"{httpVerb}\n{contentMD5}\n{contentType}\n{str(expires)}\n{canonicalizedAmzHeaders}{canonicalizedResource}"
 
         # to be used in hmac.new(key,msg,digestmode), the strings key (passwd) and msg (strin_to_sign) need to be byte type
         string_to_sign = string_to_sign.encode('latin-1')
@@ -313,8 +297,10 @@ class S3v2(ObjectStorage):
         # signature will be Bytes type in Pytho3, so it needs to be decoded to str again
         sig = sig.decode('latin-1')
         
-        url = "{url}/{containername}/{prefix}/{objectname}".format(
-            url=self.url, containername=containername, prefix=prefix, objectname=objectname)
+        if internal:
+            url = f"{self.priv_url}/{containername}/{prefix}/{objectname}"
+        else:
+            url = f"{self.publ_url}/{containername}/{prefix}/{objectname}"
 
         retval = {}
 
@@ -339,20 +325,18 @@ class S3v2(ObjectStorage):
 
         return retval
 
-    def create_temp_url(self, containername, prefix, objectname, ttl):
+    ## returns a Temporary URL for downloading without client and tokens
+    # internal=True: by default the method asumes that the temp URL will be used in the internal network
+    def create_temp_url(self, containername, prefix, objectname, ttl, internal=True):
 
         expires = ttl + int(time.time())
         httpVerb = "GET"
         contentMD5 = ""
         contentType = ""
         canonicalizedAmzHeaders = ""
-        canonicalizedResource = "/{containername}/{prefix}/{objectname}".format(
-            containername=containername, prefix=prefix, objectname=objectname)
+        canonicalizedResource = f"/{containername}/{prefix}/{objectname}"
 
-        string_to_sign = httpVerb + "\n" + contentMD5 + "\n" + contentType + "\n" + \
-                         str(expires) + "\n" + canonicalizedAmzHeaders + canonicalizedResource
-
-        # sig = base64.b64encode(hmac.new(self.passwd, string_to_sign, hashlib.sha1).digest())
+        string_to_sign = f"{httpVerb}\n{contentMD5}\n{contentType}\n{str(expires)}\n{canonicalizedAmzHeaders}{canonicalizedResource}"
 
         # to be used in hmac.new(key,msg,digestmode), the strings key (passwd) and msg (strin_to_sign) need to be byte type
         string_to_sign = string_to_sign.encode('latin-1')
@@ -363,9 +347,10 @@ class S3v2(ObjectStorage):
         # signature will be Bytes type in Pytho3, so it needs to be decoded to str again
         sig = sig.decode('latin-1')
 
-        url = "{url}/{containername}/{prefix}/{objectname}?AWSAccessKeyId={awsAccessKeyId}&Signature={signature}&Expires={expires}".format(
-            url=self.url, containername=containername, prefix=prefix, objectname=objectname,
-            awsAccessKeyId=self.user, signature=urllib.parse.quote(sig), expires=expires)
+        if internal:
+            url = f"{self.priv_url}/{containername}/{prefix}/{objectname}?AWSAccessKeyId={self.user}&Signature={urllib.parse.quote(sig)}&Expires={expires}"
+        else:
+            url = f"{self.publ_url}/{containername}/{prefix}/{objectname}?AWSAccessKeyId={self.user}&Signature={urllib.parse.quote(sig)}&Expires={expires}"
 
         return url
 
@@ -383,30 +368,23 @@ class S3v2(ObjectStorage):
         contentMD5 = ""
         contentType = ""
         canonicalizedAmzHeaders = ""
-        canonicalizedResource = "/{containername}/{prefix}/{objectname}".format(
-            containername=containername,prefix=prefix,objectname=objectname)
+        canonicalizedResource = f"/{containername}/{prefix}/{objectname}"
 
-        string_to_sign = httpVerb + "\n" + contentMD5 + "\n" + contentType + "\n" + \
-                         str(expires) + "\n" + canonicalizedAmzHeaders + canonicalizedResource
-
-
-        # sig = base64.b64encode(hmac.new(self.passwd, string_to_sign, hashlib.sha1).digest())
+        string_to_sign = f"{httpVerb}\n{contentMD5}\n{contentType}\n{str(expires)}\n{canonicalizedAmzHeaders}{canonicalizedResource}"
 
         # to be used in hmac.new(key,msg,digestmode), the strings key (passwd) and msg (strin_to_sign) need to be byte type
         string_to_sign = string_to_sign.encode('latin-1')
         _passwd = bytes(self.passwd, 'latin1')
 
-        sig = base64.b64encode(hmac.new(_passwd, string_to_sign, hashlib.sha1).digest())
+        _sig = base64.b64encode(hmac.new(_passwd, string_to_sign, hashlib.sha1).digest())
 
         # signature will be Bytes type in Python3, so it needs to be decoded to str again
-        sig = sig.decode('latin-1')
+        signature = _sig.decode('latin-1')
 
-        url = "{url}/{containername}/{prefix}/{objectname}&AWSAccessKeyId={awsAccessKeyId}&Signature={signature}&Expires={expires}".format(
-            url=self.url, containername=containername, prefix=prefix,objectname=objectname,
-            awsAccessKeyId=self.user, signature=sig, expires=expires)
+        url = f"{self.priv_url}/{containername}/{prefix}/{objectname}&AWSAccessKeyId={self.user}&Signature={signature}&Expires={expires}"
 
-        print("Deleting {}/{}/{}".format(containername,prefix,objectname))
-        print("URL: {}".format(url))
+        logging.info(f"Deleting Object {containername}/{prefix}/{objectname}")
+        logging.info(f"URL: {url}")
 
         try:
             resp = requests.delete(url)
@@ -417,12 +395,12 @@ class S3v2(ObjectStorage):
 
                 return 0
             # TODO: not working for some reason
+            logging.error(f"Object couldn't be deleted {url}")
             logging.error(resp.content)
-            logging.error("Object couldn't be deleted "+url)
             return -1
         except Exception as e:
-            logging.info(e)
-            logging.error("Object couldn't be deleted "+url)
+            logging.error(f"Object couldn't be deleted {url}")
+            logging.error(e)
             return -1
 
 

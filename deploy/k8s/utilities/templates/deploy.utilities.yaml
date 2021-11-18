@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-utilities
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: utilities
+  template:
+    metadata:
+      labels:
+        app: utilities
+      generateName: firecrest.utilities-1-
+    spec:
+      containers:
+      - image: "{{ .Values.registry }}/utilities:{{ .Values.tag }}"
+        imagePullPolicy: Always
+        name: utilities
+        ports:
+        - containerPort: 5004
+        envFrom:
+        - configMapRef:
+            name: common-env-file
+        volumeMounts:
+        - mountPath: /var/log
+          name: logs-endpoint
+        - mountPath: /user-key
+          subPath: user-key
+          name: user-key-public
+        startupProbe:
+          tcpSocket:
+            port: 5004
+          initialDelaySeconds: 5
+          failureThreshold: 1
+      {{ if .Values.registry_secret_creds }}
+      imagePullSecrets:
+      - name: "{{ .Values.registry_secret_creds }}"
+      {{ end }}
+      volumes:
+      - emptyDir: {}
+        name: logs-endpoint
+      - name: user-key-public
+        configMap:
+          name: f7t-user-ssh-keys
