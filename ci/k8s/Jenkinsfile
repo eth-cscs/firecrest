@@ -198,7 +198,7 @@ spec:
                 }
             }
         }
-        stage('Tag for TDS'){
+        stage('Tag for TDS environment'){
             when {
                 branch 'dev-k8s'
             }
