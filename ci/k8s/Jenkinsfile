@@ -36,6 +36,7 @@ spec:
     }
     environment {
         DEPLOY_NAMESPACE = "firecrest-dev"
+        TDS_NAMESPACE = "firecrest-tds"
         GIT_COMMIT = "${env.GIT_COMMIT}"
         GIT_COMMIT_SHORT = "${env.GIT_COMMIT.take(7)}"
     }
@@ -193,23 +194,47 @@ spec:
                 }
             }
         }
-        stage('Tag for TDS environment'){
+        stage('TDS environment deployment'){
             when {
-                branch 'dev'
+                branch 'dev-k8s'
             }
             steps {
                 withVault([vaultSecrets: vault_secrets, configuration: vault_config]) {
-                    sh  '''
+                    withKubeConfig([credentialsId: 'firecrest-cicd-secret', serverUrl: K8S_CLUSTER_URL]) {
+                        sh  '''
 
-                        # Download jfrog CLI
-                        curl -fL https://getcli.jfrog.io | sh
+                            # Download jfrog CLI
+                            curl -fL https://getcli.jfrog.io | sh
 
-                        tag="tds"
+                            tag="tds"
 
-                        for ms in certificator client compute reservations status storage tasks utilities; do
-                            ./jfrog rt copy --flat=true --url="https://$REGISTRY/artifactory" --user="$REGISTRY_USER" --password="$JFROG_API_KEY" "$REGISTRY_GROUP/$ms/$GIT_COMMIT_SHORT/" "$REGISTRY_GROUP/$ms/$tag/"
-                        done
-                    '''
+                            for ms in certificator client compute reservations status storage tasks utilities; do
+                                ./jfrog rt copy --flat=true --url="https://$REGISTRY/artifactory" --user="$REGISTRY_USER" --password="$JFROG_API_KEY" "$REGISTRY_GROUP/$ms/$GIT_COMMIT_SHORT/" "$REGISTRY_GROUP/$ms/$tag/"
+                            done
+                        '''
+
+                        sh '''
+                            # Deploy TDS openapi server in firecrest-tds
+
+                            # Install helm
+                            curl -s -O https://get.helm.sh/helm-v3.7.1-linux-amd64.tar.gz
+                            tar -xvf helm-v3.7.1-linux-amd64.tar.gz
+                            pwd
+                            export PATH=$PATH:$(pwd)/linux-amd64)
+
+                            # removing old openapi (if exists)
+                            helm uninstall "openapi-env-tds" -n "$TDS_NAMESPACE" || true
+
+                            # create new openapi
+                            cd deploy/k8s
+                            ls -la
+                            
+                            echo "registry: $REPO_PREFIX\ntag: tds\nnamespace: "$TDS_NAMESPACE"\nregistry_secret_creds: registry-credentials\n" > values-tds.yaml
+
+                            helm install --wait --timeout 60s openapi-env-tds openapi -n "$TDS_NAMESPACE" -f values-tds.yaml
+
+                        '''
+                    }
                 }
 
             }
