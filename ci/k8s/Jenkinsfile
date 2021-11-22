@@ -66,20 +66,17 @@ spec:
                             pwd
                             ls -la
 
-                            #/kaniko/executor --context ./ --dockerfile deploy/docker/base/Dockerfile\
-                            #   --destination $REPO_PREFIX/f7t-base:$GIT_COMMIT_SHORT --cleanup
-
+                            # build microservices
                             for ms in certificator compute reservations status storage tasks utilities; do
                                 /kaniko/executor --build-arg BASE_IMAGE=$REPO_PREFIX/f7t-base:latest --registry-mirror $REGISTRY \
                                 --context ./ --dockerfile deploy/docker/$ms/Dockerfile --destination $REPO_PREFIX/$ms:$GIT_COMMIT_SHORT --cleanup
                             done
 
-                            #/kaniko/executor --context deploy/test-build --dockerfile ./cluster/Dockerfile \
-                            #--destination $REPO_PREFIX/cluster:$GIT_COMMIT_SHORT --cleanup
-
+                            # build web client
                             /kaniko/executor --context src/tests/template_client --dockerfile ./Dockerfile \
                             --destination $REPO_PREFIX/client:$GIT_COMMIT_SHORT --cleanup
 
+                            # build tester
                             /kaniko/executor --context ./ --dockerfile deploy/docker/tester/Dockerfile \
                             --destination $REPO_PREFIX/tester:$GIT_COMMIT_SHORT --cleanup
                         '''
@@ -98,8 +95,7 @@ spec:
 
                             export PATH=$PATH:$(pwd)/linux-amd64
                             helm list -n "$DEPLOY_NAMESPACE"
-                            #cd ${BUILD_NUMBER}/firecrest
-
+                            
                             cd deploy/k8s
                             ls -la
                             echo "registry: $REPO_PREFIX\ntag: '$GIT_COMMIT_SHORT'\nnamespace: "$DEPLOY_NAMESPACE"\nregistry_secret_creds: registry-credentials\n" > values-dev.yaml
@@ -125,8 +121,7 @@ spec:
                             tar -xvf helm-v3.7.1-linux-amd64.tar.gz
                             export PATH=$PATH:$(pwd)/linux-amd64
                             helm list -n "$DEPLOY_NAMESPACE"
-                            #cd ${BUILD_NUMBER}/firecrest
-
+                            
                             cd deploy/k8s
                             ls -la
 
