@@ -195,7 +195,7 @@ spec:
         }
         stage('Tag for TDS environment'){
             when {
-                branch 'dev-k8s'
+                branch 'dev'
             }
             steps {
                 withVault([vaultSecrets: vault_secrets, configuration: vault_config]) {
