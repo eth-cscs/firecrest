@@ -220,7 +220,7 @@ spec:
                             curl -s -O https://get.helm.sh/helm-v3.7.1-linux-amd64.tar.gz
                             tar -xvf helm-v3.7.1-linux-amd64.tar.gz
                             pwd
-                            export PATH=$PATH:$(pwd)/linux-amd64)
+                            export PATH=$PATH:$(pwd)/linux-amd64
 
                             # removing old openapi (if exists)
                             helm uninstall "openapi-env-tds" -n "$TDS_NAMESPACE" || true
