@@ -17,7 +17,7 @@ items:
           app: openapi
       spec:
         containers:
-        - image: swaggerapi/swagger-ui:v3.22.0
+        - image: swaggerapi/swagger-ui:v3.47.1
           env:
           - name: SWAGGER_JSON
             value: /tmp/openapi.yaml
