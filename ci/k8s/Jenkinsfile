@@ -196,7 +196,7 @@ spec:
         }
         stage('TDS environment deployment'){
             when {
-                branch 'dev-k8s'
+                branch 'dev'
             }
             steps {
                 withVault([vaultSecrets: vault_secrets, configuration: vault_config]) {
