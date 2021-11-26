@@ -37,7 +37,11 @@ DATA_FILE = [ (SERVER_UTILITIES, 200, ".bashrc") ,
 		 (SERVER_UTILITIES, 400, "nofile") ,
 		 (SERVER_UTILITIES, 400, "/var/log/messages") ,
 		 (SERVER_UTILITIES, 400, "/\\") ,
-		 (SERVER_UTILITIES, 400, "d[") ]
+		 (SERVER_UTILITIES, 400, "d["),
+		 (SERVER_UTILITIES, 400, "a>b"),
+		 (SERVER_UTILITIES, 400, "a<b"), 
+		 (SERVER_UTILITIES, 400, "(a"),
+		 (SERVER_UTILITIES, 400, "`hostname`") ]
 
 # test data for #mkdir, symlink
 DATA_201 = [ (SERVER_UTILITIES, 201) , ("someservernotavailable", 400)]
@@ -169,7 +173,7 @@ def test_chmod_invalid_args(machine, expected_response_code, headers):
 @pytest.mark.parametrize("machine, expected_response_code", DATA)
 def test_chown(machine, expected_response_code, headers):
 	data = {"targetPath": USER_HOME + "/testsbatch.sh", "owner" : CURRENT_USER , "group": CURRENT_USER}
-	url = "{}/chown".format(UTILITIES_URL)
+	url = f"{UTILITIES_URL}/chown"
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.put(url, headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
@@ -179,7 +183,7 @@ def test_chown(machine, expected_response_code, headers):
 @pytest.mark.parametrize("machine, targetPath, expected_response_code", DATA_LS)
 def test_list_directory(machine, targetPath, expected_response_code, headers):
 	params = {"targetPath": targetPath, "showhidden" : "true"}
-	url = "{}/ls".format(UTILITIES_URL)
+	url = f"{UTILITIES_URL}/ls"
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(json.dumps(resp.json(),indent=2))
@@ -191,7 +195,7 @@ def test_list_directory(machine, targetPath, expected_response_code, headers):
 @pytest.mark.parametrize("machine, expected_response_code", DATA_201)
 def test_make_directory(machine, expected_response_code, headers):
 	data = {"targetPath": USER_HOME + "/samplefolder/samplesubfolder", "p" : "true"}
-	url = "{}/mkdir".format(UTILITIES_URL)
+	url = f"{UTILITIES_URL}/mkdir"
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.post(url, headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
@@ -202,7 +206,7 @@ def test_make_directory(machine, expected_response_code, headers):
 @pytest.mark.parametrize("machine, expected_response_code", DATA)
 def test_rename(machine, expected_response_code, headers):
 	data = {"sourcePath": USER_HOME + "/samplefolder/", "targetPath" : USER_HOME + "/sampleFolder/"}
-	url = "{}/rename".format(UTILITIES_URL)
+	url = f"{UTILITIES_URL}/rename"
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.put(url, headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
@@ -214,7 +218,7 @@ def test_rename(machine, expected_response_code, headers):
 @pytest.mark.parametrize("machine, expected_response_code", DATA_201)
 def test_copy(machine, expected_response_code, headers):
 	data = {"sourcePath": USER_HOME + "/sampleFolder", "targetPath" : USER_HOME + "/sampleFoldercopy"}
-	url = "{}/copy".format(UTILITIES_URL)
+	url = f"{UTILITIES_URL}/copy"
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.post(url, headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
@@ -225,7 +229,7 @@ def test_copy(machine, expected_response_code, headers):
 @pytest.mark.parametrize("machine, expected_response_code", DATA_201)
 def test_symlink(machine, expected_response_code, headers):
 	data = {"targetPath": USER_HOME + "/testsbatch.sh", "linkPath" : USER_HOME + "/sampleFolder/testlink"}
-	url = "{}/symlink".format(UTILITIES_URL)
+	url = f"{UTILITIES_URL}/symlink"
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.post(url, headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
@@ -239,7 +243,7 @@ def test_symlink(machine, expected_response_code, headers):
 @pytest.mark.parametrize("machine, expected_response_code", [ (SERVER_UTILITIES, 204) , ("someservernotavailable", 400)])
 def test_rm(machine, expected_response_code, headers):
 	data = {"targetPath": USER_HOME + "/sampleFolder/"}
-	url = "{}/rm".format(UTILITIES_URL)
+	url = f"{UTILITIES_URL}/rm"
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.delete(url, headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
@@ -250,7 +254,7 @@ def test_rm(machine, expected_response_code, headers):
 @pytest.mark.parametrize("machine, expected_response_code", DATA)
 def test_download(machine, expected_response_code, headers):
 	params = {"sourcePath": USER_HOME + "/testsbatch.sh"}
-	url = "{}/download".format(UTILITIES_URL)
+	url = f"{UTILITIES_URL}/download"
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	assert resp.status_code == expected_response_code
@@ -259,7 +263,7 @@ def test_download(machine, expected_response_code, headers):
 # Test utilities microservice status
 @skipif_uses_gateway
 def test_status():
-	url = "{}/status".format(UTILITIES_URL)
+	url = f"{UTILITIES_URL}/status"
 	resp = requests.get(url, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
 	print(resp.headers)
