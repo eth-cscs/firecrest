@@ -388,7 +388,7 @@ def common_fs_operation(request, command):
         except:
             return jsonify(description='Error on upload operation', output=''), 400
         filename = secure_filename(file.filename)
-        action = f"cat > {targetPath}/{filename}"
+        action = f"cat > '{targetPath}/{filename}'"
         file_content = file.read()
         file_transfer = 'upload'
         success_code = 201

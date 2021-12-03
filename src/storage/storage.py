@@ -550,7 +550,7 @@ def upload_task(headers, system_name, system_addr, targetPath, sourcePath, task_
 
     # create certificate for later download from OS to filesystem
     app.logger.info(f"Creating certificate for later download")
-    options = f"-s -G -o {targetPath}/{fileName} -- '{download_url}'"
+    options = f"-s -G -o '{targetPath}/{fileName}' -- '{download_url}'"
     exp_time = STORAGE_TEMPURL_EXP_TIME
     certs = create_certificate(headers, system_name, system_addr, f"ID={ID} curl", options, exp_time)
 

@@ -206,7 +206,7 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
             return
 
         if job_file['content']:
-            action = f"ID={ID} cat > {job_dir}/{job_file['filename']}"
+            action = f"ID={ID} cat > '{job_dir}/{job_file['filename']}'"
             retval = exec_remote_command(headers, system_name, system_addr, action, file_transfer="upload", file_content=job_file['content'])
             if retval["error"] != 0:
                 app.logger.error(f"(Error uploading file: {retval['msg']}")
@@ -216,7 +216,7 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
         plugin_option = ("" if not use_plugin else SPANK_PLUGIN_OPTION)
         account_option = ("" if not account else f" --account={account} ")
 
-        action = f"ID={ID} sbatch {account_option} {plugin_option} --chdir={job_dir} {scopes_parameters} -- '{job_file['filename']}'"
+        action = f"ID={ID} sbatch {account_option} {plugin_option} --chdir='{job_dir}' {scopes_parameters} -- '{job_file['filename']}'"
         app.logger.info(action)
 
         retval = exec_remote_command(headers, system_name, system_addr, action)
