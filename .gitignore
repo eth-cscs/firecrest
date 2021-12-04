@@ -6,3 +6,4 @@ __pycache__/
 *.rdb
 **/minio/data/
 **/deploy/demo/minio/
+doc/build/
