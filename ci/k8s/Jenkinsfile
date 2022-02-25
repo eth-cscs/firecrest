@@ -69,8 +69,8 @@ spec:
 
                             # build microservices
                             # Certificator separated since its base image is different (centos:7)
-                            /kaniko/executor --build-arg --registry-mirror $REGISTRY \
-                                --context ./ --dockerfile deploy/docker/certificator/Dockerfile --destination $REPO_PREFIX/certificator:$GIT_COMMIT_SHORT --cleanup
+                            /kaniko/executor --context ./ --dockerfile deploy/docker/certificator/Dockerfile \
+                                --destination $REPO_PREFIX/certificator:$GIT_COMMIT_SHORT --cleanup
 
                             # Rest of the microservices
                             for ms in compute reservations status storage tasks utilities; do
