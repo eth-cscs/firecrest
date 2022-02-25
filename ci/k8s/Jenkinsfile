@@ -68,7 +68,12 @@ spec:
                             ls -la
 
                             # build microservices
-                            for ms in certificator compute reservations status storage tasks utilities; do
+                            # Certificator separated since its base image is different (centos:7)
+                            /kaniko/executor --build-arg --registry-mirror $REGISTRY \
+                                --context ./ --dockerfile deploy/docker/certificator/Dockerfile --destination $REPO_PREFIX/certificator:$GIT_COMMIT_SHORT --cleanup
+
+                            # Rest of the microservices
+                            for ms in compute reservations status storage tasks utilities; do
                                 /kaniko/executor --build-arg BASE_IMAGE=$REPO_PREFIX/f7t-base:latest --registry-mirror $REGISTRY \
                                 --context ./ --dockerfile deploy/docker/$ms/Dockerfile --destination $REPO_PREFIX/$ms:$GIT_COMMIT_SHORT --cleanup
                             done
@@ -102,8 +107,8 @@ spec:
                             echo "registry: $REPO_PREFIX\ntag: '$GIT_COMMIT_SHORT'\nnamespace: "$DEPLOY_NAMESPACE"\nregistry_secret_creds: registry-credentials\n" > values-dev.yaml
 
                             for app in config certificator client compute jaeger keycloak kong minio openapi reservations status storage tasks utilities; do
-                            helm uninstall "$app-env-dev" -n "$DEPLOY_NAMESPACE" || true
-                            helm install  --wait --wait-for-jobs --timeout 60s  "$app-env-dev" $app -n "$DEPLOY_NAMESPACE"  -f values-dev.yaml
+                              helm uninstall "$app-env-dev" -n "$DEPLOY_NAMESPACE" || true
+                              helm install  --wait --wait-for-jobs --timeout 60s  "$app-env-dev" $app -n "$DEPLOY_NAMESPACE"  -f values-dev.yaml
                             done
                             helm ls -n "$DEPLOY_NAMESPACE"
                         '''
