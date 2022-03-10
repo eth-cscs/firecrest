@@ -1801,7 +1801,7 @@ paths:
               Current status of a task with `taskid`.
               Depending on the type of task (`Compute` or `Storage`) and of the current status, the schema could change.
               Check the field `status` to match the specific response.
-          content: 
+          content:
             object:
               schema:
                 oneOf:
@@ -1842,7 +1842,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Reservations'
+                type: object
+                properties:
+                  success:
+                    $ref: '#/components/schemas/Reservations'
         '400':
           description: Error listing reservations
           content:
@@ -2477,7 +2480,7 @@ components:
           type: object
           description: Data concerning the status of the task
           properties:
-            user: 
+            user:
               type: string
               description: Task owner user name
             msg:
@@ -2536,21 +2539,21 @@ components:
           type: object
           description: Data concerning the status of the task
           properties:
-            user: 
+            user:
               type: string
               description: Task owner user name
             msg:
               type: object
               description: Data concerning current operations on the task
               properties:
-                command: 
+                command:
                   type: string
                   description: cURL command to execute object upload to Object Storage server
                 parameters:
                   type: object
                   description: parameters to be used with an data transfer software or library
                   properties:
-                    method: 
+                    method:
                       type: string
                       description: 'HTTP method to be used (POST, PUT). eg: with cURL `curl -X {method}`'
                     url:
@@ -2625,21 +2628,21 @@ components:
           type: object
           description: Data concerning the status of the task
           properties:
-            user: 
+            user:
               type: string
               description: Task owner user name
             msg:
               type: object
               description: Data concerning current operations on the task
               properties:
-                command: 
+                command:
                   type: string
                   description: cURL command to execute object upload to Object Storage server
                 parameters:
                   type: object
                   description: parameters to be used with an data transfer software or library
                   properties:
-                    method: 
+                    method:
                       type: string
                       description: 'HTTP method to be used (POST, PUT). eg: with cURL `curl -X {method}`'
                     url:
@@ -2714,7 +2717,7 @@ components:
           type: object
           description: Data concerning the status of the task
           properties:
-            user: 
+            user:
               type: string
               description: Task owner user name
             msg:
@@ -2774,7 +2777,7 @@ components:
           type: object
           description: Data concerning the status of the task
           properties:
-            user: 
+            user:
               type: string
               description: Task owner user name
             msg:
@@ -2834,7 +2837,7 @@ components:
           type: object
           description: Data concerning the status of the task
           properties:
-            user: 
+            user:
               type: string
               description: Task owner user name
             msg:
@@ -2924,7 +2927,7 @@ components:
           description: Description of the status of the task ('Upload from filesystem to Object Storage has finished succesfully')
         data:
           type: string
-          description: Temporary URL for downloading object from Object Storage location          
+          description: Temporary URL for downloading object from Object Storage location
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -2955,7 +2958,7 @@ components:
           description: Description of the status of the task ('Upload from filesystem to Object Storage has finished with errors')
         data:
           type: string
-          description: Error message describing the failure in the action          
+          description: Error message describing the failure in the action
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3014,7 +3017,7 @@ components:
             job_data_err:
               type: string
               description: latest content of the error job file
-              default: ""            
+              default: ""
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3080,10 +3083,10 @@ components:
           default: {}
           properties:
             "index":
-              type: object 
+              type: object
               description: index of the individual job
               default: "0"
-              properties: 
+              properties:
                 schema:
                   type: object
                   $ref: "#/components/schemas/Job-Listed-Object"
@@ -3147,7 +3150,7 @@ components:
           type: string
           description: Description of the status of the task ('Finished successfully')
         data:
-          type: array          
+          type: array
           items:
             $ref: "#/components/schemas/Job-Listed-Object"
         last_modify:
@@ -3195,7 +3198,7 @@ components:
           description: FirecREST service that is related to the task (in this case is always `"compute"`)
         task_url:
           type: string
-          description: URL of the task   
+          description: URL of the task
     Task-Compute-Delete-200:
       type: object
       description: Task information about success results in a task created with `DELETE /compute/jobs/{jobid}`
@@ -3210,7 +3213,7 @@ components:
           type: string
           description: Description of the status of the task ('Finished successfully')
         data:
-          type: string          
+          type: string
           description: Success message of job cancelation
         last_modify:
           type: string
@@ -3226,7 +3229,7 @@ components:
           description: FirecREST service that is related to the task (in this case is always `"compute"`)
         task_url:
           type: string
-          description: URL of the task 
+          description: URL of the task
     Task-Compute-Delete-400:
       type: object
       description: Task information about error results in a task created with `DELETE /compute/jobs/{jobid}`
@@ -3241,7 +3244,7 @@ components:
           type: string
           description: Description of the status of the task ('Finished with errors')
         data:
-          type: string          
+          type: string
           description: Message describing job cancelation error
         last_modify:
           type: string
@@ -3257,9 +3260,9 @@ components:
           description: FirecREST service that is related to the task (in this case is always `"compute"`)
         task_url:
           type: string
-          description: URL of the task 
+          description: URL of the task
     Job-Listed-Object:
-      type: object      
+      type: object
       properties:
         jobid:
           type: string
@@ -3275,7 +3278,7 @@ components:
           description: user name of the job owner
         state:
           type: string
-          description: job state as described in https://slurm.schedmd.com/squeue.html#SECTION_JOB-STATE-CODES            
+          description: job state as described in https://slurm.schedmd.com/squeue.html#SECTION_JOB-STATE-CODES
         start_time:
           type: string
           description: job actual or expected start time, as described in https://slurm.schedmd.com/squeue.html#OPT_StartTime
@@ -3310,7 +3313,7 @@ components:
         job_data_err:
           type: string
           description: latest content of the error job file
-          default: "" 
+          default: ""
 tags:
   - name: Status
     description: Status information of infrastructure and services.
