@@ -4,7 +4,7 @@
 ##  Please, refer to the LICENSE file in the root directory.
 ##  SPDX-License-Identifier: BSD-3-Clause
 ##
-FROM python:3.8.5-slim
+FROM python:3.8.12-slim
 
 RUN pip3 install --upgrade pip
 
