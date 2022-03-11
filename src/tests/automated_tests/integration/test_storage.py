@@ -5,6 +5,7 @@
 #  SPDX-License-Identifier: BSD-3-Clause
 #
 import pytest
+import platform
 import requests
 import os
 import time
@@ -70,9 +71,10 @@ def test_post_upload_request(headers):
     msg = resp.json()["task"]["data"]["msg"]
     url = msg["parameters"]["url"] # "http://svc-minio:9000/service-account-firecrest-sample"
 
-    #ix = url.index("//")
-    #jx = url.index(":",ix)
-    #url=url.replace(url[ix+2:jx],"127.0.0.1")
+    if platform.system() == 'Darwin':
+        ix = url.index("//")
+        jx = url.index(":",ix)
+        url=url.replace(url[ix+2:jx],"127.0.0.1")
 
 
 
