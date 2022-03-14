@@ -6,7 +6,7 @@
 ##
 FROM python:3.7-alpine
 
-RUN pip install flask flask-WTF flask-bootstrap flask-oidc flask_sslify requests
+RUN pip install itsdangerous==2.0.1 flask flask-WTF flask-bootstrap flask-oidc flask_sslify requests
 
 ADD ./ app
 
