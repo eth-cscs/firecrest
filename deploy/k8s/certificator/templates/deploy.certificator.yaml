@@ -52,7 +52,7 @@ items:
         - name: permission-fix
           image: busybox
           command: ["/bin/chmod", "400", "/ca-key"]
-        volumeMounts:
+          volumeMounts:
           - mountPath: /ca-key
             name: f7t-cert-vol
             subPath: ca-key
