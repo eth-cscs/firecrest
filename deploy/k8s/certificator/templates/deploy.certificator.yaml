@@ -51,9 +51,9 @@ items:
         initContainers:
         - name: permission-fix
           image: busybox
-          command: ["/bin/chmod", "400", "/ca-key"]
+          command: ['sh', '-c', "cp /tmp/ca-key /ca-key; chmod 400 /ca-key; ls -l /"]
           volumeMounts:
-          - mountPath: /ca-key
+          - mountPath: /tmp/ca-key
             name: f7t-cert-vol
             subPath: ca-key
         {{ if .Values.registry_secret_creds }}
