@@ -48,6 +48,14 @@ items:
               port: 5010
             initialDelaySeconds: 5
             failureThreshold: 1
+        initContainers:
+        - name: permission-fix
+          image: busybox
+          command: ["/bin/chmod", "400", "/ca-key"]
+        volumeMounts:
+          - mountPath: /ca-key
+            name: f7t-cert-vol
+            subPath: ca-key
         {{ if .Values.registry_secret_creds }}
         imagePullSecrets:
         - name: "{{ .Values.registry_secret_creds }}"
