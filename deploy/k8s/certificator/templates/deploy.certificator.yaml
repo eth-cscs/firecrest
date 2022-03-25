@@ -36,8 +36,10 @@ items:
           envFrom:
             - configMapRef:
                 name: common-env-file
+          command: ["sh"]
+          args: ["-c", "cp /tmp/ca-key /ca-key; chmod 400 /ca-key; ls -l /; python3 certificator.py"]
           volumeMounts:
-          - mountPath: /ca-key #since ConfiMap mount
+          - mountPath: /tmp/ca-key #since ConfiMap mount
             name: f7t-cert-vol
             subPath: ca-key
           - mountPath: /user-key.pub
