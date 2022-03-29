@@ -17,7 +17,7 @@ items:
           app: keycloak
       spec:
         containers:
-        - image: jboss/keycloak:9.0.2
+        - image: jboss/keycloak:15.0.2
           env:
           - name: DB_VENDOR
             value: H2
@@ -38,6 +38,8 @@ items:
                 key: KEYCLOAK_PASSWORD
           - name: KEYCLOAK_USER
             value: admin
+          - name: JAVA_OPTS
+            value: " -Djboss.bind.address=0.0.0.0 -Djboss.bind.address.management=0.0.0.0 "
           name: f7t-keycloak
           ports:
           - containerPort: 8080

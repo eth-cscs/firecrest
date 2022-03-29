@@ -6,7 +6,7 @@ def vault_secrets = [
                         [envVar: 'REGISTRY_USER', vaultKey: 'REGISTRY_USER'],
                         [envVar: 'REPO_PREFIX', vaultKey: 'REPO_PREFIX'],
                         [envVar: 'K8S_CLUSTER_URL', vaultKey: 'K8S_CLUSTER_URL'],
-                        [envVar: 'firecrestci_github_access_token', vaultKey: 'firecrestci_github_access_token'], 
+                        [envVar: 'firecrestci_github_access_token', vaultKey: 'firecrestci_github_access_token'],
                     ]
                 ],
             ]
@@ -47,12 +47,12 @@ spec:
             steps {
                 container(name: 'kaniko') {
                     withVault([vaultSecrets: vault_secrets, configuration: vault_config]) {
-                    
+
                         sh '''
                             mkdir -p /kaniko/.docker
                             echo '{"auths":{"'$REGISTRY'":{"username":"'$REGISTRY_USER'","password":"'$JFROG_API_KEY'"}}}' > /kaniko/.docker/config.json
                         '''
-                }                
+                }
             }
           }
         }
@@ -68,7 +68,12 @@ spec:
                             ls -la
 
                             # build microservices
-                            for ms in certificator compute reservations status storage tasks utilities; do
+                            # Certificator separated since its base image is different (centos:7)
+                            /kaniko/executor --context ./ --dockerfile deploy/docker/certificator/Dockerfile \
+                                --destination $REPO_PREFIX/certificator:$GIT_COMMIT_SHORT --cleanup
+
+                            # Rest of the microservices
+                            for ms in compute reservations status storage tasks utilities; do
                                 /kaniko/executor --build-arg BASE_IMAGE=$REPO_PREFIX/f7t-base:latest --registry-mirror $REGISTRY \
                                 --context ./ --dockerfile deploy/docker/$ms/Dockerfile --destination $REPO_PREFIX/$ms:$GIT_COMMIT_SHORT --cleanup
                             done
@@ -96,14 +101,14 @@ spec:
 
                             export PATH=$PATH:$(pwd)/linux-amd64
                             helm list -n "$DEPLOY_NAMESPACE"
-                            
+
                             cd deploy/k8s
                             ls -la
                             echo "registry: $REPO_PREFIX\ntag: '$GIT_COMMIT_SHORT'\nnamespace: "$DEPLOY_NAMESPACE"\nregistry_secret_creds: registry-credentials\n" > values-dev.yaml
 
                             for app in config certificator client compute jaeger keycloak kong minio openapi reservations status storage tasks utilities; do
-                            helm uninstall "$app-env-dev" -n "$DEPLOY_NAMESPACE" || true
-                            helm install  --wait --wait-for-jobs --timeout 60s  "$app-env-dev" $app -n "$DEPLOY_NAMESPACE"  -f values-dev.yaml
+                              helm uninstall "$app-env-dev" -n "$DEPLOY_NAMESPACE" || true
+                              helm install  --wait --wait-for-jobs --timeout 60s  "$app-env-dev" $app -n "$DEPLOY_NAMESPACE"  -f values-dev.yaml
                             done
                             helm ls -n "$DEPLOY_NAMESPACE"
                         '''
@@ -116,13 +121,13 @@ spec:
             steps {
                 withVault([vaultSecrets: vault_secrets, configuration: vault_config]) {
                     withKubeConfig([credentialsId: 'firecrest-cicd-secret', serverUrl: K8S_CLUSTER_URL]) {
-                    
+
                         sh '''
                             curl -s -O https://get.helm.sh/helm-v3.7.1-linux-amd64.tar.gz
                             tar -xvf helm-v3.7.1-linux-amd64.tar.gz
                             export PATH=$PATH:$(pwd)/linux-amd64
                             helm list -n "$DEPLOY_NAMESPACE"
-                            
+
                             cd deploy/k8s
                             ls -la
 
@@ -158,21 +163,21 @@ spec:
                             helm list -n "$DEPLOY_NAMESPACE"
                             kubectl get pods -n "$DEPLOY_NAMESPACE"
 
-                            #cd ${BUILD_NUMBER}/firecrest
-
                             cd deploy/k8s
                             ls -la
                             echo "registry: $REPO_PREFIX\ntag: '$GIT_COMMIT_SHORT'\nnamespace: "$DEPLOY_NAMESPACE"\nregistry_secret_creds: registry-credentials\n" > values-dev.yaml
 
                             for use_gateway in True False; do
 
-                                helm uninstall tester-env-dev -n "$DEPLOY_NAMESPACE" || true
+                                helm uninstall tester-env-dev -n "$DEPLOY_NAMESPACE" && sleep 15s || true
 
                                 echo "Test using gateway: $use_gateway"
                                 helm install --wait --timeout 120s tester-env-dev tester -n "$DEPLOY_NAMESPACE"  -f values-dev.yaml --set tag=$GIT_COMMIT_SHORT \
                                     --set workingDir="/firecrest/src/tests/automated_tests" \
                                     --set use_gateway="$use_gateway" \
                                     --set pytest_config_file="firecrest-dev.ini"
+
+                                cont_exitcode=0
 
                                 while :
                                 do
@@ -182,12 +187,22 @@ spec:
                                     echo "Tester pod is: $tester_pod"
                                     pdstatus=$(kubectl get pods -n "$DEPLOY_NAMESPACE" $tester_pod -o jsonpath="{.status.phase}")
 
-                                    if [ "$pdstatus" = "Running" ]; then echo "$tester_pod is still $pdstatus"; continue; fi
-                                    kubectl logs $tester_pod -n firecrest-dev
-                                    if [ "$pdstatus" = "Failed" ]; then echo "$tester_pod has $pdstatus"; exit 1; fi
-                                    if [ "$pdstatus" = "Succeeded" ]; then echo "$tester_pod has $pdstatus"; break; fi
-                                done
+                                    if [ "$pdstatus" = "Running" ] || [ "$pdstatus" = "Pending" ]; then
+                                        cont_exitcode=$(kubectl get pods -n "$DEPLOY_NAMESPACE"  --selector=app=tester -o jsonpath="{.items[*].status.containerStatuses[1].state.terminated.exitCode}")
 
+                                        if [ "$cont_exitcode" = "" ]; then echo "$tester_pod is still $pdstatus"; continue; fi
+
+                                        cont_reason=$(kubectl get pods -n "$DEPLOY_NAMESPACE"  --selector=app=tester -o jsonpath="{.items[*].status.containerStatuses[1].state.terminated.reason}")
+                                        echo "Container tester exit code $cont_exitcode (reason: $cont_reason)";
+                                    fi
+
+                                    kubectl logs $tester_pod -n firecrest-dev
+                                    if [ "$cont_exitcode" = "0" ]; then
+                                        echo "$tester_pod success."; break;
+                                     else
+                                        echo "$tester_pod failed: $cont_exitcode"; exit 1;
+                                    fi
+                                done
                             done
                         '''
                     }
@@ -228,7 +243,7 @@ spec:
                             # create new openapi
                             cd deploy/k8s
                             ls -la
-                            
+
                             echo "registry: $REPO_PREFIX\ntag: tds\nnamespace: "$TDS_NAMESPACE"\nregistry_secret_creds: registry-credentials\n" > values-tds.yaml
 
                             helm install --wait --timeout 60s openapi-env-tds openapi -n "$TDS_NAMESPACE" -f values-tds.yaml
@@ -277,7 +292,7 @@ spec:
                             ./jfrog rt del --recursive --quiet --url="https://$REGISTRY/artifactory" --user="$REGISTRY_USER" --password="$JFROG_API_KEY" "$REGISTRY_GROUP/$ms/$GIT_COMMIT_SHORT/"
                         done
                     '''
-                }            
+                }
             }
         }
         success {

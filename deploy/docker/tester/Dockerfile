@@ -11,7 +11,7 @@
 ##        docker run -ti --rm -v $PWD:/firecrest f7t-tester
 ##        # (now inside the container run pytest as you want)
 ##        See scripts in ci folder.
-from python:3.8.5-slim
+from python:3.8.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
