@@ -39,6 +39,7 @@ routes:
   # rejects any undefined route with 'request-termination' plugin
   paths:
   - /
+  - /tasks/tasklist
 
 services:
 - name: compute
