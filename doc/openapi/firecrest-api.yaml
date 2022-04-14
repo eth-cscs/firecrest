@@ -2019,7 +2019,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Reservations'
+                type: object
+                properties:
+                  success:
+                    $ref: '#/components/schemas/Reservations'
         '400':
           description: Error listing reservations
           content:
