@@ -49,44 +49,37 @@ STORAGE_PORT     = os.environ.get("F7T_STORAGE_PORT", 5000)
 AUTH_HEADER_NAME = 'Authorization'
 
 # Machines for Storage:
-# Filesystem DNS or IP where to download or upload files:
-SYSTEMS_INTERNAL_STORAGE = os.environ.get("F7T_SYSTEMS_INTERNAL_STORAGE").strip('\'"')
 # Job machine where to send xfer-internal jobs (must be defined in SYSTEMS_PUBLIC)
-STORAGE_JOBS_MACHINE     = os.environ.get("F7T_STORAGE_JOBS_MACHINE").strip('\'"')
-
+STORAGE_JOBS_MACHINE = os.environ.get("F7T_STORAGE_JOBS_MACHINE").strip('\'"').split(";")
 
 
 # SYSTEMS_PUBLIC: list of allowed systems
 # remove quotes and split into array
 SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
 # internal machines to submit/query jobs
-SYS_INTERNALS   = os.environ.get("F7T_SYSTEMS_INTERNAL_COMPUTE").strip('\'"').split(";")
+SYS_INTERNALS_COMPUTE = os.environ.get("F7T_SYSTEMS_INTERNAL_COMPUTE").strip('\'"').split(";")
+# Machine with filesystems where to download or upload files:
+SYS_INTERNALS_STORAGE = os.environ.get("F7T_SYSTEMS_INTERNAL_STORAGE").strip('\'"').split(";")
 # internal machines for small operations
 SYS_INTERNALS_UTILITIES  = os.environ.get("F7T_SYSTEMS_INTERNAL_UTILITIES").strip('\'"').split(";")
 
 ###### ENV VAR FOR DETECT TECHNOLOGY OF STAGING AREA:
 OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE", "").strip('\'"')
 
-# Scheduller partition used for internal transfers
-XFER_PARTITION = os.environ.get("F7T_XFER_PARTITION", "").strip('\'"')
-
-# --account parameter needed in sbatch?
-USE_SLURM_ACCOUNT = get_boolean_var(os.environ.get("F7T_USE_SLURM_ACCOUNT", False))
-
-# Machine used for external transfers
-
-EXT_TRANSFER_MACHINE_PUBLIC=os.environ.get("F7T_EXT_TRANSFER_MACHINE_PUBLIC", "").strip('\'"')
-EXT_TRANSFER_MACHINE_INTERNAL=os.environ.get("F7T_EXT_TRANSFER_MACHINE_INTERNAL", "").strip('\'"')
-
 OS_AUTH_URL             = os.environ.get("F7T_OS_AUTH_URL")
 OS_IDENTITY_PROVIDER    = os.environ.get("F7T_OS_IDENTITY_PROVIDER")
 OS_IDENTITY_PROVIDER_URL= os.environ.get("F7T_OS_IDENTITY_PROVIDER_URL")
 OS_PROTOCOL             = os.environ.get("F7T_OS_PROTOCOL")
-OS_INTERFACE            = os.environ.get("F7T_OS_INTERFACE")
 OS_PROJECT_ID           = os.environ.get("F7T_OS_PROJECT_ID")
 
 # SECRET KEY for temp url without using Token
 SECRET_KEY              = os.environ.get("F7T_SECRET_KEY")
+
+# Scheduller partition used for internal transfers, one per public system
+XFER_PARTITION = os.environ.get("F7T_XFER_PARTITION", "").strip('\'"').split(";")
+
+# --account parameter needed in sbatch?
+USE_SLURM_ACCOUNT = get_boolean_var(os.environ.get("F7T_USE_SLURM_ACCOUNT", False))
 
 # Expiration time for temp URLs in seconds, by default 30 days
 STORAGE_TEMPURL_EXP_TIME = int(os.environ.get("F7T_STORAGE_TEMPURL_EXP_TIME", "2592000").strip('\'"'))
@@ -104,8 +97,6 @@ CERT_CIPHER_KEY = os.environ.get("F7T_CERT_CIPHER_KEY", "").strip('\'"').encode(
 USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
-# verify signed SSL certificates
-SSL_SIGNED = get_boolean_var(os.environ.get("F7T_SSL_SIGNED", False))
 
 TRACER_HEADER = "uber-trace-id"
 
@@ -411,8 +402,20 @@ def download_task(headers, system_name, system_addr, sourcePath, task_id):
 @check_auth_header
 def download_request():
 
-    system_addr = EXT_TRANSFER_MACHINE_INTERNAL
-    system_name = EXT_TRANSFER_MACHINE_PUBLIC
+    try:
+        system_name = request.headers["X-Machine-Name"]
+    except KeyError as e:
+        app.logger.warning("No machinename given, using first public one.")
+        system_name = SYSTEMS_PUBLIC[0]
+
+    # public endpoints from Kong to users
+    if system_name not in SYSTEMS_PUBLIC:
+        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
+        return jsonify(description="Failed operation", error="Machine does not exists"), 400, header
+
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS_STORAGE[system_idx]
 
     sourcePath = request.form.get("sourcePath", None) # path file in cluster
     v = validate_input(sourcePath)
@@ -593,8 +596,20 @@ def upload_task(headers, system_name, system_addr, targetPath, sourcePath, task_
 @check_auth_header
 def upload_request():
 
-    system_addr = EXT_TRANSFER_MACHINE_INTERNAL
-    system_name = EXT_TRANSFER_MACHINE_PUBLIC
+    try:
+        system_name = request.headers["X-Machine-Name"]
+    except KeyError as e:
+        app.logger.warning("No machinename given, using first public one.")
+        system_name = SYSTEMS_PUBLIC[0]
+
+    # public endpoints from Kong to users
+    if system_name not in SYSTEMS_PUBLIC:
+        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
+        return jsonify(description="Failed operation", error="Machine does not exists"), 400, header
+
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS_STORAGE[system_idx]
 
     targetPath = request.form.get("targetPath", None) # path to save file in cluster
     v = validate_input(targetPath)
@@ -652,7 +667,7 @@ def upload_request():
 # jobTime = --time  parameter to be used on sbatch command
 # stageOutJobId = value to set in --dependency:afterok parameter
 # account = value to set in --account parameter
-def exec_internal_command(headers, command, jobName, jobTime, stageOutJobId, account):
+def exec_internal_command(headers, system_idx, command, jobName, jobTime, stageOutJobId, account):
 
     try:
         td = tempfile.mkdtemp(prefix="job")
@@ -665,7 +680,7 @@ def exec_internal_command(headers, command, jobName, jobTime, stageOutJobId, acc
         sbatch_file.write("#SBATCH --error=job-%j.err\n")
         sbatch_file.write("#SBATCH --output=job-%j.out\n")
         sbatch_file.write("#SBATCH --ntasks=1\n")
-        sbatch_file.write(f"#SBATCH --partition={XFER_PARTITION}\n")
+        sbatch_file.write(f"#SBATCH --partition={XFER_PARTITION[system_idx]}\n")
         # test line for error
         # sbatch_file.write("#SBATCH --constraint=X2450\n")
 
@@ -690,7 +705,7 @@ def exec_internal_command(headers, command, jobName, jobTime, stageOutJobId, acc
         return result
 
     # create xfer job
-    resp = create_xfer_job(STORAGE_JOBS_MACHINE, headers, td + "/sbatch-job.sh")
+    resp = create_xfer_job(SYSTEMS_PUBLIC[system_idx], headers, td + "/sbatch-job.sh")
 
     try:
         # remove sbatch file and dir
@@ -732,9 +747,20 @@ def internal_rm():
 # common code for internal cp, mv, rsync, rm
 def internal_operation(request, command):
 
-    system_idx = SYSTEMS_PUBLIC.index(STORAGE_JOBS_MACHINE)
+    try:
+        system_name = request.headers["X-Machine-Name"]
+    except KeyError as e:
+        app.logger.warning("No machinename given, using first public one.")
+        system_name = SYSTEMS_PUBLIC[0]
+
+    # public endpoints from Kong to users
+    if system_name not in SYSTEMS_PUBLIC:
+        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
+        return jsonify(description="Failed operation", error="Machine does not exists"), 400, header
+
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
     system_addr = SYS_INTERNALS_UTILITIES[system_idx]
-    system_name = STORAGE_JOBS_MACHINE
 
     targetPath = request.form.get("targetPath", None)  # path to save file in cluster
     v = validate_input(targetPath)
@@ -820,8 +846,7 @@ def internal_operation(request, command):
             return jsonify(description="Invalid stageOutJobId", error=f"'stageOutJobId' {v}"), 400
 
     # select index in the list corresponding with machine name
-    system_idx = SYSTEMS_PUBLIC.index(STORAGE_JOBS_MACHINE)
-    system_addr = SYS_INTERNALS[system_idx]
+    system_addr = SYS_INTERNALS_COMPUTE[system_idx]
 
     app.logger.info(f"USE_SLURM_ACCOUNT: {USE_SLURM_ACCOUNT}")
     # get "account" parameter, if not found, it is obtained from "id" command
@@ -834,7 +859,7 @@ def internal_operation(request, command):
         if USE_SLURM_ACCOUNT:
             username = get_username(headers[AUTH_HEADER_NAME])
             id_command = f"ID={ID} timeout {UTILITIES_TIMEOUT} id -gn -- {username}"
-            resp = exec_remote_command(headers, STORAGE_JOBS_MACHINE, system_addr, id_command)
+            resp = exec_remote_command(headers, system_name, system_addr, id_command)
             if resp["error"] != 0:
                 retval = check_command_error(resp["msg"], resp["error"], f"{command} job")
                 return jsonify(description=f"Failed to submit {command} job", error=retval["description"]), retval["status_code"], retval["header"]
@@ -845,7 +870,7 @@ def internal_operation(request, command):
 
     # check if machine is accessible by user:
     # exec test remote command
-    resp = exec_remote_command(headers, STORAGE_JOBS_MACHINE, system_addr, f"ID={ID} true")
+    resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true")
 
     if resp["error"] != 0:
         error_str = resp["msg"]
@@ -856,7 +881,7 @@ def internal_operation(request, command):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description=f"Failed to submit {command} job"), 404, header
 
-    retval = exec_internal_command(headers, actual_command, jobName, jobTime, stageOutJobId, account)
+    retval = exec_internal_command(headers, system_idx, actual_command, jobName, jobTime, stageOutJobId, account)
 
     # returns "error" key or "success" key
     try:
