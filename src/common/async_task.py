@@ -98,7 +98,7 @@ class AsyncTask():
             self.data = data
         self.timestamp = time.strftime("%Y-%m-%dT%H:%M:%S")
 
-    # return status for internal info (returns SSH "cert"ificate or "action")
+    # return status for internal info (returns SSH "certificate" or "action")
     def get_internal_status(self):
 
         return {"task_id": self.hash_id,
@@ -136,14 +136,12 @@ class AsyncTask():
         else:
             _data = self.data
 
-        return {
-            "task_id": self.hash_id,
-            "hash_id": self.hash_id,
-            "user": self.user,
-            "status": self.status_code,
-            "description": self.status_desc,
-            "data": _data,
-            "service": self.service,
-            "created_on": self.created_on,
-            "last_modify": self.timestamp
-        }
+        return {"task_id": self.hash_id,
+                "hash_id": self.hash_id,
+                "user": self.user,
+                "status": self.status_code,
+                "description": self.status_desc,
+                "data": _data,
+                "service": self.service,
+                "created_on": self.created_on,
+                "last_modify": self.timestamp}
