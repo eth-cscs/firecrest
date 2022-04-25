@@ -2597,6 +2597,10 @@ components:
           type: string
         data:
           type: object
+        created_at:
+          type: string
+        updated_at:
+          type: string
         last_modify:
           type: string
         user:
@@ -2700,6 +2704,12 @@ components:
         data:
           type: object
           description: Data concerning the status of the task
+        created_at:
+          type: string
+          description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -2759,6 +2769,12 @@ components:
             trace_id:
               type: string
               description: for internal use of FirecREST
+        created_at:
+          type: string
+          description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -2848,6 +2864,12 @@ components:
             trace_id:
               type: string
               description: for internal use of FirecREST
+        created_at:
+          type: string
+          description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -2937,6 +2959,12 @@ components:
             trace_id:
               type: string
               description: for internal use of FirecREST
+        created_at:
+          type: string
+          description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -2997,6 +3025,12 @@ components:
             trace_id:
               type: string
               description: for internal use of FirecREST
+        created_at:
+          type: string
+          description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3057,6 +3091,12 @@ components:
             trace_id:
               type: string
               description: for internal use of FirecREST
+        created_at:
+          type: string
+          description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3117,6 +3157,12 @@ components:
             trace_id:
               type: string
               description: for internal use of FirecREST
+        created_at:
+          type: string
+          description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3149,6 +3195,12 @@ components:
           type: string
           description: Data concerning the status of the task
           default: "Started upload from filesystem to Object Storage"
+        created_at:
+          type: string
+          description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3180,6 +3232,12 @@ components:
         data:
           type: string
           description: Temporary URL for downloading object from Object Storage location
+        created_at:
+          type: string
+          description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3211,6 +3269,12 @@ components:
         data:
           type: string
           description: Error message describing the failure in the action
+        created_at:
+          type: string
+          description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3270,6 +3334,12 @@ components:
               type: string
               description: latest content of the error job file
               default: ""
+        created_at:
+          type: string
+          description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3301,6 +3371,12 @@ components:
         data:
           type: string
           description: Description of the job submission error
+        created_at:
+          type: string
+          description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3342,6 +3418,12 @@ components:
                 schema:
                   type: object
                   $ref: "#/components/schemas/Job-Listed-Object"
+        created_at:
+          type: string
+          description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3373,6 +3455,12 @@ components:
         data:
           type: string
           description: Description of the job query error
+        created_at:
+          type: string
+          description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3405,6 +3493,12 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Job-Listed-Object"
+        created_at:
+          type: string
+          description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3436,6 +3530,12 @@ components:
         data:
           type: string
           description: Description of the job accounting error
+        created_at:
+          type: string
+          description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3467,6 +3567,12 @@ components:
         data:
           type: string
           description: Success message of job cancelation
+        created_at:
+          type: string
+          description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3498,6 +3604,12 @@ components:
         data:
           type: string
           description: Message describing job cancelation error
+        created_at:
+          type: string
+          description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
