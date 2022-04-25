@@ -6,7 +6,6 @@
 #
 from hashlib import md5
 import time
-import json
 import logging
 import copy
 
@@ -72,7 +71,8 @@ class AsyncTask():
         self.data = {}
         self.user = user
         self.service = service
-        self.timestamp = time.strftime("%Y-%m-%dT%H:%M:%S")
+        self.created_on = time.strftime("%Y-%m-%dT%H:%M:%S")
+        self.timestamp = self.created_on
 
     # create hash_id as user-task_id MD5 encoded string
     # used for public access to info in Queue
@@ -101,27 +101,27 @@ class AsyncTask():
     # return status for internal info (returns SSH "cert"ificate or "action")
     def get_internal_status(self):
 
-        return {"task_id":self.hash_id,
-                "hash_id":self.hash_id,
+        return {"task_id": self.hash_id,
+                "hash_id": self.hash_id,
                 "user": self.user,
-                "status":self.status_code,
-                "description":self.status_desc,                
+                "status": self.status_code,
+                "description": self.status_desc,
                 "data": self.data,
-                "service":self.service,
-                "last_modify":self.timestamp}
+                "service": self.service,
+                "created_on": self.created_on,
+                "last_modify": self.timestamp}
 
     # return status for public info, so task_id is discarded
     def get_status(self):
 
         # hide users certificate and action details
         # ["msg"]["certs"] & ["msg"]["action"]
-        
-                
+
         # if dict, then a deepcopy is needed, otherwise the dict in "msg" will be shallow copied
         if isinstance(self.data, dict):
-        
+
             _data = copy.deepcopy(self.data)
-        
+
             if len(_data) != 0:
 
                 try:
@@ -137,11 +137,13 @@ class AsyncTask():
             _data = self.data
 
         return {
-                "task_id": self.hash_id,
-                "hash_id":self.hash_id,
-                "user": self.user,
-                "status":self.status_code,
-                "description":self.status_desc,                
-                "data": _data,
-                "service":self.service,
-                "last_modify":self.timestamp}
+            "task_id": self.hash_id,
+            "hash_id": self.hash_id,
+            "user": self.user,
+            "status": self.status_code,
+            "description": self.status_desc,
+            "data": _data,
+            "service": self.service,
+            "created_on": self.created_on,
+            "last_modify": self.timestamp
+        }
