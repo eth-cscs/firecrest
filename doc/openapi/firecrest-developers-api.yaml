@@ -2389,7 +2389,8 @@ components:
           type: object
         created_at:
           type: string
-          description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
         last_modify:
           type: string
         user:
@@ -2496,6 +2497,9 @@ components:
         created_at:
           type: string
           description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -2558,6 +2562,9 @@ components:
         created_at:
           type: string
           description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -2650,6 +2657,9 @@ components:
         created_at:
           type: string
           description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -2742,6 +2752,9 @@ components:
         created_at:
           type: string
           description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -2805,6 +2818,9 @@ components:
         created_at:
           type: string
           description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -2868,6 +2884,9 @@ components:
         created_at:
           type: string
           description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -2931,6 +2950,9 @@ components:
         created_at:
           type: string
           description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -2966,6 +2988,9 @@ components:
         created_at:
           type: string
           description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3000,6 +3025,9 @@ components:
         created_at:
           type: string
           description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3034,6 +3062,9 @@ components:
         created_at:
           type: string
           description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3096,6 +3127,9 @@ components:
         created_at:
           type: string
           description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3130,6 +3164,9 @@ components:
         created_at:
           type: string
           description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3174,6 +3211,9 @@ components:
         created_at:
           type: string
           description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3208,6 +3248,9 @@ components:
         created_at:
           type: string
           description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3243,6 +3286,9 @@ components:
         created_at:
           type: string
           description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3277,6 +3323,9 @@ components:
         created_at:
           type: string
           description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3311,6 +3360,9 @@ components:
         created_at:
           type: string
           description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3345,6 +3397,9 @@ components:
         created_at:
           type: string
           description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
+        updated_at:
+          type: string
+          description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)
         last_modify:
           type: string
           description: Date and time of latest update of the task (format=`%Y-%m-%dT%H:%M:%S`)

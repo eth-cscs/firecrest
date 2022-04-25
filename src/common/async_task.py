@@ -72,7 +72,7 @@ class AsyncTask():
         self.user = user
         self.service = service
         self.created_at = time.strftime("%Y-%m-%dT%H:%M:%S")
-        self.timestamp = self.created_at
+        self.updated_at = self.created_at
 
     # create hash_id as user-task_id MD5 encoded string
     # used for public access to info in Queue
@@ -94,9 +94,9 @@ class AsyncTask():
         self.status_code = status
         self.status_desc = status_codes[str(status)]
         if data != None:
-            # self.data = json.dumps(data)
             self.data = data
-        self.timestamp = time.strftime("%Y-%m-%dT%H:%M:%S")
+
+        self.updated_at = time.strftime("%Y-%m-%dT%H:%M:%S")
 
     # return status for internal info (returns SSH "certificate" or "action")
     def get_internal_status(self):
@@ -109,7 +109,8 @@ class AsyncTask():
                 "data": self.data,
                 "service": self.service,
                 "created_at": self.created_at,
-                "last_modify": self.timestamp}
+                "updated_at": self.updated_at,
+                "last_modify": self.updated_at}
 
     # return status for public info, so task_id is discarded
     def get_status(self):
@@ -144,4 +145,5 @@ class AsyncTask():
                 "data": _data,
                 "service": self.service,
                 "created_at": self.created_at,
-                "last_modify": self.timestamp}
+                "updated_at": self.updated_at,
+                "last_modify": self.updated_at}
