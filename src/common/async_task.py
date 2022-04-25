@@ -71,8 +71,8 @@ class AsyncTask():
         self.data = {}
         self.user = user
         self.service = service
-        self.created_on = time.strftime("%Y-%m-%dT%H:%M:%S")
-        self.timestamp = self.created_on
+        self.created_at = time.strftime("%Y-%m-%dT%H:%M:%S")
+        self.timestamp = self.created_at
 
     # create hash_id as user-task_id MD5 encoded string
     # used for public access to info in Queue
@@ -108,7 +108,7 @@ class AsyncTask():
                 "description": self.status_desc,
                 "data": self.data,
                 "service": self.service,
-                "created_on": self.created_on,
+                "created_at": self.created_at,
                 "last_modify": self.timestamp}
 
     # return status for public info, so task_id is discarded
@@ -143,5 +143,5 @@ class AsyncTask():
                 "description": self.status_desc,
                 "data": _data,
                 "service": self.service,
-                "created_on": self.created_on,
+                "created_at": self.created_at,
                 "last_modify": self.timestamp}
