@@ -32,27 +32,27 @@ USE_SSL = os.environ.get("F7T_USE_SSL", False)
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_PATH = "../../../deploy/test-build"
 
-
-
 def get_task(task_id, headers):
-	url = "{}/{}".format(TASKS_URL, task_id)
-	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
-	print(resp.content)
-	assert resp.status_code == 200
-	return resp
+    headers["X-Machine-Name"] = SERVER_UTILITIES_STORAGE
+    url = f"{TASKS_URL}/{task_id}"
+    resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+    print(resp.content)
+    assert resp.status_code == 200
+    return resp
 
 def check_task_status(task_id, headers, final_expected_status = 200): # could be 200, 300, 301, 400
-	time.sleep(2) # make sure task is created??
-	resp = get_task(task_id, headers)
-	status = int(resp.json()["task"]["status"])
-	assert status == 100 or status == 101 or status == final_expected_status
-
+    time.sleep(2) # make sure task is created??
+    headers["X-Machine-Name"] = SERVER_UTILITIES_STORAGE
+    resp = get_task(task_id, headers)
+    status = int(resp.json()["task"]["status"])
+    assert status == 100 or status == 101 or status == final_expected_status
 
 
 # test external file upload
 @skipif_not_uses_gateway
 def test_post_upload_request(headers):
 
+    headers["X-Machine-Name"] = SERVER_UTILITIES_STORAGE
     # request upload form
     data = { "sourcePath": "testsbatch.sh", "targetPath": USER_HOME }
     resp = requests.post(STORAGE_URL + "/xfer-external/upload", headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
@@ -75,8 +75,6 @@ def test_post_upload_request(headers):
         ix = url.index("//")
         jx = url.index(":",ix)
         url=url.replace(url[ix+2:jx],"127.0.0.1")
-
-
 
     resp = None
 
@@ -132,9 +130,9 @@ def test_post_upload_request(headers):
 @skipif_not_uses_gateway
 @pytest.mark.parametrize("machine", [SERVER_UTILITIES_STORAGE])
 def test_internal_cp(machine, headers):
-    # jobName, time, stageOutJobId
+    headers["X-Machine-Name"] = SERVER_UTILITIES_STORAGE
     data = {"sourcePath": USER_HOME + "/testsbatch.sh", "targetPath": USER_HOME + "/testsbatch2.sh"}
-    url = "{}/xfer-internal/cp".format(STORAGE_URL)
+    url = f"{STORAGE_URL}/xfer-internal/cp"
     resp = requests.post(url, headers=headers,data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
     assert resp.status_code == 201
 
@@ -146,7 +144,7 @@ def test_internal_cp(machine, headers):
 
     # ls /home/testuser/testsbatch2.sh
     params = {"targetPath": USER_HOME + "/testsbatch.sh", "showhidden" : "true"}
-    url = "{}/ls".format(UTILITIES_URL)
+    url = f"{UTILITIES_URL}/ls"
     headers.update({"X-Machine-Name": machine})
     resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
     print(resp.json())

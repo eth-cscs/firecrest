@@ -23,7 +23,6 @@ class KeystoneSAML(Keystone):
         self.OS_IDENTITY_PROVIDER    = os.environ.get("F7T_OS_IDENTITY_PROVIDER")
         self.OS_IDENTITY_PROVIDER_URL= os.environ.get("F7T_OS_IDENTITY_PROVIDER_URL")
         self.OS_PROTOCOL             = os.environ.get("F7T_OS_PROTOCOL")
-        self.OS_INTERFACE            = os.environ.get("F7T_OS_INTERFACE")
         self.OS_PROJECT_ID           = os.environ.get("F7T_OS_PROJECT_ID")
 
     # returns a valid token if username & password are valid keystone credentials

@@ -22,7 +22,6 @@ class KeystoneOIDC(Keystone):
         self.OS_AUTH_URL             = os.environ.get("F7T_OS_AUTH_URL")
         self.OS_IDENTITY_PROVIDER    = os.environ.get("F7T_OS_IDENTITY_PROVIDER")
         self.OS_PROTOCOL             = os.environ.get("F7T_OS_PROTOCOL")
-        self.OS_INTERFACE            = os.environ.get("F7T_OS_INTERFACE")
         self.OS_PROJECT_ID           = os.environ.get("F7T_OS_PROJECT_ID")
         self.OS_CLIENT_ID            = os.environ.get("F7T_OS_CLIENT_ID")
         self.OS_CLIENT_SECRET        = os.environ.get("F7T_OS_CLIENT_SECRET")
