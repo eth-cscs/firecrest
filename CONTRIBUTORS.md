@@ -7,3 +7,4 @@
 - Klein, Mark. ETH Zurich - CSCS
 - Koutsaniti, Eirini. ETH Zurich - CSCS
 - Lezcano, Facundo. UNL-CONICET - CIMEC
+- Sewell, Christopher John. EPFL
