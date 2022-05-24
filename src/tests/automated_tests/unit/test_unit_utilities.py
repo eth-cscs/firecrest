@@ -43,6 +43,18 @@ DATA_FILE = [ (SERVER_UTILITIES, 200, ".bashrc") ,
 		 (SERVER_UTILITIES, 400, "(a"),
 		 (SERVER_UTILITIES, 400, "`hostname`") ]
 
+# test data for stat
+DATA_STAT = [ (SERVER_UTILITIES, 200, ".bashrc") ,
+		 (SERVER_UTILITIES, 200, "/var/log/messages") ,
+         ("someservernotavailable", 400, ".bashrc"),
+		 (SERVER_UTILITIES, 400, "nofile") ,
+		 (SERVER_UTILITIES, 400, "/\\") ,
+		 (SERVER_UTILITIES, 400, "d["),
+		 (SERVER_UTILITIES, 400, "a>b"),
+		 (SERVER_UTILITIES, 400, "a<b"), 
+		 (SERVER_UTILITIES, 400, "(a"),
+		 (SERVER_UTILITIES, 400, "`hostname`") ]
+
 # test data for #mkdir, symlink
 DATA_201 = [ (SERVER_UTILITIES, 201) , ("someservernotavailable", 400)]
 
@@ -129,6 +141,19 @@ def test_file_type(machine, expected_response_code, file_name, headers):
 	print(resp.content)
 	print(resp.headers)
 	assert resp.status_code == expected_response_code
+
+
+@skipif_not_uses_gateway
+@pytest.mark.parametrize("machine, expected_response_code,file_name", DATA_STAT)
+def test_stat(machine, expected_response_code, file_name, headers):
+	url = f"{UTILITIES_URL}/stat"
+	params = {"targetPath": file_name}
+	headers.update({"X-Machine-Name": machine})
+	resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	print(resp.content)
+	print(resp.headers)
+	assert resp.status_code == expected_response_code
+
 
 @skipif_not_uses_gateway
 @pytest.mark.parametrize("machine, expected_response_code", DATA)
