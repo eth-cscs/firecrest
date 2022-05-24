@@ -380,10 +380,10 @@ def common_fs_operation(request, command):
     elif command == "fsize":
         action = f"stat --dereference -c %s -- '{targetPath}'"
     elif command == "stat":
+        deref = ""
         if request.args.get("dereference", False):
-            action = f"stat --dereference -c '%f %i %d %h %u %g %s %X %Y %Z' -- '{targetPath}'"
-        else:
-            action = f"stat -c '%f %i %d %h %u %g %s %X %Y %Z' -- '{targetPath}'"
+            deref = "--dereference"
+        action = f"stat {deref} -c '%a %i %d %h %u %g %s %X %Y %Z' -- '{targetPath}'"
     elif command == "symlink":
         linkPath = request.form.get("linkPath", None)
         v = validate_input(linkPath)
@@ -440,7 +440,7 @@ def common_fs_operation(request, command):
         # follows: https://docs.python.org/3/library/os.html#os.stat_result
         output = dict(zip(['mode', 'ino', 'dev', 'nlink', 'uid', 'gid', 'size', 'atime', 'mtime', 'ctime'], retval["msg"].split()))
         # convert to integers
-        output["mode"] = int(output["mode"], base=16)
+        # output["mode"] = int(output["mode"], base=16)
         output = {key: int(value) for key, value in output.items()}
     elif command == 'ls':
         description = "List of contents"
