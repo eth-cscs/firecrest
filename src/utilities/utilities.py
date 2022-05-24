@@ -305,7 +305,7 @@ def common_fs_operation(request, command):
     tn = 'targetPath'
     if request.method == 'GET':
         targetPath = request.args.get("targetPath", None)
-        if (targetPath == None) and (command in ['base64', 'stat']):
+        if (targetPath == None) and (command in ['base64', 'fsize', 'stat']):
             # TODO: review API
             tn = "sourcePath"
             targetPath = request.args.get("sourcePath", None)
