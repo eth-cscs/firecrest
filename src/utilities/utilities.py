@@ -91,6 +91,16 @@ def file_type():
     return common_fs_operation(request, "file")
 
 
+## stat: determines the status of a file
+## params:
+##  - path: Filesystem path (Str) *required
+##  - machinename: str *required
+
+@app.route("/stat", methods=["GET"])
+@check_auth_header
+def stat():
+    return common_fs_operation(request, "stat")
+
 ## chmod: Change Mode of path in Filesystem
 ## params:
 ##  - path: Filesystem path (Str) *required
@@ -221,7 +231,7 @@ def make_directory():
 @check_auth_header
 def view():
     try:
-        resp = common_fs_operation(request, "stat")
+        resp = common_fs_operation(request, "fsize")
         if resp[1] != 200:
             return resp
         out = json.loads(resp[0].data.decode())
@@ -295,7 +305,7 @@ def common_fs_operation(request, command):
     tn = 'targetPath'
     if request.method == 'GET':
         targetPath = request.args.get("targetPath", None)
-        if (targetPath == None) and (command in ['base64', 'stat']):
+        if (targetPath == None) and (command in ['base64', 'fsize', 'stat']):
             # TODO: review API
             tn = "sourcePath"
             targetPath = request.args.get("sourcePath", None)
@@ -367,8 +377,13 @@ def common_fs_operation(request, command):
         # -r is for recursivelly delete files into directories
         action = f"rm -r --interactive=never -- '{targetPath}'"
         success_code = 204
-    elif command == "stat":
+    elif command == "fsize":
         action = f"stat --dereference -c %s -- '{targetPath}'"
+    elif command == "stat":
+        deref = ""
+        if request.args.get("dereference", False):
+            deref = "--dereference"
+        action = f"stat {deref} -c '%a %i %d %h %u %g %s %X %Y %Z' -- '{targetPath}'"
     elif command == "symlink":
         linkPath = request.form.get("linkPath", None)
         v = validate_input(linkPath)
@@ -419,8 +434,14 @@ def common_fs_operation(request, command):
     if command == 'checksum':
         # return only hash, msg sintax:  hash filename
         output = retval["msg"].split()[0]
-    elif command in ['base64', 'chmod', 'chown', 'file', 'head', 'stat']:
+    elif command in ['base64', 'chmod', 'chown', 'file', 'head', 'fsize']:
         output = retval["msg"]
+    elif command == 'stat':
+        # follows: https://docs.python.org/3/library/os.html#os.stat_result
+        output = dict(zip(['mode', 'ino', 'dev', 'nlink', 'uid', 'gid', 'size', 'atime', 'mtime', 'ctime'], retval["msg"].split()))
+        # convert to integers
+        # output["mode"] = int(output["mode"], base=16)
+        output = {key: int(value) for key, value in output.items()}
     elif command == 'ls':
         description = "List of contents"
         output = ls_parse(request, retval)
@@ -464,7 +485,7 @@ def symlink():
 def download():
     try:
         # returns a tuple (json_msg, status_code [, header])
-        resp = common_fs_operation(request, "stat")
+        resp = common_fs_operation(request, "fsize")
         if resp[1] != 200:
             return resp
         out = json.loads(resp[0].data.decode())
