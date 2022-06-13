@@ -211,6 +211,10 @@ paths:
       responses:
         '201':
           description: Directory created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilities-ok'
         '400':
           description: Error creating directory
           content:
@@ -279,6 +283,10 @@ paths:
       responses:
         '200':
           description: Success to rename file or directory
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilities-ok'
         '400':
           description: Error on rename operation
           content:
@@ -352,7 +360,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Application-output'
+                $ref: '#/components/schemas/Utilities-ok'
         '400':
           description: Error in chmod operation
           content:
@@ -427,7 +435,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Application-output'
+                $ref: '#/components/schemas/Utilities-ok'
         '400':
           description: Error in chwon operation
           content:
@@ -502,7 +510,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Application-output'
+                $ref: '#/components/schemas/Utilities-ok'
         '400':
           description: Error in copy operation
           content:
@@ -567,7 +575,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Application-output'
+                $ref: '#/components/schemas/Utilities-ok'
         '400':
           description: Error in file operation
           content:
@@ -638,6 +646,10 @@ paths:
       responses:
         '201':
           description: Success create the symlink
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilities-ok'
         '400':
           description: Failed to create symlink
           content:
@@ -759,6 +771,10 @@ paths:
       responses:
         '201':
           description: File upload successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilities-ok'
         '400':
           description: Failed to upload file
           content:
@@ -812,6 +828,10 @@ paths:
       responses:
         '204':
           description: File deletion successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilities-ok'
         '400':
           description: Failed to delete file
           content:
@@ -2432,9 +2452,16 @@ components:
         size:
           type: string
     Files-metadata:
-      type: array
-      items:
-        $ref: '#/components/schemas/File-metadata'
+      type: object
+      properties:
+        description:
+          type: string
+          enum:
+            - "List of contents"
+        output:
+          type: array
+          items:
+            $ref: '#/components/schemas/File-metadata'
     System:
       required:
         - system
@@ -2449,21 +2476,44 @@ components:
         description:
           type: string
     Systems:
-      type: array
-      items:
-        $ref: '#/components/schemas/System'
+      type: object
+      properties:
+        description:
+          type: string
+          enum:
+            - "List of systems with status and description."
+        out:
+          type: array
+          items:
+            $ref: '#/components/schemas/System'
     Parameters:
       type: object
       properties:
-        microservice-name:
+        description:
+          type: string
+          enum:
+            - "Firecrest's parameters"
+        out:
           type: object
           properties:
-            name:
-              type: string
-            value:
-              type: string
-            unit:
-              type: string
+            storage:
+              type: object
+              properties:
+                name:
+                  type: string
+                value:
+                  type: string
+                unit:
+                  type: string
+            utilities:
+              type: object
+              properties:
+                name:
+                  type: string
+                value:
+                  type: string
+                unit:
+                  type: string
     Error:
       properties:
         code:
@@ -2484,9 +2534,16 @@ components:
         description:
           type: string
     Services:
-      type: array
-      items:
-        $ref: '#/components/schemas/Service'
+      type: object
+      properties:
+        description:
+          type: string
+          enum:
+            - 'List of services with status and description.'
+        out:
+          type: array
+          items:
+            $ref: '#/components/schemas/Service'
     Job:
       type: object
       required:
@@ -2577,15 +2634,6 @@ components:
           type: string
         session_id:
           type: string
-    Application-output:
-      type: object
-      properties:
-        stdout:
-          type: string
-          description: Standard output returned by application
-        stderr:
-          type: string
-          description: Standard error returned by application.
     Task:
       type: object
       properties:
