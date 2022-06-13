@@ -609,6 +609,74 @@ paths:
             text/plain:
               schema:
                 type: string
+  '/utilities/stat':
+    parameters:
+      - in: header
+        name: X-Machine-Name
+        description: The system name
+        required: true
+        schema:
+          type: string
+    get:
+      summary: determines the status of a file
+      description: Uses the stat linux application to determine the status of a file on the
+        {X-Machine-Name} filesystem.
+      tags:
+        - Utilities
+      parameters:
+        - name: targetPath
+          in: query
+          description: Absolute filesystem path
+          required: true
+          allowEmptyValue: false
+          schema:
+            type: string
+          allowReserved: true
+        - name: dereference
+          in: query
+          description: Follow symbolic links
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilities-ok'
+        '400':
+          description: Error in file operation
+          content:
+            text/plain:
+              schema:
+                type: string
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: string
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: string
+            X-Permission-Denied:
+              description: User does not have permissions to access machine or paths
+              schema:
+                type: string
+            X-Invalid-Path:
+              description: <path> is an invalid path
+              schema:
+                type: string
+            X-Timeout:
+              description: Command has finished with timeout signal
+              schema:
+                type: string
+        '401':
+          description: No auth header given
+          content:
+            text/plain:
+              schema:
+                type: string
   '/utilities/symlink':
     parameters:
       - in: header
