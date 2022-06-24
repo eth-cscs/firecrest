@@ -358,9 +358,8 @@ def common_fs_operation(request, command):
         file_transfer = 'download'
     elif command == "ls":
         # if set shows entrys starting with . (not including . and/or .. dirs)
-        showhidden = request.args.get("showhidden", None)
         showall = ""
-        if showhidden != None:
+        if get_boolean_var(request.args.get("showhidden", False)):
             showall = "-A"
         action = f"ls -l {showall} --time-style=+%Y-%m-%dT%H:%M:%S -- '{targetPath}'"
     elif command == "mkdir":
@@ -381,7 +380,7 @@ def common_fs_operation(request, command):
         action = f"stat --dereference -c %s -- '{targetPath}'"
     elif command == "stat":
         deref = ""
-        if request.args.get("dereference", False):
+        if get_boolean_var(request.args.get("dereference", False)):
             deref = "--dereference"
         action = f"stat {deref} -c '%a %i %d %h %u %g %s %X %Y %Z' -- '{targetPath}'"
     elif command == "symlink":

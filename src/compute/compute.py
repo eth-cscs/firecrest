@@ -27,7 +27,6 @@ from werkzeug.exceptions import RequestEntityTooLarge
 from datetime import datetime
 
 import jwt
-import requests
 from flask_opentracing import FlaskTracing
 from jaeger_client import Config
 import opentracing
@@ -164,7 +163,7 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
 
     try:
         # get scopes from token
-        decoded = jwt.decode(headers[AUTH_HEADER_NAME][7:], verify=False)
+        decoded = jwt.decode(headers[AUTH_HEADER_NAME][7:], options={"verify_signature": False})
         # scope: "openid profile email firecrest-tds.cscs.ch/storage/something"
         scopes = decoded.get('scope', '').split(' ')
         scopes_parameters = ''
@@ -323,7 +322,7 @@ def submit_job_path_task(headers, system_name, system_addr, fileName, job_dir, a
 
     try:
         # get scopes from token
-        decoded = jwt.decode(headers[AUTH_HEADER_NAME][7:], verify=False)
+        decoded = jwt.decode(headers[AUTH_HEADER_NAME][7:], options={"verify_signature": False})
         # scope: "openid profile email firecrest-tds.cscs.ch/storage/something"
         scopes = decoded['scope'].split(' ')
         scopes_parameters = ''
