@@ -15,9 +15,7 @@ import json
 import functools
 from flask import request, jsonify, g
 import requests
-import urllib
 import base64
-import io
 import re
 import time
 import threading
@@ -86,12 +84,12 @@ def check_header(header):
         if realm_pubkey == '':
             if not debug:
                 logging.warning("WARNING: REALM_RSA_PUBLIC_KEY is empty, JWT tokens are NOT verified, setup is not set to debug.")
-            decoded = jwt.decode(header[7:], verify=False)
+            decoded = jwt.decode(header[7:], options={"verify_signature": False})
         else:
             if AUTH_AUDIENCE == '':
-                decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, options={'verify_aud': False})
+                decoded = jwt.decode(header[7:], realm_pubkey, algorithms=[realm_pubkey_type], options={'verify_aud': False})
             else:
-                decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, audience=AUTH_AUDIENCE)
+                decoded = jwt.decode(header[7:], realm_pubkey, algorithms=[realm_pubkey_type], audience=AUTH_AUDIENCE)
 
         if AUTH_REQUIRED_SCOPE != "":
             if AUTH_REQUIRED_SCOPE not in decoded["scope"].split():
@@ -101,9 +99,9 @@ def check_header(header):
 
     except jwt.exceptions.InvalidSignatureError:
         logging.error("JWT invalid signature", exc_info=True)
-    except jwt.ExpiredSignatureError:
+    except jwt.exceptions.ExpiredSignatureError:
         logging.error("JWT token has expired", exc_info=True)
-    except jwt.InvalidAudienceError:
+    except jwt.exceptions.InvalidAudienceError:
         logging.error("JWT token invalid audience", exc_info=True)
     except jwt.exceptions.InvalidAlgorithmError:
         logging.error("JWT invalid signature algorithm", exc_info=True)
@@ -117,9 +115,9 @@ def get_username(header):
     # header = "Bearer ey...", remove first 7 chars
     try:
         if realm_pubkey == '':
-            decoded = jwt.decode(header[7:], verify=False)
+            decoded = jwt.decode(header[7:], options={"verify_signature": False})
         else:
-            decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, options={'verify_aud': False})
+            decoded = jwt.decode(header[7:], realm_pubkey, algorithms=[realm_pubkey_type], options={'verify_aud': False})
         # check if it's a service account token
         try:
             if AUTH_ROLE in decoded["realm_access"]["roles"]:
@@ -133,9 +131,9 @@ def get_username(header):
 
     except jwt.exceptions.InvalidSignatureError:
         logging.error("JWT invalid signature", exc_info=True)
-    except jwt.ExpiredSignatureError:
+    except jwt.exceptions.ExpiredSignatureError:
         logging.error("JWT token has expired", exc_info=True)
-    except jwt.InvalidAudienceError:
+    except jwt.exceptions.InvalidAudienceError:
         logging.error("JWT token invalid audience", exc_info=True)
     except jwt.exceptions.InvalidAlgorithmError:
         logging.error("JWT invalid signature algorithm", exc_info=True)
