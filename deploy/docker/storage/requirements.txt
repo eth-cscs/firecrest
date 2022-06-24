@@ -1,5 +1,5 @@
 -r ../base/requirements.txt
 keystoneauth1==4.3.0
 lxml==4.6.5
-paramiko==2.6.0
+paramiko==2.11.0
 python-keystoneclient==4.2.0
