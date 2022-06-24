@@ -11,4 +11,9 @@ to 400 before starting containers:
 
 `chmod 400 environment/keys/ca-key  environment/keys/user-key`
 
+To create the keys:
+  ssh-keygen -t ed25519 -f ca-key -P ''
+  ssh-keygen -t ed25519 -f user-key -P ''
+
+
 This keys are used by the demo environment also.
