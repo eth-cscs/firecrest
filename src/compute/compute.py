@@ -20,14 +20,13 @@ import logging
 
 from math import ceil
 
-import json, os
+import os
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import RequestEntityTooLarge
 
 from datetime import datetime
 
 import jwt
-import requests
 from flask_opentracing import FlaskTracing
 from jaeger_client import Config
 import opentracing
@@ -466,7 +465,12 @@ def submit_job_upload():
     # using hash_id from Tasks, which is user-task_id (internal)
     tmpdir = f"{task_id}"
 
-    username = get_username(headers[AUTH_HEADER_NAME])
+    is_username_ok = get_username(headers[AUTH_HEADER_NAME])
+
+    if not is_username_ok["result"]:
+        return jsonify(description=is_username_ok["reason"],error='Error creating task'), 401
+
+    username = is_username_ok["username"]
 
     job_dir = f"{job_base_fs}/{username}/firecrest/{tmpdir}"
     use_plugin  = USE_SPANK_PLUGIN[system_idx]
@@ -610,7 +614,12 @@ def list_jobs():
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Failed to retrieve jobs information"), 404, header
 
-    username = get_username(headers[AUTH_HEADER_NAME])
+    is_username_ok = get_username(headers[AUTH_HEADER_NAME])
+
+    if not is_username_ok["result"]:
+        return jsonify(description=is_username_ok["reason"],error="Failed to retrieve jobs information"), 401
+
+    username = is_username_ok["username"]
 
     app.logger.info(f"Getting SLURM information of jobs from {system_name} ({system_addr})")
 
@@ -794,7 +803,12 @@ def list_job(jobid):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Failed to retrieve job information"), 404, header
 
-    username = get_username(headers[AUTH_HEADER_NAME])
+    is_username_ok = get_username(headers[AUTH_HEADER_NAME])
+
+    if not is_username_ok["result"]:
+        return jsonify(description=is_username_ok["reason"],error="Failed to retrieve job information"), 401
+    username = is_username_ok["username"]
+
     app.logger.info(f"Getting SLURM information of job={jobid} from {system_name} ({system_addr})")
 
     S = SQUEUE_SEP

@@ -172,7 +172,14 @@ def test_system(machinename, headers, status_list=[]):
         ## TESTING FILESYSTEMS
         headers["X-Machine-Name"] = machinename
 
-        username = get_username(headers[AUTH_HEADER_NAME])
+        is_username_ok = get_username(headers[AUTH_HEADER_NAME])
+
+        if not is_username_ok["result"]:
+            app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
+            status_list.append({"status": -5, "system": machinename, "filesystem": fs, "reason": is_username_ok['reason']})
+            return
+        
+        username = is_username_ok["username"]
 
         for fs in filesystems.split(","):
         
@@ -232,8 +239,14 @@ def status_system(machinename):
     # -2: host down
     # -3: host not in the list (does not exist)
     # -4: host up but Filesystem not ready
+    # -5: error on token verification
 
     status = status_list[0]["status"]
+
+    if status == -5:
+        reason = status_list[0]["reason"]
+        out={"system":machinename, "status":"not available", "description": f"Error on JWT token: {reason}"}
+        return jsonify(description="Filesystem is not available.", out=out), 200
 
     if status == -4:
         filesystem = status_list[0]["filesystem"]
@@ -290,7 +303,12 @@ def status_systems():
          # 0: host up and SSH running
          # -1: host up but no SSH running
          # -2: host down
+         # -4: filesystem not available
+         # -5: error on token verification error
     #
+        if status == -5:
+            reason = status_list[0]["reason"]
+            ret_dict={"system":machinename, "status":"not available", "description": f"Error on JWT token: {reason}"}            
         if status == -4:
             filesystem = status_list[0]["filesystem"]
             ret_dict={"system":machinename, "status":"not available", "description": f"Filesystem {filesystem} is not available"}            

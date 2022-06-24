@@ -143,22 +143,25 @@ def check_header(header):
         # {"scope": "openid profile firecrest email"}
         if AUTH_REQUIRED_SCOPE != "":
             if AUTH_REQUIRED_SCOPE not in decoded["scope"].split():
-                return False
+                return {"result": False, "reason": "Required scope is missing"}
 
-        return True
+        return {"result": True}
 
     except jwt.exceptions.InvalidSignatureError:
-        logging.error("JWT invalid signature", exc_info=True)
+        logging.error("JWT token has invalid signature", exc_info=True)
+        return {"result": False, "reason": "JWT token has invalid signature"}
     except jwt.ExpiredSignatureError:
         logging.error("JWT token has expired", exc_info=True)
+        return {"result": False, "reason": "JWT token has expired"}
     except jwt.InvalidAudienceError:
-        logging.error("JWT token invalid audience", exc_info=True)
+        logging.error("Invalid audience in JWT token", exc_info=True)
+        return {"result": False, "reason": "Invalid audience in JWT token"}
     except jwt.exceptions.InvalidAlgorithmError:
-        logging.error("JWT invalid signature algorithm", exc_info=True)
+        logging.error("JWT token has invalid signature algorithm", exc_info=True)
+        return {"result": False, "reason": "JWT token has invalid signature algorithm"}
     except Exception:
         logging.error("Bad header or JWT, general exception raised", exc_info=True)
-
-    return False
+        return {"result": False, "reason": "Bad header or JWT, general exception raised"}    
 
 # receive the header, and extract the username from the token
 # returns username
@@ -175,23 +178,26 @@ def get_username(header):
             if AUTH_ROLE in decoded["realm_access"]["roles"]:
                 clientId = decoded["clientId"]
                 username = decoded["resource_access"][clientId]["roles"][0]
-                return username
-            return decoded['preferred_username']
+                return {"result": True, "reason":"", "username": username}
+            return {"result": True, "reason":"", "username": decoded['preferred_username']} 
         except Exception:
-            return decoded['preferred_username']
+            return {"result": True, "reason":"", "username": decoded['preferred_username']}
 
     except jwt.exceptions.InvalidSignatureError:
-        logging.error("JWT invalid signature", exc_info=True)
+        logging.error("JWT token has invalid signature", exc_info=True)
+        return {"result": False, "reason": "JWT token has invalid signature", username: None}
     except jwt.ExpiredSignatureError:
         logging.error("JWT token has expired", exc_info=True)
+        return {"result": False, "reason": "JWT token has expired", username: None}
     except jwt.InvalidAudienceError:
-        logging.error("JWT token invalid audience", exc_info=True)
+        logging.error("Invalid audience in JWT token", exc_info=True)
+        return {"result": False, "reason": "Invalid audience in JWT token", username: None}
     except jwt.exceptions.InvalidAlgorithmError:
-        logging.error("JWT invalid signature algorithm", exc_info=True)
+        logging.error("JWT token has invalid signature algorithm", exc_info=True)
+        return {"result": False, "reason": "JWT token has invalid signature algorithm", username: None}
     except Exception:
         logging.error("Bad header or JWT, general exception raised", exc_info=True)
-
-    return None
+        return {"result": False, "reason": "Bad header or JWT, general exception raised", username: None}     
 
 # wrapper to check if AUTH header is correct
 # decorator use:
@@ -208,8 +214,9 @@ def check_auth_header(func):
         except KeyError:
             logging.error("No Auth Header given")
             return jsonify(description="No Auth Header given"), 401
-        if not check_header(auth_header):
-            return jsonify(description="Invalid header"), 401
+        is_header_ok = check_header(auth_header)
+        if not is_header_ok["result"]:
+            return jsonify(description=is_header_ok["reason"]), 401
 
         return func(*args, **kwargs)
     return wrapper_check_auth_header
@@ -230,10 +237,12 @@ def receive():
 
     try:
         auth_header = request.headers[AUTH_HEADER_NAME]
-        username = get_username(auth_header)
-        if username == None:
-            app.logger.error("No username")
-            return jsonify(description="Invalid user"), 401
+        is_username_ok = get_username(auth_header)
+        if is_username_ok["result"] == False:
+            app.logger.error(f"Error getting username: {is_username_ok['reason']}")
+            return jsonify(description=f"Invalid username. Reason: {is_username_ok['reason']}"), 401
+
+        username = is_username_ok["username"]
 
         # Check if user is authorized in OPA
         cluster = request.args.get("cluster","")

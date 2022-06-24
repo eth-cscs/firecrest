@@ -9,7 +9,7 @@
 
 FROM centos:7
 
-ARG SLURM_VERSION=20.11.7
+ARG SLURM_VERSION=20.11.9
 
 RUN set -ex \
     && yum makecache fast \
@@ -36,7 +36,7 @@ RUN set -ex \
     && rm -rf /var/cache/yum > /dev/null
 
 RUN set -x \
-    && curl --output slurm-$SLURM_VERSION.tar.bz2  https://download.schedmd.com/slurm/slurm-$SLURM_VERSION.tar.bz2 \
+    && curl --output slurm-$SLURM_VERSION.tar.bz2 https://download.schedmd.com/slurm/slurm-$SLURM_VERSION.tar.bz2 \
     && tar -xf slurm-$SLURM_VERSION.tar.bz2 > /dev/null
 
 RUN set -x \
