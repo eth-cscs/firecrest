@@ -1,0 +1,12 @@
+default:
+  tags:
+    - Fulen    
+
+stages:          # List of stages for jobs, and their order of execution
+  - test
+
+test:
+  stage: test
+  script:
+    - echo "Testing FirecREST gitlab CI"
+
