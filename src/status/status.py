@@ -160,8 +160,9 @@ def test_system(machinename, headers, status_list=[]):
             port = int(ipaddr[1])
 
         client.connect(hostname=host, port=port,
-                           username="dummycscs", password="dummycscs",
-                           timeout=10)
+                       username="dummycscs", password="dummycscs",
+                       timeout=10,
+                       disabled_algorithms={'keys': ['rsa-sha2-256', 'rsa-sha2-512']})
 
     except paramiko.ssh_exception.AuthenticationException as e:
         # host up and SSH working, but returns (with reasons) authentication error
@@ -175,9 +176,9 @@ def test_system(machinename, headers, status_list=[]):
         username = get_username(headers[AUTH_HEADER_NAME])
 
         for fs in filesystems.split(","):
-        
-            r = requests.get(f"{UTILITIES_URL}/ls", 
-                                params={"targetPath":f"{fs}/{username}"}, 
+
+            r = requests.get(f"{UTILITIES_URL}/ls",
+                                params={"targetPath":f"{fs}/{username}"},
                                 headers=headers,
                                 verify=(SSL_CRT if USE_SSL else False))
 
@@ -250,7 +251,7 @@ def status_system(machinename):
     if status == -1:
         out={"system":machinename, "status":"not available", "description":"System does not accept connections"}
         return jsonify(description="System information", out=out), 200
-    
+
 
     out = {"system": machinename, "status": "available", "description": "System ready"}
     return jsonify(description="System information", out=out), 200
@@ -293,7 +294,7 @@ def status_systems():
     #
         if status == -4:
             filesystem = status_list[0]["filesystem"]
-            ret_dict={"system":machinename, "status":"not available", "description": f"Filesystem {filesystem} is not available"}            
+            ret_dict={"system":machinename, "status":"not available", "description": f"Filesystem {filesystem} is not available"}
         elif status == -2:
              ret_dict = {"system": system, "status": "not available", "description": "System down"}
         elif status == -1:
@@ -335,7 +336,7 @@ def status_service(servicename):
         description = "server up, flask down"
         return jsonify(service=servicename,status=status,description=description), 200
 
-    
+
     status="available"
     description="server up & flask running"
     return jsonify(service=servicename,status=status,description=description), 200
