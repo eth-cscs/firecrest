@@ -9,7 +9,7 @@ stages:          # List of stages for jobs, and their order of execution
   #- cleanup_dev_deployment
   #- cleanup_dev_images
 
-get_secret:
+get_secrets:
   stage: get_secrets
   script:
     - echo "Getting secrets from HC Vault instance"
