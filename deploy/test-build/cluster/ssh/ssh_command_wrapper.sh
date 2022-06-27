@@ -10,7 +10,7 @@
 # Optional OpenSSH >= 7.6 for direct access to certificates (via ExposeAuthInfo)
 
 # trimmed full line returned by ssh-keygen (varies with versions)
-CA_signature="Signing CA: RSA SHA256:pTvMZwI/8nt6nv9ms/0Sao1F7b2JLGfV5lXYE8ERikI"
+CA_signature="Signing CA: ED25519 SHA256:Nmtm5cKY+X78KBkVSPqabLP7uNzOXiEshtkK/8XSTLs"
 
 # user must be able to write
 log_file=/tmp/firecrest-ssh-$UID.log
