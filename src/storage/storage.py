@@ -248,6 +248,7 @@ def os_to_fs(task_id):
 
     except Exception as e:
         app.logger.error(e)
+        update_task(task_id, headers, async_task.ST_DWN_ERR, msg=upl_file, is_json=True)
 
 
 # asynchronous check of upload_files to declare which is downloadable to FS

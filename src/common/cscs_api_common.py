@@ -259,7 +259,7 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
         if not is_username_ok["result"]:
             return {"error": 1, "msg": is_username_ok["reason"]}
     
-    username = is_username_ok["username"]
+        username = is_username_ok["username"]
 
     [pub_cert, pub_key, priv_key, temp_dir] = cert_list
 
