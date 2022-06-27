@@ -24,7 +24,7 @@ get_secrets:
     
     - export VAULT_ADDR="https://vault.svc.cscs.ch"
     - export VAULT_TOKEN=$CI_VAULT_TOKEN
-    - CI_K8S_TOKEN="$(vault kv get -field= firecrest-cicd-secret  firecrest/dev)"   
+    - CI_K8S_TOKEN="$(vault kv get -field=firecrest-cicd-secret  firecrest/dev)"   
     - CI_REGISTRY_PASSWORD="$(vault kv get -field=JFROG_API_KEY firecrest/dev)"
     - CI_REGISTRY="$(vault kv get -field=REGISTRY firecrest/dev)"
     - CI_REGISTRY_GROUP="$(vault kv get -field=REGISTRY_GROUP firecrest/dev)"
