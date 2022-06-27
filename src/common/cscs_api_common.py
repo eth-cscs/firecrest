@@ -100,10 +100,10 @@ def check_header(header):
     except jwt.exceptions.InvalidSignatureError:
         logging.error("JWT token has invalid signature", exc_info=True)
         return {"result": False, "reason": "JWT token has invalid signature"}
-    except jwt.ExpiredSignatureError:
+    except jwt.exceptions.ExpiredSignatureError:
         logging.error("JWT token has expired", exc_info=True)
         return {"result": False, "reason": "JWT token has expired"}
-    except jwt.InvalidAudienceError:
+    except jwt.exceptions.InvalidAudienceError:
         logging.error("Invalid audience in JWT token", exc_info=True)
         return {"result": False, "reason": "Invalid audience in JWT token"}
     except jwt.exceptions.InvalidAlgorithmError:
