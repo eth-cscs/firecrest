@@ -87,7 +87,7 @@ deploy_dev:
   needs:
     - job: get_secrets
       artifacts: true 
-    - job: build_images
+    - job: build_dev_images
 
   script:
     - echo "Deploy development environment"
