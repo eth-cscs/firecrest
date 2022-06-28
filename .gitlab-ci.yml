@@ -5,7 +5,7 @@ default:
 stages:          # List of stages for jobs, and their order of execution
   - get_secrets
   - build_dev_images
-  #- deploy_dev
+  - deploy_dev
   #- cleanup_dev_deployment
   #- cleanup_dev_images
 
@@ -80,3 +80,30 @@ build_dev_images:
           --destination ${CI_REGISTRY_PREFIX}/tester:${CI_COMMIT_SHORT_SHA} --cleanup
         fi
 
+deploy_dev:
+  variables:
+    CI_NAMESPACE_DEV: firecrest-dev
+  stage: deploy_dev  
+  needs:
+    - job: get_secrets
+      artifacts: true 
+    - job: build_images
+
+  script:
+    - echo "Deploy development environment"
+    - curl -s -O https://get.helm.sh/helm-v3.7.1-linux-amd64.tar.gz
+    - tar -xvf helm-v3.7.1-linux-amd64.tar.gz
+    - export PATH=$PATH:$(pwd)/linux-amd64
+    - helm list -n ${CI_NAMESPACE_DEV}
+
+    - cd deploy/k8s
+    - ls -la
+    - > 
+      echo "registry: ${CI_REGISTRY_PREFIX}\ntag: '${CI_COMMIT_SHORT_SHA}' \nnamespace: ${CI_NAMESPACE_DEV}\nregistry_secret_creds: registry-credentials\n" > values-dev.yaml
+
+      for app in config certificator client compute jaeger keycloak kong minio openapi reservations status storage tasks utilities; do \
+        helm uninstall "$app-env-dev" -n ${CI_NAMESPACE_DEV} || true 
+        helm install  --wait --wait-for-jobs --timeout 60s  "$app-env-dev" $app -n ${CI_NAMESPACE_DEV}  -f values-dev.yaml
+      done
+    - helm ls -n ${CI_NAMESPACE_DEV}
+  when: on_success
