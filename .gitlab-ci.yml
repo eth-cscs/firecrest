@@ -47,7 +47,7 @@ build_dev_images:
     - job: get_secrets
       artifacts: true
   image:
-    name: gcr.io/kaniko-project/executor:latest
+    name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
   script:
     - mkdir -p /kaniko/.docker
