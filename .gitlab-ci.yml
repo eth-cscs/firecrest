@@ -67,16 +67,16 @@ build_dev_images:
 
           # Rest of the microservices
           for ms in compute reservations status storage tasks utilities; do
-              /kaniko/executor --build-arg BASE_IMAGE=${CI_REGISTRY_PREFIX}/f7t-base:latest --registry-mirror $CI_REGISTRY \
-              --context ./ --dockerfile deploy/docker/$ms/Dockerfile --destination ${CI_REGISTRY_PREFIX}/$ms:$GIT_COMMIT_SHORT_SHA --cleanup
+              /kaniko/executor --build-arg BASE_IMAGE=${CI_REGISTRY_PREFIX}/f7t-base:latest --registry-mirror ${CI_REGISTRY} \
+              --context ./ --dockerfile deploy/docker/$ms/Dockerfile --destination ${CI_REGISTRY_PREFIX}/$ms:${GIT_COMMIT_SHORT_SHA} --cleanup
           done
 
           # build web client
           /kaniko/executor --context src/tests/template_client --dockerfile ./Dockerfile \
-          --destination ${CI_REGISTRY_PREFIX}/client:$GIT_COMMIT_SHORT --cleanup
+          --destination ${CI_REGISTRY_PREFIX}/client:${GIT_COMMIT_SHORT} --cleanup
 
           # build tester
           /kaniko/executor --context ./ --dockerfile deploy/docker/tester/Dockerfile \
-          --destination ${CI_REGISTRY_PREFIX}/tester:$GIT_COMMIT_SHORT --cleanup          
+          --destination ${CI_REGISTRY_PREFIX}/tester:${GIT_COMMIT_SHORT} --cleanup          
         fi
 
