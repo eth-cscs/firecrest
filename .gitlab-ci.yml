@@ -52,13 +52,13 @@ build_dev_images:
     - >
         if [ "$CI_COMMIT_TAG" != "" ]; then 
           images="compute reservations status storage tasks utilities"; 
-          - for image in $images; do         
+          for image in $images; do         
             /kaniko/executor
               --context ./
               --dockerfile "deploy/docker/$image/Dockerfile"
               --destination "${CI_REGISTRY_PREFIX}/$image:${CI_COMMIT_SHORT_SHA}"
               --cleanup;
-            done
+          done
         else 
           # build microservices
           # Certificator separated since its base image is different (centos:7)
