@@ -113,6 +113,9 @@ deploy_dev:
       helm install --wait --wait-for-jobs --timeout 90s -n ${CI_NAMESPACE_DEV} -f values-cluster-dev.yaml --kube-token=${CI_K8S_TOKEN} cluster cluster;
 
       helm list -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN};
+
+      echo "kubectl get pods -n ${CI_NAMESPACE_DEV} --token=${CI_K8S_TOKEN};"
+
       kubectl get pods -n ${CI_NAMESPACE_DEV} --token=${CI_K8S_TOKEN};
 
     - >
