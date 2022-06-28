@@ -84,19 +84,21 @@ deploy_dev:
   variables:
     CI_NAMESPACE_DEV: firecrest-dev
     CI_COMMIT_SHORT_SHA: 6582fe09
+    DOCKER_AUTH_CONFIG: '{"auths":{"${CI_REGISTRY}":{"username":"${CI_REGISTRY_USER}","password":"${CI_REGISTRY_PASSWORD}"}}}'
   stage: deploy_dev  
   needs:
     - job: get_secrets
       artifacts: true 
     # - job: build_dev_images
-
+  image:
+    name: art.cscs.ch/docker-group-fcrest/ci-util:latest
   script:
     - echo "Deploy development environment"
-    - apt update && apt -y upgrade
-    - apt-get install -y curl
-    - curl -s -O https://get.helm.sh/helm-v3.7.1-linux-amd64.tar.gz
-    - tar -xvf helm-v3.7.1-linux-amd64.tar.gz
-    - export PATH=$PATH:$(pwd)/linux-amd64
+    # - apt update && apt -y upgrade
+    # - apt-get install -y curl
+    # - curl -s -O https://get.helm.sh/helm-v3.7.1-linux-amd64.tar.gz
+    # - tar -xvf helm-v3.7.1-linux-amd64.tar.gz
+    # - export PATH=$PATH:$(pwd)/linux-amd64
     - helm list -n ${CI_NAMESPACE_DEV}
 
     - cd deploy/k8s
@@ -105,8 +107,8 @@ deploy_dev:
       echo "registry: ${CI_REGISTRY_PREFIX}\ntag: '${CI_COMMIT_SHORT_SHA}' \nnamespace: ${CI_NAMESPACE_DEV}\nregistry_secret_creds: registry-credentials\n" > values-dev.yaml
 
       for app in config certificator client compute jaeger keycloak kong minio openapi reservations status storage tasks utilities; do \
-        helm uninstall "$app-env-dev" -n ${CI_NAMESPACE_DEV} || true 
-        helm install  --wait --wait-for-jobs --timeout 60s  "$app-env-dev" $app -n ${CI_NAMESPACE_DEV}  -f values-dev.yaml
+        helm uninstall "$app-env-dev" -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} || true 
+        helm install  --wait --wait-for-jobs --timeout 60s  "$app-env-dev" $app -n ${CI_NAMESPACE_DEV}  -f values-dev.yaml --kube-token=${CI_K8S_TOKEN};
       done
     - helm ls -n ${CI_NAMESPACE_DEV}
   when: on_success
