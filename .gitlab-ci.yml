@@ -165,6 +165,7 @@ cleanup_dev_deployment:
   needs:
     - job: get_secrets
       artifacts: true
+    - job: deploy_dev
   stage: cleanup_dev_deployment
   image: 
     name: art.cscs.ch/docker-group-fcrest/ci-util:latest
