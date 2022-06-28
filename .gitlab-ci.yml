@@ -24,18 +24,19 @@ get_secrets:
     
     - export VAULT_ADDR="https://vault.svc.cscs.ch"
     - export VAULT_TOKEN=$CI_VAULT_TOKEN
-    # - CI_K8S_TOKEN="$(vault kv get -field=firecrest-cicd-secret  firecrest/dev)"   
-    # - CI_REGISTRY_PASSWORD="$(vault kv get -field=JFROG_API_KEY firecrest/dev)"
-    # - CI_REGISTRY="$(vault kv get -field=REGISTRY firecrest/dev)"
+    - CI_K8S_TOKEN="$(vault kv get -field=firecrest-cicd-secret  firecrest/dev)"   
+    - CI_REGISTRY_PASSWORD="$(vault kv get -field=JFROG_API_KEY firecrest/dev)"
+    - CI_REGISTRY="$(vault kv get -field=REGISTRY firecrest/dev)"
     - CI_REGISTRY_GROUP="$(vault kv get -field=REGISTRY_GROUP firecrest/dev)"
-    - echo $CI_REGISTRY_GROUP
     - CI_REGISTRY_USER="$(vault kv get -field=REGISTRY_USER firecrest/dev)"
-    - echo $CI_REGISTRY_USER
     - CI_REGISTRY_PREFIX="$(vault kv get -field=REPO_PREFIX firecrest/dev)" 
-    - echo $CI_REGISTRY_PREFIX
-
+    
     - echo "CI_K8S_TOKEN=$CI_K8S_TOKEN" >> build.env
     - echo "CI_REGISTRY_PASSWORD=$CI_REGISTRY_PASSWORD" >> build.env    
+    - echo "CI_REGISTRY_USER=$CI_REGISTRY_USER" >> build.env
+    - echo "CI_REGISTRY_PREFIX=$CI_REGISTRY_PREFIX" >> build.env
+    - echo "CI_REGISTRY=$CI_REGISTRY" >> build.env
+
   artifacts:
     reports:
       dotenv: build.env
@@ -46,12 +47,11 @@ build_dev_images:
     - job: get_secrets
       artifacts: true
   image:
-    name: gcr.io/kaniko-project/executor:debug
+    name: gcr.io/kaniko-project/executor:latest
     entrypoint: [""]
   script:
     - mkdir -p /kaniko/.docker
     - echo '{"auths":{"'$CI_REGISTRY'":{"username":"'$CI_REGISTRY_USER'","password":"'$CI_REGISTRY_PASSWORD'"}}}' > /kaniko/.docker/config.json
-    - cat /kaniko/.docker/config.json
     - >
         if [ "$CI_COMMIT_TAG" != "" ]; then 
           images="compute reservations status storage tasks utilities"; 
@@ -70,7 +70,7 @@ build_dev_images:
 
           # Rest of the microservices
           for ms in compute reservations status storage tasks utilities; do
-              /kaniko/executor --build-arg BASE_IMAGE=${CI_REGISTRY_PREFIX}/f7t-base:latest --registry-mirror $REGISTRY \
+              /kaniko/executor --build-arg BASE_IMAGE=${CI_REGISTRY_PREFIX}/f7t-base:latest --registry-mirror $CI_REGISTRY \
               --context ./ --dockerfile deploy/docker/$ms/Dockerfile --destination ${CI_REGISTRY_PREFIX}/$ms:$GIT_COMMIT_SHORT_SHA --cleanup
           done
 
