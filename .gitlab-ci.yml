@@ -113,7 +113,7 @@ deploy_dev:
       helm install --wait --timeout 90s -n ${CI_NAMESPACE_DEV} -f values-cluster-dev.yaml --kube-token=${CI_K8S_TOKEN} cluster cluster
 
       helm list -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN}
-      kubectl get pods -n ${CI_NAMESPACE_DEV} --token=${CI_K8S_TOKEN}
+      kubectl get pods -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}"
 
     - >
       # Testing
@@ -134,20 +134,20 @@ deploy_dev:
         do
             sleep 20s
 
-            tester_pod=$(kubectl get pods --selector=job-name=job-tester -n ${CI_NAMESPACE_DEV} --token=${CI_K8S_TOKEN} --output=jsonpath='{.items[*].metadata.name}')
+            tester_pod=$(kubectl get pods --selector=job-name=job-tester -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" --output=jsonpath='{.items[*].metadata.name}')
             echo "Tester pod is: $tester_pod"
-            pdstatus=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --token=${CI_K8S_TOKEN} $tester_pod -o jsonpath="{.status.phase}")
+            pdstatus=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" $tester_pod -o jsonpath="{.status.phase}")
 
             if [ "$pdstatus" = "Running" ] || [ "$pdstatus" = "Pending" ]; then
-                cont_exitcode=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --token=${CI_K8S_TOKEN} --selector=app=tester -o jsonpath="{.items[*].status.containerStatuses[1].state.terminated.exitCode}")
+                cont_exitcode=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" --selector=app=tester -o jsonpath="{.items[*].status.containerStatuses[1].state.terminated.exitCode}")
 
                 if [ "$cont_exitcode" = "" ]; then echo "$tester_pod is still $pdstatus"; continue; fi
 
-                cont_reason=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --token=${CI_K8S_TOKEN} --selector=app=tester -o jsonpath="{.items[*].status.containerStatuses[1].state.terminated.reason}")
+                cont_reason=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" --selector=app=tester -o jsonpath="{.items[*].status.containerStatuses[1].state.terminated.reason}")
                 echo "Container tester exit code $cont_exitcode (reason: $cont_reason)";
             fi
 
-            kubectl logs $tester_pod -n ${CI_NAMESPACE_DEV} --token=${CI_K8S_TOKEN}
+            kubectl logs $tester_pod -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}"
             if [ "$cont_exitcode" = "0" ]; then
                 echo "$tester_pod success."; break;
               else
