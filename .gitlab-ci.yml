@@ -110,7 +110,9 @@ deploy_dev:
       echo -e "registry: ${CI_REGISTRY_PREFIX}\ntag: latest \nnamespace: ${CI_NAMESPACE_DEV}\nregistry_secret_creds: registry-credentials\n" > values-cluster-dev.yaml
 
       helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} cluster || true
-      helm install --wait --timeout 90s -n ${CI_NAMESPACE_DEV} -f values-cluster-dev.yaml --kube-token=${CI_K8S_TOKEN} cluster cluster
+      echo -e "helm install --wait --wait-for-jobs --timeout 90s -n ${CI_NAMESPACE_DEV} -f values-cluster-dev.yaml --kube-token=${CI_K8S_TOKEN} cluster cluster";
+      cat values-cluster-dev.yaml;
+      helm install --wait --wait-for-jobs --timeout 90s -n ${CI_NAMESPACE_DEV} -f values-cluster-dev.yaml --kube-token=${CI_K8S_TOKEN} cluster cluster;
 
       helm list -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN}
       kubectl get pods -n ${CI_NAMESPACE_DEV} --token=${CI_K8S_TOKEN}
