@@ -114,8 +114,6 @@ deploy_dev:
 
       helm list -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN};
 
-      echo "kubectl get pods -n ${CI_NAMESPACE_DEV} --token=${CI_K8S_TOKEN};"
-
       kubectl get pods -n ${CI_NAMESPACE_DEV} --token=${CI_K8S_TOKEN};
 
     - >
