@@ -4,7 +4,7 @@ default:
 
 stages:          # List of stages for jobs, and their order of execution
   - get_secrets
-  - build_dev_images
+  # - build_dev_images
   - deploy_dev
   - cleanup_dev_deployment
   #- cleanup_dev_images
@@ -41,49 +41,49 @@ get_secrets:
     reports:
       dotenv: build.env
 
-build_dev_images:
-  stage: build_dev_images
-  needs:
-    - job: get_secrets
-      artifacts: true
-  image:
-    name: gcr.io/kaniko-project/executor:debug
-    entrypoint: [""]
-  script:
-    - mkdir -p /kaniko/.docker
-    - echo '{"auths":{"'$CI_REGISTRY'":{"username":"'$CI_REGISTRY_USER'","password":"'$CI_REGISTRY_PASSWORD'"}}}' > /kaniko/.docker/config.json
-    - >
-        if [ "$CI_COMMIT_TAG" != "" ]; then
-          images="compute reservations status storage tasks utilities";
-          for image in $images; do
-            /kaniko/executor --context ./ --dockerfile "deploy/docker/$image/Dockerfile" \
-              --destination "${CI_REGISTRY_PREFIX}/$image:${CI_COMMIT_SHORT_SHA}" --cleanup;
-          done
-        else
-          # build microservices
-          # Certificator separated since its base image is different (centos:7)
-          /kaniko/executor --context ./ --dockerfile "deploy/docker/certificator/Dockerfile" \
-              --destination "${CI_REGISTRY_PREFIX}/certificator:${CI_COMMIT_SHORT_SHA}" --cleanup
+# build_dev_images:
+#   stage: build_dev_images
+#   needs:
+#     - job: get_secrets
+#       artifacts: true
+#   image:
+#     name: gcr.io/kaniko-project/executor:debug
+#     entrypoint: [""]
+#   script:
+#     - mkdir -p /kaniko/.docker
+#     - echo '{"auths":{"'$CI_REGISTRY'":{"username":"'$CI_REGISTRY_USER'","password":"'$CI_REGISTRY_PASSWORD'"}}}' > /kaniko/.docker/config.json
+#     - >
+#         if [ "$CI_COMMIT_TAG" != "" ]; then
+#           images="compute reservations status storage tasks utilities";
+#           for image in $images; do
+#             /kaniko/executor --context ./ --dockerfile "deploy/docker/$image/Dockerfile" \
+#               --destination "${CI_REGISTRY_PREFIX}/$image:${CI_COMMIT_SHORT_SHA}" --cleanup;
+#           done
+#         else
+#           # build microservices
+#           # Certificator separated since its base image is different (centos:7)
+#           /kaniko/executor --context ./ --dockerfile "deploy/docker/certificator/Dockerfile" \
+#               --destination "${CI_REGISTRY_PREFIX}/certificator:${CI_COMMIT_SHORT_SHA}" --cleanup
 
-          # Rest of the microservices
-          for ms in compute reservations status storage tasks utilities; do
-              /kaniko/executor --build-arg BASE_IMAGE=${CI_REGISTRY_PREFIX}/f7t-base:latest --registry-mirror ${CI_REGISTRY} \
-              --context ./ --dockerfile deploy/docker/$ms/Dockerfile --destination ${CI_REGISTRY_PREFIX}/$ms:${CI_COMMIT_SHORT_SHA} --cleanup
-          done
+#           # Rest of the microservices
+#           for ms in compute reservations status storage tasks utilities; do
+#               /kaniko/executor --build-arg BASE_IMAGE=${CI_REGISTRY_PREFIX}/f7t-base:latest --registry-mirror ${CI_REGISTRY} \
+#               --context ./ --dockerfile deploy/docker/$ms/Dockerfile --destination ${CI_REGISTRY_PREFIX}/$ms:${CI_COMMIT_SHORT_SHA} --cleanup
+#           done
 
-          # build web client
-          /kaniko/executor --context src/tests/template_client --dockerfile ./Dockerfile \
-          --destination ${CI_REGISTRY_PREFIX}/client:${CI_COMMIT_SHORT_SHA} --cleanup
+#           # build web client
+#           /kaniko/executor --context src/tests/template_client --dockerfile ./Dockerfile \
+#           --destination ${CI_REGISTRY_PREFIX}/client:${CI_COMMIT_SHORT_SHA} --cleanup
 
-          # build tester
-          /kaniko/executor --context ./ --dockerfile deploy/docker/tester/Dockerfile \
-          --destination ${CI_REGISTRY_PREFIX}/tester:${CI_COMMIT_SHORT_SHA} --cleanup
-        fi
+#           # build tester
+#           /kaniko/executor --context ./ --dockerfile deploy/docker/tester/Dockerfile \
+#           --destination ${CI_REGISTRY_PREFIX}/tester:${CI_COMMIT_SHORT_SHA} --cleanup
+#         fi
 
 deploy_dev:
   variables:
     CI_NAMESPACE_DEV: firecrest-dev
-    # CI_COMMIT_SHORT_SHA: 6582fe09
+    CI_COMMIT_SHORT_SHA: e6e250b8
     DOCKER_AUTH_CONFIG: '{"auths":{"${CI_REGISTRY}":{"username":"${CI_REGISTRY_USER}","password":"${CI_REGISTRY_PASSWORD}"}}}'
   stage: deploy_dev
   needs:
@@ -91,7 +91,7 @@ deploy_dev:
       artifacts: true
     # - job: build_dev_images
   image:
-    name: art.cscs.ch/docker-group-fcrest/ci-util:latest
+    name: ${CI_REGISTRY_PREFIX}/ci-util:latest
   script:
     - echo "Deploy development environment"
     - helm list -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN}
@@ -121,11 +121,11 @@ deploy_dev:
       for use_gateway in True False; do
         helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} tester && sleep 15s || true
 
-        echo "Test using gateway: $use_gateway"
+        echo "Test using gateway: ${use_gateway}"
         helm install --wait --timeout 120s  -n $CI_NAMESPACE_DEV  -f values-dev.yaml \
             --set tag=$CI_COMMIT_SHORT_SHA \
             --set workingDir="/firecrest/src/tests/automated_tests" \
-            --set use_gateway="$use_gateway" \
+            --set use_gateway="${use_gateway}" \
             --set pytest_config_file="firecrest-dev.ini" --kube-token=${CI_K8S_TOKEN} \
             tester tester
 
@@ -169,7 +169,7 @@ cleanup_dev_deployment:
     - job: deploy_dev
   stage: cleanup_dev_deployment
   image: 
-    name: art.cscs.ch/docker-group-fcrest/ci-util:latest
+    name: ${CI_REGISTRY_PREFIX}/ci-util:latest
   script:
     - >
       for app in config certificator client compute jaeger keycloak kong minio openapi reservations status storage tasks utilities cluster tester; do
