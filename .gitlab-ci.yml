@@ -172,7 +172,7 @@ cleanup_dev_deployment:
     name: art.cscs.ch/docker-group-fcrest/ci-util:latest
   script:
     - >
-      for app in config certificator client compute jaeger keycloak kong minio openapi reservations status storage tasks utilities; do
+      for app in config certificator client compute jaeger keycloak kong minio openapi reservations status storage tasks utilities cluster tester; do
         helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} "$app" || true
       done
   when: always
