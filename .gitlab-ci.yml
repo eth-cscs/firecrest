@@ -118,7 +118,7 @@ deploy_dev:
 
     - >
       # Testing
-      for use_gateway in True False; do
+      for use_gateway in true false; do
         helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} tester && sleep 15s || true;
 
         echo -e "Test using gateway: ${use_gateway}"
