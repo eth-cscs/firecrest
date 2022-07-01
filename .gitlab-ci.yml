@@ -99,7 +99,7 @@ deploy_dev:
     - cd deploy/k8s
     - ls -la
     - >
-      echo -e "registry: ${CI_REGISTRY_PREFIX}\ntag: '${CI_COMMIT_SHORT_SHA}' \nnamespace: ${CI_NAMESPACE_DEV}\nregistry_secret_creds: registry-credentials\n" > values-dev.yaml
+      echo -e "registry: ${CI_REGISTRY_PREFIX}\ntag: '${CI_COMMIT_SHORT_SHA}' \nnamespace: ${CI_NAMESPACE_DEV}\nregistry_secret_creds: regcred\n" > values-dev.yaml
 
       for app in config certificator client compute jaeger keycloak kong minio openapi reservations status storage tasks utilities; do
         helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} "$app" || true
@@ -107,7 +107,7 @@ deploy_dev:
       done
     # Cluster is deployed separatelly ALWAYS with tag = latest
     - >      
-      echo -e "registry: ${CI_REGISTRY_PREFIX}\ntag: latest \nnamespace: ${CI_NAMESPACE_DEV}\nregistry_secret_creds: registry-credentials\n" > values-cluster-dev.yaml;
+      echo -e "registry: ${CI_REGISTRY_PREFIX}\ntag: latest \nnamespace: ${CI_NAMESPACE_DEV}\nregistry_secret_creds: regcred\n" > values-cluster-dev.yaml;
 
       helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} cluster || true;
       helm install --wait --wait-for-jobs --timeout 120s -n ${CI_NAMESPACE_DEV} -f values-cluster-dev.yaml --kube-token=${CI_K8S_TOKEN} cluster cluster;
