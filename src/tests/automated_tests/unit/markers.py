@@ -7,5 +7,5 @@
 import os
 import pytest
 
-skipif_uses_gateway = pytest.mark.skipif(os.environ.get("USE_GATEWAY", "").lower() == "true", reason="This test does not use the gateway to test microservice")
-skipif_not_uses_gateway = pytest.mark.skipif(os.environ.get("USE_GATEWAY", "").lower() == "false", reason="This test uses the gateway to test microservice")
+skipif_uses_gateway = pytest.mark.skipif(os.environ.get("USE_GATEWAY", "").lower() == "yes", reason="This test does not use the gateway to test microservice")
+skipif_not_uses_gateway = pytest.mark.skipif(os.environ.get("USE_GATEWAY", "").lower() == "no", reason="This test uses the gateway to test microservice")

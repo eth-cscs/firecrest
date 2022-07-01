@@ -118,13 +118,11 @@ deploy_dev:
 
     - >
       # Testing
-      for use_gateway in true false; do
+      for use_gateway in Yes No; do
         helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} tester && sleep 15s || true;
 
         echo -e "Test using gateway: $use_gateway";
-        echo "$use_gateway";
-        echo "${use_gateway}";
-
+        
         helm install --wait --timeout 120s  -n $CI_NAMESPACE_DEV  -f values-dev.yaml \
             --set tag=$CI_COMMIT_SHORT_SHA \
             --set workingDir="/firecrest/src/tests/automated_tests" \
