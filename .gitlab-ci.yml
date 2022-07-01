@@ -119,9 +119,9 @@ deploy_dev:
     - >
       # Testing
       for use_gateway in True False; do
-        helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} tester && sleep 15s || true
+        helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} tester && sleep 15s || true;
 
-        echo "Test using gateway: ${use_gateway}"
+        echo -e "Test using gateway: ${use_gateway}"
         helm install --wait --timeout 120s  -n $CI_NAMESPACE_DEV  -f values-dev.yaml \
             --set tag=$CI_COMMIT_SHORT_SHA \
             --set workingDir="/firecrest/src/tests/automated_tests" \
@@ -129,11 +129,11 @@ deploy_dev:
             --set pytest_config_file="firecrest-dev.ini" --kube-token=${CI_K8S_TOKEN} \
             tester tester
 
-        cont_exitcode=0
+        cont_exitcode=0;
 
         while :
         do
-            sleep 20s
+            sleep 20s;
 
             tester_pod=$(kubectl get pods --selector=job-name=job-tester -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" --output=jsonpath='{.items[*].metadata.name}')
             echo "Tester pod is: $tester_pod"
@@ -150,9 +150,9 @@ deploy_dev:
 
             kubectl logs $tester_pod -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}"
             if [ "$cont_exitcode" = "0" ]; then
-                echo "$tester_pod success."; break;
+                echo -e "$tester_pod success."; break;
               else
-                echo "$tester_pod failed: $cont_exitcode"; exit 1;
+                echo -e "$tester_pod failed: $cont_exitcode"; exit 1;
             fi
         done
       done
