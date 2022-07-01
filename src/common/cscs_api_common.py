@@ -268,7 +268,8 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
                        key_filename=pub_cert,
                        allow_agent=False,
                        look_for_keys=False,
-                       timeout=10)
+                       timeout=10,
+                       disabled_algorithms={'keys': ['rsa-sha2-256', 'rsa-sha2-512']})
 
         if F7T_SSH_CERTIFICATE_WRAPPER:
             if debug:
