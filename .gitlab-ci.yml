@@ -119,16 +119,16 @@ deploy_dev:
     # Testing
       
     - >
-      for use_gateway in True False; do
+      for use_gateway in False True; do
 
         helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} tester && sleep 15s || true;
 
-        echo -e "Test using gateway: true";
+        echo -e "Test using gateway: $use_gateway";
         
         helm install --wait --timeout 120s  -n $CI_NAMESPACE_DEV  -f values-dev.yaml \
             --set tag=$CI_COMMIT_SHORT_SHA \
             --set workingDir="/firecrest/src/tests/automated_tests" \
-            --set use_gateway="true" \
+            --set use_gateway="$use_gateway" \
             --set pytest_config_file="firecrest-dev.ini" --kube-token=${CI_K8S_TOKEN} \
             tester tester;
 
