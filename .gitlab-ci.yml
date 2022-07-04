@@ -118,45 +118,45 @@ deploy_dev:
 
     - >
       # Testing
-      for use_gateway in Yes No; do
-        helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} tester && sleep 15s || true;
+      # for use_gateway in True False; do
+      helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} tester && sleep 15s || true;
 
-        echo -e "Test using gateway: $use_gateway";
-        
-        helm install --wait --timeout 120s  -n $CI_NAMESPACE_DEV  -f values-dev.yaml \
-            --set tag=$CI_COMMIT_SHORT_SHA \
-            --set workingDir="/firecrest/src/tests/automated_tests" \
-            --set use_gateway="${use_gateway}" \
-            --set pytest_config_file="firecrest-dev.ini" --kube-token=${CI_K8S_TOKEN} \
-            tester tester
+      echo -e "Test using gateway: true";
+      
+      helm install --wait --timeout 120s  -n $CI_NAMESPACE_DEV  -f values-dev.yaml \
+          --set tag=$CI_COMMIT_SHORT_SHA \
+          --set workingDir="/firecrest/src/tests/automated_tests" \
+          --set use_gateway="true" \
+          --set pytest_config_file="firecrest-dev.ini" --kube-token=${CI_K8S_TOKEN} \
+          tester tester
 
-        cont_exitcode=0;
+      cont_exitcode=0;
 
-        while :
-        do
-            sleep 20s;
+      while :
+      do
+          sleep 20s;
 
-            tester_pod=$(kubectl get pods --selector=job-name=job-tester -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" --output=jsonpath='{.items[*].metadata.name}')
-            echo "Tester pod is: $tester_pod"
-            pdstatus=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" $tester_pod -o jsonpath="{.status.phase}")
+          tester_pod=$(kubectl get pods --selector=job-name=job-tester -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" --output=jsonpath='{.items[*].metadata.name}')
+          echo "Tester pod is: $tester_pod"
+          pdstatus=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" $tester_pod -o jsonpath="{.status.phase}")
 
-            if [ "$pdstatus" = "Running" ] || [ "$pdstatus" = "Pending" ]; then
-                cont_exitcode=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" --selector=app=tester -o jsonpath="{.items[*].status.containerStatuses[1].state.terminated.exitCode}")
+          if [ "$pdstatus" = "Running" ] || [ "$pdstatus" = "Pending" ]; then
+              cont_exitcode=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" --selector=app=tester -o jsonpath="{.items[*].status.containerStatuses[1].state.terminated.exitCode}")
 
-                if [ "$cont_exitcode" = "" ]; then echo "$tester_pod is still $pdstatus"; continue; fi
+              if [ "$cont_exitcode" = "" ]; then echo "$tester_pod is still $pdstatus"; continue; fi
 
-                cont_reason=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" --selector=app=tester -o jsonpath="{.items[*].status.containerStatuses[1].state.terminated.reason}")
-                echo "Container tester exit code $cont_exitcode (reason: $cont_reason)";
-            fi
+              cont_reason=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" --selector=app=tester -o jsonpath="{.items[*].status.containerStatuses[1].state.terminated.reason}")
+              echo "Container tester exit code $cont_exitcode (reason: $cont_reason)";
+          fi
 
-            kubectl logs $tester_pod -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}"
-            if [ "$cont_exitcode" = "0" ]; then
-                echo -e "$tester_pod success."; break;
-              else
-                echo -e "$tester_pod failed: $cont_exitcode"; exit 1;
-            fi
-        done
+          kubectl logs $tester_pod -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}"
+          if [ "$cont_exitcode" = "0" ]; then
+              echo -e "$tester_pod success."; break;
+            else
+              echo -e "$tester_pod failed: $cont_exitcode"; exit 1;
+          fi
       done
+      # done
 
   when: on_success
 
