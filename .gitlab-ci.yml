@@ -129,7 +129,7 @@ deploy_dev:
           --set workingDir="/firecrest/src/tests/automated_tests" \
           --set use_gateway="true" \
           --set pytest_config_file="firecrest-dev.ini" --kube-token=${CI_K8S_TOKEN} \
-          tester tester
+          tester tester;
 
       cont_exitcode=0;
 
@@ -137,9 +137,11 @@ deploy_dev:
       do
           sleep 20s;
 
-          tester_pod=$(kubectl get pods --selector=job-name=job-tester -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" --output=jsonpath='{.items[*].metadata.name}')
-          echo "Tester pod is: $tester_pod"
-          pdstatus=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" $tester_pod -o jsonpath="{.status.phase}")
+          tester_pod=$(kubectl get pods --selector=job-name=job-tester -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" --output=jsonpath='{.items[*].metadata.name}');
+
+          echo "Tester pod is: $tester_pod";
+
+          pdstatus=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" $tester_pod -o jsonpath="{.status.phase}");
 
           if [ "$pdstatus" = "Running" ] || [ "$pdstatus" = "Pending" ]; then
               cont_exitcode=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" --selector=app=tester -o jsonpath="{.items[*].status.containerStatuses[1].state.terminated.exitCode}")
@@ -150,12 +152,14 @@ deploy_dev:
               echo "Container tester exit code $cont_exitcode (reason: $cont_reason)";
           fi
 
-          kubectl logs $tester_pod -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}"
+          kubectl logs $tester_pod -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}";
+          
           if [ "$cont_exitcode" = "0" ]; then
               echo -e "$tester_pod success."; break;
             else
               echo -e "$tester_pod failed: $cont_exitcode"; exit 1;
           fi
+
       done     
     # done
 
