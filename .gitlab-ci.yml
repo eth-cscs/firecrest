@@ -36,6 +36,7 @@ get_secrets:
     - echo "CI_REGISTRY_USER=$CI_REGISTRY_USER" >> build.env
     - echo "CI_REGISTRY_PREFIX=$CI_REGISTRY_PREFIX" >> build.env
     - echo "CI_REGISTRY=$CI_REGISTRY" >> build.env
+    - echo "CI_REGISTRY_GROUP=$CI_REGISTRY_GROUP" >> build.env
 
   artifacts:
     reports:
