@@ -198,6 +198,9 @@ cleanup_dev_images:
   image: 
     name: ${CI_REGISTRY_PREFIX}/ci-util:latest
   script:
-    - for image in certificator client compute reservations status storage tasks tester utilities; do ./jfrog rt del --recursive --quiet --url="https://${CI_REGISTRY}/artifactory" --user="${CI_REGISTRY_USER}" 
-        --password="${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY_GROUP}/$image/${CI_COMMIT_SHORT_SHA}/"; done
+    - > 
+      for image in certificator client compute reservations status storage tasks tester utilities; do
+        jfrog rt del --recursive --quiet --url="https://${CI_REGISTRY}/artifactory" --user="${CI_REGISTRY_USER}" \
+          --password="${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY_GROUP}/$image/${CI_COMMIT_SHORT_SHA}/"; 
+      done
   when: on_success
