@@ -7,7 +7,7 @@ stages:          # List of stages for jobs, and their order of execution
   - build_dev_images
   - deploy_dev
   - cleanup_dev_deployment
-  #- cleanup_dev_images
+  - cleanup_dev_images
 
 get_secrets:
   stage: get_secrets
@@ -182,4 +182,23 @@ cleanup_dev_deployment:
       for app in config certificator client compute jaeger keycloak kong minio openapi reservations status storage tasks utilities cluster tester; do
         helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} "$app" || true
       done
+  when: on_success
+
+
+cleanup_dev_images:
+  variables:
+    CI_NAMESPACE_DEV: firecrest-dev
+    DOCKER_AUTH_CONFIG: '{"auths":{"${CI_REGISTRY}":{"username":"${CI_REGISTRY_USER}","password":"${CI_REGISTRY_PASSWORD}"}}}'
+  needs:
+    - job: get_secrets
+      artifacts: true
+    - job: deploy_dev
+    - job: cleanup_dev_deployment
+  stage: cleanup_dev_images
+  image: 
+    name: ${CI_REGISTRY_PREFIX}/ci-util:latest
+  script:
+    - >
+      - for image in certificator client compute reservations status storage tasks tester utilities; do ./jfrog rt del --recursive --quiet --url="https://${CI_REGISTRY}/artifactory" --user="${CI_REGISTRY_USER}" 
+        --password="${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY_GROUP}/$image/${CI_COMMIT_SHORT_SHA}/"; done
   when: on_success
