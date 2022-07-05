@@ -4,9 +4,9 @@ default:
 
 stages:          # List of stages for jobs, and their order of execution
   - get_secrets
-  - build_dev_images
-  - deploy_dev
-  - cleanup_dev_deployment
+#   - build_dev_images
+#   - deploy_dev
+#   - cleanup_dev_deployment
   - cleanup_dev_images
 
 get_secrets:
@@ -41,148 +41,149 @@ get_secrets:
     reports:
       dotenv: build.env
 
-build_dev_images:
-  stage: build_dev_images
-  needs:
-    - job: get_secrets
-      artifacts: true
-  image:
-    name: gcr.io/kaniko-project/executor:debug
-    entrypoint: [""]
-  script:
-    - mkdir -p /kaniko/.docker
-    - echo '{"auths":{"'$CI_REGISTRY'":{"username":"'$CI_REGISTRY_USER'","password":"'$CI_REGISTRY_PASSWORD'"}}}' > /kaniko/.docker/config.json
-    - >
-        if [ "$CI_COMMIT_TAG" != "" ]; then
-          images="compute reservations status storage tasks utilities";
-          for image in $images; do
-            /kaniko/executor --context ./ --dockerfile "deploy/docker/$image/Dockerfile" \
-              --destination "${CI_REGISTRY_PREFIX}/$image:${CI_COMMIT_SHORT_SHA}" --cleanup;
-          done
-        else
-          # build microservices
-          # Certificator separated since its base image is different (centos:7)
-          /kaniko/executor --context ./ --dockerfile "deploy/docker/certificator/Dockerfile" \
-              --destination "${CI_REGISTRY_PREFIX}/certificator:${CI_COMMIT_SHORT_SHA}" --cleanup
+# build_dev_images:
+#   stage: build_dev_images
+#   needs:
+#     - job: get_secrets
+#       artifacts: true
+#   image:
+#     name: gcr.io/kaniko-project/executor:debug
+#     entrypoint: [""]
+#   script:
+#     - mkdir -p /kaniko/.docker
+#     - echo '{"auths":{"'$CI_REGISTRY'":{"username":"'$CI_REGISTRY_USER'","password":"'$CI_REGISTRY_PASSWORD'"}}}' > /kaniko/.docker/config.json
+#     - >
+#         if [ "$CI_COMMIT_TAG" != "" ]; then
+#           images="compute reservations status storage tasks utilities";
+#           for image in $images; do
+#             /kaniko/executor --context ./ --dockerfile "deploy/docker/$image/Dockerfile" \
+#               --destination "${CI_REGISTRY_PREFIX}/$image:${CI_COMMIT_SHORT_SHA}" --cleanup;
+#           done
+#         else
+#           # build microservices
+#           # Certificator separated since its base image is different (centos:7)
+#           /kaniko/executor --context ./ --dockerfile "deploy/docker/certificator/Dockerfile" \
+#               --destination "${CI_REGISTRY_PREFIX}/certificator:${CI_COMMIT_SHORT_SHA}" --cleanup
 
-          # Rest of the microservices
-          for ms in compute reservations status storage tasks utilities; do
-              /kaniko/executor --build-arg BASE_IMAGE=${CI_REGISTRY_PREFIX}/f7t-base:latest --registry-mirror ${CI_REGISTRY} \
-              --context ./ --dockerfile deploy/docker/$ms/Dockerfile --destination ${CI_REGISTRY_PREFIX}/$ms:${CI_COMMIT_SHORT_SHA} --cleanup
-          done
+#           # Rest of the microservices
+#           for ms in compute reservations status storage tasks utilities; do
+#               /kaniko/executor --build-arg BASE_IMAGE=${CI_REGISTRY_PREFIX}/f7t-base:latest --registry-mirror ${CI_REGISTRY} \
+#               --context ./ --dockerfile deploy/docker/$ms/Dockerfile --destination ${CI_REGISTRY_PREFIX}/$ms:${CI_COMMIT_SHORT_SHA} --cleanup
+#           done
 
-          # build web client
-          /kaniko/executor --context src/tests/template_client --dockerfile ./Dockerfile \
-          --destination ${CI_REGISTRY_PREFIX}/client:${CI_COMMIT_SHORT_SHA} --cleanup
+#           # build web client
+#           /kaniko/executor --context src/tests/template_client --dockerfile ./Dockerfile \
+#           --destination ${CI_REGISTRY_PREFIX}/client:${CI_COMMIT_SHORT_SHA} --cleanup
 
-          # build tester
-          /kaniko/executor --context ./ --dockerfile deploy/docker/tester/Dockerfile \
-          --destination ${CI_REGISTRY_PREFIX}/tester:${CI_COMMIT_SHORT_SHA} --cleanup
-        fi
+#           # build tester
+#           /kaniko/executor --context ./ --dockerfile deploy/docker/tester/Dockerfile \
+#           --destination ${CI_REGISTRY_PREFIX}/tester:${CI_COMMIT_SHORT_SHA} --cleanup
+#         fi
 
-deploy_dev:
-  variables:
-    CI_NAMESPACE_DEV: firecrest-dev
-    # CI_COMMIT_SHORT_SHA: 0051c6bb
-    DOCKER_AUTH_CONFIG: '{"auths":{"${CI_REGISTRY}":{"username":"${CI_REGISTRY_USER}","password":"${CI_REGISTRY_PASSWORD}"}}}'
-  stage: deploy_dev
-  needs:
-    - job: get_secrets
-      artifacts: true
-    - job: build_dev_images
-  image:
-    name: ${CI_REGISTRY_PREFIX}/ci-util:latest
-  script:
-    - echo "Deploy development environment"
-    - helm list -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN}
+# deploy_dev:
+#   variables:
+#     CI_NAMESPACE_DEV: firecrest-dev
+#     # CI_COMMIT_SHORT_SHA: 0051c6bb
+#     DOCKER_AUTH_CONFIG: '{"auths":{"${CI_REGISTRY}":{"username":"${CI_REGISTRY_USER}","password":"${CI_REGISTRY_PASSWORD}"}}}'
+#   stage: deploy_dev
+#   needs:
+#     - job: get_secrets
+#       artifacts: true
+#     - job: build_dev_images
+#   image:
+#     name: ${CI_REGISTRY_PREFIX}/ci-util:latest
+#   script:
+#     - echo "Deploy development environment"
+#     - helm list -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN}
 
-    - cd deploy/k8s
-    - ls -la
-    - >
-      echo -e "registry: ${CI_REGISTRY_PREFIX}\ntag: '${CI_COMMIT_SHORT_SHA}' \nnamespace: ${CI_NAMESPACE_DEV}\nregistry_secret_creds: regcred\n" > values-dev.yaml
+#     - cd deploy/k8s
+#     - ls -la
+#     - >
+#       echo -e "registry: ${CI_REGISTRY_PREFIX}\ntag: '${CI_COMMIT_SHORT_SHA}' \nnamespace: ${CI_NAMESPACE_DEV}\nregistry_secret_creds: regcred\n" > values-dev.yaml
 
-      for app in config certificator client compute jaeger keycloak kong minio openapi reservations status storage tasks utilities; do
-        helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} "$app" || true
-        helm install  --wait --wait-for-jobs --timeout 120s -n ${CI_NAMESPACE_DEV} -f values-dev.yaml --kube-token=${CI_K8S_TOKEN} "$app" $app;
-      done
-    # Cluster is deployed separatelly ALWAYS with tag = latest
-    - >      
-      echo -e "registry: ${CI_REGISTRY_PREFIX}\ntag: latest \nnamespace: ${CI_NAMESPACE_DEV}\nregistry_secret_creds: regcred\n" > values-cluster-dev.yaml;
+#       for app in config certificator client compute jaeger keycloak kong minio openapi reservations status storage tasks utilities; do
+#         helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} "$app" || true
+#         helm install  --wait --wait-for-jobs --timeout 120s -n ${CI_NAMESPACE_DEV} -f values-dev.yaml --kube-token=${CI_K8S_TOKEN} "$app" $app;
+#       done
+#     # Cluster is deployed separatelly ALWAYS with tag = latest
+#     - >      
+#       echo -e "registry: ${CI_REGISTRY_PREFIX}\ntag: latest \nnamespace: ${CI_NAMESPACE_DEV}\nregistry_secret_creds: regcred\n" > values-cluster-dev.yaml;
 
-      helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} cluster || true;
-      helm install --wait --wait-for-jobs --timeout 120s -n ${CI_NAMESPACE_DEV} -f values-cluster-dev.yaml --kube-token=${CI_K8S_TOKEN} cluster cluster;
+#       helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} cluster || true;
+#       helm install --wait --wait-for-jobs --timeout 120s -n ${CI_NAMESPACE_DEV} -f values-cluster-dev.yaml --kube-token=${CI_K8S_TOKEN} cluster cluster;
 
-      helm list -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN};
+#       helm list -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN};
 
-      kubectl get pods -n ${CI_NAMESPACE_DEV} --token=${CI_K8S_TOKEN};
+#       kubectl get pods -n ${CI_NAMESPACE_DEV} --token=${CI_K8S_TOKEN};
 
-    # Testing
+#     # Testing
       
-    - >
-      for use_gateway in False True; do
+#     - >
+#       for use_gateway in False True; do
 
-        helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} tester && sleep 15s || true;
+#         helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} tester && sleep 15s || true;
 
-        echo -e "Test using gateway: $use_gateway";
+#         echo -e "Test using gateway: $use_gateway";
         
-        helm install --wait --timeout 120s  -n $CI_NAMESPACE_DEV  -f values-dev.yaml \
-            --set tag=$CI_COMMIT_SHORT_SHA \
-            --set workingDir="/firecrest/src/tests/automated_tests" \
-            --set use_gateway="$use_gateway" \
-            --set pytest_config_file="firecrest-dev.ini" --kube-token=${CI_K8S_TOKEN} \
-            tester tester;
+#         helm install --wait --timeout 120s  -n $CI_NAMESPACE_DEV  -f values-dev.yaml \
+#             --set tag=$CI_COMMIT_SHORT_SHA \
+#             --set workingDir="/firecrest/src/tests/automated_tests" \
+#             --set use_gateway="$use_gateway" \
+#             --set pytest_config_file="firecrest-dev.ini" --kube-token=${CI_K8S_TOKEN} \
+#             tester tester;
 
-        cont_exitcode=0;
+#         cont_exitcode=0;
 
-        while :
-        do
-            sleep 20s;
+#         while :
+#         do
+#             sleep 20s;
 
-            tester_pod=$(kubectl get pods --selector=job-name=job-tester -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" --output=jsonpath='{.items[*].metadata.name}');
+#             tester_pod=$(kubectl get pods --selector=job-name=job-tester -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" --output=jsonpath='{.items[*].metadata.name}');
 
-            echo "Tester pod is: $tester_pod";
+#             echo "Tester pod is: $tester_pod";
 
-            pdstatus=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" $tester_pod -o jsonpath="{.status.phase}");
+#             pdstatus=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" $tester_pod -o jsonpath="{.status.phase}");
 
-            if [ "$pdstatus" = "Running" ] || [ "$pdstatus" = "Pending" ]; then
-                cont_exitcode=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" --selector=app=tester -o jsonpath="{.items[*].status.containerStatuses[1].state.terminated.exitCode}")
+#             if [ "$pdstatus" = "Running" ] || [ "$pdstatus" = "Pending" ]; then
+#                 cont_exitcode=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" --selector=app=tester -o jsonpath="{.items[*].status.containerStatuses[1].state.terminated.exitCode}")
 
-                if [ "$cont_exitcode" = "" ]; then echo "$tester_pod is still $pdstatus"; continue; fi
+#                 if [ "$cont_exitcode" = "" ]; then echo "$tester_pod is still $pdstatus"; continue; fi
 
-                cont_reason=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" --selector=app=tester -o jsonpath="{.items[*].status.containerStatuses[1].state.terminated.reason}")
-                echo "Container tester exit code $cont_exitcode (reason: $cont_reason)";
-            fi
+#                 cont_reason=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" --selector=app=tester -o jsonpath="{.items[*].status.containerStatuses[1].state.terminated.reason}")
+#                 echo "Container tester exit code $cont_exitcode (reason: $cont_reason)";
+#             fi
 
-            kubectl logs $tester_pod -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}";
+#             kubectl logs $tester_pod -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}";
 
-            if [ "$cont_exitcode" = "0" ]; then
-                echo -e "$tester_pod success."; break;
-              else
-                echo -e "$tester_pod failed: $cont_exitcode"; exit 1;
-            fi
+#             if [ "$cont_exitcode" = "0" ]; then
+#                 echo -e "$tester_pod success."; break;
+#               else
+#                 echo -e "$tester_pod failed: $cont_exitcode"; exit 1;
+#             fi
 
-          done     
-      done
+#           done     
+#       done
 
-  when: on_success
+#   when: on_success
 
-cleanup_dev_deployment:
-  variables:
-    CI_NAMESPACE_DEV: firecrest-dev
-    DOCKER_AUTH_CONFIG: '{"auths":{"${CI_REGISTRY}":{"username":"${CI_REGISTRY_USER}","password":"${CI_REGISTRY_PASSWORD}"}}}'
-  needs:
-    - job: get_secrets
-      artifacts: true
-    - job: deploy_dev
-  stage: cleanup_dev_deployment
-  image: 
-    name: ${CI_REGISTRY_PREFIX}/ci-util:latest
-  script:
-    - >
-      for app in config certificator client compute jaeger keycloak kong minio openapi reservations status storage tasks utilities cluster tester; do
-        helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} "$app" || true
-      done
-  when: on_success
+# cleanup_dev_deployment:
+#   variables:
+#     CI_NAMESPACE_DEV: firecrest-dev
+#     CI_COMMIT_SHORT_SHA: 0051c6bb
+#     DOCKER_AUTH_CONFIG: '{"auths":{"${CI_REGISTRY}":{"username":"${CI_REGISTRY_USER}","password":"${CI_REGISTRY_PASSWORD}"}}}'
+#   needs:
+#     - job: get_secrets
+#       artifacts: true
+#     - job: deploy_dev
+#   stage: cleanup_dev_deployment
+#   image: 
+#     name: ${CI_REGISTRY_PREFIX}/ci-util:latest
+#   script:
+#     - >
+#       for app in config certificator client compute jaeger keycloak kong minio openapi reservations status storage tasks utilities cluster tester; do
+#         helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} "$app" || true
+#       done
+#   when: on_success
 
 
 cleanup_dev_images:
@@ -192,15 +193,17 @@ cleanup_dev_images:
   needs:
     - job: get_secrets
       artifacts: true
-    - job: deploy_dev
-    - job: cleanup_dev_deployment
+    #- job: deploy_dev
+    #- job: cleanup_dev_deployment
   stage: cleanup_dev_images
   image: 
     name: ${CI_REGISTRY_PREFIX}/ci-util:latest
   script:
     - > 
       for image in certificator client compute reservations status storage tasks tester utilities; do
+
         jfrog rt del --recursive --quiet --url="https://${CI_REGISTRY}/artifactory" --user="${CI_REGISTRY_USER}" \
           --password="${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY_GROUP}/$image/${CI_COMMIT_SHORT_SHA}/"; 
+
       done
   when: on_success
