@@ -33,7 +33,6 @@ master_doc = 'index'
 extensions = [
     'sphinxcontrib.openapi',
     'sphinx_tabs.tabs',
-    'sphinxcontrib.redoc',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -62,19 +61,3 @@ html_theme = 'sphinx_rtd_theme'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
-
-redoc = [
-    {
-        'name': 'FirecREST API',
-        'page': 'api',
-        'spec': '../openapi/firecrest-developers-api.yaml',
-        'embed': True,
-        'opts': {
-            'lazy': False,
-            'nowarnings': True,
-            'nohostname': False,
-            'required-props-first': True,
-            # 'expand-responses': [200, 201],
-        }
-    },
-]
