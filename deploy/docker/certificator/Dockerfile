@@ -5,7 +5,7 @@
 ##  SPDX-License-Identifier: BSD-3-Clause
 ##
 ARG BASE_IMAGE=centos:7
-from $BASE_IMAGE
+FROM $BASE_IMAGE
 
 RUN yum install -y epel-release
 RUN yum -y update
