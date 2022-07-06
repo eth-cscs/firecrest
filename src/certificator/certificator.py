@@ -133,12 +133,12 @@ def check_header(header):
         if realm_pubkey == '':
             if not debug:
                 logging.warning("WARNING: REALM_RSA_PUBLIC_KEY is empty, JWT tokens are NOT verified, setup is not set to debug.")
-            decoded = jwt.decode(header[7:], verify=False)
+            decoded = jwt.decode(header[7:], options={"verify_signature": False})
         else:
             if AUTH_AUDIENCE == '':
-                decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, options={'verify_aud': False})
+                decoded = jwt.decode(header[7:], realm_pubkey, algorithms=[realm_pubkey_type], options={'verify_aud': False})
             else:
-                decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, audience=AUTH_AUDIENCE)
+                decoded = jwt.decode(header[7:], realm_pubkey, algorithms=[realm_pubkey_type], audience=AUTH_AUDIENCE)
 
         # {"scope": "openid profile firecrest email"}
         if AUTH_REQUIRED_SCOPE != "":
@@ -169,9 +169,9 @@ def get_username(header):
     # header = "Bearer ey...", remove first 7 chars
     try:
         if realm_pubkey == '':
-            decoded = jwt.decode(header[7:], verify=False)
+            decoded = jwt.decode(header[7:], options={"verify_signature": False})
         else:
-            decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, options={'verify_aud': False})
+            decoded = jwt.decode(header[7:], realm_pubkey, algorithms=[realm_pubkey_type], options={'verify_aud': False})
 
         # check if it's a service account token
         try:

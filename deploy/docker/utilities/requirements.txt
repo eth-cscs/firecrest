@@ -1,2 +1,2 @@
 -r ../base/requirements.txt
-paramiko==2.6.0
+paramiko==2.11.0

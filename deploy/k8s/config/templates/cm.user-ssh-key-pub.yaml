@@ -1,7 +1,7 @@
 apiVersion: v1
 data:
   user-key.pub: |
-    ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCx4qVERzkrUQDrvaFr55dx5tv3rtjuAyuzxZno6P6uyR5JavXXrwMNH4nersqFf1HnyuEmtg8rKTs/1vNs4jSfKslcDfcK97a3WrV2sfKGQt5aUFeUdy1RIOTRV0O+WeQUUdwn1Zl3m9DAlqhgR4gYKWrl032nP2DjoZ+bGlObyi4TMCpBE0W3Pn8CE/b3ULFOOACWFMvDA1+cln2FmTVs/PUjGsW/e5H3SzmBf/o3Uf5148S4dyjEZ6FPfaVX5/82iqwO9tYZERlKFiHbtGs0w3BBkopIR2FIK9AuJ/RHQ+i8rUHeDKxYQSge1R/PUGb9pxKf3TFK2eIS1wrQ5Qsj user@local  
+    ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDEDvgDXtHRf88VaThzNz2MtPk7Ux81ZJ/isUgfW6D5C test1@cluster
 kind: ConfigMap
 metadata:
   name: f7t-user-ssh-pub-keys

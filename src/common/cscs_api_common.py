@@ -84,12 +84,12 @@ def check_header(header):
         if realm_pubkey == '':
             if not debug:
                 logging.warning("WARNING: REALM_RSA_PUBLIC_KEY is empty, JWT tokens are NOT verified, setup is not set to debug.")
-            decoded = jwt.decode(header[7:], verify=False)
+            decoded = jwt.decode(header[7:], options={"verify_signature": False})
         else:
             if AUTH_AUDIENCE == '':
-                decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, options={'verify_aud': False})
+                decoded = jwt.decode(header[7:], realm_pubkey, algorithms=[realm_pubkey_type], options={'verify_aud': False})
             else:
-                decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, audience=AUTH_AUDIENCE)
+                decoded = jwt.decode(header[7:], realm_pubkey, algorithms=[realm_pubkey_type], audience=AUTH_AUDIENCE)
 
         if AUTH_REQUIRED_SCOPE != "":
             if AUTH_REQUIRED_SCOPE not in decoded["scope"].split():
@@ -119,9 +119,9 @@ def get_username(header):
     # header = "Bearer ey...", remove first 7 chars
     try:
         if realm_pubkey == '':
-            decoded = jwt.decode(header[7:], verify=False)
+            decoded = jwt.decode(header[7:], options={"verify_signature": False})
         else:
-            decoded = jwt.decode(header[7:], realm_pubkey, algorithms=realm_pubkey_type, options={'verify_aud': False})
+            decoded = jwt.decode(header[7:], realm_pubkey, algorithms=[realm_pubkey_type], options={'verify_aud': False})
         # check if it's a service account token
         try:
             if AUTH_ROLE in decoded["realm_access"]["roles"]:
@@ -281,7 +281,8 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
                        key_filename=pub_cert,
                        allow_agent=False,
                        look_for_keys=False,
-                       timeout=10)
+                       timeout=10,
+                       disabled_algorithms={'keys': ['rsa-sha2-256', 'rsa-sha2-512']})
 
         if F7T_SSH_CERTIFICATE_WRAPPER:
             if debug:
