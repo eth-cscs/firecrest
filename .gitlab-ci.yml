@@ -93,6 +93,8 @@ deploy_dev:
     name: ${CI_REGISTRY_PREFIX}/ci-util:latest
   script:
     - echo "Deploy development environment"
+    - export VAULT_ADDR="https://vault.svc.cscs.ch"
+    - export VAULT_TOKEN=$CI_VAULT_TOKEN
     - |
         printf 'Waiting...'
         ELEVATED_TOKEN="$(vault kv get -field=GITLAB_ACCESS_TOKEN firecrest/dev)"
