@@ -96,7 +96,7 @@ deploy_dev:
     - export VAULT_ADDR="https://vault.svc.cscs.ch"
     - export VAULT_TOKEN=$CI_VAULT_TOKEN
     - |
-        printf 'Waiting...'
+        printf 'Waiting for other pipelines...'
         ELEVATED_TOKEN="$(vault kv get -field=GITLAB_ACCESS_TOKEN firecrest/dev)"
         GITLAB_HOST="https://gitlab.cscs.ch"
         CI_PROJECT_ID=1261
