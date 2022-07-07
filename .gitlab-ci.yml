@@ -105,7 +105,7 @@ deploy_dev:
           READY=$(curl -sS --header "PRIVATE-TOKEN: ${ELEVATED_TOKEN}" "${GITLAB_HOST}/api/v4/projects/${CI_PROJECT_ID}/pipelines?order_by=id&sort=asc&scope=running" | jq '.[0].id=='"${CI_PIPELINE_ID}")
           if [ "${READY}" = "true" ]; then
             printf '\nReady!'
-            exit 0
+            break
           else
             printf '.'
             sleep 10
