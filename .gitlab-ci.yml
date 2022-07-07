@@ -38,6 +38,7 @@ get_secrets:
     - echo "CI_REGISTRY_GROUP=$CI_REGISTRY_GROUP" >> build.env
 
   artifacts:
+    expire_in: 1 hrs
     reports:
       dotenv: build.env
 
