@@ -93,23 +93,27 @@ def check_header(header):
 
         if AUTH_REQUIRED_SCOPE != "":
             if AUTH_REQUIRED_SCOPE not in decoded["scope"].split():
-                return False
+                return {"result": False, "reason": "Required scope is missing"}
 
-        return True
+        return {"result": True}
 
     except jwt.exceptions.InvalidSignatureError:
-        logging.error("JWT invalid signature", exc_info=True)
+        logging.error("JWT token has invalid signature", exc_info=True)
+        return {"result": False, "reason": "JWT token has invalid signature"}
     except jwt.exceptions.ExpiredSignatureError:
         logging.error("JWT token has expired", exc_info=True)
+        return {"result": False, "reason": "JWT token has expired"}
     except jwt.exceptions.InvalidAudienceError:
-        logging.error("JWT token invalid audience", exc_info=True)
+        logging.error("Invalid audience in JWT token", exc_info=True)
+        return {"result": False, "reason": "Invalid audience in JWT token"}
     except jwt.exceptions.InvalidAlgorithmError:
-        logging.error("JWT invalid signature algorithm", exc_info=True)
+        logging.error("JWT token has invalid signature algorithm", exc_info=True)
+        return {"result": False, "reason": "JWT token has invalid signature algorithm"}
     except Exception:
         logging.error("Bad header or JWT, general exception raised", exc_info=True)
+        return {"result": False, "reason": "Bad header or JWT, general exception raised"}
 
-    return False
-
+# receive the header, and extract the username from the token
 # returns username
 def get_username(header):
     # header = "Bearer ey...", remove first 7 chars
@@ -124,23 +128,26 @@ def get_username(header):
 
                 clientId = decoded["clientId"]
                 username = decoded["resource_access"][clientId]["roles"][0]
-                return username
-            return decoded['preferred_username']
+                return {"result": True, "reason":"", "username": username}
+            return {"result": True, "reason":"", "username": decoded['preferred_username']} 
         except Exception:
-            return decoded['preferred_username']
+            return {"result": True, "reason":"", "username": decoded['preferred_username']}
 
     except jwt.exceptions.InvalidSignatureError:
-        logging.error("JWT invalid signature", exc_info=True)
-    except jwt.exceptions.ExpiredSignatureError:
+        logging.error("JWT token has invalid signature", exc_info=True)
+        return {"result": False, "reason": "JWT token has invalid signature", username: None}
+    except jwt.ExpiredSignatureError:
         logging.error("JWT token has expired", exc_info=True)
-    except jwt.exceptions.InvalidAudienceError:
-        logging.error("JWT token invalid audience", exc_info=True)
+        return {"result": False, "reason": "JWT token has expired", username: None}
+    except jwt.InvalidAudienceError:
+        logging.error("Invalid audience in JWT token", exc_info=True)
+        return {"result": False, "reason": "Invalid audience in JWT token", username: None}
     except jwt.exceptions.InvalidAlgorithmError:
-        logging.error("JWT invalid signature algorithm", exc_info=True)
+        logging.error("JWT token has invalid signature algorithm", exc_info=True)
+        return {"result": False, "reason": "JWT token has invalid signature algorithm", username: None}
     except Exception:
         logging.error("Bad header or JWT, general exception raised", exc_info=True)
-
-    return None
+        return {"result": False, "reason": "Bad header or JWT, general exception raised", username: None}
 
 # function to check if pattern is in string
 def in_str(stringval,words):
@@ -179,14 +186,16 @@ def create_certificate(headers, cluster_name, cluster_addr, command=None, option
         return [None, 1, 'Internal error']
 
     if debug:
-        username = get_username(headers[AUTH_HEADER_NAME])
-        logging.info(f"Create certificate for user {username}")
+        is_username_ok = get_username(headers[AUTH_HEADER_NAME])
+        if is_username_ok["result"] == False:
+            logging.error(f"Cannot create certificate. Reason: {is_username_ok['reason']}")
+            return [None, 401, is_username_ok["reason"] ]
         if options:
             # may contain Storage URL
             logging.info(f"\tOptions (complete): {options}")
         logging.info(f"Request URL: {reqURL}")
 
-    try:
+    try:        
         resp = requests.get(reqURL, headers=headers, verify= (SSL_CRT if USE_SSL else False) )
 
         if resp.status_code != 200:
@@ -246,7 +255,11 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
             result = {"error": cert_list[1], "msg": cert_list[2]}
             return result
 
-        username = get_username(headers[AUTH_HEADER_NAME])
+        is_username_ok = get_username(headers[AUTH_HEADER_NAME])
+        if not is_username_ok["result"]:
+            return {"error": 1, "msg": is_username_ok["reason"]}
+    
+        username = is_username_ok["username"]
 
     [pub_cert, pub_key, priv_key, temp_dir] = cert_list
 
@@ -663,8 +676,9 @@ def check_auth_header(func):
         except KeyError:
             logging.error("No Auth Header given")
             return jsonify(description="No Auth Header given"), 401
-        if not check_header(auth_header):
-            return jsonify(description="Invalid header"), 401
+        is_header_ok = check_header(auth_header)
+        if not is_header_ok["result"]:
+            return jsonify(description=is_header_ok["reason"]), 401
 
         return func(*args, **kwargs)
     return wrapper_check_auth_header

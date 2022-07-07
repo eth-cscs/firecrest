@@ -102,7 +102,13 @@ def init_queue():
 def list_tasks():
     auth_header = request.headers[AUTH_HEADER_NAME]
     # getting username from auth_header
-    username = get_username(auth_header)
+    is_username_ok = get_username(auth_header)
+
+    if not is_username_ok["result"]:
+        app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
+        return jsonify(description=f"Error on JWT token verification: {is_username_ok['reason']}"), 401
+    
+    username = is_username_ok["username"]
 
     user_tasks = {}
 
@@ -130,11 +136,18 @@ def create_task():
 
 
     auth_header = request.headers[AUTH_HEADER_NAME]
-    if not check_header(auth_header):
-        return jsonify(description="Invalid header"), 401
+    is_header_ok = check_header(auth_header)
+    if not is_header_ok["result"]:
+        return jsonify(description=is_header_ok["reason"]), 401
 
     # getting username from auth_header
-    username=get_username(auth_header)
+    is_username_ok = get_username(auth_header)
+
+    if not is_username_ok["result"]:
+        app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
+        return jsonify(description=f"Couldn't create task. Reason: {is_username_ok['reason']}"), 401
+    
+    username = is_username_ok["username"]
 
     # QueuePersistence connection
     global r
@@ -185,7 +198,13 @@ def get_task(id):
     auth_header = request.headers[AUTH_HEADER_NAME]
 
     # getting username from auth_header
-    username = get_username(auth_header)
+    is_username_ok = get_username(auth_header)
+
+    if not is_username_ok["result"]:
+        app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
+        return jsonify(description=f"Couldn't retrieve task. Reason: {is_username_ok['reason']}"), 401
+    
+    username = is_username_ok["username"]
 
     # for better knowledge of what this id is
     hash_id = id
@@ -242,12 +261,19 @@ def update_task(id):
         #introduced in order to download from SWIFT to
         auth_header = request.headers[AUTH_HEADER_NAME]
 
-        if not check_header(auth_header):
-            return jsonify(description="Invalid header"), 401
+        is_header_ok = check_header(auth_header)
+        if not is_header_ok["result"]:
+            return jsonify(description=is_header_ok["reason"]), 401
 
         # getting username from auth_header
         owner_needed = True
-        username = get_username(auth_header)
+        is_username_ok = get_username(auth_header)
+
+        if not is_username_ok["result"]:
+            app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
+            return jsonify(description=f"Couldn't update task. Reason: {is_username_ok['reason']}"), 401
+        
+        username = is_username_ok["username"]
 
     # for better knowledge of what this id is
     hash_id = id
@@ -309,7 +335,13 @@ def delete_task(id):
     auth_header = request.headers[AUTH_HEADER_NAME]
 
     # getting username from auth_header
-    username = get_username(auth_header)
+    is_username_ok = get_username(auth_header)
+
+    if not is_username_ok["result"]:
+        app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
+        return jsonify(description=f"Couldn't delete task. Reason: {is_username_ok['reason']}"), 401
+    
+    username = is_username_ok["username"]
 
     # for better knowledge of what this id is
     hash_id = id
@@ -354,7 +386,13 @@ def expire_task(id):
         return jsonify(description="No service informed"), 403
 
     # getting username from auth_header
-    username = get_username(auth_header)
+    is_username_ok = get_username(auth_header)
+
+    if not is_username_ok["result"]:
+        app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
+        return jsonify(description=f"Couldn't expire task. Reason: {is_username_ok['reason']}"), 401
+    
+    username = is_username_ok["username"]
 
     # for better knowledge of what this id is
     hash_id = id

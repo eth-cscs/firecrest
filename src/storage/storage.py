@@ -248,6 +248,7 @@ def os_to_fs(task_id):
 
     except Exception as e:
         app.logger.error(e)
+        update_task(task_id, headers, async_task.ST_DWN_ERR, msg=upl_file, is_json=True)
 
 
 # asynchronous check of upload_files to declare which is downloadable to FS
@@ -339,8 +340,14 @@ def download_task(headers, system_name, system_addr, sourcePath, task_id):
         update_task(task_id, headers, async_task.ERROR, msg)
         return
 
-    # create container if it doesn't exists:
-    container_name = get_username(headers[AUTH_HEADER_NAME])
+    # create container if it doesn't exists:    
+    is_username_ok = get_username(headers[AUTH_HEADER_NAME])
+
+    if not is_username_ok["result"]:
+        app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
+        update_task(task_id, headers, async_task.ERROR, is_username_ok['reason'])
+    
+    container_name = is_username_ok["username"]
 
     if not staging.is_container_created(container_name):
         errno = staging.create_container(container_name)
@@ -476,7 +483,13 @@ def invalidate_request():
         return jsonify(error="Invalid X-Task-Id"), 400
 
 
-    containername = get_username(headers[AUTH_HEADER_NAME])
+    is_username_ok = get_username(headers[AUTH_HEADER_NAME])
+
+    if not is_username_ok["result"]:
+        app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
+        return jsonify(error=is_username_ok['reason']), 401
+    
+    containername = is_username_ok["username"]
     prefix        = task_id
 
     objects = staging.list_objects(containername,prefix)
@@ -504,7 +517,13 @@ def upload_task(headers, system_name, system_addr, targetPath, sourcePath, task_
     fileName = sourcePath.split("/")[-1]
 
     # container to bind:
-    container_name = get_username(headers[AUTH_HEADER_NAME])
+    is_username_ok = get_username(headers[AUTH_HEADER_NAME])
+
+    if not is_username_ok["result"]:
+        app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
+        update_task(task_id, headers, async_task.ERROR, is_username_ok['reason'], is_json=True)
+    
+    container_name = is_username_ok["username"]
     ID = headers.get(TRACER_HEADER, '')
     # change hash_id for task_id since is not longer needed for (failed) redirection
     uploaded_files[task_id] = {"user": container_name,
@@ -857,7 +876,15 @@ def internal_operation(request, command):
             return jsonify(description="Invalid account", error=f"'account' {v}"), 400
     except:
         if USE_SLURM_ACCOUNT:
-            username = get_username(headers[AUTH_HEADER_NAME])
+            
+            is_username_ok = get_username(headers[AUTH_HEADER_NAME])
+
+            if not is_username_ok["result"]:
+                app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
+                return jsonify(description=f"Failed to submit {command} job", error=is_username_ok['reason']), 401
+    
+            username = is_username_ok["username"]
+
             id_command = f"ID={ID} timeout {UTILITIES_TIMEOUT} id -gn -- {username}"
             resp = exec_remote_command(headers, system_name, system_addr, id_command)
             if resp["error"] != 0:
