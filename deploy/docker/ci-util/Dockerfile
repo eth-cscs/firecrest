@@ -9,7 +9,7 @@ FROM $BASE_IMAGE
 
 ARG HELM_VERSION=3.9.0
 
-RUN apt update; apt-get install -y curl gnupg lsb-release software-properties-common; \
+RUN apt update; apt-get install -y curl gnupg jq lsb-release software-properties-common; \
       curl -fsSL https://apt.releases.hashicorp.com/gpg | apt-key add -;  \
       apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"; \
       apt update; \
