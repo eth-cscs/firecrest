@@ -11,7 +11,7 @@ stages:          # List of stages for jobs, and their order of execution
 build_dev_images:
   stage: build_dev_images
   rules:
-    - if: '$CI_COMMIT_TAG =~ /^prod-v?[0-9]+[.][0-9]+([.][0-9]+)?$/ || /^tds-v?[0-9]+[.][0-9]+([.][0-9]+)?$/ || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH =~ /^RESTAPI-.{10,}$/'
+    - if: '$CI_COMMIT_TAG =~ /^prod-v?[0-9]+[.][0-9]+([.][0-9]+)?$/ || $CI_COMMIT_TAG =~ /^tds-v?[0-9]+[.][0-9]+([.][0-9]+)?$/ || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH =~ /^RESTAPI-.{10,}$/'
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
@@ -193,7 +193,7 @@ cleanup_dev_images:
     - job: build_dev_images    
   stage: cleanup_dev_images
   rules:
-    - if: '$CI_COMMIT_TAG =~ /^prod-v?[0-9]+[.][0-9]+([.][0-9]+)?$/ || /^tds-v?[0-9]+[.][0-9]+([.][0-9]+)?$/ || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH =~ /^RESTAPI-.{10,}$/'
+    - if: '$CI_COMMIT_TAG =~ /^prod-v?[0-9]+[.][0-9]+([.][0-9]+)?$/ || $CI_COMMIT_TAG =~ /^tds-v?[0-9]+[.][0-9]+([.][0-9]+)?$/ || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH =~ /^RESTAPI-.{10,}$/'
   image:
     name: ${CI_REGISTRY_PREFIX}/ci-util:latest
   script:
