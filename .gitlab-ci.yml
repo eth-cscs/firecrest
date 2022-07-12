@@ -153,6 +153,9 @@ deploy_dev:
 
           done
       done
+  only:    
+    - master
+    - /^RESTAPI-.{10,}$/
 
   when: on_success
 
@@ -175,6 +178,9 @@ cleanup_dev_deployment:
       for app in config certificator client compute jaeger keycloak kong minio openapi reservations status storage tasks utilities cluster tester; do
         helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} "$app" || true
       done
+  only:    
+    - master
+    - /^RESTAPI-.{10,}$/
   when: on_success
 
 
@@ -197,5 +203,5 @@ cleanup_dev_images:
 
         jfrog rt del --recursive --quiet --url="https://${CI_REGISTRY}/artifactory" --user="${CI_REGISTRY_USER}" --password="${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY_GROUP}/$image/${CI_COMMIT_SHORT_SHA}/"
 
-      done
+      done  
   when: on_success
