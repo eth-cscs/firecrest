@@ -188,8 +188,7 @@ cleanup_dev_images:
   variables:
     DOCKER_AUTH_CONFIG: '{"auths":{"${CI_REGISTRY}":{"username":"${CI_REGISTRY_USER}","password":"${CI_REGISTRY_PASSWORD}"}}}'
   needs:
-    - job: deploy_dev
-    - job: cleanup_dev_deployment
+    - job: build_dev_images    
   stage: cleanup_dev_images
   image:
     name: ${CI_REGISTRY_PREFIX}/ci-util:latest
