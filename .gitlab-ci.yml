@@ -14,6 +14,9 @@ build_dev_images:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
   script:
+    - wget https://releases.hashicorp.com/vault/1.11.0/vault_1.11.0_linux_amd64.zip
+    - unzip vault_1.11.0_linux_amd64.zip
+    - export PATH=$PATH:$(pwd)
     - export VAULT_ADDR="https://vault.svc.cscs.ch"
     - export VAULT_TOKEN=$CI_VAULT_TOKEN
     - CI_K8S_TOKEN="$(vault kv get -field=firecrest-cicd-secret firecrest/dev)"
