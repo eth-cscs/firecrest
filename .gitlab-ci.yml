@@ -191,7 +191,7 @@ cleanup_dev_deployment:
 tag_tds:
   stage: tag_tds
   rules:
-    - if: '$CI_COMMIT_TAG =~ /^tds-v?[0-9]+[.][0-9]+([.][0-9]+)?$/'
+    - if: '$CI_COMMIT_TAG =~ /^tds-v?[0-9]+[.][0-9]+([.][0-9]+)?$/ && $CI_COMMIT_BRANCH == "master"'
   variables:
     CI_NAMESPACE_DEV: firecrest-dev
     DOCKER_AUTH_CONFIG: '{"auths":{"${CI_REGISTRY}":{"username":"${CI_REGISTRY_USER}","password":"${CI_REGISTRY_PASSWORD}"}}}'
@@ -210,9 +210,7 @@ tag_tds:
         jfrog rt copy --flat=true --url="https://$CI_REGISTRY/artifactory" --user="$CI_REGISTRY_USER" --password="$CI_REGISTRY_PASSWORD" "$CI_REGISTRY_GROUP/$image/$CI_COMMIT_SHORT_SHA/" "$CI_REGISTRY_GROUP/$image/tds/"; 
 
       done  
-  only:
-    - master
-    - tags
+  
   
   when: on_success
 
