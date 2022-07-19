@@ -75,7 +75,7 @@ deploy_dev:
     DOCKER_AUTH_CONFIG: '{"auths":{"${CI_REGISTRY}":{"username":"${CI_REGISTRY_USER}","password":"${CI_REGISTRY_PASSWORD}"}}}'
   stage: deploy_dev
   needs:
-    - job: build_image
+    - job: build_images
   image:
     name: ${CI_REGISTRY_PREFIX}/ci-util:latest
   script:
