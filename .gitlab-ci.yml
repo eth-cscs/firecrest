@@ -194,6 +194,8 @@ tag_release:
     name: ${CI_REGISTRY_PREFIX}/ci-util:latest
   script:
     - |
+        apt-get update -qq && apt-get install -y -qq git
+        
         branch=$(git branch --contains "$CI_COMMIT_TAG" | grep "^\s*master$")
 
         env_tags="tds"
