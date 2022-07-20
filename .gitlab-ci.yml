@@ -195,12 +195,12 @@ tag_release:
   image:
     name: ${CI_REGISTRY_PREFIX}/ci-util:latest
   script:
-    - apt-get update  && apt-get install -y git
-    - git --version
-    - git branch --contains "$CI_COMMIT_TAG" | grep "^\s*master$"
     - |        
-
-        branch=$(git branch --contains "$CI_COMMIT_TAG" | grep "^\s*master$")
+        export VAULT_ADDR="https://vault.svc.cscs.ch"
+        export VAULT_TOKEN=$CI_VAULT_TOKEN
+        GITLAB_ACCESS_TOKEN="$(vault kv get -field=GITLAB_ACCESS_TOKEN firecrest/dev)"
+        echo "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/commits/${CI_COMMIT_SHORT_SHA}/refs?type=all"
+        branch=$(curl -sS --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/commits/${CI_COMMIT_SHORT_SHA}/refs?type=all" | jq '.[].name' | grep '^\s*"master"$')
 
         env_tags="tds"
 
