@@ -195,8 +195,10 @@ tag_release:
   image:
     name: ${CI_REGISTRY_PREFIX}/ci-util:latest
   script:
-    - |
-        apt-get update -qq && apt-get install -y -qq git
+    - apt-get update  && apt-get install -y git
+    - git --version
+    - git branch --contains "$CI_COMMIT_TAG" | grep "^\s*master$"
+    - |        
 
         branch=$(git branch --contains "$CI_COMMIT_TAG" | grep "^\s*master$")
 
