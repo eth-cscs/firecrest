@@ -199,12 +199,12 @@ tag_release:
     - export VAULT_TOKEN=$CI_VAULT_TOKEN
     - GITLAB_ACCESS_TOKEN="$(vault kv get -field=GITLAB_ACCESS_TOKEN firecrest/dev)"
         
-    - echo "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/commits/${CI_COMMIT_SHORT_SHA}/refs?type=all"
+    - echo "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/commits/${CI_COMMIT_SHORT_SHA}/refs?type=branch"
 
     - |  
-        curl -sS --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/commits/${CI_COMMIT_SHORT_SHA}/refs?type=all" | jq '.[].name' | grep '^\s*"master"$';
+        curl -sS --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/commits/${CI_COMMIT_SHORT_SHA}/refs?type=branch" | jq '.[].name' | grep master
         
-        branch=$(curl -sS --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/commits/${CI_COMMIT_SHORT_SHA}/refs?type=all" | jq '.[].name' | grep '^\s*"master"$')
+        branch=$(curl -sS --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/commits/${CI_COMMIT_SHORT_SHA}/refs?type=branch" | jq '.[].name' | grep master)
 
         env_tags="tds"    
         if [ "$branch" != "" ]; then
