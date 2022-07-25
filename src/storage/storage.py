@@ -340,13 +340,13 @@ def download_task(headers, system_name, system_addr, sourcePath, task_id):
         update_task(task_id, headers, async_task.ERROR, msg)
         return
 
-    # create container if it doesn't exists:    
+    # create container if it doesn't exists:
     is_username_ok = get_username(headers[AUTH_HEADER_NAME])
 
     if not is_username_ok["result"]:
         app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
         update_task(task_id, headers, async_task.ERROR, is_username_ok['reason'])
-    
+
     container_name = is_username_ok["username"]
 
     if not staging.is_container_created(container_name):
@@ -488,7 +488,7 @@ def invalidate_request():
     if not is_username_ok["result"]:
         app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
         return jsonify(error=is_username_ok['reason']), 401
-    
+
     containername = is_username_ok["username"]
     prefix        = task_id
 
@@ -522,7 +522,7 @@ def upload_task(headers, system_name, system_addr, targetPath, sourcePath, task_
     if not is_username_ok["result"]:
         app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
         update_task(task_id, headers, async_task.ERROR, is_username_ok['reason'], is_json=True)
-    
+
     container_name = is_username_ok["username"]
     ID = headers.get(TRACER_HEADER, '')
     # change hash_id for task_id since is not longer needed for (failed) redirection
@@ -803,20 +803,6 @@ def internal_operation(request, command):
 
         app.logger.info(f"_targetPath={_targetPath}")
 
-        check_dir  = is_valid_dir(_targetPath, headers, system_name, system_addr)
-
-        if not check_dir["result"]:
-            return jsonify(description="targetPath error"), 400, check_dir["headers"]
-
-        check_file = is_valid_file(sourcePath, headers, system_name, system_addr)
-
-        if not check_file["result"]:
-            check_dir  = is_valid_dir(sourcePath, headers, system_name, system_addr)
-
-            if not check_dir["result"]:
-                return jsonify(description="sourcePath error"), 400, check_dir["headers"]
-
-
         if command == "cp":
             actual_command = "cp --force -dR --preserve=all -- "
         elif command == "mv":
@@ -824,16 +810,6 @@ def internal_operation(request, command):
         else:
             actual_command = "rsync -av -- "
     elif command == "rm":
-        # for 'rm' there's no source, set empty to call exec_internal_command(...)
-        # checks if file or dir to delete (targetPath) is a valid path or valid directory
-        check_file = is_valid_file(targetPath, headers, system_name, system_addr)
-
-        if not check_file["result"]:
-            check_dir  = is_valid_dir(targetPath, headers, system_name, system_addr)
-
-            if not check_dir["result"]:
-                return jsonify(description="targetPath error"), 400, check_dir["headers"]
-
         sourcePath = ""
         actual_command = "rm -rf -- "
     else:
@@ -876,13 +852,12 @@ def internal_operation(request, command):
             return jsonify(description="Invalid account", error=f"'account' {v}"), 400
     except:
         if USE_SLURM_ACCOUNT:
-            
             is_username_ok = get_username(headers[AUTH_HEADER_NAME])
 
             if not is_username_ok["result"]:
                 app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
                 return jsonify(description=f"Failed to submit {command} job", error=is_username_ok['reason']), 401
-    
+
             username = is_username_ok["username"]
 
             id_command = f"ID={ID} timeout {UTILITIES_TIMEOUT} id -gn -- {username}"

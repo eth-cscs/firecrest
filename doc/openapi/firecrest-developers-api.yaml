@@ -1451,23 +1451,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Task-Creation-Error'
-          headers:
-            X-Permission-Denied:
-              description: User does not have permissions to access paths
-              schema:
-                type: integer
-            X-Not-Found:
-              description: sourcePath not found
-              schema:
-                type: integer
-            X-Exists:
-              description: targetPath already exists
-              schema:
-                type: integer
-            X-Invalid-Path:
-              description: sourcePath and/or targetPath are invalid paths.
-              schema:
-                type: integer
   '/storage/xfer-internal/mv':
     parameters:
       - in: header
@@ -1542,23 +1525,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Task-Creation-Error'
-          headers:
-            X-Permission-Denied:
-              description: User does not have permissions to access paths
-              schema:
-                type: integer
-            X-Not-Found:
-              description: sourcePath not found
-              schema:
-                type: integer
-            X-Exists:
-              description: targetPath already exists
-              schema:
-                type: integer
-            X-Invalid-Path:
-              description: sourcePath and/or targetPath are invalid paths.
-              schema:
-                type: integer
   '/storage/xfer-internal/cp':
     parameters:
       - in: header
@@ -1633,23 +1599,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Task-Creation-Error'
-          headers:
-            X-Permission-Denied:
-              description: User does not have permissions to access paths
-              schema:
-                type: integer
-            X-Not-Found:
-              description: sourcePath not found
-              schema:
-                type: integer
-            X-Exists:
-              description: targetPath already exists
-              schema:
-                type: integer
-            X-Invalid-Path:
-              description: sourcePath and/or targetPath are invalid paths.
-              schema:
-                type: integer
   '/storage/xfer-internal/rm':
     parameters:
       - in: header
@@ -1719,19 +1668,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Task-Creation-Error'
-          headers:
-            X-Permission-Denied:
-              description: User does not have permissions to access paths
-              schema:
-                type: integer
-            X-Not-Found:
-              description: targetPath not found
-              schema:
-                type: integer
-            X-Invalid-Path:
-              description: targetPath is an invalid path.
-              schema:
-                type: integer
   '/storage/xfer-external/upload':
     parameters:
       - in: header

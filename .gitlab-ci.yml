@@ -87,8 +87,7 @@ deploy_dev:
         done
     - helm list -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN}
 
-    - cd deploy/k8s
-    - ls -la
+    - cd deploy/k8s    
     - >
       echo -e "registry: ${CI_REGISTRY_PREFIX}\ntag: '${CI_COMMIT_SHORT_SHA}' \nnamespace: ${CI_NAMESPACE_DEV}\nregistry_secret_creds: regcred\n" > values-dev.yaml
 
@@ -223,7 +222,35 @@ tag_release:
 
   when: on_success
         
+deploy_tds:
+  variables:
+    DOCKER_AUTH_CONFIG: '{"auths":{"${CI_REGISTRY}":{"username":"${CI_REGISTRY_USER}","password":"${CI_REGISTRY_PASSWORD}"}}}'
+    CI_NAMESPACE_TDS: firecrest-tds
+  needs:
+    - job: tag_release
+  stage: deploy_tds
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^tds-v?[0-9]+[.][0-9]+([.][0-9]+)?$/'
+  image:
+    name: ${CI_REGISTRY_PREFIX}/ci-util:latest
+  script:
+    - export VAULT_ADDR="https://vault.svc.cscs.ch"
+    - export VAULT_TOKEN=$CI_VAULT_TOKEN
+    - CI_K8S_TOKEN="$(vault kv get -field=firecrest-cicd-secret firecrest/dev)"    
+    
+    - cd deploy/k8s    
+    - |
+      echo -e "registry: ${CI_REGISTRY_PREFIX}" > values-tds.yaml
+      echo -e "tag: 'tds'" >> values-tds.yaml
+      echo -e "namespace: ${CI_NAMESPACE_TDS}" >> values-tds.yaml
+      echo -e "registry_secret_creds: regcred" >> values-tds.yaml
+      echo -e "firecrest_url: https://firecrest-tds.cscs.ch" >> values-tds.yaml
+      echo -e "firecrest_version: ${CI_COMMIT_TAG:4}" >> values-tds.yaml
 
+      for app in openapi; do
+        helm uninstall -n ${CI_NAMESPACE_TDS} --kube-token=${CI_K8S_TOKEN} "$app" || true
+        helm install  --wait --wait-for-jobs --timeout 180s -n ${CI_NAMESPACE_TDS} -f values-dev.yaml --kube-token=${CI_K8S_TOKEN} "$app" $app;
+      done
 
 cleanup_dev_images:
   variables:
