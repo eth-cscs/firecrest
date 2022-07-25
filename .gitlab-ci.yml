@@ -198,10 +198,9 @@ tag_release:
     - export VAULT_ADDR="https://vault.svc.cscs.ch"
     - export VAULT_TOKEN=$CI_VAULT_TOKEN
     - GITLAB_ACCESS_TOKEN="$(vault kv get -field=GITLAB_ACCESS_TOKEN firecrest/dev)"
+    - CI_REGISTRY_GROUP="$(vault kv get -field=REGISTRY_GROUP firecrest/dev)"    
     
     - |  
-        curl -sS --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/commits/${CI_COMMIT_SHORT_SHA}/refs?type=branch" | jq '.[].name=="master"'
-        
         branch=$(curl -sS --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/commits/${CI_COMMIT_SHORT_SHA}/refs?type=branch" | jq '.[].name=="master"')
 
         env_tags="tds"    
@@ -213,8 +212,7 @@ tag_release:
           for tag in $env_tags; do
             images="compute reservations status storage tasks utilities";
             for img in $images; do
-                echo "jfrog rt copy --flat=true --url=https://$CI_REGISTRY/artifactory --user=$CI_REGISTRY_USER --password=XXX $CI_REGISTRY_GROUP/$image/$CI_COMMIT_SHORT_SHA/ $CI_REGISTRY_GROUP/$img/$tag/"  
-                jfrog rt copy --flat=true --url="https://$CI_REGISTRY/artifactory" --user="$CI_REGISTRY_USER" --password="$CI_REGISTRY_PASSWORD" "$CI_REGISTRY_GROUP/$image/$CI_COMMIT_SHORT_SHA/" "$CI_REGISTRY_GROUP/$img/$tag/";  
+                jfrog rt copy --flat=true --url="https://${CI_REGISTRY}/artifactory" --user="${CI_REGISTRY_USER}" --password="${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY_GROUP}/$image/${CI_COMMIT_SHORT_SHA}/" "${CI_REGISTRY_GROUP}/$img/$tag/";  
             done
           done
 
