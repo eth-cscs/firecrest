@@ -93,15 +93,6 @@ def test_internal_rm(headers):
     resp = requests.post(url, headers=headers,data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
     assert resp.status_code == 201
 
-@skipif_not_uses_gateway
-def test_internal_rm_err(headers):
-    headers["X-Machine-Name"] = machine
-    data = {"targetPath": "/srv/f7t/test_sbatch_forbidden.sh"}
-    url = f"{STORAGE_URL}/xfer-internal/rm"
-    resp = requests.post(url, headers=headers,data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
-    assert resp.status_code == 400
-
-
 # Test storage microservice status
 @skipif_uses_gateway
 def test_status():
