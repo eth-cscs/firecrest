@@ -212,7 +212,7 @@ tag_release:
           for tag in $env_tags; do
             images="compute reservations status storage tasks utilities";
             for img in $images; do
-                jfrog rt copy --flat=true --url="https://${CI_REGISTRY}/artifactory" --user="${CI_REGISTRY_USER}" --password="${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY_GROUP}/$image/${CI_COMMIT_SHORT_SHA}/" "${CI_REGISTRY_GROUP}/$img/$tag/";  
+                jfrog rt copy --flat=true --url="https://${CI_REGISTRY}/artifactory" --user="${CI_REGISTRY_USER}" --password="${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY_GROUP}/$img/${CI_COMMIT_SHORT_SHA}/" "${CI_REGISTRY_GROUP}/$img/$tag/";  
             done
           done
 
