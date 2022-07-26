@@ -1,29 +1,10 @@
 apiVersion: v1
-items:
-- apiVersion: v1
-  kind: ConfigMap
-  metadata:
-    name: f7t-opa-configmap
-    namespace: {{ .Values.namespace }}
-  data:
-    data.json: |
-      {
-        "systems": {
-          "cluster": {
-            "users": ["test1", "service-account-firecrest-sample"] 
-          },
-          "not_a_system": {
-            "users": ["testuser"]
-          }
-        }        
-      }
-    policy.rego: |
-      package f7t.authz
-      import input
-      import data
-      default allow = false
-      allow {
-        some some_user
-        data.systems[input.system].users[some_user] == input.user
-      }
-kind: List
+data:
+  F7T_CERTIFICATOR_PORT: "{{ .Values.certificator.F7T_CERTIFICATOR_PORT }}"
+  F7T_OPA_URL: "{{ .Values.certificator.F7T_OPA_URL }}"
+  F7T_OPA_USE: "{{ .Values.certificator.F7T_OPA_USE }}"
+  F7T_POLICY_PATH: "{{ .Values.certificator.F7T_POLICY_PATH }}"
+kind: ConfigMap
+metadata:
+  name: certificator-env-file
+  namespace: {{ .Values.namespace }}

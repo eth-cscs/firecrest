@@ -46,7 +46,6 @@ if realm_pubkey != '':
     realm_pubkey_type = os.environ.get("F7T_REALM_RSA_TYPE").strip('\'"')
 
 AUTH_AUDIENCE = os.environ.get("F7T_AUTH_TOKEN_AUD", '').strip('\'"')
-ALLOWED_USERS = os.environ.get("F7T_AUTH_ALLOWED_USERS", '').strip('\'"').split(";")
 AUTH_REQUIRED_SCOPE = os.environ.get("F7T_AUTH_REQUIRED_SCOPE", '').strip('\'"')
 
 AUTH_ROLE = os.environ.get("F7T_AUTH_ROLE", '').strip('\'"')

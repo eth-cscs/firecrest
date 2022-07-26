@@ -1,0 +1,9 @@
+apiVersion: v1
+data:
+  F7T_STATUS_PORT: "{{ .Values.status.F7T_STATUS_PORT }}"
+  F7T_STATUS_SERVICES: "{{ .Values.status.F7T_STATUS_SERVICES }}"
+  F7T_STATUS_SYSTEMS: "{{ .Values.status.F7T_STATUS_SYSTEMS }}"
+kind: ConfigMap
+metadata:
+  name: status-env-file
+  namespace: {{ .Values.namespace }}

@@ -1,0 +1,30 @@
+apiVersion: v1
+data:
+  F7T_CERT_CIPHER_KEY: "{{ .Values.storage.F7T_CERT_CIPHER_KEY }}"
+  F7T_STORAGE_JOBS_MACHINE: "{{ .Values.storage.F7T_STORAGE_JOBS_MACHINE }}"
+  F7T_STORAGE_POLLING_INTERVAL: "{{ .Values.storage.F7T_STORAGE_POLLING_INTERVAL }}"
+  F7T_STORAGE_PORT: "{{ .Values.storage.F7T_STORAGE_PORT }}"
+  F7T_STORAGE_TEMPURL_EXP_TIME: "{{ .Values.storage.F7T_STORAGE_TEMPURL_EXP_TIME }}"
+  F7T_SYSTEMS_INTERNAL_STORAGE: "{{ .Values.storage.F7T_SYSTEMS_INTERNAL_STORAGE }}"
+  F7T_S3_SECRET_KEY: "{{ .Values.storage.F7T_S3_SECRET_KEY }}"
+  F7T_S3_ACCESS_KEY: "{{ .Values.storage.F7T_S3_ACCESS_KEY }}"
+  F7T_S3_PRIVATE_URL: "{{ .Values.storage.F7T_S3_PRIVATE_URL }}"
+  F7T_S3_PUBLIC_URL: "{{ .Values.storage.F7T_S3_PUBLIC_URL }}"
+  F7T_OS_AUTH_URL: "{{ .Values.storage.F7T_OS_AUTH_URL }}"
+  F7T_OS_IDENTITY_PROVIDER: "{{ .Values.storage.F7T_OS_IDENTITY_PROVIDER }}"
+  F7T_OS_PROTOCOL: "{{ .Values.storage.F7T_OS_PROTOCOL }}"
+  F7T_OS_PROJECT_ID: "{{ .Values.storage.F7T_OS_PROJECT_ID }}"
+  F7T_OS_CLIENT_ID: "{{ .Values.storage.F7T_OS_CLIENT_ID }}"
+  F7T_OS_CLIENT_SECRET: "{{ .Values.storage.F7T_OS_CLIENT_SECRET }}"
+  F7T_OS_DISCOVERY_ENDPOINT: "{{ .Values.storage.F7T_OS_DISCOVERY_ENDPOINT }}"
+  F7T_OS_KEYSTONE_AUTH: "{{ .Values.storage.F7T_OS_KEYSTONE_AUTH }}"
+  F7T_SWIFT_PRIVATE_URL: "{{ .Values.storage.F7T_SWIFT_PRIVATE_URL }}"
+  F7T_SWIFT_PUBLIC_URL: "{{ .Values.storage.F7T_SWIFT_PUBLIC_URL }}"
+  F7T_SWIFT_API_VERSION: "{{ .Values.storage.F7T_SWIFT_API_VERSION }}"
+  F7T_SWIFT_ACCOUNT: "{{ .Values.storage.F7T_SWIFT_ACCOUNT }}"
+  F7T_SWIFT_USER: "{{ .Values.storage.F7T_SWIFT_USER }}"
+  F7T_SWIFT_PASS: "{{ .Values.storage.F7T_SWIFT_PASS }}"
+kind: ConfigMap
+metadata:
+  name: storage-env-file
+  namespace: {{ .Values.namespace }}

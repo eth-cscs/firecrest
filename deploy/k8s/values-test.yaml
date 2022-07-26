@@ -1,3 +1,0 @@
-registry: localhost:32000
-tag: k8s
-namespace: default

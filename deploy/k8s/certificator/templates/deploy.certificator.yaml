@@ -36,6 +36,8 @@ items:
           envFrom:
             - configMapRef:
                 name: common-env-file
+            - configMapRef:
+                name: certificator-env-file
           command: ["sh"]
           args: ["-c", "cp /tmp/ca-key /ca-key; chmod 400 /ca-key; ls -l /; python3 certificator.py"]
           volumeMounts:
