@@ -7,17 +7,16 @@ items:
     namespace: {{ .Values.namespace }}
   data:
     openapi.yaml: |
-      ##  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
+      ##  Copyright (c) 2019-2022, ETH Zurich. All rights reserved.
       ##
       ##  Please, refer to the LICENSE file in the root directory.
       ##  SPDX-License-Identifier: BSD-3-Clause
       ##
       openapi: 3.0.0
       servers:
-        - url: 'http://FIRECREST_URL'
-        - url: 'https://FIRECREST_URL'
+        - url: '{{ .Values.firecrest_url }}'
       info:
-        version: 1.8.2-beta1
+        version: {{ .Values.firecrest_version }}
         title: FirecREST API
         description: >
           FirecREST platform, a RESTful Services Gateway to HPC resources, is a

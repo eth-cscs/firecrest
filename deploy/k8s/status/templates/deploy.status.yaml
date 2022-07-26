@@ -23,6 +23,8 @@ spec:
         envFrom:
         - configMapRef:
             name: common-env-file
+        - configMapRef:
+            name: status-env-file
         volumeMounts:
         - mountPath: /var/log
           name: logs-endpoint

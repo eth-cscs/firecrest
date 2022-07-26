@@ -22,6 +22,8 @@ spec:
         envFrom:
         - configMapRef:
             name: common-env-file
+        - configMapRef:
+            name: reservations-env-file
         volumeMounts:
         - mountPath: /var/log
           name: logs-endpoint
