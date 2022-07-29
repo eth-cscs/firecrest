@@ -5,6 +5,7 @@
 #  SPDX-License-Identifier: BSD-3-Clause
 #
 import logging
+from logging.handlers import TimedRotatingFileHandler
 import os
 import jwt
 import stat
@@ -128,7 +129,7 @@ def get_username(header):
                 clientId = decoded["clientId"]
                 username = decoded["resource_access"][clientId]["roles"][0]
                 return {"result": True, "reason":"", "username": username}
-            return {"result": True, "reason":"", "username": decoded['preferred_username']} 
+            return {"result": True, "reason":"", "username": decoded['preferred_username']}
         except Exception:
             return {"result": True, "reason":"", "username": decoded['preferred_username']}
 
@@ -194,7 +195,7 @@ def create_certificate(headers, cluster_name, cluster_addr, command=None, option
             logging.info(f"\tOptions (complete): {options}")
         logging.info(f"Request URL: {reqURL}")
 
-    try:        
+    try:
         resp = requests.get(reqURL, headers=headers, verify= (SSL_CRT if USE_SSL else False) )
 
         if resp.status_code != 200:
@@ -257,7 +258,7 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
         is_username_ok = get_username(headers[AUTH_HEADER_NAME])
         if not is_username_ok["result"]:
             return {"error": 1, "msg": is_username_ok["reason"]}
-    
+
         username = is_username_ok["username"]
 
     [pub_cert, pub_key, priv_key, temp_dir] = cert_list
@@ -827,3 +828,21 @@ class LogRequestFormatter(logging.Formatter):
                 record.TID = 'notid'
 
         return super().format(record)
+
+def setup_logging(logging, service):
+    LOG_PATH = os.environ.get("F7T_LOG_PATH", '/var/log').strip('\'"')
+    # timed rotation: 1 (interval) rotation per day (when="D")
+    logHandler = TimedRotatingFileHandler(f'{LOG_PATH}/{service}.log', when='D', interval=1)
+
+    logFormatter = LogRequestFormatter('%(asctime)s,%(msecs)d %(thread)s [%(TID)s] %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
+                                     '%Y-%m-%dT%H:%M:%S')
+    logHandler.setFormatter(logFormatter)
+
+    # get app log (Flask+werkzeug+python)
+    logger = logging.getLogger()
+
+    # set handler to logger
+    logger.addHandler(logHandler)
+    logging.getLogger().setLevel(logging.INFO)
+
+    return logger

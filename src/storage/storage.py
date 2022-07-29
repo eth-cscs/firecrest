@@ -8,24 +8,19 @@ from flask import Flask, request, jsonify, g
 import json, tempfile, os
 import urllib
 import datetime
-
+import logging
 import async_task
 import threading
-# logging handler
-from logging.handlers import TimedRotatingFileHandler
 # common functions
 from cscs_api_common import check_auth_header, get_username
 from cscs_api_common import create_task, update_task, get_task_status
 from cscs_api_common import exec_remote_command
 from cscs_api_common import create_certificate
 from cscs_api_common import in_str
-from cscs_api_common import is_valid_file, is_valid_dir, check_command_error, get_boolean_var, validate_input, LogRequestFormatter
+from cscs_api_common import is_valid_file, is_valid_dir, check_command_error, get_boolean_var, validate_input, setup_logging
 
 # job_time_checker for correct SLURM job time in /xfer-internal tasks
 import job_time
-
-# for debug purposes
-import logging
 
 import requests
 from hashlib import md5
@@ -112,8 +107,9 @@ uploaded_files = {}
 # debug on console
 debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
-
 app = Flask(__name__)
+
+logger = setup_logging(logging, 'storage')
 
 JAEGER_AGENT = os.environ.get("F7T_JAEGER_AGENT", "").strip('\'"')
 if JAEGER_AGENT != "":
@@ -129,126 +125,6 @@ else:
     jaeger_tracer = None
     tracing = None
 
-
-def get_tracing_headers(req):
-    """
-    receives a requests object, returns headers suitable for RPC and ID for logging
-    """
-    new_headers = {}
-    if JAEGER_AGENT != "":
-        try:
-            jaeger_tracer.inject(tracing.get_span(req), opentracing.Format.TEXT_MAP, new_headers)
-        except Exception as e:
-            app.logger.error(e)
-
-    new_headers[AUTH_HEADER_NAME] = req.headers[AUTH_HEADER_NAME]
-    ID = new_headers.get(TRACER_HEADER, '')
-    return new_headers, ID
-
-def file_to_str(fileName):
-
-    str_file = ""
-    try:
-        fileObj = open(fileName,"r")
-        str_file = fileObj.read()
-        fileObj.close()
-        return str_file
-
-    except IOError as e:
-        app.logger.error(e)
-        return ""
-
-
-def str_to_file(str_file,dir_name,file_name):
-    try:
-        if not os.path.exists(dir_name):
-            app.logger.info(f"Created temp directory for certs in {dir_name}")
-            os.makedirs(dir_name)
-
-        file_str = open(f"{dir_name}/{file_name}","w")
-        file_str.write(str_file)
-        file_str.close()
-        app.logger.info(f"File written in {dir_name}/{file_name}")
-    except IOError as e:
-        app.logger.error("Couldn't write file {dir_name}/{file_name}")
-        app.logger.error(e)
-
-
-
-def os_to_fs(task_id):
-    upl_file = uploaded_files[task_id]
-    system_name = upl_file["system_name"]
-    system_addr = upl_file["system_addr"]
-    username = upl_file["user"]
-    objectname = upl_file["source"]
-    headers = {}
-    headers[TRACER_HEADER] = upl_file['trace_id']
-
-    try:
-        app.logger.info(upl_file["msg"])
-
-        # certificate is encrypted with CERT_CIPHER_KEY key
-        # here is decrypted
-        cert = upl_file["msg"]["cert"]
-        cipher = Fernet(CERT_CIPHER_KEY)
-        # the decryption process produces a byte type
-        # remember that is stored as str not as byte in the JSON
-        pub_cert = cipher.decrypt(cert[0].encode('utf-8')).decode('utf-8')
-
-        # cert_pub in 0 /user-key-cert.pub
-        # temp-dir in 1
-        # get tmp directory
-        td = cert[1]
-
-        app.logger.info(f"Temp dir: {td}")
-
-        if not os.path.exists(td):
-            # retrieve public certificate and store in temp dir location
-            str_to_file(pub_cert,td,"user-key-cert.pub")
-
-            # user public and private key should be in Storage / path, symlinking in order to not use the same key at the same time
-            os.symlink(os.getcwd() + "/user-key.pub", td + "/user-key.pub")  # link on temp dir
-            os.symlink(os.getcwd() + "/user-key", td + "/user-key")  # link on temp dir
-
-            # stat.S_IRUSR -> owner has read permission
-            os.chmod(td + "/user-key-cert.pub", stat.S_IRUSR)
-
-        cert_list = [f"{td}/user-key-cert.pub", f"{td}/user-key.pub", f"{td}/user-key", td]
-
-        # start download from OS to FS
-        update_task(task_id, headers, async_task.ST_DWN_BEG)
-
-        # execute download
-        result = exec_remote_command(username, system_name, system_addr, "", "storage_cert", cert_list)
-
-        # if no error, then download is complete
-        if result["error"] == 0:
-            update_task(task_id, headers, async_task.ST_DWN_END)
-
-            # No need to delete the dictionary, it will be cleaned on next iteration
-
-            # delete upload request
-            # del uploaded_files[task_id]
-
-            # must be deleted after object is moved to storage
-            # staging.delete_object(containername=username,prefix=task_id,objectname=objectname)
-            # for big files delete_object consumes a long time and often gives a TimeOut error between system and staging area
-            # Therefore, using delete_object_after a few minutes (in this case 5 minutes) will trigger internal staging area
-            # mechanism to delete the file automatically and without a need of a connection
-
-            staging.delete_object_after(containername=username,prefix=task_id,objectname=objectname, ttl = int(time.time())+600)
-
-        else:
-            # if error, should be prepared for try again
-            upl_file["status"] = async_task.ST_DWN_ERR
-            uploaded_files[task_id] = upl_file
-
-            # update but conserv "msg" as the data for download to OS, to be used for retry in next iteration
-            update_task(task_id, headers, async_task.ST_DWN_ERR, msg=upl_file, is_json=True)
-
-    except Exception as e:
-        app.logger.error(e)
-        update_task(task_id, headers, async_task.ST_DWN_ERR, msg=upl_file, is_json=True)
 
 
 # asynchronous check of upload_files to declare which is downloadable to FS
@@ -321,6 +197,262 @@ def check_upload_files():
                 continue
 
         time.sleep(STORAGE_POLLING_INTERVAL)
+
+
+def create_staging():
+    # Object Storage object
+    global staging
+
+    staging = None
+
+    if OBJECT_STORAGE == "swift":
+
+        app.logger.info("Object Storage selected: SWIFT")
+
+        from swiftOS import Swift
+
+        # Object Storage URL & data:
+        SWIFT_PRIVATE_URL = os.environ.get("F7T_SWIFT_PRIVATE_URL")
+        SWIFT_PUBLIC_URL = os.environ.get("F7T_SWIFT_PUBLIC_URL")
+        SWIFT_API_VERSION = os.environ.get("F7T_SWIFT_API_VERSION")
+        SWIFT_ACCOUNT = os.environ.get("F7T_SWIFT_ACCOUNT")
+        SWIFT_USER = os.environ.get("F7T_SWIFT_USER")
+        SWIFT_PASS = os.environ.get("F7T_SWIFT_PASS")
+
+        priv_url = f"{SWIFT_PRIVATE_URL}/{SWIFT_API_VERSION}/AUTH_{SWIFT_ACCOUNT}"
+        publ_url = f"{SWIFT_PUBLIC_URL}/{SWIFT_API_VERSION}/AUTH_{SWIFT_ACCOUNT}"
+
+        staging = Swift(priv_url=priv_url,publ_url=publ_url, user=SWIFT_USER, passwd=SWIFT_PASS, secret=SECRET_KEY)
+
+    elif OBJECT_STORAGE == "s3v2":
+        app.logger.info("Object Storage selected: S3v2")
+        from s3v2OS import S3v2
+
+        # For S3:
+        S3_PRIVATE_URL = os.environ.get("F7T_S3_PRIVATE_URL")
+        S3_PUBLIC_URL  = os.environ.get("F7T_S3_PUBLIC_URL")
+        S3_ACCESS_KEY  = os.environ.get("F7T_S3_ACCESS_KEY")
+        S3_SECRET_KEY  = os.environ.get("F7T_S3_SECRET_KEY")
+
+        staging = S3v2(priv_url=S3_PRIVATE_URL, publ_url=S3_PUBLIC_URL, user=S3_ACCESS_KEY, passwd=S3_SECRET_KEY)
+
+    elif OBJECT_STORAGE == "s3v4":
+        app.logger.info("Object Storage selected: S3v4")
+        from s3v4OS import S3v4
+
+        # For S3:
+        S3_PRIVATE_URL = os.environ.get("F7T_S3_PRIVATE_URL")
+        S3_PUBLIC_URL  = os.environ.get("F7T_S3_PUBLIC_URL")
+        S3_ACCESS_KEY  = os.environ.get("F7T_S3_ACCESS_KEY")
+        S3_SECRET_KEY  = os.environ.get("F7T_S3_SECRET_KEY")
+
+        staging = S3v4(priv_url=S3_PRIVATE_URL, publ_url=S3_PUBLIC_URL, user=S3_ACCESS_KEY, passwd=S3_SECRET_KEY)
+
+    else:
+        app.logger.warning("No Object Storage for staging area was set.")
+
+
+def get_upload_unfinished_tasks():
+    # cleanup upload dictionary
+    global uploaded_files
+    uploaded_files = {}
+
+    app.logger.info(f"Staging Area Used: {staging.priv_url} - ObjectStorage Technology: {staging.get_object_storage()}")
+
+    try:
+        # query Tasks microservice for previous tasks. Allow 30 seconds to answer
+
+        # only unfinished upload process
+        status_code = [async_task.ST_URL_ASK, async_task.ST_URL_REC, async_task.ST_UPL_CFM, async_task.ST_DWN_BEG, async_task.ST_DWN_ERR]
+        retval=requests.get(f"{TASKS_URL}/taskslist", json={"service": "storage", "status_code":status_code}, timeout=30, verify=(SSL_CRT if USE_SSL else False))
+
+        if not retval.ok:
+            app.logger.error("Error getting tasks from Tasks microservice: query failed with status {retval.status_code}, STORAGE microservice will not be fully functional. Next try will be in {STORAGE_POLLING_INTERVAL} seconds")
+            return
+
+        queue_tasks = retval.json()
+
+        # queue_tasks structure: "tasks"{
+        #                                  task_{id1}: {..., data={} }
+        #                                  task_{id2}: {..., data={} }  }
+        # data is the field containing every
+
+        queue_tasks = queue_tasks["tasks"]
+
+        n_tasks = 0
+
+        for key,task in queue_tasks.items():
+
+            task = json.loads(task)
+
+            # iterating over queue_tasls
+            try:
+                data = task["data"]
+
+                # check if task is a non ending /xfer-external/upload downloading
+                # from SWIFT to filesystem and it crashed before download finished,
+                # so it can be re-initiated with /xfer-external/upload-finished
+                # In that way it's is marked as erroneous
+
+                if task["status"] == async_task.ST_DWN_BEG:
+                    task["status"] = async_task.ST_DWN_ERR
+                    task["description"] = "Storage has been restarted, process will be resumed"
+                    headers = {}
+                    headers[TRACER_HEADER] = data['trace_id']
+                    update_task(task["hash_id"], headers, async_task.ST_DWN_ERR, data, is_json=True)
+
+                uploaded_files[task["hash_id"]] = data
+
+                n_tasks += 1
+
+            except KeyError as e:
+                app.logger.error(e)
+                app.logger.error(task["data"])
+                app.logger.error(key)
+
+            except Exception as e:
+                app.logger.error(data)
+                app.logger.error(e)
+                app.logger.error(type(e))
+
+        app.logger.info(f"Not finished upload tasks recovered from taskpersistance: {n_tasks}")
+
+    except Exception as e:
+        app.logger.warning("Error querying TASKS microservice: STORAGE microservice will not be fully functional")
+        app.logger.error(e)
+
+
+def init_storage():
+    # should check Tasks tasks than belongs to storage
+    create_staging()
+    get_upload_unfinished_tasks()
+
+    # aynchronously checks uploaded_files for complete download to FS
+    upload_check = threading.Thread(target=check_upload_files, name='storage-check-upload-files')
+    upload_check.start()
+
+
+# checks QueuePersistence and retakes all tasks
+init_storage()
+
+
+def get_tracing_headers(req):
+    """
+    receives a requests object, returns headers suitable for RPC and ID for logging
+    """
+    new_headers = {}
+    if JAEGER_AGENT != "":
+        try:
+            jaeger_tracer.inject(tracing.get_span(req), opentracing.Format.TEXT_MAP, new_headers)
+        except Exception as e:
+            app.logger.error(e)
+
+    new_headers[AUTH_HEADER_NAME] = req.headers[AUTH_HEADER_NAME]
+    ID = new_headers.get(TRACER_HEADER, '')
+    return new_headers, ID
+
+def file_to_str(fileName):
+
+    str_file = ""
+    try:
+        fileObj = open(fileName,"r")
+        str_file = fileObj.read()
+        fileObj.close()
+        return str_file
+
+    except IOError as e:
+        app.logger.error(e)
+        return ""
+
+
+def str_to_file(str_file,dir_name,file_name):
+    try:
+        if not os.path.exists(dir_name):
+            app.logger.info(f"Created temp directory for certs in {dir_name}")
+            os.makedirs(dir_name)
+
+        file_str = open(f"{dir_name}/{file_name}","w")
+        file_str.write(str_file)
+        file_str.close()
+        app.logger.info(f"File written in {dir_name}/{file_name}")
+    except IOError as e:
+        app.logger.error("Couldn't write file {dir_name}/{file_name}")
+        app.logger.error(e)
+
+
+
+def os_to_fs(task_id):
+    upl_file = uploaded_files[task_id]
+    system_name = upl_file["system_name"]
+    system_addr = upl_file["system_addr"]
+    username = upl_file["user"]
+    objectname = upl_file["source"]
+    headers = {}
+    headers[TRACER_HEADER] = upl_file['trace_id']
+
+    try:
+        if debug:
+            app.logger.info(upl_file["msg"])
+
+        # certificate is encrypted with CERT_CIPHER_KEY key
+        # here is decrypted
+        cert = upl_file["msg"]["cert"]
+        cipher = Fernet(CERT_CIPHER_KEY)
+        # the decryption process produces a byte type
+        # remember that is stored as str not as byte in the JSON
+        pub_cert = cipher.decrypt(cert[0].encode('utf-8')).decode('utf-8')
+
+        # cert_pub in 0 /user-key-cert.pub
+        # temp-dir in 1
+        # get tmp directory
+        td = cert[1]
+
+        app.logger.info(f"Temp dir: {td}")
+
+        if not os.path.exists(td):
+            # retrieve public certificate and store in temp dir location
+            str_to_file(pub_cert,td,"user-key-cert.pub")
+
+            # user public and private key should be in Storage / path, symlinking in order to not use the same key at the same time
+            os.symlink(os.getcwd() + "/user-key.pub", td + "/user-key.pub")  # link on temp dir
+            os.symlink(os.getcwd() + "/user-key", td + "/user-key")  # link on temp dir
+
+            # stat.S_IRUSR -> owner has read permission
+            os.chmod(td + "/user-key-cert.pub", stat.S_IRUSR)
+
+        cert_list = [f"{td}/user-key-cert.pub", f"{td}/user-key.pub", f"{td}/user-key", td]
+
+        # start download from OS to FS
+        update_task(task_id, headers, async_task.ST_DWN_BEG)
+
+        # execute download
+        result = exec_remote_command(username, system_name, system_addr, "", "storage_cert", cert_list)
+
+        # if no error, then download is complete
+        if result["error"] == 0:
+            update_task(task_id, headers, async_task.ST_DWN_END)
+
+            # No need to delete the dictionary, it will be cleaned on next iteration
+
+            # must be deleted after object is moved to storage
+            # staging.delete_object(containername=username,prefix=task_id,objectname=objectname)
+            # for big files delete_object consumes a long time and often gives a TimeOut error between system and staging area
+            # Therefore, using delete_object_after a few minutes (in this case 5 minutes) will trigger internal staging area
+            # mechanism to delete the file automatically and without a need of a connection
+
+            staging.delete_object_after(containername=username,prefix=task_id,objectname=objectname, ttl = int(time.time())+600)
+
+        else:
+            # if error, should be prepared for try again
+            upl_file["status"] = async_task.ST_DWN_ERR
+            uploaded_files[task_id] = upl_file
+
+            # update but conserv "msg" as the data for download to OS, to be used for retry in next iteration
+            update_task(task_id, headers, async_task.ST_DWN_ERR, msg=upl_file, is_json=True)
+
+    except Exception as e:
+        app.logger.error(e)
+        update_task(task_id, headers, async_task.ST_DWN_ERR, msg=upl_file, is_json=True)
 
 
 
@@ -930,129 +1062,6 @@ def status():
     return jsonify(success="ack"), 200
 
 
-def create_staging():
-    # Object Storage object
-    global staging
-
-    staging = None
-
-    if OBJECT_STORAGE == "swift":
-
-        app.logger.info("Object Storage selected: SWIFT")
-
-        from swiftOS import Swift
-
-        # Object Storage URL & data:
-        SWIFT_PRIVATE_URL = os.environ.get("F7T_SWIFT_PRIVATE_URL")
-        SWIFT_PUBLIC_URL = os.environ.get("F7T_SWIFT_PUBLIC_URL")
-        SWIFT_API_VERSION = os.environ.get("F7T_SWIFT_API_VERSION")
-        SWIFT_ACCOUNT = os.environ.get("F7T_SWIFT_ACCOUNT")
-        SWIFT_USER = os.environ.get("F7T_SWIFT_USER")
-        SWIFT_PASS = os.environ.get("F7T_SWIFT_PASS")
-
-        priv_url = f"{SWIFT_PRIVATE_URL}/{SWIFT_API_VERSION}/AUTH_{SWIFT_ACCOUNT}"
-        publ_url = f"{SWIFT_PUBLIC_URL}/{SWIFT_API_VERSION}/AUTH_{SWIFT_ACCOUNT}"
-
-        staging = Swift(priv_url=priv_url,publ_url=publ_url, user=SWIFT_USER, passwd=SWIFT_PASS, secret=SECRET_KEY)
-
-    elif OBJECT_STORAGE == "s3v2":
-        app.logger.info("Object Storage selected: S3v2")
-        from s3v2OS import S3v2
-
-        # For S3:
-        S3_PRIVATE_URL = os.environ.get("F7T_S3_PRIVATE_URL")
-        S3_PUBLIC_URL  = os.environ.get("F7T_S3_PUBLIC_URL")
-        S3_ACCESS_KEY  = os.environ.get("F7T_S3_ACCESS_KEY")
-        S3_SECRET_KEY  = os.environ.get("F7T_S3_SECRET_KEY")
-
-        staging = S3v2(priv_url=S3_PRIVATE_URL, publ_url=S3_PUBLIC_URL, user=S3_ACCESS_KEY, passwd=S3_SECRET_KEY)
-
-    elif OBJECT_STORAGE == "s3v4":
-        app.logger.info("Object Storage selected: S3v4")
-        from s3v4OS import S3v4
-
-        # For S3:
-        S3_PRIVATE_URL = os.environ.get("F7T_S3_PRIVATE_URL")
-        S3_PUBLIC_URL  = os.environ.get("F7T_S3_PUBLIC_URL")
-        S3_ACCESS_KEY  = os.environ.get("F7T_S3_ACCESS_KEY")
-        S3_SECRET_KEY  = os.environ.get("F7T_S3_SECRET_KEY")
-
-        staging = S3v4(priv_url=S3_PRIVATE_URL, publ_url=S3_PUBLIC_URL, user=S3_ACCESS_KEY, passwd=S3_SECRET_KEY)
-
-    else:
-        app.logger.warning("No Object Storage for staging area was set.")
-
-def get_upload_unfinished_tasks():
-
-    # cleanup upload dictionary
-    global uploaded_files
-    uploaded_files = {}
-
-    app.logger.info(f"Staging Area Used: {staging.priv_url} - ObjectStorage Technology: {staging.get_object_storage()}")
-
-    try:
-        # query Tasks microservice for previous tasks. Allow 30 seconds to answer
-
-        # only unfinished upload process
-        status_code = [async_task.ST_URL_ASK, async_task.ST_URL_REC, async_task.ST_UPL_CFM, async_task.ST_DWN_BEG, async_task.ST_DWN_ERR]
-        retval=requests.get(f"{TASKS_URL}/taskslist", json={"service": "storage", "status_code":status_code}, timeout=30, verify=(SSL_CRT if USE_SSL else False))
-
-        if not retval.ok:
-            app.logger.error("Error getting tasks from Tasks microservice: query failed with status {retval.status_code}, STORAGE microservice will not be fully functional. Next try will be in {STORAGE_POLLING_INTERVAL} seconds")
-            return
-
-        queue_tasks = retval.json()
-
-        # queue_tasks structure: "tasks"{
-        #                                  task_{id1}: {..., data={} }
-        #                                  task_{id2}: {..., data={} }  }
-        # data is the field containing every
-
-        queue_tasks = queue_tasks["tasks"]
-
-        n_tasks = 0
-
-        for key,task in queue_tasks.items():
-
-            task = json.loads(task)
-
-            # iterating over queue_tasls
-            try:
-                data = task["data"]
-
-                # check if task is a non ending /xfer-external/upload downloading
-                # from SWIFT to filesystem and it crashed before download finished,
-                # so it can be re-initiated with /xfer-external/upload-finished
-                # In that way it's is marked as erroneous
-
-                if task["status"] == async_task.ST_DWN_BEG:
-                    task["status"] = async_task.ST_DWN_ERR
-                    task["description"] = "Storage has been restarted, process will be resumed"
-                    headers = {}
-                    headers[TRACER_HEADER] = data['trace_id']
-                    update_task(task["hash_id"], headers, async_task.ST_DWN_ERR, data, is_json=True)
-
-                uploaded_files[task["hash_id"]] = data
-
-                n_tasks += 1
-
-            except KeyError as e:
-                app.logger.error(e)
-                app.logger.error(task["data"])
-                app.logger.error(key)
-
-            except Exception as e:
-                app.logger.error(data)
-                app.logger.error(e)
-                app.logger.error(type(e))
-
-        app.logger.info(f"Not finished upload tasks recovered from taskpersistance: {n_tasks}")
-
-    except Exception as e:
-        app.logger.warning("Error querying TASKS microservice: STORAGE microservice will not be fully functional")
-        app.logger.error(e)
-
-
 @app.before_request
 def f_before_request():
     new_headers = {}
@@ -1070,35 +1079,7 @@ def after_request(response):
     return response
 
 
-def init_storage():
-    # should check Tasks tasks than belongs to storage
-    create_staging()
-    get_upload_unfinished_tasks()
-
-
 if __name__ == "__main__":
-    LOG_PATH = os.environ.get("F7T_LOG_PATH", '/var/log').strip('\'"')
-    # timed rotation: 1 (interval) rotation per day (when="D")
-    logHandler = TimedRotatingFileHandler(f'{LOG_PATH}/storage.log', when='D', interval=1)
-
-    logFormatter = LogRequestFormatter('%(asctime)s,%(msecs)d %(thread)s [%(TID)s] %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
-                                     '%Y-%m-%dT%H:%M:%S')
-    logHandler.setFormatter(logFormatter)
-
-    # get app log (Flask+werkzeug+python)
-    logger = logging.getLogger()
-
-    # set handler to logger
-    logger.addHandler(logHandler)
-    logging.getLogger().setLevel(logging.INFO)
-
-    # checks QueuePersistence and retakes all tasks
-    init_storage()
-
-    # aynchronously checks uploaded_files for complete download to FS
-    upload_check = threading.Thread(target=check_upload_files, name='storage-check-upload-files')
-    upload_check.start()
-
     if USE_SSL:
         app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=STORAGE_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:

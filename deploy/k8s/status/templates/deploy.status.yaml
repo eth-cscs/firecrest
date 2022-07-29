@@ -28,6 +28,12 @@ spec:
         volumeMounts:
         - mountPath: /var/log
           name: logs-endpoint
+        - mountPath: /f7t-ssl.crt
+          name: f7t-ssl-crt
+          subPath: f7t-ssl.crt
+        - mountPath: /f7t-ssl.key
+          name: f7t-ssl-key
+          subPath: f7t-ssl.key
         startupProbe:
           tcpSocket:
             port: 5001
@@ -40,3 +46,9 @@ spec:
       volumes:
       - emptyDir: {}
         name: logs-endpoint
+      - name: f7t-ssl-crt
+        configMap:
+          name: f7t-ssl-crt
+      - name: f7t-ssl-key
+        configMap:
+          name: f7t-ssl-key

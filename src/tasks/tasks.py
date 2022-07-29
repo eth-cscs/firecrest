@@ -11,11 +11,10 @@ import pickle
 import async_task
 import os
 import logging
-from logging.handlers import TimedRotatingFileHandler
 from flask_opentracing import FlaskTracing
 from jaeger_client import Config
 
-from cscs_api_common import check_auth_header, get_username, check_header, get_boolean_var, LogRequestFormatter
+from cscs_api_common import check_auth_header, get_username, check_header, get_boolean_var, setup_logging
 import tasks_persistence as persistence
 
 AUTH_HEADER_NAME = 'Authorization'
@@ -48,6 +47,8 @@ debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 tasks = {}
 
 app = Flask(__name__)
+
+logger = setup_logging(logging, 'tasks')
 
 JAEGER_AGENT = os.environ.get("F7T_JAEGER_AGENT", "").strip('\'"')
 if JAEGER_AGENT != "":
@@ -96,6 +97,10 @@ def init_queue():
         t.set_status(status,data)
         tasks[t.hash_id] = t
 
+# init Redis connection
+init_queue()
+
+
 
 @app.route("/",methods=["GET"])
 @check_auth_header
@@ -107,7 +112,7 @@ def list_tasks():
     if not is_username_ok["result"]:
         app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
         return jsonify(description=f"Error on JWT token verification: {is_username_ok['reason']}"), 401
-    
+
     username = is_username_ok["username"]
 
     user_tasks = {}
@@ -146,7 +151,7 @@ def create_task():
     if not is_username_ok["result"]:
         app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
         return jsonify(description=f"Couldn't create task. Reason: {is_username_ok['reason']}"), 401
-    
+
     username = is_username_ok["username"]
 
     # QueuePersistence connection
@@ -203,7 +208,7 @@ def get_task(id):
     if not is_username_ok["result"]:
         app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
         return jsonify(description=f"Couldn't retrieve task. Reason: {is_username_ok['reason']}"), 401
-    
+
     username = is_username_ok["username"]
 
     # for better knowledge of what this id is
@@ -272,7 +277,7 @@ def update_task(id):
         if not is_username_ok["result"]:
             app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
             return jsonify(description=f"Couldn't update task. Reason: {is_username_ok['reason']}"), 401
-        
+
         username = is_username_ok["username"]
 
     # for better knowledge of what this id is
@@ -340,7 +345,7 @@ def delete_task(id):
     if not is_username_ok["result"]:
         app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
         return jsonify(description=f"Couldn't delete task. Reason: {is_username_ok['reason']}"), 401
-    
+
     username = is_username_ok["username"]
 
     # for better knowledge of what this id is
@@ -391,7 +396,7 @@ def expire_task(id):
     if not is_username_ok["result"]:
         app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
         return jsonify(description=f"Couldn't expire task. Reason: {is_username_ok['reason']}"), 401
-    
+
     username = is_username_ok["username"]
 
     # for better knowledge of what this id is
@@ -410,7 +415,6 @@ def expire_task(id):
 
     if service == "compute":
         exp_time = COMPUTE_TASK_EXP_TIME
-
 
     try:
         global r
@@ -485,23 +489,6 @@ def after_request(response):
 
 
 if __name__ == "__main__":
-    LOG_PATH = os.environ.get("F7T_LOG_PATH", '/var/log').strip('\'"')
-    # timed rotation: 1 (interval) rotation per day (when="D")
-    logHandler = TimedRotatingFileHandler(f'{LOG_PATH}/tasks.log', when='D', interval=1)
-
-    logFormatter = LogRequestFormatter('%(asctime)s,%(msecs)d %(thread)s [%(TID)s] %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
-                                     '%Y-%m-%dT%H:%M:%S')
-    logHandler.setFormatter(logFormatter)
-
-    # get app log (Flask+werkzeug+python)
-    logger = logging.getLogger()
-
-    # set handler to logger
-    logger.addHandler(logHandler)
-    logging.getLogger().setLevel(logging.INFO)
-
-    init_queue()
-
     if USE_SSL:
         app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=TASKS_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:
