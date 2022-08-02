@@ -29,29 +29,26 @@ spec:
         - mountPath: /data
           name: data-endpoint
         - mountPath: /redis
-          name: redis-config        
+          name: redis-config
       - name: tasks
         image: "{{ .Values.registry }}/tasks:{{ .Values.tag }}"
-        env:
-        - name: F7T_PERSIST_PORT
-          value: "6379"
-        - name: F7T_PERSIST_PWD
-          value: rediS2200
-        - name: F7T_DEBUG_MODE
-          value: "on"
-        - name: F7T_COMPUTE_TASK_EXP_TIME
-          value: "86400"
-        - name: F7T_STORAGE_TASK_EXP_TIME
-          value: "2678400"
         imagePullPolicy: Always
         ports:
         - containerPort: 5003
         envFrom:
         - configMapRef:
             name: common-env-file
+        - configMapRef:
+            name: tasks-env-file
         volumeMounts:
         - mountPath: /var/log
           name: logs-endpoint
+        - mountPath: /f7t-ssl.crt
+          name: f7t-ssl-crt
+          subPath: f7t-ssl.crt
+        - mountPath: /f7t-ssl.key
+          name: f7t-ssl-key
+          subPath: f7t-ssl.key
         startupProbe:
           tcpSocket:
             port: 5003
@@ -69,3 +66,9 @@ spec:
       - name: redis-config
         configMap:
           name: f7t-redis
+      - name: f7t-ssl-crt
+        configMap:
+          name: f7t-ssl-crt
+      - name: f7t-ssl-key
+        configMap:
+          name: f7t-ssl-key

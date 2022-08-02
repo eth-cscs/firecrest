@@ -5,3 +5,4 @@ PyJWT==2.4.0
 requests==2.22.0
 jaeger_client==4.5.0
 Flask-Opentracing==1.1.0
+gunicorn==20.1.0

@@ -1,0 +1,11 @@
+apiVersion: v1
+data:
+  F7T_COMPUTE_BASE_FS: "{{ .Values.compute.F7T_COMPUTE_BASE_FS }}"
+  F7T_COMPUTE_PORT: "{{ .Values.compute.F7T_COMPUTE_PORT }}"
+  F7T_FIRECREST_SERVICE: "{{ .Values.compute.F7T_FIRECREST_SERVICE }}"
+  F7T_SPANK_PLUGIN_OPTION: "{{ .Values.compute.F7T_SPANK_PLUGIN_OPTION }}"
+  F7T_USE_SPANK_PLUGIN: "{{ .Values.compute.F7T_USE_SPANK_PLUGIN }}"
+kind: ConfigMap
+metadata:
+  name: compute-env-file
+  namespace: {{ .Values.namespace }}

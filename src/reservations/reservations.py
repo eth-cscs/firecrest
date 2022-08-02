@@ -11,8 +11,7 @@ from werkzeug.exceptions import BadRequestKeyError, InternalServerError, MethodN
 # task states
 import os
 import logging
-from logging.handlers import TimedRotatingFileHandler
-from cscs_api_common import check_auth_header, exec_remote_command, in_str, get_boolean_var, LogRequestFormatter
+from cscs_api_common import check_auth_header, exec_remote_command, in_str, get_boolean_var, setup_logging
 
 import datetime
 import re
@@ -45,6 +44,8 @@ debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 
 app = Flask(__name__)
+
+logger = setup_logging(logging, 'reservations')
 
 JAEGER_AGENT = os.environ.get("F7T_JAEGER_AGENT", "").strip('\'"')
 if JAEGER_AGENT != "":
@@ -562,21 +563,6 @@ def after_request(response):
 
 
 if __name__ == "__main__":
-    LOG_PATH = os.environ.get("F7T_LOG_PATH", '/var/log').strip('\'"')
-    # timed rotation: 1 (interval) rotation per day (when="D")
-    logHandler = TimedRotatingFileHandler(f'{LOG_PATH}/reservations.log', when='D', interval=1)
-
-    logFormatter = LogRequestFormatter('%(asctime)s,%(msecs)d %(thread)s [%(TID)s] %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
-                                     '%Y-%m-%dT%H:%M:%S')
-    logHandler.setFormatter(logFormatter)
-
-    # get app log (Flask+werkzeug+python)
-    logger = logging.getLogger()
-
-    # set handler to logger
-    logger.addHandler(logHandler)
-    logging.getLogger().setLevel(logging.INFO)
-
     if USE_SSL:
         app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=RESERVATIONS_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:

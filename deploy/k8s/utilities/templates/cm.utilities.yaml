@@ -1,0 +1,7 @@
+apiVersion: v1
+data:
+  F7T_UTILITIES_PORT: "{{ .Values.utilities.F7T_UTILITIES_PORT }}"
+kind: ConfigMap
+metadata:
+  name: utilities-env-file
+  namespace: {{ .Values.namespace }}

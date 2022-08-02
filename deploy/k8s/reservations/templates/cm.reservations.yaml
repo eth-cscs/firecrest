@@ -1,0 +1,8 @@
+apiVersion: v1
+data:
+  F7T_RESERVATIONS_PORT: "{{ .Values.reservations.F7T_RESERVATIONS_PORT }}"
+  F7T_RESERVATIONS_TIMEOUT: "{{ .Values.reservations.F7T_RESERVATIONS_PORT }}"
+kind: ConfigMap
+metadata:
+  name: reservations-env-file
+  namespace: {{ .Values.namespace }}

@@ -23,12 +23,20 @@ spec:
         envFrom:
         - configMapRef:
             name: common-env-file
+        - configMapRef:
+            name: utilities-env-file
         volumeMounts:
         - mountPath: /var/log
           name: logs-endpoint
         - mountPath: /user-key
           subPath: user-key
           name: user-key-public
+        - mountPath: /f7t-ssl.crt
+          name: f7t-ssl-crt
+          subPath: f7t-ssl.crt
+        - mountPath: /f7t-ssl.key
+          name: f7t-ssl-key
+          subPath: f7t-ssl.key
         startupProbe:
           tcpSocket:
             port: 5004
@@ -44,3 +52,9 @@ spec:
       - name: user-key-public
         configMap:
           name: f7t-user-ssh-keys
+      - name: f7t-ssl-crt
+        configMap:
+          name: f7t-ssl-crt
+      - name: f7t-ssl-key
+        configMap:
+          name: f7t-ssl-key

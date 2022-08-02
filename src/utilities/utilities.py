@@ -5,8 +5,6 @@
 #  SPDX-License-Identifier: BSD-3-Clause
 #
 from flask import Flask, request, jsonify, send_file, g
-
-from logging.handlers import TimedRotatingFileHandler
 import os, logging
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import BadRequestKeyError
@@ -19,15 +17,14 @@ from flask_opentracing import FlaskTracing
 from jaeger_client import Config
 import opentracing
 
-from cscs_api_common import check_auth_header, exec_remote_command, check_command_error, get_boolean_var, validate_input, LogRequestFormatter
+from cscs_api_common import check_auth_header, exec_remote_command, check_command_error, get_boolean_var, validate_input, setup_logging
 
 CERTIFICATOR_URL = os.environ.get("F7T_CERTIFICATOR_URL")
-
 UTILITIES_PORT   = os.environ.get("F7T_UTILITIES_PORT", 5000)
 
 AUTH_HEADER_NAME = 'Authorization'
 
-UTILITIES_TIMEOUT = int(os.environ.get("F7T_UTILITIES_TIMEOUT"))
+UTILITIES_TIMEOUT = int(os.environ.get("F7T_UTILITIES_TIMEOUT", "5"))
 
 # SYSTEMS: list of ; separated systems allowed
 SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
@@ -37,7 +34,7 @@ SYS_INTERNALS   = os.environ.get("F7T_SYSTEMS_INTERNAL_UTILITIES").strip('\'"').
 debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 #max file size for upload/download in MB, internally used in bytes
-MAX_FILE_SIZE_BYTES = int(os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE")) * 1024 * 1024
+MAX_FILE_SIZE_BYTES = int(os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE", "5")) * 1024 * 1024
 
 ### SSL parameters
 USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
@@ -49,6 +46,8 @@ TRACER_HEADER = "uber-trace-id"
 app = Flask(__name__)
 # max content lenght for upload in bytes
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE_BYTES
+
+logger = setup_logging(logging, 'utilities')
 
 JAEGER_AGENT = os.environ.get("F7T_JAEGER_AGENT", "").strip('\'"')
 if JAEGER_AGENT != "":
@@ -581,21 +580,6 @@ def after_request(response):
 
 
 if __name__ == "__main__":
-    LOG_PATH = os.environ.get("F7T_LOG_PATH", '/var/log').strip('\'"')
-    # timed rotation: 1 (interval) rotation per day (when="D")
-    logHandler = TimedRotatingFileHandler(f'{LOG_PATH}/utilities.log', when='D', interval=1)
-
-    logFormatter = LogRequestFormatter('%(asctime)s,%(msecs)d %(thread)s [%(TID)s] %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
-                                     '%Y-%m-%dT%H:%M:%S')
-    logHandler.setFormatter(logFormatter)
-
-    # get app log (Flask+werkzeug+python)
-    logger = logging.getLogger()
-
-    # set handler to logger
-    logger.addHandler(logHandler)
-    logging.getLogger().setLevel(logging.INFO)
-
     if USE_SSL:
         app.run(debug=debug, host='0.0.0.0', port=UTILITIES_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:
