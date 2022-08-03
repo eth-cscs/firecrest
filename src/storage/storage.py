@@ -6,13 +6,13 @@
 #
 from flask import Flask, request, jsonify, g
 import json, tempfile, os
-import urllib
-import datetime
+
 import logging
+
 import async_task
 import threading
 # common functions
-from cscs_api_common import check_auth_header, get_username
+from cscs_api_common import check_auth_header, delete_task, get_username
 from cscs_api_common import create_task, update_task, get_task_status
 from cscs_api_common import exec_remote_command
 from cscs_api_common import create_certificate
@@ -23,7 +23,6 @@ from cscs_api_common import is_valid_file, is_valid_dir, check_command_error, ge
 import job_time
 
 import requests
-from hashlib import md5
 
 import stat
 from cryptography.fernet import Fernet
@@ -634,6 +633,13 @@ def invalidate_request():
 
         if error == -1:
             return jsonify(error="Could not invalidate URL"), 400
+        
+        # if file is invalidated, then delete the task
+        if not delete_task(task_id,headers):
+            app.logger.warning(f"Task {task_id} couldn't be marked as invalid in database")
+        else:
+            app.logger.info(f"Task {task_id} marked as invalid in database")
+        
 
     return jsonify(success="URL invalidated successfully"), 201
 

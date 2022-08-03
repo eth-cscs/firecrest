@@ -124,6 +124,43 @@ def test_post_upload_request(headers):
     assert download_ok
 
 
+## Test external download /storage/xfer-external/download and invalidate URL after download
+@skipif_not_uses_gateway
+def test_post_download_request(headers):
+    headers["X-Machine-Name"] = SERVER_UTILITIES_STORAGE
+    # request upload form
+    data = { "sourcePath": "/ssh_command_wrapper.sh" }
+    resp = requests.post(f"{STORAGE_URL}/xfer-external/download", headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+    assert resp.status_code == 201
+
+    task_id = resp.json()["task_id"]
+
+    # wait to make sure upload form is ready
+    time.sleep(5)
+
+    # get upload form from checking task status
+    resp = get_task(task_id, headers)
+
+
+    assert not (int(resp.json()["task"]["status"])) == 118 # if not error, continue
+
+    upload_ok = False
+    for i in range(20):
+        resp = get_task(task_id, headers)
+        if int(resp.json()["task"]["status"]) == 116: # if file still not in Object Storage, continue
+            continue
+        if int(resp.json()["task"]["status"]) == 117: # file ready in Object Storage, finish
+            upload_ok = True
+            break
+        time.sleep(10)
+    
+    assert upload_ok
+    # invalidate:
+
+    headers["X-Task-Id"] = task_id
+    resp = requests.post(f"{STORAGE_URL}/xfer-external/invalidate", headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+
+    assert resp.status_code == 201
 
 # Test storage internal copy and then use utilities list command
 # to check copied file
