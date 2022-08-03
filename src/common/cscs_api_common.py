@@ -548,7 +548,23 @@ def expire_task(task_id, headers, service):
 
     return True
 
+# Delete task (used only in /xfer-external/invalidate)
+def delete_task(task_id, headers):
 
+    logging.info(f"DELETE {TASKS_URL}/{task_id}")
+    try:
+        req = requests.delete(f"{TASKS_URL}/{task_id}",
+                            headers=headers, verify=(SSL_CRT if USE_SSL else False))
+    except Exception as e:
+        logging.error(type(e))
+        logging.error(e.args)
+        return False
+
+    if not req.ok:
+        logging.error(req.text)
+        return False
+
+    return True
 
 
 # function to check task status:
