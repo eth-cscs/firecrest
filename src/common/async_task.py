@@ -16,6 +16,7 @@ PROGRESS = "101"
 SUCCESS  = "200"
 DELETED  = "300"
 EXPIRED  = "301"
+INVALID  = "302"
 ERROR    = "400"
 
 # upload process states
@@ -38,6 +39,7 @@ status_codes = { QUEUED  : "Queued",
                  PROGRESS: "In progress",
                  DELETED : "Deleted on request",
                  EXPIRED : "Marked for expiration in persistence",
+                 INVALID : "Task not longer valid",
                  ERROR   : "Finished with errors",
 
                  ST_URL_ASK: "Waiting for Form URL from Object Storage to be retrieved",

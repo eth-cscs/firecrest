@@ -5,7 +5,6 @@
 #  SPDX-License-Identifier: BSD-3-Clause
 #
 from flask import Flask, request, jsonify, g
-import pickle
 
 # task states
 import async_task
@@ -362,15 +361,19 @@ def delete_task(id):
     try:
         global r
 
-        if not persistence.del_task(r,id=tasks[hash_id].task_id):
-            return jsonify(error="Failed to delete task on persistence server"), 400
+        if not persistence.set_expire_task(r,id=tasks[hash_id].task_id,secs=300):
+            return jsonify(error=f"Failed to delete task {hash_id} on persistence server"), 400
 
-        data = jsonify(success="task deleted")
-        tasks[hash_id].set_status(status=async_task.DELETED, data="")
+        data = jsonify(success=f"Task {hash_id} deleted")
+        tasks[hash_id].set_status(status=async_task.INVALID, data="")
         return data, 204
 
-    except Exception:
-        data = jsonify(Error="Failed to delete task")
+    except Exception as e:
+        app.logger.error(f"Failed to delete task {hash_id} on persistence server")
+        app.logger.error(f"Error: {type(e)}")
+        app.logger.error(f"Error: {e}")
+        
+        data = jsonify(error=f"Failed to delete task {hash_id} on persistence server")
         return data, 400
 
 #set expiration for task, in case of Jobs list or account info:
@@ -425,8 +428,7 @@ def expire_task(id):
             return jsonify(error="Failed to set expiration time on task in persistence server"), 400
 
         data = jsonify(success=f"Task expiration time set to {exp_time} secs.")
-        # tasks[hash_id].set_status(status=async_task.EXPIRED)
-
+        
         return data, 200
 
     except Exception:
