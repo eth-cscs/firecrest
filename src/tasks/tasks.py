@@ -281,6 +281,15 @@ def update_task(id):
 
     # for better knowledge of what this id is
     hash_id = id
+
+    # check if task exist
+    
+    try:
+        current_task=tasks[hash_id]
+    except KeyError:
+        data = jsonify(error=f"Task {hash_id} does not exist")
+        return data, 404
+
     if JAEGER_AGENT != "":
         try:
             span = tracing.get_span(request)
@@ -290,12 +299,9 @@ def update_task(id):
 
 
     # if username isn't taks owner, then deny access, unless is ***
-    try:
-        if owner_needed and not tasks[hash_id].is_owner(username):
-            return jsonify(description="Operation not permitted. Invalid task owner."), 403
-    except KeyError:
-        data = jsonify(error=f"Task {hash_id} does not exist")
-        return data, 404
+    if owner_needed and not tasks[hash_id].is_owner(username):
+        return jsonify(description="Operation not permitted. Invalid task owner."), 403
+    
 
     # checks if status request is valid:
     if status not in async_task.status_codes:
