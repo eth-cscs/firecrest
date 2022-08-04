@@ -14,7 +14,7 @@ items:
       ##
       openapi: 3.0.0
       servers:
-        - url: '{{ .Values.firecrest_url }}'
+        - url: '{{ .Values.common.F7T_KONG_URL }}'
       info:
         version: {{ .Values.firecrest_version }}
         title: FirecREST API
