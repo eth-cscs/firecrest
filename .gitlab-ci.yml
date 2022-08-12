@@ -239,8 +239,7 @@ deploy_tds:
     - export VAULT_ADDR="https://vault.svc.cscs.ch"
     - export VAULT_TOKEN=$CI_VAULT_TOKEN
     - CI_K8S_TOKEN="$(vault kv get -field=firecrest-cicd-secret firecrest/dev)"
-    - VALUES_COMMON="$(vault kv get -field=values_common firecrest/tds)"
-
+    
     - cd deploy/k8s
     - |
       echo -e "registry: ${CI_REGISTRY_PREFIX}" > values-tds.yaml
@@ -248,7 +247,7 @@ deploy_tds:
       echo -e "namespace: ${CI_NAMESPACE_TDS}" >> values-tds.yaml 
       echo -e "registry_secret_creds: regcred" >> values-tds.yaml
 
-      echo -e "$VALUES_COMMON" >> values-tds.yaml
+      vault kv get -field=values_common firecrest/tds >> values-tds.yaml
       
       for app in config compute jaeger reservations status storage tasks utilities openapi ; do
         helm uninstall -n ${CI_NAMESPACE_TDS} --kube-token=${CI_K8S_TOKEN} "$app" || true
