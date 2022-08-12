@@ -247,7 +247,7 @@ deploy_tds:
       echo -e "firecrest_version: ${CI_COMMIT_TAG:4}" >> values-tds.yaml
       echo -e "$VALUES_COMMON" >> values-tds.yaml
 
-      for app in openapi; do
+      for app in config compute jaeger reservations status storage tasks utilities openapi ; do
         helm uninstall -n ${CI_NAMESPACE_TDS} --kube-token=${CI_K8S_TOKEN} "$app" || true
         helm install  --wait --wait-for-jobs --timeout 180s -n ${CI_NAMESPACE_TDS} -f values-tds.yaml --kube-token=${CI_K8S_TOKEN} "$app" $app;
       done
