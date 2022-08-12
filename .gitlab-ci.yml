@@ -249,6 +249,8 @@ deploy_tds:
 
       for app in config compute jaeger reservations status storage tasks utilities openapi ; do
         helm uninstall -n ${CI_NAMESPACE_TDS} --kube-token=${CI_K8S_TOKEN} "$app" || true
+        vault kv get -field=values_${app} firecrest/tds >> values-tds.yaml 2>/dev/null || true
+        echo >> values-tds.yaml  # add end line
         helm install  --wait --wait-for-jobs --timeout 180s -n ${CI_NAMESPACE_TDS} -f values-tds.yaml --kube-token=${CI_K8S_TOKEN} "$app" $app;
       done
   when: on_success
