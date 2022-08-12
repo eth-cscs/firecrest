@@ -245,8 +245,11 @@ deploy_tds:
     - |
       echo -e "registry: ${CI_REGISTRY_PREFIX}" > values-tds.yaml
       echo -e "firecrest_version: ${CI_COMMIT_TAG:4}" >> values-tds.yaml
-      echo -e "$VALUES_COMMON" >> values-tds.yaml
+      echo -e "namespace: ${CI_NAMESPACE_TDS}" >> values-tds.yaml 
+      echo -e "registry_secret_creds: regcred" >> values-tds.yaml
 
+      echo -e "$VALUES_COMMON" >> values-tds.yaml
+      
       for app in config compute jaeger reservations status storage tasks utilities openapi ; do
         helm uninstall -n ${CI_NAMESPACE_TDS} --kube-token=${CI_K8S_TOKEN} "$app" || true
         vault kv get -field=values_${app} firecrest/tds >> values-tds.yaml 2>/dev/null || true
