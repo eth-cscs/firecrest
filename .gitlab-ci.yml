@@ -246,6 +246,7 @@ deploy_tds:
       echo -e "firecrest_version: ${CI_COMMIT_TAG:4}" >> values-tds.yaml
       echo -e "namespace: ${CI_NAMESPACE_TDS}" >> values-tds.yaml 
       echo -e "registry_secret_creds: regcred" >> values-tds.yaml
+      echo -e "tag: tds" >> values-tds.yaml
 
       vault kv get -field=values_common firecrest/tds >> values-tds.yaml
       
