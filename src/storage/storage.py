@@ -543,8 +543,7 @@ def download_request():
     try:
         system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
-        app.logger.warning("No machinename given, using first public one.")
-        system_name = SYSTEMS_PUBLIC[0]
+        return jsonify(description="No machine name given"), 400
 
     # public endpoints from Kong to users
     if system_name not in SYSTEMS_PUBLIC:
@@ -633,13 +632,13 @@ def invalidate_request():
 
         if error == -1:
             return jsonify(error="Could not invalidate URL"), 400
-        
+
         # if file is invalidated, then delete the task
         if not delete_task(task_id,headers):
             app.logger.warning(f"Task {task_id} couldn't be marked as invalid in database")
         else:
             app.logger.info(f"Task {task_id} marked as invalid in database")
-        
+
 
     return jsonify(success="URL invalidated successfully"), 201
 
@@ -756,8 +755,7 @@ def upload_request():
     try:
         system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
-        app.logger.warning("No machinename given, using first public one.")
-        system_name = SYSTEMS_PUBLIC[0]
+        return jsonify(description="No machine name given"), 400
 
     # public endpoints from Kong to users
     if system_name not in SYSTEMS_PUBLIC:
@@ -907,8 +905,7 @@ def internal_operation(request, command):
     try:
         system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
-        app.logger.warning("No machinename given, using first public one.")
-        system_name = SYSTEMS_PUBLIC[0]
+        return jsonify(description="No machine name given"), 400
 
     # public endpoints from Kong to users
     if system_name not in SYSTEMS_PUBLIC:
