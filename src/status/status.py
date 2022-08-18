@@ -311,10 +311,10 @@ def status_systems():
          # -5: error on token verification error
     #
         if status == -5:
-            reason = status_list[0]["reason"]
+            reason = res["reason"]
             ret_dict={"system":machinename, "status":"not available", "description": f"Error on JWT token: {reason}"}
         if status == -4:
-            filesystem = status_list[0]["filesystem"]
+            filesystem = res["filesystem"]
             ret_dict={"system":machinename, "status":"not available", "description": f"Filesystem {filesystem} is not available"}
         elif status == -2:
              ret_dict = {"system": system, "status": "not available", "description": "System down"}
