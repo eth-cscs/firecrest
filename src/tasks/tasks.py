@@ -251,39 +251,10 @@ def update_task(id):
 
         status = request.form["status"]
 
-    # All tasks that doesn't need direct user intervention such as:
-    # if status is download from Object Storage (OS) failed (ST_DWN_ERR) or finished (ST_DWN_END)
-    # or if upload from filesystem to OS failed (ST_UPL_ERR) or finished (ST_UPL_END)
-    # or if upload to OS is finished (ST_UPL_CFM) and download to filesystem started (ST_DWN_BEG)
-    # then check of header is NOT needed. ***
-    # owner_needed is True if is not ***
-    owner_needed = False
-    if status not in [async_task.ST_DWN_END , async_task.ST_DWN_ERR, async_task.ST_UPL_ERR, async_task.ST_UPL_END,
-                        async_task.ST_UPL_CFM, async_task.ST_DWN_BEG,async_task.ST_DWN_END] :
-
-
-        #introduced in order to download from SWIFT to
-        auth_header = request.headers[AUTH_HEADER_NAME]
-
-        is_header_ok = check_header(auth_header)
-        if not is_header_ok["result"]:
-            return jsonify(description=is_header_ok["reason"]), 401
-
-        # getting username from auth_header
-        owner_needed = True
-        is_username_ok = get_username(auth_header)
-
-        if not is_username_ok["result"]:
-            app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
-            return jsonify(description=f"Couldn't update task. Reason: {is_username_ok['reason']}"), 401
-
-        username = is_username_ok["username"]
-
     # for better knowledge of what this id is
     hash_id = id
 
     # check if task exist
-    
     try:
         current_task=tasks[hash_id]
     except KeyError:
@@ -297,11 +268,6 @@ def update_task(id):
         except Exception as e:
             app.logger.info(e)
 
-
-    # if username isn't taks owner, then deny access, unless is ***
-    if owner_needed and not tasks[hash_id].is_owner(username):
-        return jsonify(description="Operation not permitted. Invalid task owner."), 403
-    
 
     # checks if status request is valid:
     if status not in async_task.status_codes:
