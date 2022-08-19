@@ -26,6 +26,23 @@ plugins:
     header_type: preserve
     default_header_type: jaeger
 #    tags_header: Zipkin-Tags
+- name: cors
+  config:
+    origins:
+    - "*"
+    methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    headers:
+    - Accept
+    - X-Machine-Name
+    - X-Task-Id
+    - Authorization
+    - Content-Type
+    credentials: false
+    max_age: 3600
 
 consumers:
   - username: default2  # name is irrelevant but required
@@ -69,7 +86,7 @@ services:
   - name: tasks
     methods: [GET]
     paths:
-    - /tasks/
+    - /tasks
 - name: utilities
   url: https://192.168.220.7:5004
   routes:
