@@ -196,19 +196,18 @@ services:
 
   # complementary 3rd party services
   keycloak:
-    image: "jboss/keycloak:15.0.2"
+    image: "quay.io/keycloak/keycloak:18.0.2"
     container_name: fckeycloak
     env_file: keycloak/keycloak.env
-    environment:
-      KEYCLOAK_IMPORT: /var/tmp/config.json
-      Dkeycloak.migration.realmName: kcrealm
+    command: start-dev  --http-relative-path /auth --import-realm
+      
     networks:
       firecrest-internal:
         ipv4_address: 192.168.220.20
     ports:
       - "${KEYCLOAK_PORT:-8080}:8080"
     volumes:
-      - ./keycloak/config.json:/var/tmp/config.json:ro
+      - ./keycloak/config.json:/opt/keycloak/data/import/config.json:ro
       - ./logs/keycloak:/opt/jboss/keycloak/standalone/log/:delegated
 
   kong:
