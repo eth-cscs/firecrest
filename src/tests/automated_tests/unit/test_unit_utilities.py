@@ -287,9 +287,9 @@ def test_download(machine, expected_response_code, headers):
 
 # Test utilities microservice status
 @skipif_uses_gateway
-def test_status():
+def test_status(headers):
 	url = f"{UTILITIES_URL}/status"
-	resp = requests.get(url, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
 	print(resp.headers)
 	assert resp.status_code == 200

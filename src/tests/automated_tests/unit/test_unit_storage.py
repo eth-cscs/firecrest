@@ -95,9 +95,9 @@ def test_internal_rm(headers):
 
 # Test storage microservice status
 @skipif_uses_gateway
-def test_status():
+def test_status(headers):
     url = f"{STORAGE_URL}/status"
-    resp = requests.get(url, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+    resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
     assert resp.status_code == 200
 
 
