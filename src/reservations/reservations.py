@@ -530,6 +530,7 @@ def delete(reservation):
     return data, 204
 
 @app.route("/status",methods=["GET"])
+@check_auth_header
 def status():
     app.logger.info("Test status of service")
     # TODO: check backend reservation binary to truthfully respond this request

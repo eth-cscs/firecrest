@@ -1058,6 +1058,7 @@ def create_xfer_job(machine, headers, fileName):
 
 
 @app.route("/status",methods=["GET"])
+@check_auth_header
 def status():
 
     app.logger.info("Test status of service")

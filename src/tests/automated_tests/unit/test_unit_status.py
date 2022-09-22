@@ -69,16 +69,16 @@ def test_status_systems(headers):
 def test_status_service(service, status_code, headers):
 	url = f"{STATUS_URL}/services/{service}"
 	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
-	print(resp.content)
+	print(resp.json())
 	# assert 'description' in resp.json()
-	assert status_code == resp.status_code
+	assert status_code == resp.json()["status_code"]
 
 @skipif_not_uses_gateway
 def test_status_services(headers):
 	url = f"{STATUS_URL}/services"
 	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
-	print(resp.json())
+	# print(resp.json())
 	assert 'description' in resp.json()
 
 @skipif_not_uses_gateway

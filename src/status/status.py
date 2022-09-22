@@ -109,17 +109,21 @@ def test_service(servicename, status_list, trace_header=None):
 
         # if status_code is 200 OK:
         if req.status_code == 200:
-            status_list.append({"status": 0, "service": servicename})
+            status_list.append({"status": 0, "service": servicename, "status_code": req.status_code})
+            return
+
+        if req.status_code == 401:
+            status_list.append({"status": -6, "service": servicename, "status_code": req.status_code})
             return
 
     except KeyError:
-        status_list.append({"status":-1, "service":servicename})
+        status_list.append({"status":-1, "service":servicename, "status_code": 404})
         return
     # connection errors: server down
     except requests.ConnectionError as e:
         app.logger.error(type(e))
         app.logger.error(e)
-        status_list.append( {"status": -2, "service": servicename} )
+        status_list.append( {"status": -2, "service": servicename, "status_code": 400} )
         return
 
     except requests.exceptions.InvalidSchema as e:
@@ -128,11 +132,11 @@ def test_service(servicename, status_list, trace_header=None):
         app.logger.error(e.errno)
         app.logger.error(e.strerror)
         app.logger.error(e)
-        status_list.append( {"status": -2, "service": servicename})
+        status_list.append( {"status": -2, "service": servicename, "status_code": 400})
         return
 
     # another status_code means server is reached but flask is not functional
-    status_list.append( {"status":-1, "service":servicename} )
+    status_list.append( {"status":-1, "service":servicename, "status_code": req.status_code} )
 
 
 # test individual system function
@@ -336,7 +340,7 @@ def status_systems():
 @check_auth_header
 def status_service(servicename):
     if servicename not in SERVICES_DICT.keys():
-        return jsonify(description="Service does not exists"), 404
+        return jsonify(description="Service does not exists", status_code=404), 404
 
     # needs a list to be pass as reference
     # in compatibility with test all services
@@ -351,16 +355,20 @@ def status_service(servicename):
     if serv_status == -2:
         status = "not available"
         description = "server down"
-        return jsonify(service=servicename,status=status,description=description), 200
+        return jsonify(service=servicename,status=status,status_code=400, description=description), 200
     elif serv_status == -1:
         status = "not available"
         description = "server up, flask down"
-        return jsonify(service=servicename,status=status,description=description), 200
+        return jsonify(service=servicename,status=status,status_code=400,description=description), 200
+    elif serv_status == -6:
+        status = "not available"
+        description = "unauthorized"
+        return jsonify(service=servicename,status=status,status_code=401,description=description), 200
 
 
     status="available"
     description="server up & flask running"
-    return jsonify(service=servicename,status=status,description=description), 200
+    return jsonify(service=servicename,status=status,status_code=200,description=description), 200
 
 # get service information about all services
 @app.route("/services", methods=["GET"])
@@ -391,24 +399,29 @@ def status_services():
 
     # iterate between status_list
     for res in status_list:
-         retval = res["status"]
-         servicename = res["service"]
+        retval = res["status"]
+        servicename = res["service"]
+        status_code = res["status_code"]
 
-         if retval == -2:
-             status = "not available"
-             description = "server down"
-         elif retval == -1:
-             status = "not available"
-             description = "server up, flask down"
-         else:
-             status = "available"
-             description = "server up & flask running"
+        if retval == -2:
+            status = "not available"
+            description = "server down"
+        elif retval == -1:
+            status = "not available"
+            description = "server up, flask down"
+        elif retval == -6:
+            status = "not available"
+            description = "unathorized"
+        else:
+            status = "available"
+            description = "server up & flask running"
 
-         resp_dict={"service":servicename,
-                    "status" :status,
-                    "description":description}
+        resp_dict={"service":servicename,
+                "status" :status,
+                "status_code": status_code,
+                "description":description}
 
-         resp_list.append(resp_dict)
+        resp_list.append(resp_dict)
 
     return jsonify(description="List of services with status and description.",
                    out=resp_list), 200

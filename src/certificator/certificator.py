@@ -367,6 +367,7 @@ def receive():
 
 # get status for status microservice
 @app.route("/status", methods=["GET"])
+@check_auth_header
 def status():
     app.logger.info("Test status of service")
     return jsonify(success="ack"), 200

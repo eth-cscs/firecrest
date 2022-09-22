@@ -409,6 +409,7 @@ def expire_task(id):
 
 
 @app.route("/status",methods=["GET"])
+@check_auth_header
 def status():
 
     app.logger.info("Test status of service")
