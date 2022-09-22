@@ -1,5 +1,5 @@
 ##
-##  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
+##  Copyright (c) 2019-2022, ETH Zurich. All rights reserved.
 ##
 ##  Please, refer to the LICENSE file in the root directory.
 ##  SPDX-License-Identifier: BSD-3-Clause
@@ -8,7 +8,7 @@ openapi: 3.0.0
 servers:
   - url: "http://localhost:8000"
 info:
-  version: 1.8.1-beta2
+  version: 1.9.0-beta1
   title: FirecREST Developers API
   description: >
     This API specification is intended for FirecREST developers only. There're some endpoints that are not available in the public version for client developers.
@@ -2531,6 +2531,8 @@ components:
           type: string
         status:
           type: string
+        status_code:
+          type: integer
           enum:
             - available
             - unavailable

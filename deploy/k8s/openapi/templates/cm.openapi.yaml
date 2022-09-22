@@ -7,6 +7,7 @@ items:
     namespace: {{ .Values.namespace }}
   data:
     openapi.yaml: |
+      ##
       ##  Copyright (c) 2019-2022, ETH Zurich. All rights reserved.
       ##
       ##  Please, refer to the LICENSE file in the root directory.
@@ -227,6 +228,10 @@ items:
             responses:
               '201':
                 description: Directory created
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/Utilities-ok'
               '400':
                 description: Error creating directory
                 content:
@@ -295,6 +300,10 @@ items:
             responses:
               '200':
                 description: Success to rename file or directory
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/Utilities-ok'
               '400':
                 description: Error on rename operation
                 content:
@@ -368,7 +377,7 @@ items:
                 content:
                   application/json:
                     schema:
-                      $ref: '#/components/schemas/Application-output'
+                      $ref: '#/components/schemas/Utilities-ok'
               '400':
                 description: Error in chmod operation
                 content:
@@ -443,7 +452,7 @@ items:
                 content:
                   application/json:
                     schema:
-                      $ref: '#/components/schemas/Application-output'
+                      $ref: '#/components/schemas/Utilities-ok'
               '400':
                 description: Error in chwon operation
                 content:
@@ -518,7 +527,7 @@ items:
                 content:
                   application/json:
                     schema:
-                      $ref: '#/components/schemas/Application-output'
+                      $ref: '#/components/schemas/Utilities-ok'
               '400':
                 description: Error in copy operation
                 content:
@@ -583,7 +592,75 @@ items:
                 content:
                   application/json:
                     schema:
-                      $ref: '#/components/schemas/Application-output'
+                      $ref: '#/components/schemas/Utilities-ok'
+              '400':
+                description: Error in file operation
+                content:
+                  text/plain:
+                    schema:
+                      type: string
+                headers:
+                  X-Machine-Does-Not-Exist:
+                    description: Machine does not exist
+                    schema:
+                      type: string
+                  X-Machine-Not-Available:
+                    description: Machine is not available
+                    schema:
+                      type: string
+                  X-Permission-Denied:
+                    description: User does not have permissions to access machine or paths
+                    schema:
+                      type: string
+                  X-Invalid-Path:
+                    description: <path> is an invalid path
+                    schema:
+                      type: string
+                  X-Timeout:
+                    description: Command has finished with timeout signal
+                    schema:
+                      type: string
+              '401':
+                description: No auth header given
+                content:
+                  text/plain:
+                    schema:
+                      type: string
+        '/utilities/stat':
+          parameters:
+            - in: header
+              name: X-Machine-Name
+              description: The system name
+              required: true
+              schema:
+                type: string
+          get:
+            summary: determines the status of a file
+            description: Uses the stat linux application to determine the status of a file on the
+              {X-Machine-Name} filesystem.
+            tags:
+              - Utilities
+            parameters:
+              - name: targetPath
+                in: query
+                description: Absolute filesystem path
+                required: true
+                allowEmptyValue: false
+                schema:
+                  type: string
+                allowReserved: true
+              - name: dereference
+                in: query
+                description: Follow symbolic links
+                schema:
+                  type: boolean
+            responses:
+              '200':
+                description: Operation completed
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/Utilities-ok'
               '400':
                 description: Error in file operation
                 content:
@@ -654,6 +731,10 @@ items:
             responses:
               '201':
                 description: Success create the symlink
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/Utilities-ok'
               '400':
                 description: Failed to create symlink
                 content:
@@ -775,6 +856,10 @@ items:
             responses:
               '201':
                 description: File upload successful
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/Utilities-ok'
               '400':
                 description: Failed to upload file
                 content:
@@ -828,6 +913,10 @@ items:
             responses:
               '204':
                 description: File deletion successful
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/Utilities-ok'
               '400':
                 description: Failed to delete file
                 content:
@@ -1298,6 +1387,13 @@ items:
                     schema:
                       type: integer
         '/storage/xfer-internal/rsync':
+          parameters:
+            - in: header
+              name: X-Machine-Name
+              description: The system name
+              required: true
+              schema:
+                type: string
           post:
             summary: rsync
             description: >-
@@ -1363,24 +1459,14 @@ items:
                   application/json:
                     schema:
                       $ref: '#/components/schemas/Task-Creation-Error'
-                headers:
-                  X-Permission-Denied:
-                    description: User does not have permissions to access paths
-                    schema:
-                      type: integer
-                  X-Not-Found:
-                    description: sourcePath not found
-                    schema:
-                      type: integer
-                  X-Exists:
-                    description: targetPath already exists
-                    schema:
-                      type: integer
-                  X-Invalid-Path:
-                    description: sourcePath and/or targetPath are invalid paths.
-                    schema:
-                      type: integer
         '/storage/xfer-internal/mv':
+          parameters:
+            - in: header
+              name: X-Machine-Name
+              description: The system name
+              required: true
+              schema:
+                type: string
           post:
             summary: move (rename) files
             description: >-
@@ -1447,24 +1533,14 @@ items:
                   application/json:
                     schema:
                       $ref: '#/components/schemas/Task-Creation-Error'
-                headers:
-                  X-Permission-Denied:
-                    description: User does not have permissions to access paths
-                    schema:
-                      type: integer
-                  X-Not-Found:
-                    description: sourcePath not found
-                    schema:
-                      type: integer
-                  X-Exists:
-                    description: targetPath already exists
-                    schema:
-                      type: integer
-                  X-Invalid-Path:
-                    description: sourcePath and/or targetPath are invalid paths.
-                    schema:
-                      type: integer
         '/storage/xfer-internal/cp':
+          parameters:
+            - in: header
+              name: X-Machine-Name
+              description: The system name
+              required: true
+              schema:
+                type: string
           post:
             summary: copy files and directories
             description: >-
@@ -1531,24 +1607,14 @@ items:
                   application/json:
                     schema:
                       $ref: '#/components/schemas/Task-Creation-Error'
-                headers:
-                  X-Permission-Denied:
-                    description: User does not have permissions to access paths
-                    schema:
-                      type: integer
-                  X-Not-Found:
-                    description: sourcePath not found
-                    schema:
-                      type: integer
-                  X-Exists:
-                    description: targetPath already exists
-                    schema:
-                      type: integer
-                  X-Invalid-Path:
-                    description: sourcePath and/or targetPath are invalid paths.
-                    schema:
-                      type: integer
         '/storage/xfer-internal/rm':
+          parameters:
+            - in: header
+              name: X-Machine-Name
+              description: The system name
+              required: true
+              schema:
+                type: string
           post:
             summary: remove files or directories
             description: >-
@@ -1610,20 +1676,14 @@ items:
                   application/json:
                     schema:
                       $ref: '#/components/schemas/Task-Creation-Error'
-                headers:
-                  X-Permission-Denied:
-                    description: User does not have permissions to access paths
-                    schema:
-                      type: integer
-                  X-Not-Found:
-                    description: targetPath not found
-                    schema:
-                      type: integer
-                  X-Invalid-Path:
-                    description: targetPath is an invalid path.
-                    schema:
-                      type: integer
         '/storage/xfer-external/upload':
+          parameters:
+            - in: header
+              name: X-Machine-Name
+              description: The system name
+              required: true
+              schema:
+                type: string
           post:
             summary: Upload a file
             description: >-
@@ -1690,6 +1750,13 @@ items:
                     schema:
                       type: string
         '/storage/xfer-external/download':
+          parameters:
+            - in: header
+              name: X-Machine-Name
+              description: The system name
+              required: true
+              schema:
+                type: string
           post:
             summary: Download a file
             description: >-
@@ -1849,7 +1916,10 @@ items:
                 content:
                   application/json:
                     schema:
-                      $ref: '#/components/schemas/Reservations'
+                      type: object
+                      properties:
+                        success:
+                          $ref: '#/components/schemas/Reservations'
               '400':
                 description: Error listing reservations
                 content:
@@ -2233,9 +2303,16 @@ items:
               size:
                 type: string
           Files-metadata:
-            type: array
-            items:
-              $ref: '#/components/schemas/File-metadata'
+            type: object
+            properties:
+              description:
+                type: string
+                enum:
+                  - "List of contents"
+              output:
+                type: array
+                items:
+                  $ref: '#/components/schemas/File-metadata'
           System:
             required:
               - system
@@ -2250,21 +2327,44 @@ items:
               description:
                 type: string
           Systems:
-            type: array
-            items:
-              $ref: '#/components/schemas/System'
+            type: object
+            properties:
+              description:
+                type: string
+                enum:
+                  - "List of systems with status and description."
+              out:
+                type: array
+                items:
+                  $ref: '#/components/schemas/System'
           Parameters:
             type: object
             properties:
-              microservice-name:
+              description:
+                type: string
+                enum:
+                  - "Firecrest's parameters"
+              out:
                 type: object
                 properties:
-                  name:
-                    type: string
-                  value:
-                    type: string
-                  unit:
-                    type: string
+                  storage:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      value:
+                        type: string
+                      unit:
+                        type: string
+                  utilities:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      value:
+                        type: string
+                      unit:
+                        type: string
           Error:
             properties:
               code:
@@ -2282,12 +2382,21 @@ items:
                 enum:
                   - available
                   - unavailable
+              status_code:
+                type: integer
               description:
                 type: string
           Services:
-            type: array
-            items:
-              $ref: '#/components/schemas/Service'
+            type: object
+            properties:
+              description:
+                type: string
+                enum:
+                  - 'List of services with status and description.'
+              out:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Service'
           Job:
             type: object
             required:
@@ -2329,15 +2438,6 @@ items:
                 type: string
               session_id:
                 type: string
-          Application-output:
-            type: object
-            properties:
-              stdout:
-                type: string
-                description: Standard output returned by application
-              stderr:
-                type: string
-                description: Standard error returned by application.
           Task:
             type: object
             properties:
@@ -3451,4 +3551,5 @@ items:
           description: Access status and response of compute and storage tasks.
       security:
         - bearerAuth: []
+
 kind: List
