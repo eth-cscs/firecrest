@@ -1097,6 +1097,7 @@ def acct():
         return data, 400
 
 @app.route("/status",methods=["GET"])
+@check_auth_header
 def status():
     app.logger.info("Test status of service")
     # TODO: check compute reservation binary to truthfully respond this request

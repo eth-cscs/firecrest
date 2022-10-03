@@ -175,9 +175,9 @@ def test_expire_task_id_not_exists(headers):
 
 
 @skipif_uses_gateway
-def test_status():
-	url = "{}/status".format(TASKS_URL)
-	resp = requests.get(url, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+def test_status(headers):
+	url = f"{TASKS_URL}/status"
+	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	assert resp.status_code == 200
 
 
