@@ -12,7 +12,6 @@ import urllib.request, urllib.parse, urllib.error
 from objectstorage import ObjectStorage
 import requests
 import logging
-import time
 import base64
 import hmac
 import hashlib
@@ -23,12 +22,12 @@ logger = logging.getLogger(__name__)
 
 class S3v4(ObjectStorage):
 
-    def __init__(self, priv_url, publ_url, user, passwd):
-        self.user = user
-        self.passwd = passwd
+    def __init__(self, priv_url, publ_url, user, passwd, region):
+        self.user     = user
+        self.passwd   = passwd
         self.priv_url = priv_url
         self.publ_url = publ_url
-        logger.info('Initialized.')
+        self.region   = region
 
     def get_object_storage(self):
         return "Amazon S3 - Signature v4"
@@ -53,7 +52,7 @@ class S3v4(ObjectStorage):
         aws_secret_access_key = self.passwd
         endpoint_url = self.priv_url
         host = endpoint_url.split("/")[-1]
-        region = "us-east-1"
+        region = self.region
 
         # Create a date for headers and the credential string
         t = datetime.utcnow()
@@ -118,7 +117,7 @@ class S3v4(ObjectStorage):
         aws_secret_access_key = self.passwd
         endpoint_url = self.priv_url
         host = endpoint_url.split("/")[-1]
-        region = "us-east-1"
+        region = self.region
 
         # Create a date for headers and the credential string
         t = datetime.utcnow()
@@ -172,7 +171,7 @@ class S3v4(ObjectStorage):
         aws_secret_access_key = self.passwd
         endpoint_url = self.priv_url
         host = endpoint_url.split("/")[-1]
-        region = "us-east-1"
+        region = self.region
 
         # Create a date for headers and the credential string
         t = datetime.utcnow()
@@ -257,7 +256,7 @@ class S3v4(ObjectStorage):
         aws_secret_access_key = self.passwd
         endpoint_url = self.priv_url
         host = endpoint_url.split("/")[-1]
-        region = "us-east-1"
+        region = self.region
 
         # Create a date for headers and the credential string
         t = datetime.utcnow()
@@ -325,7 +324,7 @@ class S3v4(ObjectStorage):
             endpoint_url = self.priv_url
         else:
             endpoint_url = self.publ_url
-        region = "us-east-1"
+        region = self.region
         objectname = sourcepath.split("/")[-1]
 
         # Create a date for headers and the credential string
@@ -400,7 +399,7 @@ class S3v4(ObjectStorage):
             endpoint_url = self.publ_url
 
         host = endpoint_url.split("/")[-1]
-        region = "us-east-1"
+        region = self.region
 
         # Create a date for headers and the credential string
         t = datetime.utcnow()
@@ -444,7 +443,7 @@ class S3v4(ObjectStorage):
         aws_secret_access_key = self.passwd
         endpoint_url = self.priv_url
         host = endpoint_url.split("/")[-1]
-        region = "us-east-1"
+        region = self.region
 
         # Create a date for headers and the credential string
         t = datetime.utcnow()
@@ -571,7 +570,7 @@ class S3v4(ObjectStorage):
         aws_secret_access_key = self.passwd
         endpoint_url = self.priv_url
         host = endpoint_url.split("/")[-1]
-        region = "us-east-1"
+        region = self.region
 
         # Create a date for headers and the credential string
         t = datetime.utcnow()
@@ -643,7 +642,7 @@ class S3v4(ObjectStorage):
         aws_secret_access_key = self.passwd
         endpoint_url = self.priv_url
         host = endpoint_url.split("/")[-1]
-        region = "us-east-1"
+        region = self.region
 
         # Create a date for headers and the credential string
         t = datetime.utcnow()

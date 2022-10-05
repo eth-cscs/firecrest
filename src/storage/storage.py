@@ -232,6 +232,7 @@ def create_staging():
         S3_PUBLIC_URL  = os.environ.get("F7T_S3_PUBLIC_URL")
         S3_ACCESS_KEY  = os.environ.get("F7T_S3_ACCESS_KEY")
         S3_SECRET_KEY  = os.environ.get("F7T_S3_SECRET_KEY")
+        S3_REGION      = os.environ.get("F7T_S3_REGION")
 
         staging = S3v2(priv_url=S3_PRIVATE_URL, publ_url=S3_PUBLIC_URL, user=S3_ACCESS_KEY, passwd=S3_SECRET_KEY)
 
@@ -244,8 +245,9 @@ def create_staging():
         S3_PUBLIC_URL  = os.environ.get("F7T_S3_PUBLIC_URL")
         S3_ACCESS_KEY  = os.environ.get("F7T_S3_ACCESS_KEY")
         S3_SECRET_KEY  = os.environ.get("F7T_S3_SECRET_KEY")
+        S3_REGION      = os.environ.get("F7T_S3_REGION")
 
-        staging = S3v4(priv_url=S3_PRIVATE_URL, publ_url=S3_PUBLIC_URL, user=S3_ACCESS_KEY, passwd=S3_SECRET_KEY)
+        staging = S3v4(priv_url=S3_PRIVATE_URL, publ_url=S3_PUBLIC_URL, user=S3_ACCESS_KEY, passwd=S3_SECRET_KEY, region=S3_REGION)
 
     else:
         app.logger.warning("No Object Storage for staging area was set.")
