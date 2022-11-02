@@ -205,11 +205,54 @@ tag_release:
         is_master=$(curl -sS --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/commits/${CI_COMMIT_SHORT_SHA}/refs?type=branch" | jq '.[].name=="master"')
 
         env_tags="tds"
+        code_tag="tds"
         if [ "$is_master" == "true" ]; then
 
           if [ "${CI_COMMIT_TAG:0:4}" == "prod" ]; then
             env_tags="$CI_COMMIT_TAG prod"
+            code_tag="prod"
           fi
+
+          # check if tag $code_tag exists
+
+          res=$(curl -s -w "%{http_code}" --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/tags/${code_tag}")
+          status=$(printf "%s" "$res" | tail -c 3)
+
+          echo "Status of getting the tag $code_tag: $status"
+
+          if [ "$status" == "200" ]; then
+
+            # if exists, then delete the tag $code_tag (since it can't be updated)
+
+            echo "Tag $code_tag exists. Has to be deleted in order to update"
+
+            res=$(curl -s -w "%{http_code}" --request DELETE --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/tags/${code_tag}")
+            status=$(printf "%s" "$res" | tail -c 3)
+
+            if [ "$status" != "204" ]; then
+              
+              # if it is deleted, then a new one with the same tag name has to be created
+              echo "Tag $code_tag couldn't been deleted. Exiting"
+              exit 1
+            fi
+
+            echo "Tag $code_tag successfully deleted"
+
+          fi
+
+          echo "Trying to create tag $code_tag"
+
+          res=$(curl -s -w "%{http_code}" --request POST --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/tags?tag_name=${code_tag}&ref=${CI_COMMIT_SHORT_SHA}")
+          status=$(printf "%s" "$res" | tail -c 3)
+
+          if [ "$status" == "201" ]; then
+            echo "Tag $code_tag created successfully"
+
+          else
+            echo "Tag $code_tag couldn't be created"
+            exit 1
+          fi
+
           for tag in $env_tags; do
             images="compute reservations status storage tasks utilities";
             for img in $images; do
