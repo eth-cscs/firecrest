@@ -9,7 +9,7 @@
 
 FROM centos:7
 
-ARG SLURM_VERSION=20.11.9
+ARG SLURM_VERSION=22.05.5
 
 RUN set -ex \
     && yum makecache fast \
@@ -60,8 +60,8 @@ RUN set -x \
     && chown -R slurm:slurm /var/spool/slurm*
 
 
-ADD cluster/slurm/*.conf /etc/slurm/
-ADD cluster/slurm/*.sh /
+COPY cluster/slurm/*.conf /etc/slurm/
+COPY cluster/slurm/*.sh /
 # slurmdbd requires slurmdbd.conf with 600
 RUN chmod 644 /etc/slurm/*.conf && chmod 600 /etc/slurm/slurmdbd.conf  && chown -R slurm:slurm /etc/slurm/*.conf && chmod 755 /*.sh
 
