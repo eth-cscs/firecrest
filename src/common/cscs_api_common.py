@@ -230,7 +230,7 @@ def create_certificate(headers, cluster_name, cluster_addr, command=None, option
 
 
 # execute remote commands with Paramiko:
-def exec_remote_command(headers, system_name, system_addr, action, file_transfer=None, file_content=None):
+def exec_remote_command(headers, system_name, system_addr, action, file_transfer=None, file_content=None, no_home=False):
 
     import paramiko, socket
 
@@ -388,7 +388,18 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
             else:
                 result = {"error": 0, "msg": outlines}
         elif stderr_errno > 0:
-            if stderr_errno == 7:
+            # Solving when stderr_errno = 1 and no_home plugin used (F7T_USE_SPANK_PLUGIN)
+            # stderr_errno = 1
+            # stderr_errda = "Could not chdir to home directory /users/eirinik: No such file or directory
+            # ERROR: you must specify a project account (-A <account>)sbatch: error: cli_filter plugin terminated with error"
+            if no_home and in_str(stderr_errda,"Could not chdir to home directory"):
+                # checking for 2nd 'directory' string (first is at index 33)
+                # 2nd comes after username
+                idx = stderr_errda.index("directory",33)
+                # len(directory) = 9
+                result = {"error": stderr_errno, "msg": stderr_errda[idx+9:]}
+
+            elif stderr_errno == 7:
                 result = {"error": 7, "msg": "Failed to connect to staging area server"}
             else:
                 result = {"error": stderr_errno, "msg": stderr_errda or stdout_errda}
