@@ -191,7 +191,7 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
         ID = headers.get(TRACER_HEADER, '')
         # create tmpdir for sbatch file
         action = f"ID={ID} timeout {TIMEOUT} mkdir -p -- '{job_dir}'"
-        retval = exec_remote_command(headers, system_name, system_addr, action)
+        retval = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
 
         if retval["error"] != 0:
             app.logger.error(f"(Error creating directory: {retval['msg']}")
@@ -200,7 +200,7 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
 
         if job_file['content']:
             action = f"ID={ID} cat > '{job_dir}/{job_file['filename']}'"
-            retval = exec_remote_command(headers, system_name, system_addr, action, file_transfer="upload", file_content=job_file['content'])
+            retval = exec_remote_command(headers, system_name, system_addr, action, file_transfer="upload", file_content=job_file['content'], no_home=use_plugin)
             if retval["error"] != 0:
                 app.logger.error(f"(Error uploading file: {retval['msg']}")
                 update_task(task_id, headers, async_task.ERROR, "Failed to upload file")
@@ -212,7 +212,7 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
         action = f"ID={ID} sbatch {account_option} {plugin_option} --chdir='{job_dir}' {scopes_parameters} -- '{job_file['filename']}'"
         app.logger.info(action)
 
-        retval = exec_remote_command(headers, system_name, system_addr, action)
+        retval = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
 
         if retval["error"] != 0:
             app.logger.error(f"(Error: {retval['msg']}")
@@ -233,7 +233,7 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
         msg = {"result" : "Job submitted", "jobid" : jobid}
 
         # now look for log and err files location
-        job_extra_info = get_slurm_files(headers, system_name, system_addr, msg)
+        job_extra_info = get_slurm_files(headers, system_name, system_addr, msg,use_plugin=use_plugin)
 
         update_task(task_id, headers, async_task.SUCCESS, job_extra_info, True)
 
@@ -256,7 +256,7 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
 # - system_name, system_addr: machine where the command will be executed
 # - job_info: json containing jobid key
 # - output: True if StdErr and StdOut of the job need to be added to the jobinfo (default False)
-def get_slurm_files(headers, system_name, system_addr, job_info, output=False):
+def get_slurm_files(headers, system_name, system_addr, job_info, output=False, use_plugin=False):
     # now looking for log and err files location
 
     if debug:
@@ -274,7 +274,7 @@ def get_slurm_files(headers, system_name, system_addr, job_info, output=False):
 
     app.logger.info(f"scontrol command: {action}")
 
-    resp = exec_remote_command(headers, system_name, system_addr, action)
+    resp = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
 
     # if there was an error, the result will be SUCESS but not available outputs
     if resp["error"] != 0:
@@ -301,12 +301,12 @@ def get_slurm_files(headers, system_name, system_addr, job_info, output=False):
         # tail -c {number_of_bytes} --> 1000B = 1KB
 
         action = f"ID={ID} timeout {TIMEOUT} tail -c {TAIL_BYTES} '{control_info['job_file_out']}'"
-        resp = exec_remote_command(headers, system_name, system_addr, action)
+        resp = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
         if resp["error"] == 0:
             control_info["job_data_out"] = resp["msg"]
 
         action = f"ID={ID} timeout {TIMEOUT} tail -c {TAIL_BYTES} '{control_info['job_file_err']}'"
-        resp = exec_remote_command(headers, system_name, system_addr, action)
+        resp = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
         if resp["error"] == 0:
             control_info["job_data_err"] = resp["msg"]
 
@@ -347,7 +347,7 @@ def submit_job_path_task(headers, system_name, system_addr, fileName, job_dir, a
     ID = headers.get(TRACER_HEADER, '')
     action=f"ID={ID} sbatch {account_option} {plugin_option} --chdir={job_dir} {scopes_parameters} -- '{fileName}'"
 
-    resp = exec_remote_command(headers, system_name, system_addr, action)
+    resp = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
 
     app.logger.info(resp)
 
@@ -370,7 +370,7 @@ def submit_job_path_task(headers, system_name, system_addr, fileName, job_dir, a
     msg = {"result":"Job submitted", "jobid":jobid}
 
     # now looking for log and err files location
-    job_extra_info = get_slurm_files(headers, system_name, system_addr, msg)
+    job_extra_info = get_slurm_files(headers, system_name, system_addr, msg, use_plugin=use_plugin)
 
     update_task(task_id, headers, async_task.SUCCESS, job_extra_info, True)
 
