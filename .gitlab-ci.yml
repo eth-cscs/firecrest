@@ -226,13 +226,16 @@ tag_release:
 
             echo "Tag $code_tag exists. Has to be deleted in order to update"
 
-            res=$(curl -s -w "%{http_code}" --request DELETE --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/tags/${code_tag}")
-            status=$(printf "%s" "$res" | tail -c 3)
+            res_del=$(curl -s -w "%{http_code}" --request DELETE --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/tags/${code_tag}")
+            status_del=$(printf "%s" "$res" | tail -c 3)
 
-            if [ "$status" != "204" ]; then
+            echo "Status of deleting the tag $code_tag: $status_del"
+
+            if [ "$status_del" != "204" ]; then
               
               # if it is deleted, then a new one with the same tag name has to be created
               echo "Tag $code_tag couldn't been deleted. Exiting"
+              echo "Result: $res_del"
               exit 1
             fi
 
@@ -242,14 +245,17 @@ tag_release:
 
           echo "Trying to create tag $code_tag"
 
-          res=$(curl -s -w "%{http_code}" --request POST --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/tags?tag_name=${code_tag}&ref=${CI_COMMIT_SHORT_SHA}")
-          status=$(printf "%s" "$res" | tail -c 3)
+          res_post=$(curl -s -w "%{http_code}" --request POST --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/tags?tag_name=${code_tag}&ref=${CI_COMMIT_SHORT_SHA}")
+          status_post=$(printf "%s" "$res" | tail -c 3)
 
-          if [ "$status" == "201" ]; then
+          echo "Status of creating tag $code_tag: $status_post"
+
+          if [ "$status_post" == "201" ]; then
             echo "Tag $code_tag created successfully"
 
           else
             echo "Tag $code_tag couldn't be created"
+            echo "Result: $res_post"
             exit 1
           fi
 
