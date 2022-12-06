@@ -13,6 +13,7 @@ from cscs_api_common import check_auth_header, get_username, \
 from job_time import check_sacctTime
 
 import logging
+import time
 
 from math import ceil
 import os
@@ -266,6 +267,7 @@ def get_slurm_files(headers, system_name, system_addr, job_info, output=False, u
     control_info = job_info
     control_info["job_file_out"] = "Not available"
     control_info["job_file_err"] = "Not available"
+    control_info["job_info_extra"]     = "Job info returned successfully" # field for extra information about metadata of the job
 
     ID = headers.get(TRACER_HEADER, '')
     # scontrol command :
@@ -274,11 +276,24 @@ def get_slurm_files(headers, system_name, system_addr, job_info, output=False, u
 
     app.logger.info(f"scontrol command: {action}")
 
-    resp = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
+    n_tries = 2 #tries 2 times to get the information of the jobs, otherwise returns error msg
+    
+    for n_try in range(n_tries):
 
-    # if there was an error, the result will be SUCESS but not available outputs
-    if resp["error"] != 0:
-        return control_info
+        resp = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
+
+        # if there was an error, the result will be SUCESS but not available outputs
+        if resp["error"] == 0:
+            break
+
+        app.logger.warning(f"Error getting job info. Reason: {resp['msg']}")
+
+        if n_try == n_tries - 1:
+            app.logger.warning(f"Returning default values")
+            control_info["job_info_extra"] = resp["msg"]
+            return control_info
+
+        time.sleep(TIMEOUT) # wait until next try
 
     # if it's ok, we can add information
     control_resp = resp["msg"]
