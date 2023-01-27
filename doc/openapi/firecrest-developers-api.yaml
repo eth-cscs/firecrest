@@ -8,7 +8,7 @@ openapi: 3.0.0
 servers:
   - url: "http://localhost:8000"
 info:
-  version: 1.9.0-beta1
+  version: 1.9.2
   title: FirecREST API
   description: >
     FirecREST platform, a RESTful Services Gateway to HPC resources, is a
@@ -3251,12 +3251,10 @@ components:
         data:
           type: object
           description: Job listing information
-          default: {}
           properties:
             "index":
               type: object
               description: index of the individual job
-              default: "0"
               properties:
                 schema:
                   type: object
