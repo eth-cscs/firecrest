@@ -759,8 +759,8 @@ def list_job_task(headers,system_name, system_addr,action,task_id,pageSize,pageN
         jobaux = job.split(SQUEUE_SEP)
         jobinfo = {"jobid": jobaux[0], "partition": jobaux[1], "name": jobaux[2],
                    "user": jobaux[3], "state": jobaux[4], "start_time": jobaux[5],
-                   "time": jobaux[6], "time_left": jobaux[7],
-                   "nodes": jobaux[8], "nodelist": jobaux[9]}
+                   "time": jobaux[6], "time_left": jobaux[7], "nodes": jobaux[8],
+                   "nodelist": jobaux[9], "exit_code": jobaux[10]}
 
         # now looking for log and err files location
         jobinfo = get_slurm_files(headers, system_name, system_addr, jobinfo, True)
@@ -1084,7 +1084,7 @@ def acct():
     # --parsable2 = limits with | character not ending with it
 
     action = f"ID={ID} sacct -X {start_time_opt} {end_time_opt} {jobs_opt} " \
-             "--format='jobid,partition,jobname,user,state,start,cputime,end,NNodes,NodeList' " \
+             "--format='jobid,partition,jobname,user,state,start,cputime,end,NNodes,NodeList,ExitCode' " \
               "--noheader --parsable2"
 
     try:

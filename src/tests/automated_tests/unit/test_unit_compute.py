@@ -152,6 +152,7 @@ def test_acct(machine, expected_response_code, headers):
 	resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
 	assert resp.status_code == expected_response_code
+	assert set(resp.json()[0].keys()) == {'jobid', 'name', 'nodelist', 'nodes', 'partition', 'start_time', 'state', 'time', 'time_left', 'user', 'exit_code'}
 
 
 # Test get status of Jobs microservice
