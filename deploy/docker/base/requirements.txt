@@ -1,4 +1,4 @@
-cryptography==3.4.6
+cryptography==39.0.1
 markupsafe==2.0.1
 Flask==1.1.4
 PyJWT==2.4.0
