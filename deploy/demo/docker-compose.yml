@@ -217,13 +217,14 @@ services:
     environment:
       - KONG_DATABASE=off
       - KONG_DECLARATIVE_CONFIG=/kong.yml      
+      - KONG_LOG_LEVEL=error
     volumes:
       - ./kong/kong.yml:/kong.yml:ro      
     networks:
       firecrest-internal:
         ipv4_address: 192.168.220.21
     ports:
-      - 8000:8000
+      - 8000:8000      
 
   minio:
     image: minio/minio:RELEASE.2021-02-01T22-56-52Z

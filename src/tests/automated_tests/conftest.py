@@ -38,7 +38,7 @@ def headers():
 
     # authorization with fake jwt
     if SA_LOGIN.lower() != 'true':
-        auth = "Bearer " + jwt.encode(payload, 'secret', algorithm='HS256').decode("utf-8")
+        auth = f"Bearer {jwt.encode(payload, 'secret', algorithm='HS256')}"
         return {"Authorization": auth, "Accept" : "application/json", "X-Firecrest-Service": "storage", "X-Machine-Name": machine}
 
     # authorization with sa account
@@ -46,6 +46,6 @@ def headers():
     data = {"grant_type":"client_credentials"}
 
     resp = requests.post(SA_TOKEN_URI, headers=headers, data=data, auth=(SA_CLIENT_ID, SA_SECRET_KEY))
-    auth = resp.json()["token_type"] + " " + resp.json()["access_token"]
+    auth = f"{resp.json()['token_type']} {resp.json()['access_token']}"
     return {"Authorization": auth, "Accept" : "application/json", "X-Firecrest-Service": "storage", "X-Machine-Name": machine}
 
