@@ -65,7 +65,7 @@ if len(REALM_RSA_PUBLIC_KEYS) != 0:
     realm_pubkey_list = []
     is_public_key_set = True
     # headers are inserted here, must not be present
-    
+
     for pubkey in REALM_RSA_PUBLIC_KEYS:
         realm_pubkey = f"-----BEGIN PUBLIC KEY-----\n{pubkey}\n-----END PUBLIC KEY-----"
         realm_pubkey_list.append(realm_pubkey)
@@ -188,95 +188,88 @@ def check_user_auth(username,system):
 
 # checks JWT from Keycloak, optionally validates signature. It only receives the content of header's auth pair (not key:content)
 def check_header(header):
-    
+
     # header = "Bearer ey...", remove first 7 chars
     token = header[7:]
+    decoding_result = False
+    decoding_reason = ""
 
-    
     if not is_public_key_set:
         if not debug:
             logging.warning("WARNING: REALM_RSA_PUBLIC_KEY is empty, JWT tokens are NOT verified, setup is not set to debug.")
 
         try:
-
             decoded = jwt.decode(token, options={"verify_signature": False})
             decoding_result = True
-            decoding_reason = ""
 
             # only check for expired signature or general exception for this case
         except jwt.exceptions.ExpiredSignatureError:
-            logging.error("JWT token has expired", exc_info=True)
-            decoding_result = False
-            decoding_reason = "JWT token has expired"                    
+            decoding_reason = "JWT token has expired"
+            logging.error(decoding_reason, exc_info=True)
         except Exception:
-            logging.error("Bad header or JWT, general exception raised", exc_info=True)
-            decoding_result = False
             decoding_reason = "Bad header or JWT, general exception raised"
+            logging.error(decoding_reason, exc_info=True)
     else:
-
-        decoding_result = True
-        decoding_reason = ""
         # iterates over the list of public keys
         for realm_pubkey in realm_pubkey_list:
             if debug:
-                logging.info(f"Tryin decoding with [...{realm_pubkey[71:81]}...] public key...")
+                logging.info(f"Trying decoding with [...{realm_pubkey[71:81]}...] public key...")
             try:
-                if AUTH_AUDIENCE == '':                   
+                if AUTH_AUDIENCE == '':
                     decoded = jwt.decode(token, realm_pubkey, algorithms=[realm_pubkey_type], options={'verify_aud': False})
                 else:
                     decoded = jwt.decode(token, realm_pubkey, algorithms=[realm_pubkey_type], audience=AUTH_AUDIENCE)
                 if debug:
                     logging.info(f"Correctly decoded")
 
+                # if all passes, it means the signature is valid
                 decoding_result = True
                 decoding_reason = ""
 
-                # if all passes, it means the signature was valid
-                
-                break
-            
             except jwt.exceptions.InvalidSignatureError:
-                logging.error("JWT token has invalid signature", exc_info=True)
-                decoding_result = False
                 decoding_reason = "JWT token has invalid signature"
+                logging.error(decoding_reason, exc_info=False)
+                # try next key
+                continue
             except jwt.exceptions.ExpiredSignatureError:
-                logging.error("JWT token has expired", exc_info=True)
-                decoding_result = False
-                decoding_reason = "JWT token has expired"                    
+                decoding_reason = "JWT token has expired"
+                logging.error(decoding_reason, exc_info=True)
             except jwt.exceptions.InvalidAudienceError:
-                logging.error("Invalid audience in JWT token", exc_info=True)
-                decoding_result = False
                 decoding_reason = "Invalid audience in JWT token"
+                logging.error(decoding_reason, exc_info=True)
             except jwt.exceptions.InvalidAlgorithmError:
-                logging.error("JWT token has invalid signature algorithm", exc_info=True)
-                decoding_result = False
                 decoding_reason = "JWT token has invalid signature algorithm"
+                logging.error(decoding_reason, exc_info=True)
             except Exception:
-                logging.error("Bad header or JWT, general exception raised", exc_info=True)
-                decoding_result = False
-                decoding_reason = "Bad header or JWT, general exception raised"              
-                
+                decoding_reason = "Bad header or JWT, general exception raised"
+                logging.error(decoding_reason, exc_info=True)
+
+            # either token is valid or exception indicates a problem
+            break
+
     if debug:
         logging.info(f"Result: {decoding_result}. Reason: {decoding_reason}")
 
     # if token was successfully decoded, then check if required scope is present
     if AUTH_REQUIRED_SCOPE != "" and decoding_result:
         if AUTH_REQUIRED_SCOPE not in decoded["scope"].split():
-            logging.error(f"Scope '{AUTH_REQUIRED_SCOPE}' wasn't found in JWT", exc_info=True)
             decoding_result = False
             decoding_reason = f"Scope '{AUTH_REQUIRED_SCOPE}' wasn't found in JWT"
+            logging.error(decoding_reason, exc_info=True)
 
     return {"result": decoding_result, "reason": decoding_reason}
 
-    
-    
+
+
 
 # receive the header, and extract the username from the token
 # returns username
 def get_username(header):
-    
+
     # header = "Bearer ey...", remove first 7 chars
     token = header[7:]
+    decoding_result = False
+    decoding_reason = ""
 
     # does FirecREST check the signature of the token?
     if not is_public_key_set:
@@ -284,63 +277,59 @@ def get_username(header):
             logging.warning("WARNING: REALM_RSA_PUBLIC_KEY is empty, JWT tokens are NOT verified, setup is not set to debug.")
 
         try:
-
             decoded = jwt.decode(token, options={"verify_signature": False})
             decoding_result = True
-            decoding_reason = ""
-            
+
             # only check for expired signature or general exception for this case
         except jwt.exceptions.ExpiredSignatureError:
             logging.error("JWT token has expired", exc_info=True)
-            return {"result": False, "reason":"JWT token has expired", "username": None}                   
+            return {"result": False, "reason":"JWT token has expired", "username": None}
         except Exception:
             logging.error("Bad header or JWT, general exception raised", exc_info=True)
             return {"result": False, "reason":"Bad header or JWT, general exception raised", "username": None}
 
     else:
-
-        decoding_result = True
-        decoding_reason = ""
         # iterates over the list of public keys
         for realm_pubkey in realm_pubkey_list:
             if debug:
-                logging.info(f"Tryin decoding with [...{realm_pubkey[71:81]}...] public key...")
+                logging.info(f"Trying decoding with [...{realm_pubkey[71:81]}...] public key...")
             try:
-                if AUTH_AUDIENCE == '':                   
+                if AUTH_AUDIENCE == '':
                     decoded = jwt.decode(token, realm_pubkey, algorithms=[realm_pubkey_type], options={'verify_aud': False})
                 else:
                     decoded = jwt.decode(token, realm_pubkey, algorithms=[realm_pubkey_type], audience=AUTH_AUDIENCE)
                 if debug:
                     logging.info(f"Correctly decoded")
 
-                # if token correctly decoded, 
-                # exit the loop
-                break
-           
+                # if token is correctly decoded, exit the loop
+                decoding_result = True
+                decoding_reason = ""
 
             except jwt.exceptions.InvalidSignatureError:
-                logging.error("JWT token has invalid signature", exc_info=True)
-                decoding_result = False
                 decoding_reason = "JWT token has invalid signature"
+                logging.error(decoding_reason, exc_info=False)
+                # try next key
+                continue
             except jwt.exceptions.ExpiredSignatureError:
-                logging.error("JWT token has expired", exc_info=True)
-                decoding_result = False
-                decoding_reason = "JWT token has expired"                    
+                decoding_reason = "JWT token has expired"
+                logging.error(decoding_reason, exc_info=True)
             except jwt.exceptions.InvalidAudienceError:
-                logging.error("Invalid audience in JWT token", exc_info=True)
-                decoding_result = False
                 decoding_reason = "Invalid audience in JWT token"
+                logging.error(decoding_reason, exc_info=True)
             except jwt.exceptions.InvalidAlgorithmError:
-                logging.error("JWT token has invalid signature algorithm", exc_info=True)
-                decoding_result = False
                 decoding_reason = "JWT token has invalid signature algorithm"
+                logging.error(decoding_reason, exc_info=True)
             except Exception:
-                logging.error("Bad header or JWT, general exception raised", exc_info=True)
-                decoding_result = False
                 decoding_reason = "Bad header or JWT, general exception raised"
+                logging.error(decoding_reason, exc_info=True)
+
+            # either token is valid or exception indicates a problem
+            break
+
 
     if not decoding_result:
-        return {"result": decoding_result, "reason":decoding_reason, "username": None}
+        return {"result": decoding_result, "reason": decoding_reason, "username": None}
+
     # with decoded token, checks if it belongs to a client_credentials token structure
     try:
         if AUTH_ROLE in decoded["realm_access"]["roles"]:
