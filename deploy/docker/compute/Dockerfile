@@ -13,7 +13,7 @@ RUN pip3 install -r deps/requirements.txt
 ADD src/compute/compute.py compute.py
 ADD src/common/async_task.py async_task.py
 ADD src/common/cscs_api_common.py cscs_api_common.py
-ADD src/common/job_time.py job_time.py
+ADD src/common/schedulers schedulers
 
 ENV F7T_COMPUTE_PORT 5000
 ENV F7T_LOG_PATH /var/log

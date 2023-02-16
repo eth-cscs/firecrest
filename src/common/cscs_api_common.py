@@ -235,14 +235,8 @@ def get_username(header):
     except Exception:
         return {"result": True, "reason":"", "username": decoded['preferred_username']}
 
-# function to check if pattern is in string
-def in_str(stringval,words):
-    try:
-        stringval.index(words)
-        return True
-    except ValueError:
-        return False
-
+def in_str(stringval, substring):
+    return substring in stringval
 
 # SSH certificates creation
 # returns pub key certificate name

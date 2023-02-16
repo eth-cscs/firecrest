@@ -10,7 +10,6 @@ import async_task
 from cscs_api_common import check_auth_header, get_username, \
     exec_remote_command, create_task, update_task, clean_err_output, \
     in_str, is_valid_file, get_boolean_var, validate_input, setup_logging
-from job_time import check_sacctTime
 
 import logging
 import time
@@ -24,6 +23,8 @@ import jwt
 from flask_opentracing import FlaskTracing
 from jaeger_client import Config
 import opentracing
+
+from schedulers import Job
 
 AUTH_HEADER_NAME = 'Authorization'
 
@@ -67,6 +68,9 @@ FILESYSTEMS     = os.environ.get("F7T_FILESYSTEMS").strip('\'"').split(";")
 # JOB base Filesystem: ["/scratch";"/home"]
 COMPUTE_BASE_FS     = os.environ.get("F7T_COMPUTE_BASE_FS").strip('\'"').split(";")
 
+# Detect scheduler object type
+COMPUTE_SCHEDULER = os.environ.get("F7T_COMPUTE_SCHEDULER", "Slurm")
+
 # scopes: get appropiate for jobs/storage, eg:  firecrest-tds.cscs.ch, firecrest-production.cscs.ch
 FIRECREST_SERVICE = os.environ.get("F7T_FIRECREST_SERVICE", '').strip('\'"')
 
@@ -75,9 +79,6 @@ TAIL_BYTES = os.environ.get("F7T_TAIL_BYTES",1000)
 #max file size for sbatch upload in MB (POST compute/job)
 MAX_FILE_SIZE = int(os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE", "5"))
 TIMEOUT = int(os.environ.get("F7T_UTILITIES_TIMEOUT", "5"))
-
-# string to separate fields on squeue, avoid forbidden chars
-SQUEUE_SEP = ".:."
 
 TRACER_HEADER = "uber-trace-id"
 
@@ -103,40 +104,22 @@ else:
     jaeger_tracer = None
     tracing = None
 
-def is_jobid(jobid):
-    try:
-        jobid = int(jobid)
-        if jobid > 0:
-            return True
-        app.logger.error(f"Wrong SLURM sbatch return string: {jobid} isn't > 0")
+def init_compute():
+    global scheduler
 
-    except ValueError as e:
-        app.logger.error("Wrong SLURM sbatch return string: couldn't convert to int")
-    except IndexError as e:
-        app.logger.error("Wrong SLURM sbatch return string: string is empty")
-    except Exception as e:
-        app.logger.error("Wrong SLURM sbatch return string: generic error")
-        app.logger.error(e)
+    scheduler = None
+    if COMPUTE_SCHEDULER == "Slurm":
+        app.logger.info("Scheduler selected: Slurm")
 
-    return False
+        from schedulers.slurm import SlurmScheduler
+        scheduler = SlurmScheduler()
+    else:
+        app.logger.error("No scheduler was set.")
 
 
-# Extract jobid number from SLURM sbatch returned string when it's OK
-# Commonly  "Submitted batch job 9999" being 9999 a jobid
-def extract_jobid(outline):
+# checks QueuePersistence and retakes all tasks
+init_compute()
 
-    # splitting string by spaces
-    list_line = outline.split()
-    # last element should be the jobid
-
-    if not is_jobid(list_line[-1]):
-        # for compatibility reasons if error, returns original string
-        return outline
-
-    # all clear, conversion is OK
-    jobid = int(list_line[-1])
-
-    return jobid
 
 def get_tracing_headers(req):
     """
@@ -157,38 +140,6 @@ def get_tracing_headers(req):
 def submit_job_task(headers, system_name, system_addr, job_file, job_dir, account, use_plugin, task_id):
 
     try:
-        # get scopes from token
-        decoded = jwt.decode(headers[AUTH_HEADER_NAME][7:], options={"verify_signature": False})
-        # scope: "openid profile email firecrest-tds.cscs.ch/storage/something"
-        scopes = decoded.get('scope', '').split(' ')
-        scopes_parameters = ''
-
-        # allow empty scope
-        if scopes[0] != '':
-            # SCOPES sintax: id_service/microservice/parameter
-            for s in scopes:
-                s2 = s.split('/')
-                if s2[0] == FIRECREST_SERVICE:
-                    if s2[1] == 'storage':
-                        if scopes_parameters != '':
-                            scopes_parameters = scopes_parameters + ','
-
-                        scopes_parameters = scopes_parameters + s2[2]
-
-            if scopes_parameters != '':
-                scopes_parameters = '--firecrest=' + scopes_parameters
-
-            app.logger.info(f"scope parameters: {scopes_parameters}")
-
-    except Exception as e:
-        app.logger.error(type(e))
-        app.logger.error(e.args)
-        errmsg = e.message
-        update_task(task_id, headers, async_task.ERROR, errmsg)
-        return
-
-    # -------------------
-    try:
         ID = headers.get(TRACER_HEADER, '')
         # create tmpdir for sbatch file
         action = f"ID={ID} timeout {TIMEOUT} mkdir -p -- '{job_dir}'"
@@ -207,10 +158,11 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
                 update_task(task_id, headers, async_task.ERROR, "Failed to upload file")
                 return
 
-        plugin_option = ("" if not use_plugin else SPANK_PLUGIN_OPTION)
-        account_option = ("" if not account else f" --account={account} ")
-
-        action = f"ID={ID} sbatch {account_option} {plugin_option} --chdir='{job_dir}' {scopes_parameters} -- '{job_file['filename']}'"
+        plugin_options = [SPANK_PLUGIN_OPTION] if use_plugin else None
+        spec = Job(job_file['filename'], job_dir, account, plugin_options)
+        scheduler_command = scheduler.submit(spec)
+        ID = headers.get(TRACER_HEADER, '')
+        action=f"ID={ID} {scheduler_command}"
         app.logger.info(action)
 
         retval = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
@@ -225,16 +177,12 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
         if outlines:
             app.logger.info(f"(No error) --> {outlines}")
 
-        # if there's no error JobID should be extracted from slurm output
-        # standard output is "Submitted batch job 9999" beign 9999 a jobid
-        # it would be treated in extract_jobid function
-
-        jobid = extract_jobid(outlines)
+        jobid = scheduler.extract_jobid(outlines)
 
         msg = {"result" : "Job submitted", "jobid" : jobid}
 
         # now look for log and err files location
-        job_extra_info = get_slurm_files(headers, system_name, system_addr, msg,use_plugin=use_plugin)
+        job_extra_info = get_job_files(headers, system_name, system_addr, msg,use_plugin=use_plugin)
 
         update_task(task_id, headers, async_task.SUCCESS, job_extra_info, True)
 
@@ -252,13 +200,11 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
 
 
 
-# checks with scontrol for out and err file location
 # - headers: coming from OIDC + tracing
 # - system_name, system_addr: machine where the command will be executed
 # - job_info: json containing jobid key
 # - output: True if StdErr and StdOut of the job need to be added to the jobinfo (default False)
-def get_slurm_files(headers, system_name, system_addr, job_info, output=False, use_plugin=False):
-    # now looking for log and err files location
+def get_job_files(headers, system_name, system_addr, job_info, output=False, use_plugin=False):
 
     if debug:
         app.logger.info("Recovering data from job")
@@ -267,17 +213,16 @@ def get_slurm_files(headers, system_name, system_addr, job_info, output=False, u
     control_info = job_info
     control_info["job_file_out"] = "Not available"
     control_info["job_file_err"] = "Not available"
-    control_info["job_info_extra"]     = "Job info returned successfully" # field for extra information about metadata of the job
+    control_info["job_info_extra"] = "Job info returned successfully" # field for extra information about metadata of the job
 
     ID = headers.get(TRACER_HEADER, '')
-    # scontrol command :
-    # -o for "one line output"
-    action = f"ID={ID} scontrol -o show job={control_info['jobid']}"
+    sched_command = scheduler.job_info(control_info['jobid'])
+    action = f"ID={ID} {sched_command}"
 
-    app.logger.info(f"scontrol command: {action}")
+    app.logger.info(f"job info command: {action}")
 
     n_tries = 2 #tries 2 times to get the information of the jobs, otherwise returns error msg
-    
+
     for n_try in range(n_tries):
 
         resp = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
@@ -289,18 +234,13 @@ def get_slurm_files(headers, system_name, system_addr, job_info, output=False, u
         app.logger.warning(f"Error getting job info. Reason: {resp['msg']}")
 
         if n_try == n_tries - 1:
-            app.logger.warning(f"Returning default values")
+            app.logger.warning("Returning default values")
             control_info["job_info_extra"] = resp["msg"]
             return control_info
 
         time.sleep(TIMEOUT) # wait until next try
 
-    # if it's ok, we can add information
-    control_resp = resp["msg"]
-
-    # tokens are expected to be space-separated and with a k=v form. See man scontrol show
-    control_list = control_resp.split()
-    control_dict = { value.split("=")[0] : value.split("=")[1] for value in control_list if "=" in value }
+    control_dict = scheduler.parse_job_info(resp["msg"])
 
     control_info["job_file_out"] = control_dict.get("StdOut", "stdout-file-not-found")
     control_info["job_file_err"] = control_dict.get("StdErr", "stderr-file-not-found")
@@ -329,42 +269,14 @@ def get_slurm_files(headers, system_name, system_addr, job_info, output=False, u
 
 def submit_job_path_task(headers, system_name, system_addr, fileName, job_dir, account, use_plugin, task_id):
 
-    try:
-        # get scopes from token
-        decoded = jwt.decode(headers[AUTH_HEADER_NAME][7:], options={"verify_signature": False})
-        # scope: "openid profile email firecrest-tds.cscs.ch/storage/something"
-        scopes = decoded['scope'].split(' ')
-        scopes_parameters = ''
-
-        # SCOPES sintax: id_service/microservice/parameter
-        for s in scopes:
-            s2 = s.split('/')
-            if s2[0] == FIRECREST_SERVICE:
-                if s2[1] == 'storage':
-                    if scopes_parameters != '':
-                        scopes_parameters = scopes_parameters + ','
-
-                    scopes_parameters = scopes_parameters + s2[2]
-
-        if scopes_parameters != '':
-            scopes_parameters = '--firecrest=' + scopes_parameters
-
-        app.logger.info("scope parameters: " + scopes_parameters)
-
-    except Exception as e:
-        app.logger.error(type(e))
-        app.logger.error(e.args)
-
-
-    plugin_option = ("" if not use_plugin else SPANK_PLUGIN_OPTION)
-    account_option = ("" if not account else f" --account={account} ")
-
+    plugin_options = [SPANK_PLUGIN_OPTION] if use_plugin else None
+    spec = Job(fileName, job_dir, account, plugin_options)
+    scheduler_command = scheduler.submit(spec)
     ID = headers.get(TRACER_HEADER, '')
-    action=f"ID={ID} sbatch {account_option} {plugin_option} --chdir={job_dir} {scopes_parameters} -- '{fileName}'"
+    action=f"ID={ID} {scheduler_command}"
+    app.logger.info(action)
 
     resp = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
-
-    app.logger.info(resp)
 
     # in case of error:
     if resp["error"] != 0:
@@ -381,11 +293,11 @@ def submit_job_path_task(headers, system_name, system_addr, fileName, job_dir, a
         err_msg = resp["msg"]
         update_task(task_id, headers, async_task.ERROR, err_msg)
 
-    jobid = extract_jobid(resp["msg"])
-    msg = {"result":"Job submitted", "jobid":jobid}
+    jobid = scheduler.extract_jobid(resp["msg"])
+    msg = {"result": "Job submitted", "jobid": jobid}
 
     # now looking for log and err files location
-    job_extra_info = get_slurm_files(headers, system_name, system_addr, msg, use_plugin=use_plugin)
+    job_extra_info = get_job_files(headers, system_name, system_addr, msg, use_plugin=use_plugin)
 
     update_task(task_id, headers, async_task.SUCCESS, job_extra_info, True)
 
@@ -394,9 +306,9 @@ def submit_job_path_task(headers, system_name, system_addr, fileName, job_dir, a
 @app.errorhandler(413)
 def request_entity_too_large(error):
     app.logger.error(error)
-    return jsonify(description=f"Failed to upload sbatch file. The file is over {MAX_FILE_SIZE} MB"), 413
+    return jsonify(description=f"Failed to upload batch script. The file is over {MAX_FILE_SIZE} MB"), 413
 
-# Submit a batch script to SLURM on the target system.
+# Submit a batch script to the workload manager on the target system.
 # The batch script is uploaded as a file
 
 @app.route("/jobs/upload",methods=["POST"])
@@ -502,7 +414,7 @@ def submit_job_upload():
         data = jsonify(description="Failed to submit job",error=e)
         return data, 400
 
-# Submit a batch script to SLURM on the target system.
+# Submit a batch script to scheduler on the target system.
 # The batch script is into the target system
 @app.route("/jobs/path",methods=["POST"])
 @check_auth_header
@@ -563,15 +475,7 @@ def submit_job_path():
     if task_id == -1:
         return jsonify(description="Failed to submit job",error='Error creating task'), 400
 
-    # if targetPath = "/home/testuser/test/sbatch.sh/"
-    # split by / and discard last element (the file name): ['', 'home', 'testuser', 'test']
-    job_dir_splitted = targetPath.split("/")[:-1]
-    # in case the targetPath ends with /, like: "/home/testuser/test/sbatch.sh/"
-    # =>  ['', 'home', 'testuser', 'test', ''], then last element of the list is discarded
-    if job_dir_splitted[-1] == "":
-        job_dir_splitted = job_dir_splitted[:-1]
-
-    job_dir = "/".join(job_dir_splitted)
+    job_dir = os.path.dirname(targetPath)
 
     try:
         # asynchronous task creation
@@ -579,7 +483,7 @@ def submit_job_path():
                              args=(headers, system_name, system_addr, targetPath, job_dir, account, use_plugin, task_id))
 
         aTask.start()
-        retval = update_task(task_id, headers, async_task.QUEUED, TASKS_URL)
+        update_task(task_id, headers, async_task.QUEUED, TASKS_URL)
 
         task_url = f"{KONG_URL}/tasks/{task_id}"
         data = jsonify(success="Task created", task_id=task_id, task_url=task_url)
@@ -589,7 +493,7 @@ def submit_job_path():
         data = jsonify(description="Failed to submit job",error=e)
         return data, 400
 
-# Retrieves information from all jobs (squeue)
+# Retrieves information from the user's jobs
 @app.route("/jobs",methods=["GET"])
 @check_auth_header
 def list_jobs():
@@ -629,7 +533,7 @@ def list_jobs():
 
     username = is_username_ok["username"]
 
-    app.logger.info(f"Getting SLURM information of jobs from {system_name} ({system_addr})")
+    app.logger.info(f"Getting information of jobs from {system_name} ({system_addr})")
 
     # job list comma separated:
     jobs        = request.args.get("jobs", None)
@@ -654,7 +558,7 @@ def list_jobs():
         pageSize    = 25
 
     # by default empty
-    job_list = ""
+    job_aux_list = None
     if jobs != None:
         v = validate_input(jobs)
         if v != "":
@@ -666,18 +570,13 @@ def list_jobs():
                 return jsonify(error="Jobs list wrong format",description="Failed to retrieve job information"), 400
 
             for jobid in job_aux_list:
-                if not is_jobid(jobid):
+                if not scheduler.is_jobid(jobid):
                     return jsonify(error=f"{jobid} is not a valid job ID", description="Failed to retrieve job information"), 400
 
-            job_list = f"--job='{jobs}'"
         except:
             return jsonify(error="Jobs list wrong format",description="Failed to retrieve job information"), 400
 
-    S = SQUEUE_SEP
-    # format: jobid (i) partition (P) jobname (j) user (u) job sTate (T),
-    #          start time (S), job time (M), left time (L)
-    #           nodes allocated (M) and resources (R)
-    action = f"ID={ID} squeue -u {username} {job_list} --format='%i{S}%P{S}%j{S}%u{S}%T{S}%M{S}%S{S}%L{S}%D{S}%R' --noheader"
+    action = f"ID={ID} {scheduler.poll(username, job_aux_list)}"
 
     try:
         task_id = create_task(headers, service="compute")
@@ -729,7 +628,7 @@ def list_job_task(headers,system_name, system_addr,action,task_id,pageSize,pageN
 
 
     # on success:
-    jobList = resp["msg"].split("$")
+    jobList = scheduler.parse_poll_output(resp["msg"])
     app.logger.info(f"Size jobs: {len(jobList)}")
 
     # pagination
@@ -754,16 +653,9 @@ def list_job_task(headers,system_name, system_addr,action,task_id,pageSize,pageN
     jobList = jobList[beg_reg:end_reg + 1]
 
     jobs = {}
-    for job_index in range(len(jobList)):
-        job = jobList[job_index]
-        jobaux = job.split(SQUEUE_SEP)
-        jobinfo = {"jobid": jobaux[0], "partition": jobaux[1], "name": jobaux[2],
-                   "user": jobaux[3], "state": jobaux[4], "start_time": jobaux[5],
-                   "time": jobaux[6], "time_left": jobaux[7],
-                   "nodes": jobaux[8], "nodelist": jobaux[9]}
-
+    for job_index, jobinfo in enumerate(jobList):
         # now looking for log and err files location
-        jobinfo = get_slurm_files(headers, system_name, system_addr, jobinfo, True)
+        jobinfo = get_job_files(headers, system_name, system_addr, jobinfo, True)
 
         # add jobinfo to the array
         jobs[str(job_index)]=jobinfo
@@ -790,8 +682,8 @@ def list_job(jobid):
         header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
         return jsonify(description="Failed to retrieve job information", error="Machine does not exists"), 400, header
 
-    #check if jobid is a valid jobid for SLURM
-    if not is_jobid(jobid):
+    #check if jobid is a valid jobid for the scheduler
+    if not scheduler.is_jobid(jobid):
         return jsonify(description="Failed to retrieve job information", error=f"{jobid} is not a valid job ID"), 400
 
     # select index in the list corresponding with machine name
@@ -817,14 +709,9 @@ def list_job(jobid):
         return jsonify(description=is_username_ok["reason"],error="Failed to retrieve job information"), 401
     username = is_username_ok["username"]
 
-    app.logger.info(f"Getting SLURM information of job={jobid} from {system_name} ({system_addr})")
+    app.logger.info(f"Getting scheduler information of job={jobid} from {system_name} ({system_addr})")
 
-    S = SQUEUE_SEP
-    # format: jobid (i) partition (P) jobname (j) user (u) job sTate (T),
-    #          start time (S), job time (M), left time (L)
-    #           nodes allocated (M) and resources (R)
-    action = f"ID={ID} squeue -u {username} --format='%i{S}%P{S}%j{S}%u{S}%T{S}%M{S}%S{S}%L{S}%D{S}%R' --noheader -j '{jobid}'"
-
+    action = f"ID={ID} {scheduler.poll(username, [jobid])}"
     try:
         # obtain new task from Tasks microservice
         task_id = create_task(headers, service="compute")
@@ -853,7 +740,6 @@ def list_job(jobid):
 
 
 def cancel_job_task(headers, system_name, system_addr, action, task_id):
-    # exec scancel command
     resp = exec_remote_command(headers, system_name, system_addr, action)
 
     app.logger.info(resp)
@@ -877,15 +763,9 @@ def cancel_job_task(headers, system_name, system_addr, action, task_id):
         update_task(task_id, headers, async_task.ERROR, err_msg)
         return
 
-    # in specific scancel's case, this command doesn't give error code over
-    # invalid or completed jobs, but -v catches stderr even if it's ok
-    # so, if error key word is on stderr scancel has failed, otherwise:
-
-    # if "error" word appears:
-    if in_str(data,"error"):
-        # error message: "scancel: error: Kill job error on job id 5: Invalid job id specified"
-        # desired output: "Kill job error on job id 5: Invalid job id specified"
-        err_msg = data[(data.index("error")+7):]
+    # We may want to look for errors in the output, beyond the error code
+    err_msg = scheduler.parse_cancel_output(data)
+    if err_msg:
         update_task(task_id, headers, async_task.ERROR, err_msg)
         return
 
@@ -893,7 +773,7 @@ def cancel_job_task(headers, system_name, system_addr, action, task_id):
     update_task(task_id, headers, async_task.SUCCESS, data)
 
 
-# Cancel job from SLURM using scancel command
+# Cancel job
 @app.route("/jobs/<jobid>",methods=["DELETE"])
 @check_auth_header
 def cancel_job(jobid):
@@ -930,13 +810,8 @@ def cancel_job(jobid):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Failed to delete job"), 404, header
 
-
-
-    app.logger.info(f"Cancel SLURM job={jobid} from {system_name} ({system_addr})")
-
-    # scancel with verbose in order to show correctly the error
-    action = f"ID={ID} scancel -v '{jobid}'"
-
+    app.logger.info(f"Cancel scheduler job={jobid} from {system_name} ({system_addr})")
+    action = f"ID={ID} {scheduler.cancel([jobid])}"
     try:
         # obtain new task from TASKS microservice.
         task_id = create_task(headers, service="compute")
@@ -986,18 +861,7 @@ def acct_task(headers, system_name, system_addr, action, task_id):
         update_task(task_id, headers, async_task.SUCCESS, {}, True)
         return
 
-    # on success:
-    joblist = resp["msg"].split("$")
-    jobs = []
-    for job in joblist:
-        # ouput by sacct uses '|'
-        jobaux = job.split("|")
-        jobinfo = {"jobid": jobaux[0], "partition": jobaux[1], "name": jobaux[2],
-                   "user": jobaux[3], "state": jobaux[4], "start_time": jobaux[5],
-                   "time": jobaux[6], "time_left": jobaux[7],
-                   "nodes": jobaux[8], "nodelist": jobaux[9]}
-
-        jobs.append(jobinfo)
+    jobs = scheduler.parse_accounting_output(resp["msg"])
 
     # as it is a json data to be stored in Tasks, the is_json=True
     update_task(task_id, headers, async_task.SUCCESS, jobs, is_json=True)
@@ -1036,56 +900,21 @@ def acct():
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Failed to retrieve account information"), 404, header
 
-    #check if startime (--startime=) param is set:
-    start_time_opt = ""
-
-    try:
-        starttime = request.args.get("starttime","")
-        if starttime != "":
-            # check if starttime parameter is correctly encoded
-            if check_sacctTime(starttime):
-                start_time_opt  = f" --starttime='{starttime}' "
-            else:
-                app.logger.warning("starttime wrongly encoded")
-
-        # check if endtime (--endtime=) param is set:
-        end_time_opt = ""
-        endtime   =  request.args.get("endtime","")
-        if endtime != "":
-            # check if endtime parameter is correctly encoded
-            if check_sacctTime(endtime):
-                end_time_opt = f" --endtime='{endtime}' "
-            else:
-                app.logger.warning("endtime wrongly encoded")
-    except Exception as e:
-        data = jsonify(description="Failed to retrieve account information", error=e)
-        return data, 400
-
-
+    starttime = request.args.get("starttime","")
+    endtime   = request.args.get("endtime","")
     # check optional parameter jobs=jobidA,jobidB,jobidC
-    jobs_opt = ""
-
     jobs = request.args.get("jobs", "")
-
     if jobs != "":
         v = validate_input(jobs)
         if v != "":
             return jsonify(description="Failed to retrieve account information", error=f"'jobs' {v}"), 400
-        jobs_opt = f" --jobs='{jobs}' "
 
-    # sacct
-    # -X so no step information is shown (ie: just jobname, not jobname.batch or jobname.0, etc)
-    # --starttime={start_time_opt} starts accounting info
-    # --endtime={start_time_opt} end accounting info
-    # --jobs={job1,job2,job3} list of jobs to be reported
-    # format: 0 - jobid  1-partition 2-jobname 3-user 4-job sTate,
-    #         5 - start time, 6-elapsed time , 7-end time
-    #          8 - nodes allocated and 9 - resources
-    # --parsable2 = limits with | character not ending with it
-
-    action = f"ID={ID} sacct -X {start_time_opt} {end_time_opt} {jobs_opt} " \
-             "--format='jobid,partition,jobname,user,state,start,cputime,end,NNodes,NodeList' " \
-              "--noheader --parsable2"
+    sched_cmd = scheduler.accounting(
+        jobids=jobs.split(','),
+        start_time=starttime,
+        end_time=endtime
+    )
+    action = f"ID={ID} {sched_cmd}"
 
     try:
         # obtain new task from Tasks microservice
