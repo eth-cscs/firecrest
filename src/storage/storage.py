@@ -42,11 +42,6 @@ STORAGE_PORT     = os.environ.get("F7T_STORAGE_PORT", 5000)
 
 AUTH_HEADER_NAME = 'Authorization'
 
-# Machines for Storage:
-# Job machine where to send xfer-internal jobs (must be defined in SYSTEMS_PUBLIC)
-STORAGE_JOBS_MACHINE = os.environ.get("F7T_STORAGE_JOBS_MACHINE").strip('\'"').split(";")
-
-
 # SYSTEMS_PUBLIC: list of allowed systems
 # remove quotes and split into array
 SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
@@ -56,6 +51,8 @@ SYS_INTERNALS_COMPUTE = os.environ.get("F7T_SYSTEMS_INTERNAL_COMPUTE").strip('\'
 SYS_INTERNALS_STORAGE = os.environ.get("F7T_SYSTEMS_INTERNAL_STORAGE").strip('\'"').split(";")
 # internal machines for small operations
 SYS_INTERNALS_UTILITIES  = os.environ.get("F7T_SYSTEMS_INTERNAL_UTILITIES").strip('\'"').split(";")
+# Machine to send xfer-internal jobs, as defined in SYSTEMS_PUBLIC
+STORAGE_JOBS_MACHINE = os.environ.get("F7T_STORAGE_JOBS_MACHINE", os.environ.get("F7T_SYSTEMS_PUBLIC")).strip('\'"').split(";")
 
 ###### ENV VAR FOR DETECT TECHNOLOGY OF STAGING AREA:
 OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE", "").strip('\'"')
@@ -916,7 +913,10 @@ def internal_operation(request, command):
 
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS_UTILITIES[system_idx]
+    # actual machine for submitting Slurm job may be different:
+    system_name = STORAGE_JOBS_MACHINE[system_idx]
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS_COMPUTE[system_idx]
 
     targetPath = request.form.get("targetPath", None)  # path to save file in cluster
     v = validate_input(targetPath)
@@ -976,9 +976,6 @@ def internal_operation(request, command):
         v = validate_input(stageOutJobId)
         if v != "":
             return jsonify(description="Invalid stageOutJobId", error=f"'stageOutJobId' {v}"), 400
-
-    # select index in the list corresponding with machine name
-    system_addr = SYS_INTERNALS_COMPUTE[system_idx]
 
     app.logger.info(f"USE_SLURM_ACCOUNT: {USE_SLURM_ACCOUNT}")
     # get "account" parameter, if not found, it is obtained from "id" command
