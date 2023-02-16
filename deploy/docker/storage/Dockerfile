@@ -20,8 +20,8 @@ ADD src/storage/s3v4OS.py s3v4OS.py
 ADD src/storage/swiftOS.py swiftOS.py
 
 ADD src/common/async_task.py async_task.py
-ADD src/common/job_time.py job_time.py
 ADD src/common/cscs_api_common.py cscs_api_common.py
+ADD src/common/schedulers schedulers
 
 
 ENV F7T_STORAGE_PORT 5000

@@ -19,8 +19,7 @@ from cscs_api_common import create_certificate
 from cscs_api_common import in_str
 from cscs_api_common import is_valid_file, is_valid_dir, check_command_error, get_boolean_var, validate_input, setup_logging
 
-# job_time_checker for correct SLURM job time in /xfer-internal tasks
-import job_time
+from schedulers import JobScript
 
 import requests
 
@@ -66,11 +65,17 @@ OS_PROJECT_ID           = os.environ.get("F7T_OS_PROJECT_ID")
 # SECRET KEY for temp url without using Token
 SECRET_KEY              = os.environ.get("F7T_SECRET_KEY")
 
+# Detect scheduler object type
+STORAGE_SCHEDULER = os.environ.get("F7T_STORAGE_SCHEDULER", "Slurm")
+
 # Scheduller partition used for internal transfers, one per public system
 XFER_PARTITION = os.environ.get("F7T_XFER_PARTITION", "").strip('\'"').split(";")
 
-# --account parameter needed in sbatch?
-USE_SLURM_ACCOUNT = get_boolean_var(os.environ.get("F7T_USE_SLURM_ACCOUNT", False))
+# use project account in submission
+# F7T_USE_SLURM_ACCOUNT is deprecated so we use it only in case F7T_USE_SCHED_PROJECT is not set
+USE_SCHED_PROJECT = get_boolean_var(
+    os.environ.get("F7T_USE_SCHED_PROJECT", os.environ.get("F7T_USE_SLURM_ACCOUNT", False))
+)
 
 # Expiration time for temp URLs in seconds, by default 30 days
 STORAGE_TEMPURL_EXP_TIME = int(os.environ.get("F7T_STORAGE_TEMPURL_EXP_TIME", "2592000").strip('\'"'))
@@ -321,6 +326,17 @@ def get_upload_unfinished_tasks():
 
 
 def init_storage():
+    global scheduler
+
+    scheduler = None
+    if STORAGE_SCHEDULER == "Slurm":
+        app.logger.info("Scheduler selected: Slurm")
+
+        from schedulers.slurm import SlurmScheduler
+        scheduler = SlurmScheduler()
+    else:
+        app.logger.error("No scheduler was set.")
+
     # should check Tasks tasks than belongs to storage
     create_staging()
     get_upload_unfinished_tasks()
@@ -825,33 +841,18 @@ def exec_internal_command(headers, system_idx, command, jobName, jobTime, stageO
 
     try:
         td = tempfile.mkdtemp(prefix="job")
-
-        sbatch_file = open(td + "/sbatch-job.sh", "w")
-
-        sbatch_file.write("#! /bin/bash -l\n")
-        sbatch_file.write(f"#SBATCH --job-name='{jobName}'\n")
-        sbatch_file.write(f"#SBATCH --time={jobTime}\n")
-        sbatch_file.write("#SBATCH --error=job-%j.err\n")
-        sbatch_file.write("#SBATCH --output=job-%j.out\n")
-        sbatch_file.write("#SBATCH --ntasks=1\n")
-        sbatch_file.write(f"#SBATCH --partition={XFER_PARTITION[system_idx]}\n")
-        # test line for error
-        # sbatch_file.write("#SBATCH --constraint=X2450\n")
-
-        if stageOutJobId != None:
-            sbatch_file.write(f"#SBATCH --dependency=afterok:{stageOutJobId}\n")
-        if account != None:
-            app.logger.info(account)
-            sbatch_file.write(f"#SBATCH --account='{account}'")
-
-        sbatch_file.write("\n")
         ID = headers.get(TRACER_HEADER, '')
-        sbatch_file.write(f"echo Trace ID: {ID}\n")
-        sbatch_file.write("echo -e \"$SLURM_JOB_NAME started on $(date)\"\n")
-        sbatch_file.write(f"srun -n $SLURM_NTASKS {command}\n")
-        sbatch_file.write("echo -e \"$SLURM_JOB_NAME finished on $(date)\"\n")
+        script_spec = JobScript(
+            name=jobName,
+            time=jobTime,
+            partition=XFER_PARTITION[system_idx],
+            command=command,
+            dependency_id=stageOutJobId,
+            account=account
+        )
 
-        sbatch_file.close()
+        with open(td + "/sbatch-job.sh", "w") as sbatch_file:
+            sbatch_file.write(scheduler.script_template(ID, script_spec))
 
     except IOError as ioe:
         app.logger.error(ioe.message)
@@ -871,27 +872,27 @@ def exec_internal_command(headers, system_idx, command, jobName, jobTime, stageO
     return resp
 
 
-# Internal cp transfer via SLURM with xfer partition:
+# Internal cp transfer via the scheduler xfer partition:
 @app.route("/xfer-internal/cp", methods=["POST"])
 @check_auth_header
 def internal_cp():
     return internal_operation(request, "cp")
 
-# Internal mv transfer via SLURM with xfer partition:
+# Internal mv transfer via the scheduler xfer partition:
 @app.route("/xfer-internal/mv", methods=["POST"])
 @check_auth_header
 def internal_mv():
     return internal_operation(request, "mv")
 
 
-# Internal rsync transfer via SLURM with xfer partition:
+# Internal rsync transfer via the scheduler xfer partition:
 @app.route("/xfer-internal/rsync", methods=["POST"])
 @check_auth_header
 def internal_rsync():
     return internal_operation(request, "rsync")
 
 
-# Internal rm transfer via SLURM with xfer partition:
+# Internal rm transfer via the scheduler xfer partition:
 @app.route("/xfer-internal/rm", methods=["POST"])
 @check_auth_header
 def internal_rm():
@@ -955,7 +956,7 @@ def internal_operation(request, command):
     # don't add tracing ID, we'll be executed by srun
     actual_command = f"{actual_command} '{sourcePath}' '{targetPath}'"
 
-    jobName = request.form.get("jobName", "")  # jobName for SLURM
+    jobName = request.form.get("jobName", "")
     if jobName == "":
         jobName = command + "-job"
         app.logger.info(f"jobName not found, setting default to: {jobName}")
@@ -966,7 +967,7 @@ def internal_operation(request, command):
 
     try:
         jobTime = request.form["time"]  # job time, default is 2:00:00 H:M:s
-        if not job_time.check_jobTime(jobTime):
+        if not scheduler.check_jobTime(jobTime):
             return jsonify(error="Not supported time format"), 400
     except:
         jobTime = "02:00:00"
@@ -977,7 +978,7 @@ def internal_operation(request, command):
         if v != "":
             return jsonify(description="Invalid stageOutJobId", error=f"'stageOutJobId' {v}"), 400
 
-    app.logger.info(f"USE_SLURM_ACCOUNT: {USE_SLURM_ACCOUNT}")
+    app.logger.info(f"USE_SCHED_PROJECT: {USE_SCHED_PROJECT}")
     # get "account" parameter, if not found, it is obtained from "id" command
     try:
         account = request.form["account"]
@@ -985,7 +986,7 @@ def internal_operation(request, command):
         if v != "":
             return jsonify(description="Invalid account", error=f"'account' {v}"), 400
     except:
-        if USE_SLURM_ACCOUNT:
+        if USE_SCHED_PROJECT:
             is_username_ok = get_username(headers[AUTH_HEADER_NAME])
 
             if not is_username_ok["result"]:
