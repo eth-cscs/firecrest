@@ -3260,12 +3260,10 @@ items:
               data:
                 type: object
                 description: Job listing information
-                default: {}
                 properties:
                   "index":
                     type: object
                     description: index of the individual job
-                    default: "0"
                     properties:
                       schema:
                         type: object
