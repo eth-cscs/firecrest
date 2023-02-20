@@ -457,7 +457,9 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
             logging.info(f"stdout: ({stdout_errno}) --> {outlines}")
 
         if stderr_errno == 0:
-            if stderr_errda and not (in_str(stderr_errda,"Could not chdir to home directory") or in_str(stderr_errda,"scancel: Terminating job")):
+            if file_transfer == "download":
+                result = {"error": 0, "msg": outlines}
+            elif stderr_errda and not (in_str(stderr_errda,"Could not chdir to home directory") or in_str(stderr_errda,"scancel: Terminating job")):
                 result = {"error": 1, "msg": stderr_errda}
             elif in_str(stdout_errda, "No such file"): # in case that error is 0 and the msg is on the stdout (like with some file)
                 result = {"error": 1, "msg": stdout_errda}
