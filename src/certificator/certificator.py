@@ -43,7 +43,7 @@ CERTIFICATOR_PORT = os.environ.get("F7T_CERTIFICATOR_PORT", 5000)
 #   Difference to other microservices: allow '>' for 'cat' and 'head', '&' for Storage URLs, single quotes (') for arguments
 #   Commands must only use single quotes
 #   r'...' specifies it's a regular expression with special treatment for \
-FORBIDDEN_COMMAND_CHARS = r'[\<\|\;\"\\\[\]\(\)\x00-\x1F\x60]'
+FORBIDDEN_COMMAND_CHARS = r'[\<\|\;\"\\\(\)\x00-\x1F\x60]'
 
 # OPA endpoint
 OPA_USE = get_boolean_var(os.environ.get("F7T_OPA_USE",False))

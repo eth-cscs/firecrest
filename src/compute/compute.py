@@ -255,12 +255,12 @@ def get_job_files(headers, system_name, system_addr, job_info, output=False, use
         # tail -n {number_of_lines_since_end} or
         # tail -c {number_of_bytes} --> 1000B = 1KB
 
-        action = f"ID={ID} timeout {TIMEOUT} tail -c {TAIL_BYTES} '{control_info['job_file_out']}'"
+        action = f"ID={ID} timeout {TIMEOUT} tail -c {TAIL_BYTES} -- '{control_info['job_file_out']}'"
         resp = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
         if resp["error"] == 0:
             control_info["job_data_out"] = resp["msg"]
 
-        action = f"ID={ID} timeout {TIMEOUT} tail -c {TAIL_BYTES} '{control_info['job_file_err']}'"
+        action = f"ID={ID} timeout {TIMEOUT} tail -c {TAIL_BYTES} -- '{control_info['job_file_err']}'"
         resp = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
         if resp["error"] == 0:
             control_info["job_data_err"] = resp["msg"]

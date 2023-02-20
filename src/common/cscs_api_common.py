@@ -65,9 +65,9 @@ TASKS_URL = os.environ.get("F7T_TASKS_URL")
 
 F7T_SSH_CERTIFICATE_WRAPPER = get_boolean_var(os.environ.get("F7T_SSH_CERTIFICATE_WRAPPER", False))
 
-# Fobidden chars on user path/parameters: wihtout scapes: < > | ; " ' & \ [ ] ( ) x00-x1F \x60
+# Fobidden chars on user path/parameters: wihtout scapes: < > | ; " ' & \ ( ) x00-x1F \x60
 #   r'...' specifies it's a regular expression with special treatment for \
-FORBIDDEN_INPUT_CHARS = r'[\<\>\|\;\"\'\&\\\[\]\(\)\x00-\x1F\x60]'
+FORBIDDEN_INPUT_CHARS = r'[\<\>\|\;\"\'\&\\\(\)\x00-\x1F\x60]'
 
 # OPA endpoint
 OPA_USE = get_boolean_var(os.environ.get("F7T_OPA_USE",False))

@@ -23,9 +23,9 @@ class SlurmScheduler(schedulers.JobScheduler):
     def submit(self, submission_spec):
         cmd = ["sbatch"]
         if submission_spec.account:
-            cmd.append(f"--account={submission_spec.account}")
+            cmd.append(f"--account='{submission_spec.account}'")
 
-        cmd += [f"--chdir={submission_spec.job_dir}"]
+        cmd += [f"--chdir='{submission_spec.job_dir}'"]
         cmd += self._opts
         cmd += submission_spec.opts
         cmd += ["--", f"'{submission_spec.job_script}'"]
@@ -97,7 +97,7 @@ class SlurmScheduler(schedulers.JobScheduler):
         return script
 
     def job_info(self, jobid):
-        return f"scontrol -o show job={jobid}"
+        return f"scontrol -o show job='{jobid}'"
 
     def parse_job_info(self, output):
         control_list = output.split()
