@@ -627,8 +627,9 @@ paths:
           type: string
     get:
       summary: determines the status of a file
-      description: Uses the stat linux application to determine the status of a file on the
-        {X-Machine-Name} filesystem.
+      description: Uses the stat application to determine the status of a file on the
+        {X-Machine-Name} filesystem. The options are "%f %i %d %h %u %g %s %X %Y %Z"
+        and the outputs are converted to integers.
       tags:
         - Utilities
       parameters:
@@ -645,13 +646,14 @@ paths:
           description: Follow symbolic links
           schema:
             type: boolean
+            default: false
       responses:
         '200':
           description: Operation completed
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Utilities-ok'
+                $ref: '#/components/schemas/File-Stat-metadata'
         '400':
           description: Error in file operation
           content:
@@ -2304,6 +2306,50 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/File-metadata'
+    File-Stat-metadata:
+      type: object
+      properties:
+        description:
+          type: string
+        output:
+          type: object
+          properties:
+            mode:
+              type: integer
+              description: Integer value of raw mode
+              example: 33188
+            ino:
+              type: integer
+              description: Inode number
+              example: 5000000
+            dev:
+              type: integer
+              description: Device number
+              example: 64002
+            uid:
+              type: integer
+              description: User ID
+              example: 1000
+            gid:
+              type: integer
+              description: Group ID
+              example: 1000
+            size:
+              type: integer
+              description: File size
+              example: 1
+            atime:
+              type: integer
+              description: time of last access as seconds since Epoch
+              example: 1623000000
+            ctime:
+              type: integer
+              description: time of last status change as seconds since Epoch
+              example: 1623000000
+            mtime:
+              type: integer
+              description: time of last modification as seconds since Epoch
+              example: 1623000000
     System:
       required:
         - system
