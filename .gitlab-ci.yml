@@ -208,7 +208,7 @@ tag_release:
         code_tag="prod"
         if [ "$is_master" == "true" ]; then
 
-          if [[ "${CI_COMMIT_TAG}" == "dev" ]]; then
+          if [[ "${CI_COMMIT_TAG}" == "*dev*" ]]; then
             env_tags="tds"
             code_tag="tds"
           fi
