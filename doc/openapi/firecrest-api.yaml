@@ -608,6 +608,73 @@ paths:
             text/plain:
               schema:
                 type: string
+  '/utilities/head':
+    parameters:
+      - in: header
+        name: X-Machine-Name
+        description: The system name
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Prints first part of a file
+      description: >-
+        Returns the first part (10 lines by default) from a file. Options 'bytes' and 'lines' can not
+        by specified simultaneously.
+      tags:
+        - Utilities
+      parameters:
+        - name: targetPath
+          in: query
+          description: Absolute path to destination
+          required: true
+          schema:
+            type: string
+          allowReserved: true
+        - name: bytes
+          in: query
+          description: Returns the first N bytes, accepts K, KB, MB, etc
+          schema:
+            type: string
+        - name: lines
+          in: query
+          description: Returns the first N lines, accepts K, KB, MB, etc
+          schema:
+            type: string
+      responses:
+        '200':
+          description: File content successfully returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilities-ok'
+        '400':
+          description: Failed to return file content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilities-notok'
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: string
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: string
+            X-Permission-Denied:
+              description: User does not have permissions to access machine or path
+              schema:
+                type: string
+            X-Invalid-Path:
+              description: <path> is invalid.
+              schema:
+                type: string
+            X-Timeout:
+              description: Command has finished with timeout signal
+              schema:
+                type: string
   '/utilities/stat':
     parameters:
       - in: header
@@ -744,6 +811,73 @@ paths:
                 type: string
             X-Invalid-Path:
               description: <target> and/or <source> are invalid paths
+              schema:
+                type: string
+            X-Timeout:
+              description: Command has finished with timeout signal
+              schema:
+                type: string
+  '/utilities/tail':
+    parameters:
+      - in: header
+        name: X-Machine-Name
+        description: The system name
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Prints last part of a file
+      description: >-
+        Returns the last part (10 lines by default) from a file. Options 'bytes' and 'lines' can not
+        by specified simultaneously.
+      tags:
+        - Utilities
+      parameters:
+        - name: targetPath
+          in: query
+          description: Absolute path to destination
+          required: true
+          schema:
+            type: string
+          allowReserved: true
+        - name: bytes
+          in: query
+          description: Returns the last N bytes, accepts K, KB, MB, etc
+          schema:
+            type: string
+        - name: lines
+          in: query
+          description: Returns the last N lines, accepts K, KB, MB, etc
+          schema:
+            type: string
+      responses:
+        '200':
+          description: File content successfully returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilities-ok'
+        '400':
+          description: Failed to return file content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilities-notok'
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: string
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: string
+            X-Permission-Denied:
+              description: User does not have permissions to access machine or path
+              schema:
+                type: string
+            X-Invalid-Path:
+              description: <path> is invalid.
               schema:
                 type: string
             X-Timeout:

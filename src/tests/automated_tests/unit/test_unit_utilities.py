@@ -15,7 +15,7 @@ import json
 FIRECREST_URL = os.environ.get("FIRECREST_URL","")
 USE_GATEWAY  = (os.environ.get("USE_GATEWAY","false").lower() == "true")
 
-if FIRECREST_URL and USE_GATEWAY: 
+if FIRECREST_URL and USE_GATEWAY:
 	UTILITIES_URL = os.environ.get("FIRECREST_URL") + "/utilities"
 else:
     UTILITIES_URL = os.environ.get("F7T_UTILITIES_URL")
@@ -38,7 +38,7 @@ DATA_FILE = [ (SERVER_UTILITIES, 200, ".bashrc") ,
 		 (SERVER_UTILITIES, 400, "/var/log/messages") ,
 		 (SERVER_UTILITIES, 400, "/\\") ,
 		 (SERVER_UTILITIES, 400, "a>b"),
-		 (SERVER_UTILITIES, 400, "a<b"), 
+		 (SERVER_UTILITIES, 400, "a<b"),
 		 (SERVER_UTILITIES, 400, "(a"),
 		 (SERVER_UTILITIES, 400, "`hostname`") ]
 
@@ -49,7 +49,7 @@ DATA_STAT = [ (SERVER_UTILITIES, 200, ".bashrc") ,
 		 (SERVER_UTILITIES, 400, "nofile") ,
 		 (SERVER_UTILITIES, 400, "/\\") ,
 		 (SERVER_UTILITIES, 400, "a>b"),
-		 (SERVER_UTILITIES, 400, "a<b"), 
+		 (SERVER_UTILITIES, 400, "a<b"),
 		 (SERVER_UTILITIES, 400, "(a"),
 		 (SERVER_UTILITIES, 400, "`hostname`") ]
 
@@ -63,7 +63,7 @@ DATA_LS = [ (SERVER_UTILITIES, "/srv/f7t/test_sbatch.sh", 200),
 (SERVER_UTILITIES, USER_HOME + "/", 200),
 ("someservernotavailable", USER_HOME + "/" ,400)]
 
-FORBIDDEN_INPUT_CHARS = '<>|;"\'&\\[]()\x00\x0D\x1F'
+FORBIDDEN_INPUT_CHARS = '<>|;"\'&\\()\x00\x0D\x1F'
 for c in FORBIDDEN_INPUT_CHARS:
     DATA_LS.append((SERVER_UTILITIES, "/bin/*" + c, 400))
 
@@ -74,6 +74,14 @@ DATA_CK = [ (SERVER_UTILITIES, "/srv/f7t/test_sbatch.sh", 200),
 (SERVER_UTILITIES, "/etc/binfmt.d/", 400), # empty folder
 (SERVER_UTILITIES, USER_HOME + "/", 400),
 ("someservernotavailable", USER_HOME + "/" ,400)]
+
+# test data for head and tail: needs to match content from /srv/f7t/test_sbatch.sh
+DATA_HEAD_TAIL = [ ("head", SERVER_UTILITIES, "/srv/f7t/test_sbatch.sh", "12", None, 200, "#!/bin/bash\n"),
+("head", SERVER_UTILITIES, "/etc/hosts", "10", "20", 400, ""),
+("head", "someservernotavailable", USER_HOME, None, None, 400, ""),
+("tail", SERVER_UTILITIES, "/srv/f7t/test_sbatch.sh", "10", None, 200, "sleep 60s\n"),
+("tail", SERVER_UTILITIES, "/bin/ls", "10", "20", 400, ""),
+("tail", "someservernotavailable", USER_HOME, None, None, 400, "")]
 
 # test data for checksum API
 DATA_VIEW = [ (SERVER_UTILITIES, "/srv/f7t/test_sbatch.sh", 200),
@@ -201,6 +209,23 @@ def test_chown(machine, expected_response_code, headers):
 	resp = requests.put(url, headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
 	assert resp.status_code == expected_response_code
+
+@skipif_not_uses_gateway
+@pytest.mark.parametrize("command, machine, filename, bytes, lines, expected_response_code, output", DATA_HEAD_TAIL)
+def test_head_tail(command, machine, filename, bytes, lines, expected_response_code, output, headers):
+	params = {"targetPath": filename}
+	if bytes:
+		params.update({"bytes": bytes})
+	if lines:
+		params.update({"lines": lines})
+
+	url = f"{UTILITIES_URL}/{command}"
+	headers.update({"X-Machine-Name": machine})
+	resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	assert resp.status_code == expected_response_code
+	if expected_response_code == 200:
+		assert json.loads(resp.content)["output"] == output
+
 
 @skipif_not_uses_gateway
 @pytest.mark.parametrize("machine, targetPath, expected_response_code", DATA_LS)
