@@ -312,7 +312,7 @@ def common_fs_operation(request, command):
         targetPath = request.form.get("targetPath", None)
 
     v = validate_input(targetPath)
-    if v != "":
+    if v != "" and command != "whoami":
         return jsonify(description=f"Error on {command} operation", error=f"'{tn}' {v}"), 400
 
     if command in ['copy', 'rename']:
@@ -405,6 +405,9 @@ def common_fs_operation(request, command):
         file_content = file.read()
         file_transfer = 'upload'
         success_code = 201
+    elif command == "whoami":
+        action = "id -un" # id command is already whitelisted
+        success_code = 200
     else:
         app.logger.error(f"Unknown command on common_fs_operation: {command}")
         return jsonify(description="Error on internal operation", error="Internal error"), 400
@@ -445,6 +448,9 @@ def common_fs_operation(request, command):
         output = ls_parse(request, retval)
     elif command == "upload":
         description="File upload successful"
+    elif command == "whoami":
+        description = "Username"
+        output = {"username": retval["msg"]}        
 
     return jsonify(description=description, output=output), success_code
 
@@ -555,6 +561,21 @@ def request_entity_too_large(error):
 @check_auth_header
 def upload():
     return common_fs_operation(request, "upload")
+
+
+## whoami endpoint interface
+## Params:
+## - None
+## Headers:
+## - X-Machine-Name: <machine_name>
+## - Authorization: <token_type> <access_token>
+## Returns:
+## - username (str)
+
+@app.route("/whoami", methods=["GET"])
+@check_auth_header
+def whoami():
+    return common_fs_operation(request, "whoami")
 
 
 @app.route("/status", methods=["GET"])

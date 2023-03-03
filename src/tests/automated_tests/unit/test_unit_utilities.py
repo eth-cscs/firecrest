@@ -282,6 +282,17 @@ def test_download(machine, expected_response_code, headers):
 	resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	assert resp.status_code == expected_response_code
 
+@skipif_not_uses_gateway
+@pytest.mark.parametrize("machine, expected_response_code", DATA)
+def test_whoami(machine, expected_response_code, headers):
+	url = f"{UTILITIES_URL}/whoami"
+	headers.update({"X-Machine-Name": machine})
+	resp = requests.get(url, headers=headers, params={}, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	if resp.ok:
+		assert resp.json()["output"]["username"] == CURRENT_USER
+
+	assert resp.status_code == expected_response_code
+
 
 # Test utilities microservice status
 @skipif_uses_gateway
