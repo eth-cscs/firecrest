@@ -1074,7 +1074,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Utilities-ok'
+                type: object
+                properties:
+                  output:
+                    type: object
+                    properties:
+                      username:
+                        type: string
+                  description:
+                    type: string
+
         '400':
           description: Failed to return username
           content:
