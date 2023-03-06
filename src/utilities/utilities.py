@@ -450,7 +450,7 @@ def common_fs_operation(request, command):
         description="File upload successful"
     elif command == "whoami":
         description = "Username"
-        output = {"username": retval["msg"]}        
+        output = retval["msg"]
 
     return jsonify(description=description, output=output), success_code
 

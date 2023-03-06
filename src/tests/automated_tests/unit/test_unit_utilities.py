@@ -289,7 +289,7 @@ def test_whoami(machine, expected_response_code, headers):
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.get(url, headers=headers, params={}, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	if resp.ok:
-		assert resp.json()["output"]["username"] == CURRENT_USER
+		assert resp.json()["output"] == CURRENT_USER
 
 	assert resp.status_code == expected_response_code
 

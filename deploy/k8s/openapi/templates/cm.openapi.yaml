@@ -1062,6 +1062,49 @@ items:
                     description: <targetPath> is a directory, can't checksum directories
                     schema:
                       type: string
+        '/utilities/whoami':
+          parameters:
+            - in: header
+              name: X-Machine-Name
+              description: The system name
+              required: true
+              schema:
+                type: string
+          get:
+            summary: Returns current system username
+            description: 'Returns the current username on the {X-Machine-Name}.'
+            tags:
+              - Utilities
+            responses:
+              '200':
+                description: Username successfully returned
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/Utilities-ok'
+              '400':
+                description: Failed to return username
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/Utilities-notok'
+                headers:
+                  X-Machine-Does-Not-Exist:
+                    description: Machine does not exist
+                    schema:
+                      type: string
+                  X-Machine-Not-Available:
+                    description: Machine is not available
+                    schema:
+                      type: string
+                  X-Permission-Denied:
+                    description: User does not have permissions to access machine or path
+                    schema:
+                      type: string
+                  X-Timeout:
+                    description: Command has finished with timeout signal
+                    schema:
+                      type: string              
         '/compute/jobs/upload':
           parameters:
             - in: header
