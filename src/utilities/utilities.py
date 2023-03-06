@@ -125,6 +125,19 @@ def chown():
     return common_fs_operation(request, "chown")
 
 
+## head: Get first N bytes or lines of a file
+## params:
+##  - path: Filesystem path (Str) *required
+##  - bytes: optional
+##  - lines: optional, default is 10
+##  - machinename: str *required
+
+@app.route("/head", methods=["GET"])
+@check_auth_header
+def head():
+    return common_fs_operation(request, "head")
+
+
 ## ls: List Directory contents
 ## params:
 ##  - path: Filesystem path (Str) *required
@@ -219,6 +232,19 @@ def ls_parse(request, retval):
 @check_auth_header
 def make_directory():
     return common_fs_operation(request, "mkdir")
+
+
+## tail: Get last N bytes or lines of a file
+## params:
+##  - path: Filesystem path (Str) *required
+##  - bytes: optional
+##  - lines: optional, default is 10
+##  - machinename: str *required
+
+@app.route("/tail", methods=["GET"])
+@check_auth_header
+def tail():
+    return common_fs_operation(request, "tail")
 
 
 ## Returns the content (head) from the specified path on the {machine} filesystem
@@ -352,8 +378,26 @@ def common_fs_operation(request, command):
     elif command == "file":
         # -b: do not prepend filenames to output lines
         action = f"file -b -- '{targetPath}'"
-    elif command == "head":
-        action = f"head -c {MAX_FILE_SIZE_BYTES} -- '{targetPath}'"
+    elif command in ["head", "tail"]:
+        opt = ""
+        bytes = request.args.get("bytes", None)
+        lines = request.args.get("lines", None)
+        if bytes and lines:
+            return jsonify(description=f"Error on {command} operation", error=f"Can not specify both 'bytes' and 'lines'"), 400
+
+        if bytes:
+            v = validate_input(bytes)
+            if v != "":
+                return jsonify(description=f"Error on {command} operation", error=f"'bytes' {v}"), 400
+            opt = f" --bytes='{bytes}' "
+
+        if lines:
+            v = validate_input(lines)
+            if v != "":
+                return jsonify(description=f"Error on {command} operation", error=f"'lines' {v}"), 400
+            opt = f" --lines='{lines}' "
+
+        action = f"{command} {opt} -- '{targetPath}'"
         file_transfer = 'download'
     elif command == "ls":
         # if set shows entrys starting with . (not including . and/or .. dirs)
@@ -427,22 +471,30 @@ def common_fs_operation(request, command):
             return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
 
 
-    description = f"Success to {command} file or directory."
+    description = f"Success to {command} file."
     output = ''
     if command == 'checksum':
         # return only hash, msg sintax:  hash filename
         output = retval["msg"].split()[0]
-    elif command in ['base64', 'chmod', 'chown', 'file', 'head', 'fsize']:
+    elif command in ['base64', 'chmod', 'chown', 'file', 'fsize']:
+        if command in ['chmod', 'chown']:
+            description = f"Success to {command} file or directory."
         output = retval["msg"]
+    elif command == "head":
+        # output first bytes (at most max value)
+        output = retval["msg"][:MAX_FILE_SIZE_BYTES]
+    elif command == 'ls':
+        description = "List of contents"
+        output = ls_parse(request, retval)
     elif command == 'stat':
         # follows: https://docs.python.org/3/library/os.html#os.stat_result
         output = dict(zip(['mode', 'ino', 'dev', 'nlink', 'uid', 'gid', 'size', 'atime', 'mtime', 'ctime'], retval["msg"].split()))
         # convert to integers
         output["mode"] = int(output["mode"], base=16)
         output = {key: int(value) for key, value in output.items()}
-    elif command == 'ls':
-        description = "List of contents"
-        output = ls_parse(request, retval)
+    elif command == "tail":
+        # output last bytes (at most max value)
+        output = retval["msg"][-MAX_FILE_SIZE_BYTES:]
     elif command == "upload":
         description="File upload successful"
 
