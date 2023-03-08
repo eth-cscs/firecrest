@@ -879,6 +879,10 @@ def check_command_error(error_str, error_code, service_msg):
     if in_str(error_str,"Permission denied"):
         header = {"X-Permission-Denied": "User does not have permissions to access path"}
         return {"description": service_msg, "status_code": 400, "header": header}
+    
+    if in_str(error_str,"exists") and in_str(error_str,"mkdir"):
+        header = {"X-Exists": "targetPath directory already exists"}
+        return {"description": service_msg, "status_code": 400, "header": header}
 
     if in_str(error_str,"directory"):
         header = {"X-A-Directory": "path is a directory, can't checksum directories"}
