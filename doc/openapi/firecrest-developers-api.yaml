@@ -8,7 +8,7 @@ openapi: 3.0.0
 servers:
   - url: "http://localhost:8000"
 info:
-  version: 1.9.2
+  version: 1.11.1
   title: FirecREST API
   description: >
     FirecREST platform, a RESTful Services Gateway to HPC resources, is a
