@@ -1120,7 +1120,39 @@ After it finishes you should get a response like this:
 
 And you can download the file from the link in the "data" field and compare to the result you get locally.
 
-How to handle errors
-====================
+Transfer data between filesystems
+=================================
 
+Sometimes we simply need to transfer files between two filesystems of the system.
+FirecREST supports this workflow by creating the job scripts and submitting the job to the workload manager.
 
+Here is an example for this:
+
+.. tabs::
+
+    .. code-tab:: bash
+
+        $ curl -X POST "${FIRECREST_IP}/storage/xfer-internal/cp" \
+               -H "Authorization: Bearer ${TOKEN}" \
+               -F "sourcePath=/home/test4/firecrest/af516f55496faf473d3bcaa042c52431/res.txt" \
+               -F "targetPath=/home/test4/my_results.txt"
+
+    .. code-tab:: python
+
+        sourcePath = '/home/test4/firecrest/af516f55496faf473d3bcaa042c52431/res.txt'
+        targetPath = '/home/test4/my_results.txt'
+
+        response = requests.post(
+            url=f'{FIRECREST_IP}/storage/xfer-internal/cp',
+            headers={'Authorization': f'Bearer {TOKEN}'},
+            data={'targetPath': targetPath,
+                  'sourcePath': sourcePath}
+        )
+
+        print(json.dumps(response.json(), indent=4))
+
+The response is going to be similar to the one when we submit a job with FirecREST.
+We are going to get back a task ID and though this we can follow the status of the task.
+In order to track the result of the transfer we would need to poll and check the output of the submitted job.
+
+Besides `cp`, FirecREST also supports templates for `rsync`, `mv` and `rm` jobs.
