@@ -1869,13 +1869,18 @@ paths:
                   description: source path to the file in local machine
                 targetPath:
                   type: string
-                  description: Absolute path to destination
+                  description: Absolute path to 
+                update: 
+                  type: boolean
+                  description: upload only when the sourcePath file is newer than the targetPath file or when is misssing
+                  default: true
               required:
                 - sourcePath
                 - targetPath
               example:
                 sourcePath: /home/local_user/origin
                 targetPath: /home/user/destination
+                update: false
       responses:
         '201':
           description: Task created
