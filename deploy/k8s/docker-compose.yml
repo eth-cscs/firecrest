@@ -288,17 +288,6 @@ services:
     volumes:
       - ../../doc/openapi/:/tmp/
 
-  # openapi:
-  #   # image: swaggerapi/swagger-ui:v3.22.0
-  #   build:
-  #     context: ../../
-  #     dockerfile: ./deploy/docker/openapi/Dockerfile
-  #   container_name: openapi
-  #   ports:
-  #     - "9090:8080"
-  #   environment:
-  #     SWAGGER_JSON: /tmp/openapi.yaml
-
   jaeger:
     image: jaegertracing/all-in-one:1.24
     container_name: jaeger
