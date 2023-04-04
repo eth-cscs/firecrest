@@ -1,2 +1,2 @@
 -r ../base/requirements.txt
-redis==3.5.3
+redis==4.5.4
