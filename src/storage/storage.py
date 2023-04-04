@@ -724,7 +724,7 @@ def upload_task(headers, system_name, system_addr, targetPath, sourcePath, task_
 
     # create certificate for later download from OS to filesystem
     app.logger.info(f"Creating certificate for later download")
-    options = f"-s -G -o '{targetPath}/{fileName}' -- '{download_url}'"
+    options = f"-s -G -o '{targetPath}' -- '{download_url}'"
     exp_time = STORAGE_TEMPURL_EXP_TIME
     certs = create_certificate(headers, system_name, system_addr, f"ID={ID} curl", options, exp_time)
 
@@ -771,7 +771,7 @@ def upload_request():
         system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         return jsonify(description="No machine name given"), 400
-
+    
     # public endpoints from Kong to users
     if system_name not in SYSTEMS_PUBLIC:
         header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
@@ -790,13 +790,38 @@ def upload_request():
     v = validate_input(sourcePath)
     if v != "":
         return jsonify(description="Failed to upload file", error=f"'sourcePath' {v}"), 400
+    
+    # - update: (default) True
+    #     copy only when the SOURCE file is newer than the destination file or when the destination file is misssing
+
+    update = get_boolean_var(request.form.get("update", True))
+
 
     [headers, ID] = get_tracing_headers(request)
-    # checks if targetPath is a valid path
-    check = is_valid_dir(targetPath, headers, system_name, system_addr)
+    # checks if the targetPath is a directory (targetPath = "/path/to/dir") that can be accessed by the user
+    check_is_dir = is_valid_dir(targetPath, headers, system_name, system_addr)
+    
+    # if so, then the actual targetPath has to include the name extracted from sourcePath
+    _targetPath = f"{targetPath}/{sourcePath.split('/')[-1]}"
+    
+    if not check_is_dir["result"]:
+        # if targetPath is not a valid directiry, then it could be an existing file, if so, check if it doesn't have to be updated or not
 
-    if not check["result"]:
-        return jsonify(description="sourcePath error"), 400, check["headers"]
+        if not update and is_valid_file(targetPath,headers,system_name,system_addr):
+            # if it exists and it can't be updated, then return error
+            return jsonify(description="targetPath exists"), 400, check_is_dir["headers"]
+
+
+        # if targetPath is not a valid directory, then check if removing the fileName it is:
+        _targetDir = "/".join(targetPath.split("/")[:-1])
+
+        check_is_dir = is_valid_dir(_targetDir, headers, system_name, system_addr)
+
+        if not check_is_dir["result"]:
+        
+            return jsonify(description="targetPath error"), 400, check_is_dir["headers"]
+        # if targetPath is a file, then no changes need to be done
+        _targetPath = targetPath
 
     # obtain new task from Tasks microservice
     task_id = create_task(headers, service="storage")
@@ -809,7 +834,7 @@ def upload_request():
         update_task(task_id, headers, async_task.QUEUED)
 
         aTask = threading.Thread(target=upload_task, name=ID,
-                             args=(headers, system_name, system_addr, targetPath, sourcePath, task_id))
+                             args=(headers, system_name, system_addr, _targetPath, sourcePath, task_id))
 
         storage_tasks[task_id] = aTask
 
