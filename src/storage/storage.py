@@ -790,13 +790,7 @@ def upload_request():
     v = validate_input(sourcePath)
     if v != "":
         return jsonify(description="Failed to upload file", error=f"'sourcePath' {v}"), 400
-    
-    # - update: (default) True
-    #     copy only when the SOURCE file is newer than the destination file or when the destination file is misssing
-
-    update = get_boolean_var(request.form.get("update", True))
-
-
+        
     [headers, ID] = get_tracing_headers(request)
     # checks if the targetPath is a directory (targetPath = "/path/to/dir") that can be accessed by the user
     check_is_dir = is_valid_dir(targetPath, headers, system_name, system_addr)
@@ -805,24 +799,16 @@ def upload_request():
     _targetPath = f"{targetPath}/{sourcePath.split('/')[-1]}"
     
     if not check_is_dir["result"]:
-        # if targetPath is not a valid directiry, then it could be an existing file, if so, check if it doesn't have to be updated or not
 
-        if not update and is_valid_file(targetPath,headers,system_name,system_addr):
-            # if it exists and it can't be updated, then return error
-            return jsonify(description="targetPath exists"), 400, check_is_dir["headers"]
-
-
-        # if targetPath is not a valid directory, then check if removing the fileName it is:
-        _targetDir = "/".join(targetPath.split("/")[:-1])
-
-        check_is_dir = is_valid_dir(_targetDir, headers, system_name, system_addr)
+        # check if targetPath is a file path by extracting last part of the path
+        check_is_dir = is_valid_dir("/".join(targetPath.split("/")[:-1]), headers, system_name, system_addr)
 
         if not check_is_dir["result"]:
-        
-            return jsonify(description="targetPath error"), 400, check_is_dir["headers"]
+
+            return jsonify(description="Failed to upload file", error="'targetPath' directory not allowed"), 400, check_is_dir["headers"]
         # if targetPath is a file, then no changes need to be done
         _targetPath = targetPath
-
+    
     # obtain new task from Tasks microservice
     task_id = create_task(headers, service="storage")
 

@@ -1869,11 +1869,7 @@ paths:
                   description: source path to the file in local machine
                 targetPath:
                   type: string
-                  description: Absolute path to 
-                update: 
-                  type: boolean
-                  description: upload only when the sourcePath file is newer than the targetPath file or when is misssing
-                  default: true
+                  description: absolute path to destination (directory or file)                
               required:
                 - sourcePath
                 - targetPath
