@@ -9,7 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added `update` parameter to `/storage/xfer-external/upload` in order to replace (`update=true`) or not the file if present in `targetPath`
 - More tests for `/storage/xfer-external/upload` endpoint
 ### Changed
 
