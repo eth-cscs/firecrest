@@ -17,14 +17,15 @@ networks:
 
 services:
   f7t-base:
-    container_name: f7t-base
     image: "f7t-base"
+    container_name: f7t-base
     build:
       context: ../../
       dockerfile: deploy/docker/base/Dockerfile
       network: host
   # FirecREST microservices
   certificator:
+    image: f7t-certificator
     container_name: certificator
     build:
       context: ../../
@@ -44,6 +45,7 @@ services:
       - ./ssl:/ssl
 
   compute:
+    image: f7t-compute
     container_name: compute
     build:
       context: ../../
@@ -62,6 +64,7 @@ services:
       - ./ssl:/ssl
 
   status:
+    image: f7t-status
     container_name: status
     build:
       context: ../../
@@ -79,6 +82,7 @@ services:
       - ./ssl:/ssl
 
   storage:
+    image: f7t-storage
     container_name: storage
     build:
       context: ../../
@@ -104,6 +108,7 @@ services:
       - ./ssl:/ssl
 
   tasks:
+    image: f7t-tasks
     container_name: tasks
     build:
       context: ../../
@@ -129,6 +134,7 @@ services:
       - ./ssl:/ssl
 
   utilities:
+    image: f7t-utilities
     container_name: utilities
     build:
       context: ../../
@@ -147,6 +153,7 @@ services:
       - ./ssl:/ssl
 
   reservations:
+    image: f7t-reservations
     container_name: reservations
     build:
       context: ../../
@@ -166,6 +173,7 @@ services:
 
   # web client
   client:
+    image: f7t-client
     container_name: client
     build:
       context: ../../src/tests/template_client
@@ -183,6 +191,7 @@ services:
 
   # dummy cluster
   cluster:
+    image: f7t-cluster
     container_name: cluster
     build:
       context: ../test-build
