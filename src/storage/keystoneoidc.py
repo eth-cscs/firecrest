@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
+#  Copyright (c) 2019-2023, ETH Zurich. All rights reserved.
 #
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
@@ -33,7 +33,7 @@ class KeystoneOIDC(Keystone):
         try:
 
             auth = V3OidcPassword(auth_url=self.OS_AUTH_URL, identity_provider=self.OS_IDENTITY_PROVIDER, protocol=self.OS_PROTOCOL,
-                                client_id=self.OS_CLIENT_ID, client_secret=self.OS_CLIENT_SECRET, discovery_endpoint=self.OS_DISCOVERY_ENDPOINT, 
+                                client_id=self.OS_CLIENT_ID, client_secret=self.OS_CLIENT_SECRET, discovery_endpoint=self.OS_DISCOVERY_ENDPOINT,
                                 username=username, password=password)
 
 

@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
+#  Copyright (c) 2019-2023, ETH Zurich. All rights reserved.
 #
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
@@ -344,7 +344,7 @@ def delete_task(id):
         app.logger.error(f"Failed to delete task {hash_id} on persistence server")
         app.logger.error(f"Error: {type(e)}")
         app.logger.error(f"Error: {e}")
-        
+
         data = jsonify(error=f"Failed to delete task {hash_id} on persistence server")
         return data, 400
 
@@ -400,7 +400,7 @@ def expire_task(id):
             return jsonify(error="Failed to set expiration time on task in persistence server"), 400
 
         data = jsonify(success=f"Task expiration time set to {exp_time} secs.")
-        
+
         return data, 200
 
     except Exception:

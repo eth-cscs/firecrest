@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
+#  Copyright (c) 2019-2023, ETH Zurich. All rights reserved.
 #
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
@@ -86,7 +86,7 @@ class S3v2(ObjectStorage):
         sig = sig.decode('latin-1')
 
         url = f"{self.priv_url}/{containername}?AWSAccessKeyId={self.user}&Signature={urllib.parse.quote(sig)}&Expires={expires}"
-        
+
         logging.info(f"Checking for container {containername}")
         logging.info(f"URL: {url}")
         try:
@@ -118,7 +118,7 @@ class S3v2(ObjectStorage):
         sig = sig.decode('latin-1')
 
         url = f"{self.priv_url}?AWSAccessKeyId={self.user}&Signature={urllib.parse.quote(sig)}&Expires={expires}"
-        
+
         logging.info(f"Get Users URL: {url}")
         try:
             resp = requests.get(url)
@@ -165,7 +165,7 @@ class S3v2(ObjectStorage):
 
     def list_objects(self,containername,prefix=None):
             # by default just 120 secs, since is done instantly
-        
+
         expires = 120 + int(time.time())
         httpVerb = "GET"
         contentMD5 = ""
@@ -201,23 +201,23 @@ class S3v2(ObjectStorage):
 
                 object_list = []
 
-                
+
 
                 for contents in root.findall("{{{}}}Contents".format(namespace)):
                     key = contents.find("{{{}}}Key".format(namespace)).text
 
-                    
+
                     if prefix != None:
                         sep = key.split("/")
                         if prefix == sep[0]:
                             name = key.split("/")[-1]
                             object_list.append(name)
                             continue
-                    
+
                     object_list.append(key)
 
 
-                    
+
 
                 return object_list
 
@@ -239,7 +239,7 @@ class S3v2(ObjectStorage):
         canonicalizedResource = f"/{containername}/{prefix}/{objectname}"
 
         string_to_sign = f"{httpVerb}\n{contentMD5}\n{contentType}\n{str(expires)}\n{canonicalizedAmzHeaders}{canonicalizedResource}"
-        
+
         # sig = base64.b64encode(hmac.new(self.passwd, string_to_sign, hashlib.sha1).digest())
         # to be used in hmac.new(key,msg,digestmode), the strings key (passwd) and msg (strin_to_sign) need to be byte type
         string_to_sign = string_to_sign.encode('latin-1')
@@ -262,7 +262,7 @@ class S3v2(ObjectStorage):
             logging.error(f"Error checking object: {e}")
             return False
 
-    # Since S3 is used with signature, no token is needed, 
+    # Since S3 is used with signature, no token is needed,
     # but this is kept only for consistency with objectstorage class
     def authenticate(self, user, passwd):
         return True
@@ -296,7 +296,7 @@ class S3v2(ObjectStorage):
 
         # signature will be Bytes type in Pytho3, so it needs to be decoded to str again
         sig = sig.decode('latin-1')
-        
+
         if internal:
             url = f"{self.priv_url}/{containername}/{prefix}/{objectname}"
         else:
@@ -305,7 +305,7 @@ class S3v2(ObjectStorage):
         retval = {}
 
         retval["parameters"] = {
-            
+
             "url": url,
             "method": httpVerb,
             "params": {
@@ -320,7 +320,7 @@ class S3v2(ObjectStorage):
         }
 
         command = f"curl --show-error -s -i -X {httpVerb} '{url}?AWSAccessKeyId={self.user}&Signature={sig}&Expires={expires}' -T {sourcepath}"
-        
+
         retval["command"] = command
 
         return retval

@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
+#  Copyright (c) 2019-2023, ETH Zurich. All rights reserved.
 #
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
@@ -17,7 +17,7 @@ class ObjectStorage:
     @abstractmethod
     def authenticate(self,user,passwd):
         pass
-    
+
     @abstractmethod
     def is_token_valid(self):
         pass
@@ -29,11 +29,11 @@ class ObjectStorage:
     @abstractmethod
     def create_container(self,containername):
          pass
-   
+
     @abstractmethod
     def get_users(self):
          pass
-    
+
     @abstractmethod
     def delete_object_after(self,containername,prefix,objectname,ttl):
          pass
@@ -67,5 +67,5 @@ class ObjectStorage:
         pass
 
 
-    
+
 

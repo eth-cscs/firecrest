@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
+#  Copyright (c) 2019-2023, ETH Zurich. All rights reserved.
 #
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
@@ -51,7 +51,7 @@ def check_task_status(task_id, headers, final_expected_status = 200): # may be 2
 	assert status == 100 or status == 101 or status == final_expected_status
 
 def get_job_id(task_id, headers):
-	
+
 	job_id = None
 	for i in range(10):
 		resp = get_task(task_id, headers)
@@ -83,7 +83,7 @@ def test_list_jobs(machine, headers):
 	resp = requests.get(JOBS_URL, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
 	assert resp.status_code == 200
-	
+
 	task_id = resp.json()["task_id"]
 	check_task_status(task_id, headers)
 
@@ -108,7 +108,7 @@ def test_cancel_job(machine, headers):
 	resp = submit_job(machine, headers)
 	task_id = resp.json()["task_id"]
 	job_id = get_job_id(task_id, headers)
-		
+
 	# cancel job
 	url = "{}/{}".format(JOBS_URL, job_id)
 	headers.update({"X-Machine-Name": machine})
@@ -142,6 +142,6 @@ def test_acct_job(machine, headers):
 	check_task_status(resp.json()["task_id"],headers)
 
 if __name__ == '__main__':
-	pytest.main()	
+	pytest.main()
 
 
