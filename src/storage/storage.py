@@ -724,7 +724,7 @@ def upload_task(headers, system_name, system_addr, targetPath, sourcePath, task_
 
     # create certificate for later download from OS to filesystem
     app.logger.info(f"Creating certificate for later download")
-    options = f"-s -G -o '{targetPath}/{fileName}' -- '{download_url}'"
+    options = f"-s -G -o '{targetPath}' -- '{download_url}'"
     exp_time = STORAGE_TEMPURL_EXP_TIME
     certs = create_certificate(headers, system_name, system_addr, f"ID={ID} curl", options, exp_time)
 
@@ -771,7 +771,7 @@ def upload_request():
         system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         return jsonify(description="No machine name given"), 400
-
+    
     # public endpoints from Kong to users
     if system_name not in SYSTEMS_PUBLIC:
         header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
@@ -790,14 +790,25 @@ def upload_request():
     v = validate_input(sourcePath)
     if v != "":
         return jsonify(description="Failed to upload file", error=f"'sourcePath' {v}"), 400
-
+        
     [headers, ID] = get_tracing_headers(request)
-    # checks if targetPath is a valid path
-    check = is_valid_dir(targetPath, headers, system_name, system_addr)
+    # checks if the targetPath is a directory (targetPath = "/path/to/dir") that can be accessed by the user
+    check_is_dir = is_valid_dir(targetPath, headers, system_name, system_addr)
+    
+    # if so, then the actual targetPath has to include the name extracted from sourcePath
+    _targetPath = f"{targetPath}/{sourcePath.split('/')[-1]}"
+    
+    if not check_is_dir["result"]:
 
-    if not check["result"]:
-        return jsonify(description="sourcePath error"), 400, check["headers"]
+        # check if targetPath is a file path by extracting last part of the path
+        check_is_dir = is_valid_dir("/".join(targetPath.split("/")[:-1]), headers, system_name, system_addr)
 
+        if not check_is_dir["result"]:
+
+            return jsonify(description="Failed to upload file", error="'targetPath' directory not allowed"), 400, check_is_dir["headers"]
+        # if targetPath is a file, then no changes need to be done
+        _targetPath = targetPath
+    
     # obtain new task from Tasks microservice
     task_id = create_task(headers, service="storage")
 
@@ -809,7 +820,7 @@ def upload_request():
         update_task(task_id, headers, async_task.QUEUED)
 
         aTask = threading.Thread(target=upload_task, name=ID,
-                             args=(headers, system_name, system_addr, targetPath, sourcePath, task_id))
+                             args=(headers, system_name, system_addr, _targetPath, sourcePath, task_id))
 
         storage_tasks[task_id] = aTask
 

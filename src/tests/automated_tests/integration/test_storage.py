@@ -50,13 +50,23 @@ def check_task_status(task_id, headers, final_expected_status = 200): # could be
 
 # test external file upload
 @skipif_not_uses_gateway
-def test_post_upload_request(headers):
+@pytest.mark.parametrize("targetPath,  expected_response_code", 
+                         [ (USER_HOME, 201) ,                            
+                           (f"{USER_HOME}/copied_file", 201), 
+                           (f"{USER_HOME}/fake_dir/copied_file", 400), 
+                           ("/copied_file", 400) ,         
+                           
+                        ])
+def test_post_upload_request(headers,targetPath, expected_response_code):
 
     headers["X-Machine-Name"] = SERVER_UTILITIES_STORAGE
     # request upload form
-    data = { "sourcePath": "testsbatch.sh", "targetPath": USER_HOME }
+    data = { "sourcePath": "testsbatch.sh", "targetPath": targetPath  }
     resp = requests.post(STORAGE_URL + "/xfer-external/upload", headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
-    assert resp.status_code == 201
+    assert resp.status_code == expected_response_code 
+
+    if expected_response_code != 201:
+        return True
 
     task_id = resp.json()["task_id"]
 

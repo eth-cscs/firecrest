@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.0]
+
+### Added
+
+- More tests for `/storage/xfer-external/upload` endpoint
+### Changed
+
+- For `/storage/xfer-external/upload` now is possible for the form parameter `targetPath` to be a file path or a directory path
+
+### Fixed
+
+- Upgrade to `redis == 4.5.4` in `tasks` API
+
 ## [1.11.1]
 
 ### Fixed
