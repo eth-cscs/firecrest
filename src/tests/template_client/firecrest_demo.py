@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
+#  Copyright (c) 2019-2023, ETH Zurich. All rights reserved.
 #
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
@@ -166,7 +166,7 @@ class ExternalUploadForm(FlaskForm):
 
 class StorageInternalForm(FlaskForm):
     '''A class to support raw api calls'''
-    
+
     action = SelectField("Action",choices=[("cp","Copy"),("mv","Move/Rename"),("rm","Delete"),("rsync","Sync files")])
 
     targetPath = StringField('Enter the target path (directory)',
@@ -214,7 +214,7 @@ def index():
 # @oidc.require_login
 def status():
     '''View function for the status of services and systems'''
-    
+
     actions = [("Query all services", "allservices"),
                ("Query all systems","allsystems"),
                ("View available parameters", "parameters")]
@@ -285,7 +285,7 @@ def task(taskid):
 @app.route('/storage')
 def storage():
     '''View function for listing the FirecREST tasks'''
-    
+
     actions = [("External upload","upload"),
                ("External download","download"),
                ("Internal Transfer", "internal"),
@@ -307,7 +307,7 @@ def storage_upload():
             url=f"{app.config['FIRECREST_IP']}/storage/xfer-external/upload",
             headers={'Authorization': f'Bearer {oidc.get_access_token()}'},
             data={'targetPath': target_path, 'sourcePath': source_path})
-        
+
         if response.ok:
             taskid = response.json()["task_id"]
 
@@ -340,7 +340,7 @@ def storage_download():
         if response.ok:
             taskid = response.json()["task_id"]
             # response = requests.get("{host}/tasks/{taskid}".format(taskid=taskid,host=request.url_root))
-            # return 
+            # return
             response = requests.get(
                 url="{firecrest_url}/tasks/{taskid}".format(firecrest_url=app.config['FIRECREST_IP'], taskid=taskid),
                 headers={'Authorization': f'Bearer {oidc.get_access_token()}'})
@@ -391,7 +391,7 @@ def internal_transfer():
 @app.route('/compute')
 def compute():
     '''View function for listing the FirecREST tasks'''
-    
+
     actions = [ ("Submit a job", "submit"),
                 ("Query all active jobs", "jobs"),
                 ("Account information", "acct")
@@ -406,13 +406,13 @@ def alljobs():
     form = ListJobsForm()
     response = None
     machine = None
-    
+
     if request.method == "POST":
         machine = request.args.get("machinename")
         if machine == None:
             #submit = True
             machine = form.machine.data
-    
+
         response = requests.get(
             url=f"{app.config['FIRECREST_IP']}/compute/jobs",
             headers={'Authorization': f'Bearer {oidc.get_access_token()}',
@@ -491,11 +491,11 @@ def submitjob():
                 app.logger.info("temp dir {}".format(td))
                 filename = td + "/sbatch-job.sh"
 
-                
+
                 sbatch_file = open(filename, "w")
 
                 sbatch_file.write("#! /bin/bash\n")
-                
+
                 if jobName != "":
                     sbatch_file.write("#SBATCH --job-name={}\n".format(jobName))
                 # sbatch_file.write("#SBATCH --time={jobTime}\n".format(jobTime=jobTime))
@@ -530,12 +530,12 @@ def submitjob():
                 headers={'Authorization': f'Bearer {oidc.get_access_token()}',
                      'X-Machine-Name': machine},
                 files=files)
-           
-                           
-            
+
+
+
         else:
             filename = secure_filename(form.upload.data.filename)
-            data = form.upload.data            
+            data = form.upload.data
 
             machine = form.machine.data
             response = requests.post(
@@ -639,8 +639,8 @@ def copy():
                     if header in error_headers:
                         description = value
                         break
-                        
-                        
+
+
             else:
                 result = "success"
                 description = response.json()["description"]
@@ -651,7 +651,7 @@ def copy():
                 headers={'Authorization': f'Bearer {oidc.get_access_token()}',
                          'X-Machine-Name': machine},
                 params={'targetPath': path})
-           
+
 
             return render_template('utilities.html', machine=machine, path=path, response=response, form=form,result=result,description=description, microservices=demo_microservices)
         except Exception as e:
@@ -671,7 +671,7 @@ def rename():
             sourcePath = request.form["sourcePath"]
             targetPath = request.form["targetPath"]
             path = request.form["path"]
-            
+
 
             response = requests.put(
                 url=f"{app.config['FIRECREST_IP']}/utilities/rename",
@@ -689,8 +689,8 @@ def rename():
                     if header in error_headers:
                         description = value
                         break
-                        
-                        
+
+
             else:
                 result = "success"
                 description = response.json()["description"]
@@ -701,7 +701,7 @@ def rename():
                 headers={'Authorization': f'Bearer {oidc.get_access_token()}',
                          'X-Machine-Name': machine},
                 params={'targetPath': path})
-           
+
 
             return render_template('utilities.html', machine=machine, path=path, response=response, form=form,result=result,description=description, microservices=demo_microservices)
         except Exception as e:
@@ -737,8 +737,8 @@ def rm():
                     if header in error_headers:
                         description = value
                         break
-                        
-                        
+
+
             else:
                 result = "success"
                 description = "Succesfully deleted file {}".format(targetPath)
@@ -749,7 +749,7 @@ def rm():
                 headers={'Authorization': f'Bearer {oidc.get_access_token()}',
                          'X-Machine-Name': machine},
                 params={'targetPath': path})
-           
+
 
             return render_template('utilities.html', machine=machine, path=path, response=response, form=form,result=result,description=description, microservices=demo_microservices)
         except Exception as e:
@@ -786,8 +786,8 @@ def chmod():
                     if header in error_headers:
                         description = value
                         break
-                        
-                        
+
+
             else:
                 result = "success"
                 description = response.json()["description"]
@@ -798,7 +798,7 @@ def chmod():
                 headers={'Authorization': f'Bearer {oidc.get_access_token()}',
                          'X-Machine-Name': machine},
                 params={'targetPath': path})
-           
+
 
             return render_template('utilities.html', machine=machine, path=path, response=response, form=form,result=result,description=description, microservices=demo_microservices)
         except Exception as e:
@@ -817,7 +817,7 @@ def download():
             machine = request.form["machine"]
             sourcePath = request.form["sourcePath"]
             path = request.form["path"]
-            
+
             response = requests.get(
                 url=f"{app.config['FIRECREST_IP']}/utilities/download",
                 headers={'Authorization': f'Bearer {oidc.get_access_token()}',
@@ -973,7 +973,7 @@ def mkdir():
             machine = request.form["machine"]
             targetPath = request.form["targetPath"]
             path = request.form["path"]
-            
+
 
             response = requests.post(
                 url=f"{app.config['FIRECREST_IP']}/utilities/mkdir",
@@ -990,8 +990,8 @@ def mkdir():
                     if header in error_headers:
                         description = value
                         break
-                        
-                        
+
+
             else:
                 result = "success"
                 description = response.json()["description"]
@@ -1002,7 +1002,7 @@ def mkdir():
                 headers={'Authorization': f'Bearer {oidc.get_access_token()}',
                          'X-Machine-Name': machine},
                 params={'targetPath': path})
-           
+
 
             return render_template('utilities.html', machine=machine, path=path, response=response, form=form,result=result,description=description, microservices=demo_microservices)
         except Exception as e:
@@ -1021,7 +1021,7 @@ def checksum():
             machine = request.form["machine"]
             targetPath = request.form["targetPath"]
             path = request.form["path"]
-            
+
 
             response = requests.get(
                 url=f"{app.config['FIRECREST_IP']}/utilities/checksum",
@@ -1038,8 +1038,8 @@ def checksum():
                     if header in error_headers:
                         description = value
                         break
-                        
-                        
+
+
             else:
                 result = "success"
                 description = f"{response.json()['description']}: {response.json()['output']}"
@@ -1050,7 +1050,7 @@ def checksum():
                 headers={'Authorization': f'Bearer {oidc.get_access_token()}',
                          'X-Machine-Name': machine},
                 params={'targetPath': path})
-           
+
 
             return render_template('utilities.html', machine=machine, path=path, response=response, form=form,result=result,description=description, microservices=demo_microservices)
         except Exception as e:
@@ -1070,14 +1070,14 @@ def api():
         param_names = request.form.getlist("parameter")
         param_values= request.form.getlist("value")
 
-        
+
 
         url = f"{app.config['FIRECREST_IP']}/{service}/{query}"
         headers = {"X-Machine-Name": machine, "Authorization": f"Bearer {oidc.get_access_token()}"}
 
 
         if method == "DELETE":
-            
+
             data = {}
 
             for i in range(len(param_names)):
@@ -1106,7 +1106,7 @@ def api():
                 params[param_names[i]] = param_values[i]
 
             response=requests.get(url=url, headers=headers,params=params)
-            
+
         # form.resp_json.data = response.text
         form.resp_headers.data = response.headers
 

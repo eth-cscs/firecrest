@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
+#  Copyright (c) 2019-2023, ETH Zurich. All rights reserved.
 #
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
@@ -15,5 +15,5 @@ if os.environ.get("F7T_SA_LOGIN", "").lower() != 'true':
 else:
     CURRENT_USER = 'service-account-' + os.environ.get("F7T_SA_CLIENT_ID")
 
-USER_HOME = "/home/" + CURRENT_USER 
+USER_HOME = "/home/" + CURRENT_USER
 

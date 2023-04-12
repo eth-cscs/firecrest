@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
+#  Copyright (c) 2019-2023, ETH Zurich. All rights reserved.
 #
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
@@ -34,13 +34,13 @@ class Swift(ObjectStorage):
             self.keystone = KeystoneAuth()
         else:
             self.keystone = None
-        
+
 
     def get_object_storage(self):
         return "OpenStack Swift"
 
     def renew_token(self):
-        
+
         if self.is_token_valid():
             logging.info("Token is still valid: Not renewal needed")
             return True
@@ -59,7 +59,7 @@ class Swift(ObjectStorage):
 
         if not self.keystone:
             return False
-        
+
         logging.info("GET TOKEN: {user} ".format(user=self.user))
 
         retVal = self.keystone.authenticate(self.user, self.passwd)
@@ -119,7 +119,7 @@ class Swift(ObjectStorage):
     # Checks if container is already created (in order to not override it)
     # if exists returns True, otherwise False
     def is_container_created(self,containername):
-        
+
         # check token validation
         if not self.renew_token():
             logging.error("Keystone token couldn't be renewed")
@@ -209,7 +209,7 @@ class Swift(ObjectStorage):
     def create_temp_url(self,containername,prefix,objectname,ttl,internal=True):
 
         # separating the whole url into: API version, SWIFT Account and the prefix (ie: https://object.cscs.ch)
-        # 
+        #
         if internal:
             separated_url = self.priv_url.split("/")
         else:
@@ -293,7 +293,7 @@ class Swift(ObjectStorage):
             "method": "POST",
             "url": f"{swift_url}/{swift_version}/{swift_account}/{containername}/{prefix}/",
             "data": {
-                "max_file_size": max_file_size, 
+                "max_file_size": max_file_size,
                 "max_file_count": max_file_count,
                 "expires": expires,
                 "signature": signature,
@@ -307,7 +307,7 @@ class Swift(ObjectStorage):
         }
 
         retval["command"] = command
-        
+
 
         return retval
 
@@ -315,7 +315,7 @@ class Swift(ObjectStorage):
         # object_prefix = "{prefix}/{objectname}".format(prefix=prefix, objectname=objectname)
 
         url = f"{self.priv_url}/{containername}"
-        
+
         try:
             # check token validation
             if not self.renew_token():
@@ -324,18 +324,18 @@ class Swift(ObjectStorage):
 
             req = requests.get(url, headers={"X-Auth-Token": self.auth})
             if req.ok:
-                
+
                 values = req.content.decode("utf-8")
                 object_list = values.split("\n")[0:-1] # last element on the list is a ''
 
                 if prefix:
                     new_object_list = []
                     for obj in object_list:
-                        
+
                         key = obj.split("/")
                         val = key[1]
                         key = key[0]
-                        
+
                         if key == prefix:
                             new_object_list.append(val)
 

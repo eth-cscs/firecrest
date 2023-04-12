@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
+#  Copyright (c) 2019-2023, ETH Zurich. All rights reserved.
 #
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
@@ -13,10 +13,10 @@ import base64
 FIRECREST_URL = os.environ.get("FIRECREST_URL","")
 USE_GATEWAY  = (os.environ.get("USE_GATEWAY","false").lower() == "true")
 
-if FIRECREST_URL and USE_GATEWAY: 
+if FIRECREST_URL and USE_GATEWAY:
 	CERTIFICATOR_URL = os.environ.get("FIRECREST_URL") + "/certificator"
 else:
-    CERTIFICATOR_URL = os.environ.get("F7T_CERTIFICATOR_URL")	
+    CERTIFICATOR_URL = os.environ.get("F7T_CERTIFICATOR_URL")
 
 SYSTEM_NAME = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")[0]
 SYSTEM_ADDR = os.environ.get("F7T_SYSTEMS_INTERNAL_UTILITIES").strip('\'"').split(";")[0]

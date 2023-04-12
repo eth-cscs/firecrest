@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
+#  Copyright (c) 2019-2023, ETH Zurich. All rights reserved.
 #
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
@@ -29,5 +29,5 @@ class DevConfig(Config):
     CLIENT_PORT = 7000
     # SSL configuration
     USE_SSL = False
-    SSL_PEM = '' 
+    SSL_PEM = ''
     SSL_KEY = ''

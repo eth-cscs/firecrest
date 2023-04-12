@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
+#  Copyright (c) 2019-2023, ETH Zurich. All rights reserved.
 #
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
@@ -153,7 +153,7 @@ def test_post_download_request(headers):
             upload_ok = True
             break
         time.sleep(10)
-    
+
     assert upload_ok
     # invalidate:
 

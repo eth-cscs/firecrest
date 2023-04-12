@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2019-2021, ETH Zurich. All rights reserved.
+#  Copyright (c) 2019-2023, ETH Zurich. All rights reserved.
 #
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
@@ -879,7 +879,7 @@ def check_command_error(error_str, error_code, service_msg):
     if in_str(error_str,"Permission denied"):
         header = {"X-Permission-Denied": "User does not have permissions to access path"}
         return {"description": service_msg, "status_code": 400, "header": header}
-    
+
     if in_str(error_str,"exists") and in_str(error_str,"mkdir"):
         header = {"X-Exists": "targetPath directory already exists"}
         return {"description": service_msg, "status_code": 400, "header": header}
