@@ -31,7 +31,7 @@ SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
 # internal machines for file operations
 SYS_INTERNALS   = os.environ.get("F7T_SYSTEMS_INTERNAL_UTILITIES").strip('\'"').split(";")
 
-debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
+DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 #max file size for upload/download in MB, internally used in bytes
 MAX_FILE_SIZE_BYTES = int(os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE", "5")) * 1024 * 1024
@@ -169,8 +169,8 @@ def ls_parse(request, retval):
     pageSize = request.args.get("pageSize", None)
     pageNumber = request.args.get("pageNumber", None)
 
-    if debug:
-        app.logger.info(f"PageSize: {pageSize}. PageNumber: {pageNumber}")
+    if DEBUG_MODE:
+        logging.debug(f"PageSize: {pageSize}. PageNumber: {pageNumber}")
 
     # calculate the list to retrieve
     if pageSize and pageNumber:
@@ -655,6 +655,6 @@ def after_request(response):
 
 if __name__ == "__main__":
     if USE_SSL:
-        app.run(debug=debug, host='0.0.0.0', port=UTILITIES_PORT, ssl_context=(SSL_CRT, SSL_KEY))
+        app.run(debug=DEBUG_MODE, host='0.0.0.0', port=UTILITIES_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:
-        app.run(debug=debug, host='0.0.0.0', port=UTILITIES_PORT)
+        app.run(debug=DEBUG_MODE, host='0.0.0.0', port=UTILITIES_PORT)

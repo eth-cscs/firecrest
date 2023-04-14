@@ -86,7 +86,7 @@ app = Flask(__name__)
 # max content length for upload in bytes
 app.config['MAX_CONTENT_LENGTH'] = int(MAX_FILE_SIZE) * 1024 * 1024
 
-debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
+DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 logger = setup_logging(logging, 'compute')
 
@@ -206,8 +206,8 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
 # - output: True if StdErr and StdOut of the job need to be added to the jobinfo (default False)
 def get_job_files(headers, system_name, system_addr, job_info, output=False, use_plugin=False):
 
-    if debug:
-        app.logger.info("Recovering data from job")
+    if DEBUG_MODE:
+        app.logger.debug("Recovering data from job")
 
     # save msg, so we can add it later:
     control_info = job_info
@@ -638,8 +638,8 @@ def list_job_task(headers,system_name, system_addr,action,task_id,pageSize,pageN
 
     totalPages = int(ceil(float(totalSize) / float(pageSize)))
 
-    if debug:
-        app.logger.info(f"Total Size: {totalSize} - Total Pages: {totalPages}")
+    if DEBUG_MODE:
+        app.logger.debug(f"Total Size: {totalSize} - Total Pages: {totalPages}")
 
     if pageNumber < 0 or pageNumber > totalPages-1:
         app.logger.warning(f"pageNumber ({pageNumber}) greater than total pages ({totalPages}), set to default = 0")
@@ -966,6 +966,6 @@ def after_request(response):
 
 if __name__ == "__main__":
     if USE_SSL:
-        app.run(debug=debug, host='0.0.0.0', port=COMPUTE_PORT, ssl_context=(SSL_CRT, SSL_KEY))
+        app.run(debug=DEBUG_MODE, host='0.0.0.0', port=COMPUTE_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:
-        app.run(debug=debug, host='0.0.0.0', port=COMPUTE_PORT)
+        app.run(debug=DEBUG_MODE, host='0.0.0.0', port=COMPUTE_PORT)

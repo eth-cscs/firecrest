@@ -105,8 +105,8 @@ storage_tasks = {}
 # {hash_id : {'user':user,'system':system,'target':path,'source':fileName,'status':status_code, 'hash_id':task_id, 'trace_id':trace_id}}
 uploaded_files = {}
 
-# debug on console
-debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
+# DEBUG_MODE on console
+DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 app = Flask(__name__)
 
@@ -405,8 +405,8 @@ def os_to_fs(task_id):
     headers[TRACER_HEADER] = upl_file['trace_id']
 
     try:
-        if debug:
-            app.logger.info(upl_file["msg"])
+        if DEBUG_MODE:
+            app.logger.debug(upl_file["msg"])
 
         # certificate is encrypted with CERT_CIPHER_KEY key
         # here is decrypted
@@ -1096,6 +1096,6 @@ def after_request(response):
 
 if __name__ == "__main__":
     if USE_SSL:
-        app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=STORAGE_PORT, ssl_context=(SSL_CRT, SSL_KEY))
+        app.run(debug=DEBUG_MODE, host='0.0.0.0', use_reloader=False, port=STORAGE_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:
-        app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=STORAGE_PORT)
+        app.run(debug=DEBUG_MODE, host='0.0.0.0', use_reloader=False, port=STORAGE_PORT)

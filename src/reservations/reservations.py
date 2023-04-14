@@ -40,7 +40,7 @@ RESERVATION_CMD = os.environ.get("F7T_RESERVATION_CMD", "rsvmgmt")
 
 TRACER_HEADER = "uber-trace-id"
 
-debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
+DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 
 app = Flask(__name__)
@@ -565,6 +565,6 @@ def after_request(response):
 
 if __name__ == "__main__":
     if USE_SSL:
-        app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=RESERVATIONS_PORT, ssl_context=(SSL_CRT, SSL_KEY))
+        app.run(debug=DEBUG_MODE, host='0.0.0.0', use_reloader=False, port=RESERVATIONS_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:
-        app.run(debug=debug, host='0.0.0.0', use_reloader=False, port=RESERVATIONS_PORT)
+        app.run(debug=DEBUG_MODE, host='0.0.0.0', use_reloader=False, port=RESERVATIONS_PORT)

@@ -72,7 +72,7 @@ if len(REALM_RSA_PUBLIC_KEYS) != 0:
 
     realm_pubkey_type = os.environ.get("F7T_REALM_RSA_TYPE").strip('\'"')
 
-debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
+DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 app = Flask(__name__)
 
@@ -115,7 +115,12 @@ def setup_logging(logging, service):
     logger = logging.getLogger()
     # set handler to logger
     logger.addHandler(logHandler)
-    logging.getLogger().setLevel(logging.INFO)
+    if DEBUG_MODE:
+        logging.getLogger().setLevel(logging.DEBUG)
+        logging.info("DEBUG_MODE: True")
+    else:
+        logging.getLogger().setLevel(logging.INFO)
+        logging.info("DEBUG_MODE: False")
     # disable Flask internal logging to avoid full url exposure
     logging.getLogger('werkzeug').disabled = True
 
@@ -195,8 +200,8 @@ def check_header(header):
     decoding_reason = ""
 
     if not is_public_key_set:
-        if not debug:
-            logging.warning("WARNING: REALM_RSA_PUBLIC_KEY is empty, JWT tokens are NOT verified, setup is not set to debug.")
+        if not DEBUG_MODE:
+            logging.debug("WARNING: REALM_RSA_PUBLIC_KEY is empty, JWT tokens are NOT verified, setup is not set to debug.")
 
         try:
             decoded = jwt.decode(token, options={"verify_signature": False})
@@ -212,14 +217,14 @@ def check_header(header):
     else:
         # iterates over the list of public keys
         for realm_pubkey in realm_pubkey_list:
-            if debug:
-                logging.info(f"Trying decoding with [...{realm_pubkey[71:81]}...] public key...")
+            if DEBUG_MODE:
+                logging.debug(f"Trying decoding with [...{realm_pubkey[71:81]}...] public key...")
             try:
                 if AUTH_AUDIENCE == '':
                     decoded = jwt.decode(token, realm_pubkey, algorithms=[realm_pubkey_type], options={'verify_aud': False})
                 else:
                     decoded = jwt.decode(token, realm_pubkey, algorithms=[realm_pubkey_type], audience=AUTH_AUDIENCE)
-                if debug:
+                if DEBUG_MODE:
                     logging.info(f"Correctly decoded")
 
                 # if all passes, it means the signature is valid
@@ -247,8 +252,8 @@ def check_header(header):
             # either token is valid or exception indicates a problem
             break
 
-    if debug:
-        logging.info(f"Result: {decoding_result}. Reason: {decoding_reason}")
+    if DEBUG_MODE:
+        logging.debug(f"Result: {decoding_result}. Reason: {decoding_reason}")
 
     # if token was successfully decoded, then check if required scope is present
     if AUTH_REQUIRED_SCOPE != "" and decoding_result:
@@ -273,8 +278,8 @@ def get_username(header):
 
     # does FirecREST check the signature of the token?
     if not is_public_key_set:
-        if not debug:
-            logging.warning("WARNING: REALM_RSA_PUBLIC_KEY is empty, JWT tokens are NOT verified, setup is not set to debug.")
+        if not DEBUG_MODE:
+            logging.debug("WARNING: REALM_RSA_PUBLIC_KEY is empty, JWT tokens are NOT verified, setup is not set to debug.")
 
         try:
             decoded = jwt.decode(token, options={"verify_signature": False})
@@ -291,14 +296,14 @@ def get_username(header):
     else:
         # iterates over the list of public keys
         for realm_pubkey in realm_pubkey_list:
-            if debug:
-                logging.info(f"Trying decoding with [...{realm_pubkey[71:81]}...] public key...")
+            if DEBUG_MODE:
+                logging.debug(f"Trying decoding with [...{realm_pubkey[71:81]}...] public key...")
             try:
                 if AUTH_AUDIENCE == '':
                     decoded = jwt.decode(token, realm_pubkey, algorithms=[realm_pubkey_type], options={'verify_aud': False})
                 else:
                     decoded = jwt.decode(token, realm_pubkey, algorithms=[realm_pubkey_type], audience=AUTH_AUDIENCE)
-                if debug:
+                if DEBUG_MODE:
                     logging.info(f"Correctly decoded")
 
                 # if token is correctly decoded, exit the loop
@@ -472,6 +477,6 @@ def after_request(response):
 
 if __name__ == "__main__":
     if USE_SSL:
-        app.run(debug=debug, host='0.0.0.0', port=CERTIFICATOR_PORT, ssl_context=(SSL_CRT, SSL_KEY))
+        app.run(debug=DEBUG_MODE, host='0.0.0.0', port=CERTIFICATOR_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:
-        app.run(debug=debug, host='0.0.0.0', port=CERTIFICATOR_PORT)
+        app.run(debug=DEBUG_MODE, host='0.0.0.0', port=CERTIFICATOR_PORT)
