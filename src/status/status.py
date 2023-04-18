@@ -52,7 +52,7 @@ OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE", '(none)')
 TRACER_HEADER = "uber-trace-id"
 
 # debug on console
-debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
+DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 app = Flask(__name__)
 
@@ -479,6 +479,6 @@ def after_request(response):
 
 if __name__ == "__main__":
     if USE_SSL:
-        app.run(debug=debug, host='0.0.0.0', port=STATUS_PORT, ssl_context=(SSL_CRT, SSL_KEY))
+        app.run(debug=DEBUG_MODE, host='0.0.0.0', port=STATUS_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:
-        app.run(debug=debug, host='0.0.0.0', port=STATUS_PORT)
+        app.run(debug=DEBUG_MODE, host='0.0.0.0', port=STATUS_PORT)

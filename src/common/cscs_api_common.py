@@ -35,7 +35,7 @@ def get_boolean_var(var):
     return var.upper() == "TRUE" or var.upper() == "YES" or var == "1"
 
 
-debug = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
+DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 AUTH_HEADER_NAME = 'Authorization'
 
@@ -91,8 +91,8 @@ def check_header(header):
     decoding_reason = ""
 
     if not is_public_key_set:
-        if not debug:
-            logging.warning("WARNING: REALM_RSA_PUBLIC_KEY is empty, JWT tokens are NOT verified, setup is not set to debug.")
+        if not DEBUG_MODE:
+            logging.debug("WARNING: REALM_RSA_PUBLIC_KEY is empty, JWT tokens are NOT verified, setup is not set to debug.")
 
         try:
             decoded = jwt.decode(token, options={"verify_signature": False})
@@ -108,15 +108,15 @@ def check_header(header):
     else:
         # iterates over the list of public keys
         for realm_pubkey in realm_pubkey_list:
-            if debug:
-                logging.info(f"Trying decoding with [...{realm_pubkey[71:81]}...] public key...")
+            if DEBUG_MODE:
+                logging.debug(f"Trying decoding with [...{realm_pubkey[71:81]}...] public key...")
             try:
                 if AUTH_AUDIENCE == '':
                     decoded = jwt.decode(token, realm_pubkey, algorithms=[realm_pubkey_type], options={'verify_aud': False})
                 else:
                     decoded = jwt.decode(token, realm_pubkey, algorithms=[realm_pubkey_type], audience=AUTH_AUDIENCE)
-                if debug:
-                    logging.info(f"Correctly decoded")
+                if DEBUG_MODE:
+                    logging.debug(f"Token correctly decoded")
 
                 # if all passes, it means the signature is valid
                 decoding_result = True
@@ -143,8 +143,8 @@ def check_header(header):
             # either token is valid or exception indicates a problem
             break
 
-    if debug:
-        logging.info(f"Result: {decoding_result}. Reason: {decoding_reason}")
+    if DEBUG_MODE:
+        logging.debug(f"Result: {decoding_result}. Reason: {decoding_reason}")
 
     # if token was successfully decoded, then check if required scope is present
     if AUTH_REQUIRED_SCOPE != "" and decoding_result:
@@ -169,7 +169,7 @@ def get_username(header):
 
     # does FirecREST check the signature of the token?
     if not is_public_key_set:
-        if not debug:
+        if not DEBUG_MODE:
             logging.warning("WARNING: REALM_RSA_PUBLIC_KEY is empty, JWT tokens are NOT verified, setup is not set to debug.")
 
         try:
@@ -187,15 +187,15 @@ def get_username(header):
     else:
         # iterates over the list of public keys
         for realm_pubkey in realm_pubkey_list:
-            if debug:
-                logging.info(f"Trying decoding with [...{realm_pubkey[71:81]}...] public key...")
+            if DEBUG_MODE:
+                logging.debug(f"Trying decoding with [...{realm_pubkey[71:81]}...] public key...")
             try:
                 if AUTH_AUDIENCE == '':
                     decoded = jwt.decode(token, realm_pubkey, algorithms=[realm_pubkey_type], options={'verify_aud': False})
                 else:
                     decoded = jwt.decode(token, realm_pubkey, algorithms=[realm_pubkey_type], audience=AUTH_AUDIENCE)
-                if debug:
-                    logging.info(f"Correctly decoded")
+                if DEBUG_MODE:
+                    logging.debug(f"Correctly decoded")
 
                 # if token is correctly decoded, exit the loop
                 decoding_result = True
@@ -265,15 +265,15 @@ def create_certificate(headers, cluster_name, cluster_addr, command=None, option
         logging.error('Tried to create certificate without command')
         return [None, 1, 'Internal error']
 
-    if debug:
+    if DEBUG_MODE:
         is_username_ok = get_username(headers[AUTH_HEADER_NAME])
         if is_username_ok["result"] == False:
             logging.error(f"Cannot create certificate. Reason: {is_username_ok['reason']}")
             return [None, 401, is_username_ok["reason"] ]
         if options:
             # may contain Storage URL
-            logging.info(f"\tOptions (complete): {options}")
-        logging.info(f"Request URL: {reqURL}")
+            logging.debug(f"\tOptions (complete): {options}")
+        logging.debug(f"Request URL: {reqURL}")
 
     try:
         resp = requests.get(reqURL, headers=headers, verify= (SSL_CRT if USE_SSL else False) )
@@ -365,8 +365,8 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
                        disabled_algorithms={'keys': ['rsa-sha2-256', 'rsa-sha2-512']})
 
         if F7T_SSH_CERTIFICATE_WRAPPER:
-            if debug:
-                logging.info(f"Using F7T_SSH_CERTIFICATE_WRAPPER.")
+            if DEBUG_MODE:
+                logging.debug(f"Using F7T_SSH_CERTIFICATE_WRAPPER.")
 
             # read cert to send it as a command to the server
             with open(pub_cert, 'r') as cert_file:
@@ -804,8 +804,8 @@ def check_user_auth(username,system):
     if OPA_USE:
         try:
             input = {"input":{"user": f"{username}", "system": f"{system}"}}
-            if debug:
-                logging.info(f"OPA: enabled, using {OPA_URL}/{POLICY_PATH}")
+            if DEBUG_MODE:
+                logging.debug(f"OPA: enabled, using {OPA_URL}/{POLICY_PATH}")
 
             resp_opa = requests.post(f"{OPA_URL}/{POLICY_PATH}", json=input)
 
@@ -956,6 +956,12 @@ def setup_logging(logging, service):
 
     # set handler to logger
     logger.addHandler(logHandler)
-    logging.getLogger().setLevel(logging.INFO)
 
+    if DEBUG_MODE:
+        logging.getLogger().setLevel(logging.DEBUG)
+        logging.info("DEBUG_MODE: True")
+    else:
+        logging.getLogger().setLevel(logging.INFO)
+        logging.info("DEBUG_MODE: False")
+    
     return logger
