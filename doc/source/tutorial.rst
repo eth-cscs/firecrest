@@ -364,9 +364,9 @@ You can see the steps for the upload in the slides that follow:
             text += `<li data-target="#carouselExampleControls" data-slide-to="` + (i-1).toString() + `"></li>`;
         }
         text += `</ol>`;
-        text += `<div class="carousel-inner"><div class="carousel-item active"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/tutorial/tutorial/images/utilities_upload/utilities_upload%201.jpeg" class="d-block w-100" alt="..."></div>`;
+        text += `<div class="carousel-inner"><div class="carousel-item active"><img src="https://raw.githubusercontent.com/ekouts/firecrest/tutorial/tutorial/images/utilities_upload/utilities_upload%201.jpeg" class="d-block w-100" alt="..."></div>`;
         for (i = 2; i <= num_slides; i++) {
-            text += `<div class="carousel-item"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/tutorial/tutorial/images/utilities_upload/utilities_upload%20` + i.toString() + `.jpeg" class="d-block w-100" alt="..."></div>`;
+            text += `<div class="carousel-item"><img src="https://raw.githubusercontent.com/ekouts/firecrest/tutorial/tutorial/images/utilities_upload/utilities_upload%20` + i.toString() + `.jpeg" class="d-block w-100" alt="..."></div>`;
         }
         text += `</div><a class="carousel-control-prev" href="#carouselExampleControls" role="button" data-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="sr-only">Previous</span></a><a class="carousel-control-next" href="#carouselExampleControls" role="button" data-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="sr-only">Next</span></a></div>`
         document.getElementById('utilities_upload-carousel').srcdoc += text;
@@ -425,9 +425,9 @@ You can see the steps in the slides that follow:
             text += `<li data-target="#carouselExampleControls" data-slide-to="` + (i-1).toString() + `"></li>`;
         }
         text += `</ol>`;
-        text += `<div class="carousel-inner"><div class="carousel-item active"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/tutorial/tutorial/images/compute_sbatch/compute_sbatch%201.jpeg" class="d-block w-100" alt="..."></div>`;
+        text += `<div class="carousel-inner"><div class="carousel-item active"><img src="https://raw.githubusercontent.com/ekouts/firecrest/tutorial/tutorial/images/compute_sbatch/compute_sbatch%201.jpeg" class="d-block w-100" alt="..."></div>`;
         for (i = 2; i <= num_slides; i++) {
-            text += `<div class="carousel-item"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/tutorial/tutorial/images/compute_sbatch/compute_sbatch%20` + i.toString() + `.jpeg" class="d-block w-100" alt="..."></div>`;
+            text += `<div class="carousel-item"><img src="https://raw.githubusercontent.com/ekouts/firecrest/tutorial/tutorial/images/compute_sbatch/compute_sbatch%20` + i.toString() + `.jpeg" class="d-block w-100" alt="..."></div>`;
         }
         text += `</div><a class="carousel-control-prev" href="#carouselExampleControls" role="button" data-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="sr-only">Previous</span></a><a class="carousel-control-next" href="#carouselExampleControls" role="button" data-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="sr-only">Next</span></a></div>`
         document.getElementById('compute_sbatch-carousel').srcdoc += text;
@@ -554,9 +554,9 @@ The job ID is a path parameter, so part of the endpoint URL, and the authorizati
             text += `<li data-target="#carouselExampleControls" data-slide-to="` + (i-1).toString() + `"></li>`;
         }
         text += `</ol>`;
-        text += `<div class="carousel-inner"><div class="carousel-item active"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/tutorial/tutorial/images/compute_squeue/compute_squeue%201.jpeg" class="d-block w-100" alt="..."></div>`;
+        text += `<div class="carousel-inner"><div class="carousel-item active"><img src="https://raw.githubusercontent.com/ekouts/firecrest/tutorial/tutorial/images/compute_squeue/compute_squeue%201.jpeg" class="d-block w-100" alt="..."></div>`;
         for (i = 2; i <= num_slides; i++) {
-            text += `<div class="carousel-item"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/tutorial/tutorial/images/compute_squeue/compute_squeue%20` + i.toString() + `.jpeg" class="d-block w-100" alt="..."></div>`;
+            text += `<div class="carousel-item"><img src="https://raw.githubusercontent.com/ekouts/firecrest/tutorial/tutorial/images/compute_squeue/compute_squeue%20` + i.toString() + `.jpeg" class="d-block w-100" alt="..."></div>`;
         }
         text += `</div><a class="carousel-control-prev" href="#carouselExampleControls" role="button" data-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="sr-only">Previous</span></a><a class="carousel-control-next" href="#carouselExampleControls" role="button" data-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="sr-only">Next</span></a></div>`
         document.getElementById('compute_squeue-carousel').srcdoc += text;
@@ -805,9 +805,9 @@ As soon as this finishes, we have to make a call to FirecREST in order for it to
             text += `<li data-target="#carouselExampleControls" data-slide-to="` + (i-1).toString() + `"></li>`;
         }
         text += `</ol>`;
-        text += `<div class="carousel-inner"><div class="carousel-item active"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/tutorial/tutorial/images/external_upload/external_upload%201.jpeg" class="d-block w-100" alt="..."></div>`;
+        text += `<div class="carousel-inner"><div class="carousel-item active"><img src="https://raw.githubusercontent.com/ekouts/firecrest/tutorial/tutorial/images/external_upload/external_upload%201.jpeg" class="d-block w-100" alt="..."></div>`;
         for (i = 2; i <= num_slides; i++) {
-            text += `<div class="carousel-item"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/tutorial/tutorial/images/external_upload/external_upload%20` + i.toString() + `.jpeg" class="d-block w-100" alt="..."></div>`;
+            text += `<div class="carousel-item"><img src="https://raw.githubusercontent.com/ekouts/firecrest/tutorial/tutorial/images/external_upload/external_upload%20` + i.toString() + `.jpeg" class="d-block w-100" alt="..."></div>`;
         }
         text += `</div><a class="carousel-control-prev" href="#carouselExampleControls" role="button" data-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="sr-only">Previous</span></a><a class="carousel-control-next" href="#carouselExampleControls" role="button" data-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="sr-only">Next</span></a></div>`
         document.getElementById('external_upload-carousel').srcdoc += text;
@@ -1037,9 +1037,9 @@ It follows a similar workflow, as the non-blocking uploading of a file, as you c
             text += `<li data-target="#carouselExampleControls" data-slide-to="` + (i-1).toString() + `"></li>`;
         }
         text += `</ol>`;
-        text += `<div class="carousel-inner"><div class="carousel-item active"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/tutorial/tutorial/images/external_download/external_download%201.jpeg" class="d-block w-100" alt="..."></div>`;
+        text += `<div class="carousel-inner"><div class="carousel-item active"><img src="https://raw.githubusercontent.com/ekouts/firecrest/tutorial/tutorial/images/external_download/external_download%201.jpeg" class="d-block w-100" alt="..."></div>`;
         for (i = 2; i <= num_slides; i++) {
-            text += `<div class="carousel-item"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/tutorial/tutorial/images/external_download/external_download%20` + i.toString() + `.jpeg" class="d-block w-100" alt="..."></div>`;
+            text += `<div class="carousel-item"><img src="https://raw.githubusercontent.com/ekouts/firecrest/tutorial/tutorial/images/external_download/external_download%20` + i.toString() + `.jpeg" class="d-block w-100" alt="..."></div>`;
         }
         text += `</div><a class="carousel-control-prev" href="#carouselExampleControls" role="button" data-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="sr-only">Previous</span></a><a class="carousel-control-next" href="#carouselExampleControls" role="button" data-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="sr-only">Next</span></a></div>`
         document.getElementById('external_download-carousel').srcdoc += text;
