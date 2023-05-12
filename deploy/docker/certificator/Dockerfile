@@ -4,25 +4,15 @@
 ##  Please, refer to the LICENSE file in the root directory.
 ##  SPDX-License-Identifier: BSD-3-Clause
 ##
-ARG BASE_IMAGE=centos:7
+ARG BASE_IMAGE=f7t-base
 FROM $BASE_IMAGE
 
-RUN yum install -y epel-release
-RUN yum -y update
-RUN yum -y groupinstall "Development Tools"
-RUN yum -y install openssl-devel bzip2-devel libffi-devel xz-devel wget
-RUN wget https://www.python.org/ftp/python/3.8.12/Python-3.8.12.tgz
-RUN tar xvf Python-3.8.12.tgz && cd Python-3.8.12 && ./configure --enable-optimizations && make altinstall
-
-RUN ln -fs /usr/local/bin/python3.8 /usr/bin/python3
-
-RUN yum install -y python3.8-pip openssh
-
-RUN pip3.8 install --upgrade pip
+RUN apt-get update
+RUN apt-get -y install openssh-client
 
 ADD deploy/docker/base/requirements.txt base/requirements.txt
 ADD deploy/docker/certificator/requirements.txt deps/requirements.txt
-RUN pip3.8 install -r deps/requirements.txt
+RUN pip3 install -r deps/requirements.txt
 
 ADD src/certificator/certificator.py certificator.py
 

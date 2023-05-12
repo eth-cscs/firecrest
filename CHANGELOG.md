@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Flask version upgraded to `2.3.2` 
-- Cryptography version upgraded to `39.0.2` 
+- Cryptography version upgraded to `39.0.2`
+- Certificator now uses `f7t-base` as base image
 
 ### Fixed
 
