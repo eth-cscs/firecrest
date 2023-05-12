@@ -4,14 +4,11 @@
 ##  Please, refer to the LICENSE file in the root directory.
 ##  SPDX-License-Identifier: BSD-3-Clause
 ##
-ARG BASE_IMAGE=centos:7
+ARG BASE_IMAGE=f7t-base
 FROM $BASE_IMAGE
 
-RUN yum install -y epel-release
-RUN yum -y update
-RUN yum install -y python3-pip openssh
-
-RUN pip3 install --upgrade pip
+RUN apt-get update
+RUN apt-get -y install openssh-client
 
 ADD deploy/docker/base/requirements.txt base/requirements.txt
 ADD deploy/docker/certificator/requirements.txt deps/requirements.txt

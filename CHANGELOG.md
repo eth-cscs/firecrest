@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [1.13.0]
+
+### Added
+
+### Changed
+
+- Flask version upgraded to `2.3.2` 
+- Cryptography version upgraded to `39.0.2`
+- Certificator now uses `f7t-base` as base image
+
+### Fixed
+
 ## [1.12.0]
 
 ### Added

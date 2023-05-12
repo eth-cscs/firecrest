@@ -7,6 +7,9 @@
 ARG BASE_IMAGE=f7t-base
 from $BASE_IMAGE
 
+RUN apt-get update
+RUN apt-get -y install gcc
+
 ADD deploy/docker/storage/requirements.txt deps/requirements.txt
 RUN pip3 install -r deps/requirements.txt
 

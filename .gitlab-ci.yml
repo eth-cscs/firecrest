@@ -31,18 +31,20 @@ build_images:
     - echo '{"auths":{"'$CI_REGISTRY'":{"username":"'$CI_REGISTRY_USER'","password":"'$CI_REGISTRY_PASSWORD'"}}}' > /kaniko/.docker/config.json
     - |
 
+        # Base image for each commit
+        /kaniko/executor --context ./ --dockerfile deploy/docker/base/Dockerfile --destination ${CI_REGISTRY_PREFIX}/f7t-base:${CI_COMMIT_SHORT_SHA} --cleanup
 
         # Core microservices
-        for img in compute reservations status storage tasks utilities; do
-            /kaniko/executor --build-arg BASE_IMAGE=${CI_REGISTRY_PREFIX}/f7t-base:latest --registry-mirror ${CI_REGISTRY} \
+        for img in certificator compute reservations status storage tasks utilities; do
+            /kaniko/executor --build-arg BASE_IMAGE=${CI_REGISTRY_PREFIX}/f7t-base:${CI_COMMIT_SHORT_SHA} --registry-mirror ${CI_REGISTRY} \
             --context ./ --dockerfile deploy/docker/$img/Dockerfile --destination ${CI_REGISTRY_PREFIX}/$img:${CI_COMMIT_SHORT_SHA} --cleanup
         done
 
         if [ "$CI_COMMIT_TAG" != "" ]; then exit 0; fi
 
         # Certificator separated since its base image is different (centos:7)
-        /kaniko/executor --context ./ --dockerfile "deploy/docker/certificator/Dockerfile" \
-            --destination "${CI_REGISTRY_PREFIX}/certificator:${CI_COMMIT_SHORT_SHA}" --cleanup
+        # /kaniko/executor --context ./ --dockerfile "deploy/docker/certificator/Dockerfile" \
+        #     --destination "${CI_REGISTRY_PREFIX}/certificator:${CI_COMMIT_SHORT_SHA}" --cleanup
 
         # build web client
         /kaniko/executor --context src/tests/template_client --dockerfile ./Dockerfile \
