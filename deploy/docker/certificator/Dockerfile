@@ -9,13 +9,20 @@ FROM $BASE_IMAGE
 
 RUN yum install -y epel-release
 RUN yum -y update
-RUN yum install -y python3-pip openssh
+RUN yum -y groupinstall "Development Tools"
+RUN yum -y install openssl-devel bzip2-devel libffi-devel xz-devel wget
+RUN wget https://www.python.org/ftp/python/3.8.12/Python-3.8.12.tgz
+RUN tar xvf Python-3.8.12.tgz && cd Python-3.8.12 && ./configure --enable-optimizations && make altinstall
 
-RUN pip3 install --upgrade pip
+RUN ln -fs /usr/local/bin/python3.8 /usr/bin/python3
+
+RUN yum install -y python3.8-pip openssh
+
+RUN pip3.8 install --upgrade pip
 
 ADD deploy/docker/base/requirements.txt base/requirements.txt
 ADD deploy/docker/certificator/requirements.txt deps/requirements.txt
-RUN pip3 install -r deps/requirements.txt
+RUN pip3.8 install -r deps/requirements.txt
 
 ADD src/certificator/certificator.py certificator.py
 
