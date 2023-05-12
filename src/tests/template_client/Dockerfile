@@ -6,7 +6,9 @@
 ##
 FROM python:3.8.12-slim
 
-RUN pip install markupsafe==2.0.1 Flask==1.1.4 flask-WTF flask-bootstrap flask-oidc flask_sslify requests==2.22.0
+RUN pip3 install --upgrade pip
+
+RUN pip3 install markupsafe==2.1.2 Flask==2.0.0 itsdangerous==2.0.1 flask-WTF flask-bootstrap flask-oidc flask_sslify requests==2.22.0
 
 ADD ./ app
 
