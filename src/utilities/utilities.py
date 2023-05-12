@@ -566,7 +566,7 @@ def download():
             data.seek(0)
             return send_file(data,
                      mimetype="application/octet-stream",
-                     attachment_filename=file_name,
+                     download_name=file_name,
                      as_attachment=True)
     except Exception as e:
         app.logger.error(f"Download decode error: {e.message}")
@@ -592,7 +592,7 @@ def download():
 
     return send_file(data,
                      mimetype="application/octet-stream",
-                     attachment_filename=file_name,
+                     download_name=file_name,
                      as_attachment=True)
 
 
