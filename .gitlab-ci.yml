@@ -32,8 +32,7 @@ build_images:
     - |
 
         # Base image for each commit
-        /kaniko/executor --registry-mirror ${CI_REGISTRY} \
-            --context ./ --dockerfile deploy/docker/base/Dockerfile --destination ${CI_REGISTRY_PREFIX}/f7t-base:${CI_COMMIT_SHORT_SHA} --cleanup
+        /kaniko/executor --context ./ --dockerfile deploy/docker/base/Dockerfile --destination ${CI_REGISTRY_PREFIX}/f7t-base:${CI_COMMIT_SHORT_SHA} --cleanup
 
         # Core microservices
         for img in compute reservations status storage tasks utilities; do
