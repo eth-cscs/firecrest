@@ -31,10 +31,13 @@ build_images:
     - echo '{"auths":{"'$CI_REGISTRY'":{"username":"'$CI_REGISTRY_USER'","password":"'$CI_REGISTRY_PASSWORD'"}}}' > /kaniko/.docker/config.json
     - |
 
+        # Base image for each commit
+        /kaniko/executor --build-arg --registry-mirror ${CI_REGISTRY} \
+            --context ./ --dockerfile deploy/docker/base/Dockerfile --destination ${CI_REGISTRY_PREFIX}/f7t-base:${CI_COMMIT_SHORT_SHA} --cleanup
 
         # Core microservices
         for img in compute reservations status storage tasks utilities; do
-            /kaniko/executor --build-arg BASE_IMAGE=${CI_REGISTRY_PREFIX}/f7t-base:latest --registry-mirror ${CI_REGISTRY} \
+            /kaniko/executor --build-arg BASE_IMAGE=${CI_REGISTRY_PREFIX}/f7t-base:${CI_COMMIT_SHORT_SHA} --registry-mirror ${CI_REGISTRY} \
             --context ./ --dockerfile deploy/docker/$img/Dockerfile --destination ${CI_REGISTRY_PREFIX}/$img:${CI_COMMIT_SHORT_SHA} --cleanup
         done
 
