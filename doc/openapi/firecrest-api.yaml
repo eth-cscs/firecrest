@@ -8,7 +8,7 @@ openapi: 3.0.0
 servers:
   - url: "http://localhost:8000"
 info:
-  version: 1.12.0
+  version: 1.13.0
   title: FirecREST Developers API
   description: >
     This API specification is intended for FirecREST developers only. There're some endpoints that are not available in the public version for client developers.
@@ -893,7 +893,7 @@ paths:
         schema:
           type: string
     get:
-      summary: Download a small file
+      summary: Download a small file (binary or text)
       description: >-
         Blocking call that returns the file from the specified path on the
         {X-Machine-Name} filesystem.
@@ -1130,8 +1130,8 @@ paths:
         schema:
           type: string
     get:
-      summary: View the content of a given file
-      description: 'View the content of a specified file in {targetPath} on the {X-Machine-Name} filesystem.'
+      summary: View the content of a plain text file (UTF8)
+      description: 'View the content of a plain text file (UTF8 chars only) in {targetPath} on the {X-Machine-Name} filesystem.'
       tags:
         - Utilities
       parameters:
