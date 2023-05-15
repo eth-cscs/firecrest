@@ -893,7 +893,7 @@ paths:
         schema:
           type: string
     get:
-      summary: Download a small file
+      summary: Download a small file (binary or text)
       description: >-
         Blocking call that returns the file from the specified path on the
         {X-Machine-Name} filesystem.
@@ -1130,8 +1130,8 @@ paths:
         schema:
           type: string
     get:
-      summary: View the content of a given file
-      description: 'View the content of a specified file in {targetPath} on the {X-Machine-Name} filesystem.'
+      summary: View the content of a plain text file (UTF8)
+      description: 'View the content of a plain text file (UTF8 chars only) in {targetPath} on the {X-Machine-Name} filesystem.'
       tags:
         - Utilities
       parameters:
