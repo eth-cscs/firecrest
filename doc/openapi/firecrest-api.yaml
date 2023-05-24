@@ -2007,10 +2007,17 @@ paths:
                 $ref: '#/components/schemas/Task-Creation-Error'
   '/tasks':
     get:
-      summary: Returns all tasks
+      summary: Returns all tasks (or a subset)
       description: List all recorded tasks and their status.
       tags:
         - Tasks
+      parameters:
+        - in: query
+          name: tasks
+          schema: 
+            type: string
+          description: Comma-separated list of `{taskid}`
+          required: false
       responses:
         '200':
           description: tasks in queue

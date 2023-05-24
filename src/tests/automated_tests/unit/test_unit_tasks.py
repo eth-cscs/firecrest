@@ -69,12 +69,18 @@ def create_task(headers):
 
 # Test list all tasks
 @skipif_not_uses_gateway
-def test_list_tasks(headers):
-	url = f"{TASKS_URL}/"
+@pytest.mark.parametrize("task_list, status_code",[(None,200), ("123456,654321",200), ("123456;654321", 400) ]) 
+def test_list_tasks(task_list, status_code, headers):
+
+	task_list_query = ""
+	if task_list != None:
+		task_list_query = f"?tasks={task_list}"
+	
+	url = f"{TASKS_URL}/{task_list_query}"
 	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(json.dumps(resp.json(),indent=2))
 	print(url)
-	assert resp.status_code == 200
+	assert resp.status_code == status_code
 
 
 # Test task creation

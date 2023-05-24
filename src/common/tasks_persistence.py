@@ -8,16 +8,29 @@ import redis
 import redis.exceptions as redis_exceptions
 import logging
 import json
+from typing import Union
 
 # create redis server connection, and return StrictRedis object
 # otherwise returns None
-def create_connection(host,port,passwd="",db=0):
+def create_connection(host,port,passwd="",db=0) -> Union[redis.StrictRedis,None]:
+    '''
+    Creates a redis database connection using StrictRedis
+    
+    Parameters:
+    - host (str): the hostname of redis database server
+    - port (str): the port of redis database server
+    - passwd (str) (optional, by default: ""): password of redis database server
+    - db (int) (optional, by default: 0): number of database where data is stored in redis server
+
+    Returns:
+    - StrictRedis object if successful, otherwise None
+
+    '''
 
     logging.info(f"Trying to start taskpersistance connection on host: {host}")
 
     try:
         r = redis.StrictRedis(host=host,port=port,db=db,password=passwd)
-        # r = Redis(host=host, port=port, db=db, password=passwd)
         return r
     except redis_exceptions.ResponseError as e:
         logging.error("Error on create_connection")
@@ -38,7 +51,17 @@ def create_connection(host,port,passwd="",db=0):
 
 
 # incrementes task id by 1
-def incr_last_task_id(r):
+def incr_last_task_id(r) -> Union[int,None]:
+    '''
+    Increments the internal task id counter in backend service by 1 (one)
+    
+    Parameters:
+    - r (StrictRedis): object with connection details to a redis database
+    
+    Returns:
+    - the new id (int) or if there was an error, None
+
+    '''
     try:
         return r.incr("last_task_id",1)
     except Exception as e:
@@ -49,7 +72,20 @@ def incr_last_task_id(r):
 # save task status in redis server
 # if success, returns True, otherwise, False
 # task is the result of AsynkTask.get_status(), that's a dictionary with all fields
-def save_task(r,id,task,exp_time=None):
+def save_task(r,id,task,exp_time=None) -> bool:
+    '''
+    Save the task in backend persistence service
+    
+    Parameters:
+    - r (StrictRedis): object with connection details to a redis database
+    - id (str): internal ID of the task
+    - task (dict): task data 
+    - exp_time (int) (optional, default=None): seconds to expire the task
+
+    Returns:
+    - A boolean, True if the task was correctly saved, otherwise False
+
+    '''
 
     task_id = "task_{id}".format(id=id)
     # mapping = {"status":status, "user":user, "data":data}
@@ -70,7 +106,19 @@ def save_task(r,id,task,exp_time=None):
 
 
 # set task expiration
-def set_expire_task(r,id,secs):
+def set_expire_task(r,id,secs) -> bool:
+    '''
+    Set expiration time for a specific task
+    
+    Parameters:
+    - r (StrictRedis): object with connection details to a redis database
+    - id (str): internal ID of the task
+    - secs (int): seconds to expire the task
+
+    Returns:
+    - True if the task was correctly set as expired, otherwise False
+
+    '''
     task_id = f"task_{id}"
     try:
         # change to expire, because delete mantain deleted keys in redis
@@ -89,7 +137,18 @@ def set_expire_task(r,id,secs):
 
 # delete task from redis server
 # if success, returns True, otherwise, False
-def del_task(r,id):
+def del_task(r,id) -> bool:
+    '''
+    Deletes a task by a given id (set expiration time for a specific task to 0)
+    
+    Parameters:
+    - r (StrictRedis): object with connection details to a redis database
+    - id (str): internal ID of the task
+    
+    Returns:
+    - True if the task was correctly deleted, otherwise False
+
+    '''
 
     # use set_expire_task with 0 seconds
     # it's better than delete
@@ -97,7 +156,17 @@ def del_task(r,id):
 
 
 # return all task in dict format
-def get_all_tasks(r):
+def get_all_tasks(r) -> Union[dict,None]:
+    '''
+    Return all valid tasks in the backend
+    
+    Parameters:
+    - r (StrictRedis): object with connection details to a redis database
+    
+    Returns:
+    - list of tasks
+
+    '''
 
     task_dict = {}
 
@@ -132,8 +201,94 @@ def get_all_tasks(r):
         logging.error(e)
         return None
 
+# returns all task from specific user:
+def get_user_tasks(r,user,task_list=None, status_code=None) -> Union[dict,None]:
+    '''
+    Return current tasks filter by user
+    
+    Parameters:
+    - r (StrictRedis): object with connection details to a redis database
+    - user (str): username of the owner of the task
+    - task_list (list[(str)]) (optional): list of hashes of tasks to return
+    - status_code (str) (optional): status code of the tasks to return
+
+    Returns:
+    - list of tasks
+
+    '''
+    task_dict = {}
+
+    try:
+        # changed use of keys for hscan, since keys has bad performance in big data sets
+        # task_list = r.keys("task_*")
+        # scan_iter iterates between matching keys
+
+
+        for task_id in r.scan_iter(match="task_*"):
+
+            # get service key value from task_id dict key
+            # serv = r.hget(task_id,"service")
+            # changed since now is a serialized string, after python redis==3.x
+
+            json_task = r.get(task_id)
+            # logging.info(json_task)
+            # decode because redis stores it in Bytes not string
+            task_id = task_id.decode('latin-1')
+            
+            task = json.loads(json_task)
+
+            try:
+                _user = task["user"]
+            except Exception as e:
+                logging.error(type(e))
+                continue
+
+            # if user is the requested one
+            if _user == user:
+
+                # if status_code is required to be filtered
+                if status_code != None:
+                    # if the status doesn't match the list, then is skipped
+                    if task["status"] not in status_code:
+                        continue
+                
+                # if task_list is not empty, and not found in the sublist of user tasks, then is skipped
+                if task_list != None and task["hash_id"] not in task_list:
+                    continue
+
+                d = r.get(task_id)
+                d = d.decode('latin-1')
+
+                task_dict[task_id] = d
+
+        return task_dict
+
+
+    except redis_exceptions.ResponseError as e:
+
+        logging.error("Error on get_service_task")
+        logging.error(e.args)
+        logging.error(e)
+
+        return None
+
+
 # returns all task from specific service:
-def get_service_tasks(r,service,status_code=None):
+def get_service_tasks(r,service,status_code=None) -> Union[dict,None]:
+    '''
+    Return current tasks filter by service
+    
+    Parameters:
+    - r (StrictRedis): object with connection details to a redis database
+    - user (str): username of the owner of the task
+    - service (str): service of tasks to return
+    - status_code (str) (optional): status code of the tasks to return
+
+    Returns:
+    - list of tasks, None if there was an error
+
+    '''
+
     task_dict = {}
 
     try:
