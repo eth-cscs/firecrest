@@ -8,7 +8,7 @@ openapi: 3.0.0
 servers:
   - url: "http://localhost:8000"
 info:
-  version: 1.13.0
+  version: 1.13.1
   title: FirecREST Developers API
   description: >
     This API specification is intended for FirecREST developers only. There're some endpoints that are not available in the public version for client developers.
