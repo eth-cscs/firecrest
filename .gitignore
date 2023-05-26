@@ -3,6 +3,7 @@ __pycache__/
 .pytest_cache
 *.pyc
 *.log
+*.log.20*
 *.rdb
 **/minio/data/
 **/deploy/demo/minio/

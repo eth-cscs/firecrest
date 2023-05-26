@@ -13,8 +13,11 @@ import logging
 from flask_opentracing import FlaskTracing
 from jaeger_client import Config
 
-from cscs_api_common import check_auth_header, get_username, check_header, get_boolean_var, setup_logging
+from cscs_api_common import check_auth_header, get_username, check_header, \
+    get_boolean_var, setup_logging, validate_input
 import tasks_persistence as persistence
+
+
 
 AUTH_HEADER_NAME = 'Authorization'
 
@@ -114,12 +117,19 @@ def list_tasks():
 
     username = is_username_ok["username"]
 
+    task_list = request.args.get("tasks",None)
+    if task_list != None:
+        v = validate_input(task_list)
+        if v != "":
+            return jsonify(description="Failed to retrieve tasks information", error=f"'tasks' {v}"), 400
+        
+        task_list = task_list.split(",")
+    
+
+
     user_tasks = {}
 
-    #iterate over tasks getting user tasks
-    for task_id,task in tasks.items():
-        if task.user == username:
-            user_tasks[task_id] = task.get_status()
+    user_tasks = persistence.get_user_tasks(r,username, task_list=task_list)
 
     data = jsonify(tasks=user_tasks)
     return data, 200

@@ -1893,6 +1893,13 @@ items:
             description: List all recorded tasks and their status.
             tags:
               - Tasks
+            parameters:
+              - in: query
+                name: tasks
+                schema: 
+                  type: string
+                  description: Comma-separated list of `{task_id}`
+                  required: false
             responses:
               '200':
                 description: tasks in queue

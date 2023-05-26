@@ -8,7 +8,7 @@ openapi: 3.0.0
 servers:
   - url: "http://localhost:8000"
 info:
-  version: 1.13.0
+  version: 1.13.1
   title: FirecREST API
   description: >
     FirecREST platform, a RESTful Services Gateway to HPC resources, is a
@@ -2017,10 +2017,17 @@ paths:
                 $ref: '#/components/schemas/Task-Creation-Error'
   '/tasks':
     get:
-      summary: Returns all tasks
+      summary: Returns all tasks (or a subset)
       description: List all recorded tasks and their status.
       tags:
         - Tasks
+      parameters:
+        - in: query
+          name: tasks
+          schema: 
+            type: string
+          description: Comma-separated list of `{task_id}`
+          required: false
       responses:
         '200':
           description: tasks in queue

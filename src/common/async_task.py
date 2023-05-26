@@ -79,7 +79,7 @@ class AsyncTask():
     # create hash_id as user-task_id MD5 encoded string
     # used for public access to info in Queue
     def get_hashid(self,task_id,user):
-        data = "{user}-{task_id}".format(user=user,task_id=task_id)
+        data = f"{user}-{task_id}"
         hash_object = md5(data.encode())
         hex_dig = hash_object.hexdigest()
 
