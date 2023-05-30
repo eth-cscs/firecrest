@@ -364,9 +364,9 @@ You can see the steps for the upload in the slides that follow:
             text += `<li data-target="#carouselExampleControls" data-slide-to="` + (i-1).toString() + `"></li>`;
         }
         text += `</ol>`;
-        text += `<div class="carousel-inner"><div class="carousel-item active"><img src="https://raw.githubusercontent.com/ekouts/firecrest/tutorial/tutorial/images/utilities_upload/utilities_upload%201.jpeg" class="d-block w-100" alt="..."></div>`;
+        text += `<div class="carousel-inner"><div class="carousel-item active"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/master/doc/_static/img/utilities_upload/utilities_upload%201.jpeg" class="d-block w-100" alt="..."></div>`;
         for (i = 2; i <= num_slides; i++) {
-            text += `<div class="carousel-item"><img src="https://raw.githubusercontent.com/ekouts/firecrest/tutorial/tutorial/images/utilities_upload/utilities_upload%20` + i.toString() + `.jpeg" class="d-block w-100" alt="..."></div>`;
+            text += `<div class="carousel-item"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/master/doc/_static/img/utilities_upload/utilities_upload%20` + i.toString() + `.jpeg" class="d-block w-100" alt="..."></div>`;
         }
         text += `</div><a class="carousel-control-prev" href="#carouselExampleControls" role="button" data-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="sr-only">Previous</span></a><a class="carousel-control-next" href="#carouselExampleControls" role="button" data-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="sr-only">Next</span></a></div>`
         document.getElementById('utilities_upload-carousel').srcdoc += text;
@@ -425,15 +425,15 @@ You can see the steps in the slides that follow:
             text += `<li data-target="#carouselExampleControls" data-slide-to="` + (i-1).toString() + `"></li>`;
         }
         text += `</ol>`;
-        text += `<div class="carousel-inner"><div class="carousel-item active"><img src="https://raw.githubusercontent.com/ekouts/firecrest/tutorial/tutorial/images/compute_sbatch/compute_sbatch%201.jpeg" class="d-block w-100" alt="..."></div>`;
+        text += `<div class="carousel-inner"><div class="carousel-item active"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/master/doc/_static/img/compute_sbatch/compute_sbatch%201.jpeg" class="d-block w-100" alt="..."></div>`;
         for (i = 2; i <= num_slides; i++) {
-            text += `<div class="carousel-item"><img src="https://raw.githubusercontent.com/ekouts/firecrest/tutorial/tutorial/images/compute_sbatch/compute_sbatch%20` + i.toString() + `.jpeg" class="d-block w-100" alt="..."></div>`;
+            text += `<div class="carousel-item"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/master/doc/_static/img/compute_sbatch/compute_sbatch%20` + i.toString() + `.jpeg" class="d-block w-100" alt="..."></div>`;
         }
         text += `</div><a class="carousel-control-prev" href="#carouselExampleControls" role="button" data-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="sr-only">Previous</span></a><a class="carousel-control-next" href="#carouselExampleControls" role="button" data-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="sr-only">Next</span></a></div>`
         document.getElementById('compute_sbatch-carousel').srcdoc += text;
     </script>
 
-The first step to submit a job is to make a `POST` request in the `compute/jobs <reference.html#post--compute-jobs>`__  endpoint.
+The first step to submit a job is to make a `POST` request in the `compute/jobs/upload <reference.html#post--compute-jobs-upload>`__  endpoint.
 Again, we have to pass the authorization token and the machine in the header.
 The file this time will be the script we want to run with slurm and the location of the file is in our local filesystem.
 
@@ -441,7 +441,7 @@ The file this time will be the script we want to run with slurm and the location
 
     .. code-tab:: bash
 
-        $ curl -X POST "${FIRECREST_IP}/compute/jobs" \
+        $ curl -X POST "${FIRECREST_IP}/compute/job/uploads" \
                -H "Authorization: Bearer ${TOKEN}" \
                -H "X-Machine-Name: cluster" \
                -F "file=@/path/to/script.sh"
@@ -452,7 +452,7 @@ The file this time will be the script we want to run with slurm and the location
         localPath = '/path/to/script.sh'
 
         response = requests.post(
-            url=f'{FIRECREST_IP}/compute/jobs',
+            url=f'{FIRECREST_IP}/compute/jobs/upload',
             headers={'Authorization': f'Bearer {TOKEN}',
                      'X-Machine-Name': machine},
             files={'file': open(localPath, 'rb')}
@@ -469,6 +469,9 @@ The expected response should resemble the following:
         "task_id": "af516f55496faf473d3bcaa042c52431",
         "task_url": "http://148.187.98.88:8000/tasks/af516f55496faf473d3bcaa042c52431"
     }
+
+-- tip::
+    You don't have to submit the job script from a local file, you could also use the `compute/jobs/path <reference.html#post--compute-jobs-path>`__  endpoint and submit a jobscript that is already in the machine's filesystem.
 
 .. note::
     You have to keep in mind the `task_id` is **not** Slurm's `job ID` but an ID for the task that was created with FirecREST and we will use that to keep track of the job submission request.
@@ -503,7 +506,12 @@ The response should look like this if the job submission was successful:
         "task": {
             "data": {
                 "jobid": 2,
-                "result": "Job submitted"
+                "result": "Job submitted",
+                "job_data_err": "",
+                "job_data_out": "",
+                "job_file": f"/path/to/firecrest/af516f55496faf473d3bcaa042c52431/script.sh",
+                "job_file_err": f"/path/to/firecrest/af516f55496faf473d3bcaa042c52431/slurm-2.out",
+                "job_file_out": f"/path/to/firecrest/af516f55496faf473d3bcaa042c52431/slurm-2.out",
             },
             "description": "Finished successfully",
             "hash_id": "af516f55496faf473d3bcaa042c52431",
@@ -517,6 +525,8 @@ The response should look like this if the job submission was successful:
 
 In the field labeled *data*, we can see the information about the slurm job.
 You can get Slurm's `job id` as well as the status of the submission, which in this case was successful.
+You can also get the path of the output and error files from the jobs (`job_file_out` and `job_file_err`) as well as the content of the file at the time of the submission.
+Since the jobs was just submitted, the files will most likely be empty.
 The rest of the fields are about the FirecREST task.
 
 .. tip::
@@ -554,9 +564,9 @@ The job ID is a path parameter, so part of the endpoint URL, and the authorizati
             text += `<li data-target="#carouselExampleControls" data-slide-to="` + (i-1).toString() + `"></li>`;
         }
         text += `</ol>`;
-        text += `<div class="carousel-inner"><div class="carousel-item active"><img src="https://raw.githubusercontent.com/ekouts/firecrest/tutorial/tutorial/images/compute_squeue/compute_squeue%201.jpeg" class="d-block w-100" alt="..."></div>`;
+        text += `<div class="carousel-inner"><div class="carousel-item active"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/master/doc/_static/img/compute_squeue/compute_squeue%201.jpeg" class="d-block w-100" alt="..."></div>`;
         for (i = 2; i <= num_slides; i++) {
-            text += `<div class="carousel-item"><img src="https://raw.githubusercontent.com/ekouts/firecrest/tutorial/tutorial/images/compute_squeue/compute_squeue%20` + i.toString() + `.jpeg" class="d-block w-100" alt="..."></div>`;
+            text += `<div class="carousel-item"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/master/doc/_static/img/compute_squeue/compute_squeue%20` + i.toString() + `.jpeg" class="d-block w-100" alt="..."></div>`;
         }
         text += `</div><a class="carousel-control-prev" href="#carouselExampleControls" role="button" data-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="sr-only">Previous</span></a><a class="carousel-control-next" href="#carouselExampleControls" role="button" data-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="sr-only">Next</span></a></div>`
         document.getElementById('compute_squeue-carousel').srcdoc += text;
@@ -805,9 +815,9 @@ As soon as this finishes, we have to make a call to FirecREST in order for it to
             text += `<li data-target="#carouselExampleControls" data-slide-to="` + (i-1).toString() + `"></li>`;
         }
         text += `</ol>`;
-        text += `<div class="carousel-inner"><div class="carousel-item active"><img src="https://raw.githubusercontent.com/ekouts/firecrest/tutorial/tutorial/images/external_upload/external_upload%201.jpeg" class="d-block w-100" alt="..."></div>`;
+        text += `<div class="carousel-inner"><div class="carousel-item active"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/master/doc/_static/img/external_upload/external_upload%201.jpeg" class="d-block w-100" alt="..."></div>`;
         for (i = 2; i <= num_slides; i++) {
-            text += `<div class="carousel-item"><img src="https://raw.githubusercontent.com/ekouts/firecrest/tutorial/tutorial/images/external_upload/external_upload%20` + i.toString() + `.jpeg" class="d-block w-100" alt="..."></div>`;
+            text += `<div class="carousel-item"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/master/doc/_static/img/external_upload/external_upload%20` + i.toString() + `.jpeg" class="d-block w-100" alt="..."></div>`;
         }
         text += `</div><a class="carousel-control-prev" href="#carouselExampleControls" role="button" data-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="sr-only">Previous</span></a><a class="carousel-control-next" href="#carouselExampleControls" role="button" data-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="sr-only">Next</span></a></div>`
         document.getElementById('external_upload-carousel').srcdoc += text;
@@ -1037,9 +1047,9 @@ It follows a similar workflow, as the non-blocking uploading of a file, as you c
             text += `<li data-target="#carouselExampleControls" data-slide-to="` + (i-1).toString() + `"></li>`;
         }
         text += `</ol>`;
-        text += `<div class="carousel-inner"><div class="carousel-item active"><img src="https://raw.githubusercontent.com/ekouts/firecrest/tutorial/tutorial/images/external_download/external_download%201.jpeg" class="d-block w-100" alt="..."></div>`;
+        text += `<div class="carousel-inner"><div class="carousel-item active"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/master/doc/_static/img/external_download/external_download%201.jpeg" class="d-block w-100" alt="..."></div>`;
         for (i = 2; i <= num_slides; i++) {
-            text += `<div class="carousel-item"><img src="https://raw.githubusercontent.com/ekouts/firecrest/tutorial/tutorial/images/external_download/external_download%20` + i.toString() + `.jpeg" class="d-block w-100" alt="..."></div>`;
+            text += `<div class="carousel-item"><img src="https://raw.githubusercontent.com/eth-cscs/firecrest/master/doc/_static/img/external_download/external_download%20` + i.toString() + `.jpeg" class="d-block w-100" alt="..."></div>`;
         }
         text += `</div><a class="carousel-control-prev" href="#carouselExampleControls" role="button" data-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="sr-only">Previous</span></a><a class="carousel-control-next" href="#carouselExampleControls" role="button" data-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="sr-only">Next</span></a></div>`
         document.getElementById('external_download-carousel').srcdoc += text;
