@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tasks microservice now provides filtering by a subset of tasks with a `tasks` parameter
   - `GET /tasks?tasks=<taskid>,<taskid>,<taskid>`
 
+- Tasks microservice now reports in task metadata the system for which the task was created
+
 
 
 ## [1.13.0]

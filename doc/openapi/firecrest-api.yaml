@@ -2035,6 +2035,12 @@ paths:
         required: true
         schema:
           type: string
+      - in: header
+        name: X-Machine-Name
+        description: Name of the system for which the task will be created (must match configuration)
+        required: true
+        schema:
+          type: string
       tags:
         - Tasks
       responses:

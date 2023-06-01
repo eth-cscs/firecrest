@@ -377,7 +377,7 @@ def submit_job_upload():
         return data, 400
 
 
-    task_id = create_task(headers, service="compute")
+    task_id = create_task(headers, service="compute",system=system_name)
     # if error in creating task:
     if task_id == -1:
         return jsonify(description="Failed to submit job file",error='Error creating task'), 400
@@ -470,7 +470,7 @@ def submit_job_path():
         return jsonify(description="Failed to submit job"), 400, check["headers"]
 
     # creates the async task related to the job submission
-    task_id = create_task(headers, service="compute")
+    task_id = create_task(headers, service="compute",system=system_name)
     # if error in creating task:
     if task_id == -1:
         return jsonify(description="Failed to submit job",error='Error creating task'), 400
@@ -579,7 +579,7 @@ def list_jobs():
     action = f"ID={ID} {scheduler.poll(username, job_aux_list)}"
 
     try:
-        task_id = create_task(headers, service="compute")
+        task_id = create_task(headers, service="compute",system=system_name)
 
         # if error in creating task:
         if task_id == -1:
@@ -714,7 +714,7 @@ def list_job(jobid):
     action = f"ID={ID} {scheduler.poll(username, [jobid])}"
     try:
         # obtain new task from Tasks microservice
-        task_id = create_task(headers, service="compute")
+        task_id = create_task(headers, service="compute",system=system_name)
 
         # if error in creating task:
         if task_id == -1:
@@ -814,7 +814,7 @@ def cancel_job(jobid):
     action = f"ID={ID} {scheduler.cancel([jobid])}"
     try:
         # obtain new task from TASKS microservice.
-        task_id = create_task(headers, service="compute")
+        task_id = create_task(headers, service="compute", system = system_name)
 
         # if error in creating task:
         if task_id == -1:
@@ -841,8 +841,6 @@ def cancel_job(jobid):
 def acct_task(headers, system_name, system_addr, action, task_id):
     # exec remote command
     resp = exec_remote_command(headers, system_name, system_addr, action)
-
-    app.logger.info(resp)
 
     # in case of error:
     if resp["error"] == -2:
@@ -918,7 +916,7 @@ def acct():
 
     try:
         # obtain new task from Tasks microservice
-        task_id = create_task(headers, service="compute")
+        task_id = create_task(headers, service="compute",system=system_name)
 
         # if error in creating task:
         if task_id == -1:

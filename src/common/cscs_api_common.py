@@ -583,13 +583,14 @@ def parse_io_error(retval, operation, path):
 
 
 # function to call create task entry API in Queue FS, returns task_id for new task
-def create_task(headers, service=None):
+def create_task(headers, service=None, system=None):
 
     # returns {"task_id":task_id}
     # first try to get up task microservice:
     try:
         # X-Firecrest-Service: service that created the task
         headers["X-Firecrest-Service"] = service
+        headers["X-Machine-Name"] = system
         req = requests.post(f"{TASKS_URL}/", headers=headers, verify=(SSL_CRT if USE_SSL else False))
 
     except requests.exceptions.ConnectionError as e:

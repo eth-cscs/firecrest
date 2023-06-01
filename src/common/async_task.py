@@ -64,7 +64,7 @@ status_codes = { QUEUED  : "Queued",
 
 
 class AsyncTask():
-    def __init__(self,task_id,user,service=None):
+    def __init__(self,task_id,user,system=None,service=None):
 
         self.task_id = task_id
         self.hash_id = self.get_hashid(task_id,user)
@@ -73,6 +73,7 @@ class AsyncTask():
         self.data = {}
         self.user = user
         self.service = service
+        self.system  = system
         self.created_at = time.strftime("%Y-%m-%dT%H:%M:%S")
         self.updated_at = self.created_at
 
@@ -103,16 +104,19 @@ class AsyncTask():
     # return status for internal info (returns SSH "certificate" or "action")
     def get_internal_status(self):
 
-        return {"task_id": self.hash_id,
+        return {
+                "task_id": self.hash_id,
                 "hash_id": self.hash_id,
                 "user": self.user,
                 "status": self.status_code,
                 "description": self.status_desc,
                 "data": self.data,
                 "service": self.service,
+                "system": self.system,
                 "created_at": self.created_at,
                 "updated_at": self.updated_at,
-                "last_modify": self.updated_at}
+                "last_modify": self.updated_at
+                }
 
     # return status for public info, so task_id is discarded
     def get_status(self):
@@ -139,13 +143,16 @@ class AsyncTask():
         else:
             _data = self.data
 
-        return {"task_id": self.hash_id,
+        return {
+                "task_id": self.hash_id,
                 "hash_id": self.hash_id,
                 "user": self.user,
                 "status": self.status_code,
                 "description": self.status_desc,
                 "data": _data,
                 "service": self.service,
+                "system": self.system,
                 "created_at": self.created_at,
                 "updated_at": self.updated_at,
-                "last_modify": self.updated_at}
+                "last_modify": self.updated_at
+                }
