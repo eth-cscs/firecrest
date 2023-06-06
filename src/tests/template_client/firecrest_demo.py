@@ -155,10 +155,13 @@ class ApiForm(FlaskForm):
 
 class ExternalUploadForm(FlaskForm):
     '''A class to support raw api calls'''
+    machine = SelectField('Select target machine',
+                          choices=[(m, m) for m in app.config['MACHINES']])
     targetPath = StringField('Enter the target path (directory)', default="{}/".format(app.config["HOME_DIR"]),
                              validators=[InputRequired()])
     sourcePath = FileField('Enter the source path',
-                             validators=[InputRequired()])
+                             validators=[InputRequired()])    
+    
 
     submit = SubmitField('Submit')
 
@@ -181,6 +184,8 @@ class StorageInternalForm(FlaskForm):
 
 class ExternalDownloadForm(FlaskForm):
     '''A class to support raw api calls'''
+    machine = SelectField('Select target machine',
+                          choices=[(m, m) for m in app.config['MACHINES']])
     sourcePath = StringField('Enter the source path of the file in CSCS',
                              validators=[InputRequired()])
     submit = SubmitField('Submit')
@@ -258,9 +263,9 @@ def parameters():
 def tasks():
     '''View function for listing the FirecREST tasks'''
     response = requests.get(
-         url = f"{app.config['FIRECREST_IP']}/tasks/",
+         url = f"{app.config['FIRECREST_IP']}/tasks",
          headers = {'Authorization': f'Bearer {oidc.get_access_token()}'})
-
+    
     return render_template('tasks.html', response=response, microservices=demo_microservices)
 
 
@@ -303,9 +308,12 @@ def storage_upload():
     elif form.validate_on_submit() or request.method == "POST":
         target_path = form.targetPath.data
         source_path = form.sourcePath.data
+        machine_name = form.machine.data
         response = requests.post(
             url=f"{app.config['FIRECREST_IP']}/storage/xfer-external/upload",
-            headers={'Authorization': f'Bearer {oidc.get_access_token()}'},
+            headers={
+                    'Authorization': f'Bearer {oidc.get_access_token()}',
+                    "X-Machine-Name": machine_name},
             data={'targetPath': target_path, 'sourcePath': source_path})
 
         if response.ok:
@@ -329,12 +337,13 @@ def storage_download():
         form.sourcePath.data = "{}/{}".format(app.config["HOME_DIR"], g.user)
     elif form.validate_on_submit() or request.method == "POST":
         source_path = form.sourcePath.data
-
-        app.logger.info("Source path: {}".format(source_path))
-
+        machine_name = form.machine.data
+        
         response = requests.post(
             url=f"{app.config['FIRECREST_IP']}/storage/xfer-external/download",
-            headers={'Authorization': f'Bearer {oidc.get_access_token()}'},
+            headers={
+                    'Authorization': f'Bearer {oidc.get_access_token()}',
+                    'X-Machine-Name': machine_name},
             data={'sourcePath': source_path})
 
         if response.ok:
