@@ -281,7 +281,7 @@ services:
     ports:
       - "9090:8080"
     environment:
-      SWAGGER_JSON: /tmp/firecrest-developers-api.yaml
+      SWAGGER_JSON: /tmp/firecrest-api.yaml
     volumes:
       - ../../doc/openapi/:/tmp/
 
