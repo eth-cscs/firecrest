@@ -9,9 +9,21 @@ servers:
   - url: "http://localhost:8000"
 info:
   version: 1.13.1
-  title: FirecREST Developers API
+  title: FirecREST API
   description: >
-    This API specification is intended for FirecREST developers only. There're some endpoints that are not available in the public version for client developers.
+    FirecREST platform, a RESTful Services Gateway to HPC resources, is a
+    high-performance and reusable framework that integrates with existing HPC
+    infrastructure, thus enabling the access to HPC resources to web-enabled
+    services.
+
+
+    FirecREST provides a REST API that defines a set of functions through which
+    developers can interact with using the HTTP/REST protocol architecture.
+    Calls to the REST API received by the services gateway are translated into
+    the appropriate infrastructure requests. Among the most prominent services
+    that FirecREST exposes we find authentication and authorization, system
+    status, file-system access, data mover, execution of parallel jobs,
+    accounting information, etc.
 paths:
   '/status/services':
     get:
@@ -21,9 +33,6 @@ paths:
         description, and status.
       tags:
         - Status
-      # parameters:
-      #   - $ref: '#/components/parameters/pageSize'
-      #   - $ref: '#/components/parameters/pageNumber'
       responses:
         '200':
           description: List of services with status and description.
@@ -1200,6 +1209,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Utilities-ok'
+
         '400':
           description: Failed to return username
           content:
@@ -2016,7 +2026,7 @@ paths:
           name: tasks
           schema: 
             type: string
-          description: Comma-separated list of `{taskid}`
+          description: Comma-separated list of `{task_id}`
           required: false
       responses:
         '200':
@@ -2025,55 +2035,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Tasks'
-    post:
-      summary: Creates a new task
-      description: Creates a new task.
-      parameters:
-      - in: header
-        name: X-Firecrest-Service
-        description: Name of the service for which the task will be created ("compute" or "storage")
-        required: true
-        schema:
-          type: string
-      - in: header
-        name: X-Machine-Name
-        description: Name of the system for which the task will be created (must match configuration)
-        required: true
-        schema:
-          type: string
-      tags:
-        - Tasks
-      responses:
-        '201':
-          description: Task created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Task-Post-Ok'
-        '400':
-          description: Error creating task
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Expiration-400'
-        '401':
-          description: Not authorized.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Expiration-400'
-        '403':
-          description: Parameters error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Expiration-403'
-        '404':
-          description: Task not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Expiration-404'
   '/tasks/{taskid}':
     parameters:
       - name: taskid
@@ -2115,107 +2076,6 @@ paths:
                   - $ref: '#/components/schemas/Task-Compute-Acct-400'
                   - $ref: '#/components/schemas/Task-Compute-Delete-200'
                   - $ref: '#/components/schemas/Task-Compute-Delete-400'
-    put:
-     summary: Updates a task
-     description: Updates a task entry that keeps track of progress
-     parameters:
-      - in: header
-        name: X-Firecrest-Service
-        description: Name of the service for which the task will be created ("compute"/"storage")
-        required: true
-        schema:
-          type: string
-     tags:
-       - Tasks
-     responses:
-        '200':
-          description: Task updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Expiration-ok'
-        '400':
-          description: Error updating task
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Expiration-400'
-        '403':
-          description: Parameters error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Expiration-403'
-        '404':
-          description: Task not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Expiration-404'
-    delete:
-     summary: Delete task
-     description: Delete a already existing task
-     tags:
-       - Tasks
-     responses:
-        '204':
-          description: Task deleted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Expiration-ok'
-        '400':
-          description: Error deleting task
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Expiration-400'
-        '403':
-          description: Parameters error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Expiration-403'
-        '404':
-          description: Task not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Expiration-404'
-
-  '/tasks/expire/{task_id}':
-    post:
-      summary: Marks tasks with an expiration time
-      description: Marks tasks with an expiration time. After that the tasks will be removed.
-      tags:
-        - Tasks
-      responses:
-        '200':
-          description: Task marked for expiration successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Expiration-ok'
-        '400':
-          description: Error marking task for expiration
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Expiration-400'
-        '403':
-          description: Parameters error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Expiration-403'
-        '404':
-          description: Task not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Expiration-404'
-
-
   '/reservations':
     parameters:
       - in: header
@@ -2542,32 +2402,6 @@ paths:
               schema:
                 type: integer
 
-
-
-
-
-  '/certificator':
-    post:
-      summary: Creates SSH certificates
-      description: creates an SSH certificate to be used for system command execution
-      tags:
-        - 'Certificator'
-      responses:
-        '200':
-          description: certificate created.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Certificator-ok'
-
-        '404':
-          description: Error creating certificate.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Certificator-notok'
-
-
 components:
   securitySchemes:
     bearerAuth:
@@ -2768,11 +2602,11 @@ components:
           type: string
         status:
           type: string
-        status_code:
-          type: integer
           enum:
             - available
             - unavailable
+        status_code:
+          type: integer
         description:
           type: string
     Services:
@@ -2811,55 +2645,6 @@ components:
           type: string
         nodelist:
           type: string
-    Certificator-ok:
-      type: object
-      properties:
-          certificate:
-            type: string
-            description: SSH certificate
-    Certificator-notok:
-      type: object
-      properties:
-          description:
-            type: string
-            description: Error description.
-          error:
-            type: string
-            description: Error description.
-    Expiration-ok:
-      type: object
-      properties:
-        success:
-          type: string
-          description: Success description
-    Expiration-400:
-      type: object
-      properties:
-        error:
-          type: string
-          description: Error description
-    Expiration-403:
-      type: object
-      properties:
-        error:
-          type: string
-          description: Operation not permitted
-    Expiration-404:
-      type: object
-      properties:
-        error:
-          type: string
-          description: Task not found
-    Task-Post-Ok:
-      type: object
-      properties:
-          hash_id:
-            type: string
-            description: unique task ID
-          task_url:
-            type: string
-            description: URL for querying the task
-
     Jobs:
       type: array
       items:
