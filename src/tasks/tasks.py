@@ -145,6 +145,14 @@ def create_task():
 
     except KeyError:
         return jsonify(description="No service informed"), 403
+    
+    # checks if the request has the X-Machine-Name header
+    system = None
+    try:
+        system = request.headers["X-Machine-Name"]
+    except KeyError:
+        app.logger.warning("X-Machine-Name header not set for this task")
+
 
 
     auth_header = request.headers[AUTH_HEADER_NAME]
@@ -178,7 +186,9 @@ def create_task():
         return jsonify(description="Couldn't create task"), 400
 
     # create task with service included
-    t = async_task.AsyncTask(task_id=str(task_id), user=username, service=service, data=init_data)
+
+    t = async_task.AsyncTask(task_id=str(task_id), user=username, service=service, system=system,data=init_data)
+
     tasks[t.hash_id] = t
     if JAEGER_AGENT != "":
         try:

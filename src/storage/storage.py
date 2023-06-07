@@ -602,7 +602,7 @@ def download_request():
         return jsonify(description="sourcePath error"), 400, check["headers"]
 
     # obtain new task from Tasks microservice
-    task_id = create_task(headers, service="storage", init_data={"source": sourcePath, "system_name": system_name})
+    task_id = create_task(headers, service="storage", system=system_name, init_data={"source": sourcePath, "system_name": system_name})
 
     # couldn't create task
     if task_id == -1:
@@ -830,7 +830,7 @@ def upload_request():
         _targetPath = targetPath
     
     # obtain new task from Tasks microservice
-    task_id = create_task(headers, service="storage", init_data={"source":sourcePath, "target": _targetPath})
+    task_id = create_task(headers, service="storage", system=system_name, init_data={"source":sourcePath, "target": _targetPath})
 
     if task_id == -1:
         return jsonify(error="Error creating task"), 400

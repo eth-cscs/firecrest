@@ -585,13 +585,15 @@ def parse_io_error(retval, operation, path):
 
 
 # function to call create task entry API in Queue FS, returns task_id for new task
-def create_task(headers, service=None, init_data=None) -> Union[str,int]:
+<<<<<<< src/common/cscs_api_common.py
+def create_task(headers, service=None, system=None, init_data=None) -> Union[str,int]:
     '''
     Creates an asynchronous task and returns the new task_id, if task creation fails returns -1
 
     Parameters:
     - headers (dict): HTTP headers from the initial call of the user (user identity data is taken from here)
     - service (Union[str,None]): name of the service where the task creation was started ("compute" or "storage")
+    - system (Union[str,None]): name of the system which the task was started for
     - init_data (Union[dict,None]): initial data for the task creation
     
     Returns:
@@ -603,6 +605,7 @@ def create_task(headers, service=None, init_data=None) -> Union[str,int]:
     try:
         # X-Firecrest-Service: service that created the task
         headers["X-Firecrest-Service"] = service
+        headers["X-Machine-Name"] = system
         req = requests.post(f"{TASKS_URL}/", data={"init_data": init_data}, headers=headers, verify=(SSL_CRT if USE_SSL else False))
 
     except requests.exceptions.ConnectionError as e:
