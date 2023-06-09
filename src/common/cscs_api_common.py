@@ -585,7 +585,6 @@ def parse_io_error(retval, operation, path):
 
 
 # function to call create task entry API in Queue FS, returns task_id for new task
-<<<<<<< src/common/cscs_api_common.py
 def create_task(headers, service=None, system=None, init_data=None) -> Union[str,int]:
     '''
     Creates an asynchronous task and returns the new task_id, if task creation fails returns -1
