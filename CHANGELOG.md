@@ -15,7 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Tasks microservice now reports in task metadata the system for which the task was created
 
+- For storage tasks, now the `source` and `target` path are part of the `data` field on the response for all statuses
 
+### Fixed
+
+- Demo template UI client has been fixed in order to integrate latest changes
 
 ## [1.13.0]
 

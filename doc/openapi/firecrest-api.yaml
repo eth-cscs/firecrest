@@ -2684,6 +2684,8 @@ components:
           type: string
         service:
           type: string
+        system:
+          type: string
         task_url:
           type: string
     Tasks:
@@ -2797,6 +2799,9 @@ components:
         service:
           type: string
           description: FirecREST service that is related to the task (`"compute"` or `"storage"`)
+        system:
+          type: string
+          description: system for which the task was created
         task_url:
           type: string
           description: URL of the task
@@ -2862,6 +2867,9 @@ components:
         service:
           type: string
           description: FirecREST service that is related to the task (in this case is always `"storage"`)
+        system:
+          type: string
+          description: system for which the storage task was created
         task_url:
           type: string
           description: URL of the task
@@ -2957,6 +2965,9 @@ components:
         service:
           type: string
           description: FirecREST service that is related to the task (in this case is always `"storage"`)
+        system:
+          type: string
+          description: system for which the storage task was created
         task_url:
           type: string
           description: URL of the task
@@ -3052,6 +3063,9 @@ components:
         service:
           type: string
           description: FirecREST service that is related to the task (in this case is always `"storage"`)
+        system:
+          type: string
+          description: system for which the storage task was created
         task_url:
           type: string
           description: URL of the task
@@ -3118,6 +3132,9 @@ components:
         service:
           type: string
           description: FirecREST service that is related to the task (in this case is always `storage`)
+        system:
+          type: string
+          description: system for which the storage task was created
         task_url:
           type: string
           description: URL of the task
@@ -3184,6 +3201,9 @@ components:
         service:
           type: string
           description: FirecREST service that is related to the task (in this case is always `storage`)
+        system:
+          type: string
+          description: system for which the compute task was created
         task_url:
           type: string
           description: URL of the task
@@ -3250,6 +3270,9 @@ components:
         service:
           type: string
           description: FirecREST service that is related to the task (in this case is always `"storage"`)
+        system:
+          type: string
+          description: system for which the storage task was created
         task_url:
           type: string
           description: URL of the task
@@ -3267,9 +3290,18 @@ components:
           type: string
           description: Description of the status of the task ('Started upload from filesystem to Object Storage')
         data:
-          type: string
+          type: object
           description: Data concerning the status of the task
-          default: "Started upload from filesystem to Object Storage"
+          properties:
+            error:
+              type: string
+              description: Error message, if any
+            source:
+              type: string
+              description: Local path to the file to be downloaded
+            system_name:
+              type: string
+              description: system where the file to download is located
         created_at:
           type: string
           description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3288,6 +3320,9 @@ components:
         service:
           type: string
           description: FirecREST service that is related to the task (in this case is always `"storage"`)
+        system:
+          type: string
+          description: system for which the storage task was created
         task_url:
           type: string
           description: URL of the task
@@ -3305,8 +3340,18 @@ components:
           type: string
           description: Description of the status of the task ('Upload from filesystem to Object Storage has finished succesfully')
         data:
-          type: string
-          description: Temporary URL for downloading object from Object Storage location
+          type: object
+          description: Data concerning the status of the task
+          properties:
+            url:
+              type: string
+              description: Download URL 
+            source:
+              type: string
+              description: Local path to the file to be downloaded
+            system_name:
+              type: string
+              description: system where the file to download is located
         created_at:
           type: string
           description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3325,6 +3370,9 @@ components:
         service:
           type: string
           description: FirecREST service that is related to the task (in this case is always `"storage"`)
+        system:
+          type: string
+          description: system for which the storage task was created
         task_url:
           type: string
           description: URL of the task
@@ -3342,8 +3390,18 @@ components:
           type: string
           description: Description of the status of the task ('Upload from filesystem to Object Storage has finished with errors')
         data:
-          type: string
-          description: Error message describing the failure in the action
+          type: object
+          description: Data concerning the status of the task
+          properties:
+            error:
+              type: string
+              description: Error message, if any
+            source:
+              type: string
+              description: Local path to the file to be downloaded
+            system_name:
+              type: string
+              description: system where the file to download is located
         created_at:
           type: string
           description: Date and time of the task creation (format=`%Y-%m-%dT%H:%M:%S`)
@@ -3362,6 +3420,9 @@ components:
         service:
           type: string
           description: FirecREST service that is related to the task (in this case is always `"storage"`)
+        system:
+          type: string
+          description: system for which the storage task was created
         task_url:
           type: string
           description: URL of the task
@@ -3427,6 +3488,9 @@ components:
         service:
           type: string
           description: FirecREST service that is related to the task (in this case is always `"compute"`)
+        system:
+          type: string
+          description: system for which the compute task was created
         task_url:
           type: string
           description: URL of the task
@@ -3464,6 +3528,9 @@ components:
         service:
           type: string
           description: FirecREST service that is related to the task (in this case is always `"compute"`)
+        system:
+          type: string
+          description: system for which the compute task was created
         task_url:
           type: string
           description: URL of the task
@@ -3509,6 +3576,9 @@ components:
         service:
           type: string
           description: FirecREST service that is related to the task (in this case is always `"compute"`)
+        system:
+          type: string
+          description: system for which the compute task was created
         task_url:
           type: string
           description: URL of the task
@@ -3546,6 +3616,9 @@ components:
         service:
           type: string
           description: FirecREST service that is related to the task (in this case is always `"compute"`)
+        system:
+          type: string
+          description: system for which the compute task was created
         task_url:
           type: string
           description: URL of the task
@@ -3584,6 +3657,9 @@ components:
         service:
           type: string
           description: FirecREST service that is related to the task (in this case is always `"compute"`)
+        system:
+          type: string
+          description: system for which the compute task was created
         task_url:
           type: string
           description: URL of the task
@@ -3621,6 +3697,9 @@ components:
         service:
           type: string
           description: FirecREST service that is related to the task (in this case is always `"compute"`)
+        system:
+          type: string
+          description: system for which the compute task was created
         task_url:
           type: string
           description: URL of the task
@@ -3658,6 +3737,9 @@ components:
         service:
           type: string
           description: FirecREST service that is related to the task (in this case is always `"compute"`)
+        system:
+          type: string
+          description: system for which the compute task was created
         task_url:
           type: string
           description: URL of the task
@@ -3695,6 +3777,9 @@ components:
         service:
           type: string
           description: FirecREST service that is related to the task (in this case is always `"compute"`)
+        system:
+          type: string
+          description: system for which the compute task was created
         task_url:
           type: string
           description: URL of the task
