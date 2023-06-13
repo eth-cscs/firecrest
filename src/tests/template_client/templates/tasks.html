@@ -12,16 +12,26 @@
 <h1>Tasks microservice</h1>
 <h2>List of tasks</h2>
 <table class="table table-hover">
-<tr><th>Task ID</th> <th>Description</th><th>Service</th><th>Status</th><th colspan="2">Last modify</th></tr>
-{% for taskid in response.json()['tasks'] %}
-  
+<tr><th>Task ID</th>
+	<th>Description</th>
+	<th>Service</th>
+	<th>Status</th>
+	<th>Created At</th>
+	<th>Updated At</th>
+	<th>Direct link</th>
+</tr>
+{% for internal_id in response.json()['tasks'] %}  
+
+	{% set task_id = response.json()['tasks'][internal_id]['task_id'] %}
+	
  <tr>
-	<td>{{ response.json()['tasks'][taskid]['hash_id'] }}</td>
-	<td>{{ response.json()['tasks'][taskid]['description'] }}</td>
-	<td>{{ response.json()['tasks'][taskid]['service'] }}</td>
-	<td>{{ response.json()['tasks'][taskid]['status'] }}</td>
-	<td>{{ response.json()['tasks'][taskid]['last_modify'] }}</td>
-	<td><a href="tasks/{{ taskid }}"> Open task </a></td>
+	<td>{{ task_id }}</td>
+	<td>{{ response.json()['tasks'][internal_id]['description'] }}</td>
+	<td>{{ response.json()['tasks'][internal_id]['service'] }}</td>
+	<td>{{ response.json()['tasks'][internal_id]['status'] }}</td>
+	<td>{{ response.json()['tasks'][internal_id]['created_at'] }}</td>
+	<td>{{ response.json()['tasks'][internal_id]['updated_at'] }}</td>
+	<td><a href="tasks/{{ task_id }}"> Open task </a></td>
 </tr>
 {% endfor %}
 </table>

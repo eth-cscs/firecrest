@@ -421,8 +421,6 @@ def os_to_fs(task_id):
         # get tmp directory
         td = cert[1]
 
-        app.logger.info(f"Temp dir: {td}")
-
         if not os.path.exists(td):
             # retrieve public certificate and store in temp dir location
             str_to_file(pub_cert,td,"user-key-cert.pub")
@@ -437,14 +435,28 @@ def os_to_fs(task_id):
         cert_list = [f"{td}/user-key-cert.pub", f"{td}/user-key.pub", f"{td}/user-key", td]
 
         # start download from OS to FS
-        update_task(task_id, headers, async_task.ST_DWN_BEG)
+        update_task(task_id, headers, async_task.ST_DWN_BEG, 
+                    msg={
+                        "source": objectname, 
+                        "target": upl_file["target"], 
+                        "system_name": system_name,
+                        "system_addr": system_addr
+                        }, 
+                    is_json=True)
 
         # execute download
         result = exec_remote_command(username, system_name, system_addr, "", "storage_cert", cert_list)
 
         # if no error, then download is complete
         if result["error"] == 0:
-            update_task(task_id, headers, async_task.ST_DWN_END)
+            update_task(task_id, headers, async_task.ST_DWN_END,
+                        msg={
+                            "source": objectname, 
+                            "target": upl_file["target"], 
+                            "system_name": system_name,
+                            "system_addr": system_addr
+                            }, 
+                        is_json=True)
 
             # No need to delete the dictionary, it will be cleaned on next iteration
 
@@ -482,8 +494,8 @@ def download_task(headers, system_name, system_addr, sourcePath, task_id):
 
     # check if staging area token is valid
     if not staging.renew_token():
-        msg = "Staging area auth error"
-        update_task(task_id, headers, async_task.ERROR, msg)
+        msg = {"error": "Staging area auth error", "source": sourcePath, "system_name": system_name}
+        update_task(task_id, headers, async_task.ERROR, msg, is_json=True)
         return
 
     # create container if it doesn't exists:
@@ -491,16 +503,20 @@ def download_task(headers, system_name, system_addr, sourcePath, task_id):
 
     if not is_username_ok["result"]:
         app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
-        update_task(task_id, headers, async_task.ERROR, is_username_ok['reason'])
-
+        msg = {"error": is_username_ok['reason'], "source": sourcePath, "system_name": system_name}
+        update_task(task_id, headers, async_task.ERROR, msg, is_json=True)
+        
     container_name = is_username_ok["username"]
 
     if not staging.is_container_created(container_name):
         errno = staging.create_container(container_name)
 
         if errno == -1:
-            msg = f"Could not create container {container_name} in Staging Area ({staging.get_object_storage()})"
-            update_task(task_id, headers, async_task.ERROR, msg)
+            error_msg = f"Could not create container {container_name} in Staging Area ({staging.get_object_storage()})"
+
+            msg = {"error": error_msg, "source": sourcePath, "system_name": system_name}
+
+            update_task(task_id, headers, async_task.ERROR, msg, is_json=True)
             return
 
     # upload file to swift
@@ -509,22 +525,24 @@ def download_task(headers, system_name, system_addr, sourcePath, task_id):
     upload_url = staging.create_upload_form(sourcePath, container_name, object_prefix, STORAGE_TEMPURL_EXP_TIME, STORAGE_MAX_FILE_SIZE)
 
     # advice Tasks that upload begins:
-    update_task(task_id, headers, async_task.ST_UPL_BEG)
+    msg = {"source": sourcePath, "system_name": system_name}
+    update_task(task_id, headers, async_task.ST_UPL_BEG, msg=msg, is_json=True)
 
     # upload starts:
     res = exec_remote_command(headers, system_name, system_addr, upload_url["command"])
 
     # if upload to SWIFT fails:
     if res["error"] != 0:
-        msg = f"Upload to Staging area has failed. Object: {object_name}"
+        error_msg = f"Upload to Staging area has failed. Object: {object_name}"
+        
 
         error_str = res["msg"]
         if in_str(error_str,"OPENSSH"):
             error_str = "User does not have permissions to access machine"
-        msg = f"{msg}. {error_str}"
+        error_msg = f"{error_msg}. {error_str}"
+        msg = {"error": error_msg, "source": sourcePath, "system_name": system_name}
 
-        app.logger.error(msg)
-        update_task(task_id, headers, async_task.ST_UPL_ERR, msg)
+        update_task(task_id, headers, async_task.ST_UPL_ERR, msg,is_json=True)
         return
 
 
@@ -534,12 +552,14 @@ def download_task(headers, system_name, system_addr, sourcePath, task_id):
 
     # if error raises in temp url creation:
     if temp_url == None:
-        msg = f"Temp URL creation failed. Object: {object_name}"
-        update_task(task_id, headers, async_task.ERROR, msg)
+        error_msg = f"Temp URL creation failed. Object: {object_name}"
+        msg = {"error": error_msg, "source": sourcePath, "system_name": system_name}
+        update_task(task_id, headers, async_task.ERROR, msg, is_json=True)
         return
 
     # if succesfully created: temp_url in task with success status
-    update_task(task_id, headers, async_task.ST_UPL_END, temp_url)
+    msg = {"url": temp_url, "source": sourcePath, "system_name": system_name}
+    update_task(task_id, headers, async_task.ST_UPL_END, msg, is_json=True)
     # marked deletion from here to STORAGE_TEMPURL_EXP_TIME (default 30 days)
     retval = staging.delete_object_after(containername=container_name,prefix=object_prefix,objectname=object_name,ttl=int(time.time()) + STORAGE_TEMPURL_EXP_TIME)
 
@@ -582,7 +602,7 @@ def download_request():
         return jsonify(description="sourcePath error"), 400, check["headers"]
 
     # obtain new task from Tasks microservice
-    task_id = create_task(headers, service="storage", system=system_name)
+    task_id = create_task(headers, service="storage", system=system_name, init_data={"source": sourcePath, "system_name": system_name})
 
     # couldn't create task
     if task_id == -1:
@@ -810,7 +830,7 @@ def upload_request():
         _targetPath = targetPath
     
     # obtain new task from Tasks microservice
-    task_id = create_task(headers, service="storage", system=system_name)
+    task_id = create_task(headers, service="storage", system=system_name, init_data={"source":sourcePath, "target": _targetPath})
 
     if task_id == -1:
         return jsonify(error="Error creating task"), 400

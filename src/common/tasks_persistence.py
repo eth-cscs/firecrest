@@ -259,7 +259,8 @@ def get_user_tasks(r,user,task_list=None, status_code=None) -> Union[dict,None]:
                 d = r.get(task_id)
                 d = d.decode('latin-1')
 
-                task_dict[task_id] = d
+                task_dict[task["hash_id"]] = json.loads(d)
+                
 
         return task_dict
 

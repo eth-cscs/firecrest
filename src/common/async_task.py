@@ -64,13 +64,16 @@ status_codes = { QUEUED  : "Queued",
 
 
 class AsyncTask():
-    def __init__(self,task_id,user,system=None,service=None):
+    def __init__(self,task_id,user,service=None,system=None,data=None):
 
         self.task_id = task_id
         self.hash_id = self.get_hashid(task_id,user)
         self.status_code = QUEUED
         self.status_desc = status_codes[QUEUED]
-        self.data = {}
+        if data==None:
+            self.data = {}
+        else:
+            self.data = data
         self.user = user
         self.service = service
         self.system  = system

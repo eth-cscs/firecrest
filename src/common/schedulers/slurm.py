@@ -164,13 +164,13 @@ class SlurmScheduler(schedulers.JobScheduler):
 
         if start_time:
             if self.is_valid_accounting_time(start_time):
-                cmd.append("--starttime='{start_time}'")
+                cmd.append(f"--starttime='{start_time}'")
             else:
                 logger.warning(f"starttime wrongly encoded: {start_time}")
 
         if end_time:
             if self.is_valid_accounting_time(end_time):
-                cmd.append("--endtime='{end_time}'")
+                cmd.append(f"--endtime='{end_time}'")
             else:
                 logger.warning(f"endtime wrongly encoded: {end_time}")
 
@@ -224,7 +224,7 @@ class SlurmScheduler(schedulers.JobScheduler):
 
         return None
 
-    def is_valid_accounting_time(sacctTime):
+    def is_valid_accounting_time(self,sacctTime):
         # HH:MM[:SS] [AM|PM]
         # MMDD[YY] or MM/DD[/YY] or MM.DD[.YY]
         # MM/DD[/YY]-HH:MM[:SS]

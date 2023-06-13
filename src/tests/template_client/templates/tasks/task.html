@@ -38,7 +38,7 @@ function refresh(task_url){
 
           $("#status").text(data['task']['status']);
           $("#description").text(data['task']['description']);
-          $("#last_modify").text(data['task']['last_modify']);
+          $("#updated_at").text(data['task']['updated_at']);          
 
           /* ask first for microservice == storage*/
           if (data['task']['service'].localeCompare("storage") == 0 ){
@@ -47,7 +47,7 @@ function refresh(task_url){
             if (data['task']['status'].localeCompare("117") == 0){
 
               /*$("#data").text("Use this link to download the file:");*/
-              $("#data").wrapInner("<a class=\"btn btn-success\" href=\""+data['task']['data']+"\">Download</a>");
+              $("#data").wrapInner("<a class=\"btn btn-success\" href=\""+data['task']['data']['url']+"\">Download</a>");
 
             } else if (data['task']['status'].localeCompare("111") == 0){ /*UPLOAD: received temp url form*/
 
@@ -104,7 +104,15 @@ function refresh(task_url){
   <tr><td><b>Service</b></td><td id="service">{{ response.json()['task']['service'] }}</td></tr>
   <tr><td><b>Status Code</b></td><td class="{{ style }}" id="status">{{ response.json()['task']['status'] }}</td></tr>
   <tr><td><b>Description</b></td><td id="description">{{ response.json()['task']['description'] }}</td></tr>
-  <tr><td><b>Last Modify</b></td><td  id="last_modify">{{ response.json()['task']['last_modify'] }}</td></tr>
+  <tr><td><b>Created at</b></td><td  id="created_at">{{ response.json()['task']['created_at'] }}</td></tr>
+  <tr><td><b>Updated at</b></td><td  id="updated_at">{{ response.json()['task']['updated_at'] }}</td></tr>
+  {% if response.json()['task']['service'] == "storage" %} {# if is storage #}
+  <tr><td><b>Source Path</b></td><td  id="source">{{ response.json()['task']['data']['source'] }}</td></tr>
+  <tr><td><b>Target Path</b></td><td  id="target">{{ response.json()['task']['data']['target'] }}</td></tr>
+  <tr><td><b>System</b></td><td  id="system_name">{{ response.json()['task']['data']['system_name'] }}</td></tr>
+  {% endif %} {# if is storage #}
+
+
   <tr><td colspan="2"><b>Actions on the tasks</b></td></tr>
   <tr><td colspan="2" id="data">
   {% if response.json()['task']['service'] != None %} 

@@ -21,6 +21,8 @@ import re
 import time
 import threading
 
+from typing import Union
+
 
 # Checks if an environment variable injected to F7T is a valid True value
 # var <- object
@@ -583,7 +585,19 @@ def parse_io_error(retval, operation, path):
 
 
 # function to call create task entry API in Queue FS, returns task_id for new task
-def create_task(headers, service=None, system=None):
+def create_task(headers, service=None, system=None, init_data=None) -> Union[str,int]:
+    '''
+    Creates an asynchronous task and returns the new task_id, if task creation fails returns -1
+
+    Parameters:
+    - headers (dict): HTTP headers from the initial call of the user (user identity data is taken from here)
+    - service (Union[str,None]): name of the service where the task creation was started ("compute" or "storage")
+    - system (Union[str,None]): name of the system which the task was started for
+    - init_data (Union[dict,None]): initial data for the task creation
+    
+    Returns:
+    - Union[str,int]: task ID of the newly created task, in case of fail returns -1
+    '''
 
     # returns {"task_id":task_id}
     # first try to get up task microservice:
@@ -591,7 +605,7 @@ def create_task(headers, service=None, system=None):
         # X-Firecrest-Service: service that created the task
         headers["X-Firecrest-Service"] = service
         headers["X-Machine-Name"] = system
-        req = requests.post(f"{TASKS_URL}/", headers=headers, verify=(SSL_CRT if USE_SSL else False))
+        req = requests.post(f"{TASKS_URL}/", data={"init_data": init_data}, headers=headers, verify=(SSL_CRT if USE_SSL else False))
 
     except requests.exceptions.ConnectionError as e:
         logging.error(type(e), exc_info=True)
@@ -601,7 +615,8 @@ def create_task(headers, service=None, system=None):
     if req.status_code != 201:
         return -1
 
-    logging.info(json.loads(req.content))
+    if DEBUG_MODE:
+        logging.info(json.loads(req.content))
     resp = json.loads(req.content)
     task_id = resp["hash_id"]
 
@@ -609,7 +624,20 @@ def create_task(headers, service=None, system=None):
 
 
 # function to call update task entry API in Queue FS
-def update_task(task_id, headers, status, msg=None, is_json=False):
+def update_task(task_id: str, headers: dict, status: str, msg:Union[str,dict,None]=None, is_json:bool=False) -> dict:
+    '''
+    Updates an asynchronous task information
+
+    Parameters:
+    - task_id (str): unique identifier of the async task
+    - headers (dict): HTTP headers from the initial call of the user (user identity data is taken from here)
+    - status (str): new status of the task
+    - msg (Union[str,dict,None]): new data of the task
+    - is_json (bool): True if the msg is coded as JSON
+    
+    Returns:
+    - dict: response of the task microservice with the outcome of updating the task
+    '''
 
     logging.info(f"Update {TASKS_URL}/{task_id} -> status: {status}")
 
@@ -624,8 +652,19 @@ def update_task(task_id, headers, status, msg=None, is_json=False):
     resp = json.loads(req.content)
     return resp
 
-# function to call update task entry API in Queue FS
-def expire_task(task_id, headers, service):
+
+def expire_task(task_id, headers, service) -> bool:
+    '''
+    Set an expiration time to a task to be deleted in the persistence backend (expiration time will depend on the /tasks microservice)
+
+    Parameters:
+    - task_id (str): unique identifier of the async task
+    - headers (dict): HTTP headers from the initial call of the user (user identity data is taken from here)
+    - service (Union[str,None]): name of the service where the task creation was started ("compute" or "storage")
+    
+    Returns:
+    - bool: True if the task has been expired correctly
+    '''
 
     logging.info(f"{TASKS_URL}/expire/{task_id}")
     try:
@@ -643,7 +682,17 @@ def expire_task(task_id, headers, service):
     return True
 
 # Delete task (used only in /xfer-external/invalidate)
-def delete_task(task_id, headers):
+def delete_task(task_id, headers) -> bool:
+    '''
+    Mark a task to be deleted in the persistence backend immediatelly
+
+    Parameters:
+    - task_id (str): unique identifier of the async task
+    - headers (dict): HTTP headers from the initial call of the user (user identity data is taken from here)
+        
+    Returns:
+    - bool: True if the task has been deleted correctly
+    '''
 
     logging.info(f"DELETE {TASKS_URL}/{task_id}")
     try:
@@ -662,7 +711,17 @@ def delete_task(task_id, headers):
 
 
 # function to check task status:
-def get_task_status(task_id, headers):
+def get_task_status(task_id, headers) -> Union[dict,int]:
+    '''
+    Return task status
+
+    Parameters:
+    - task_id (str): unique identifier of the async task
+    - headers (dict): HTTP headers from the initial call of the user (user identity data is taken from here)
+        
+    Returns:
+    - dict: with status information. If there is an error on the Tasks microservice, then returns -1
+    '''
 
     logging.info(f"{TASKS_URL}/{task_id}")
     try:

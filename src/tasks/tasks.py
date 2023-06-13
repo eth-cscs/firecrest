@@ -124,13 +124,11 @@ def list_tasks():
             return jsonify(description="Failed to retrieve tasks information", error=f"'tasks' {v}"), 400
         
         task_list = task_list.split(",")
-    
-
 
     user_tasks = {}
 
     user_tasks = persistence.get_user_tasks(r,username, task_list=task_list)
-
+   
     data = jsonify(tasks=user_tasks)
     return data, 200
 
@@ -171,6 +169,12 @@ def create_task():
 
     username = is_username_ok["username"]
 
+    try:
+        init_data = request.form.get("init_data")
+    except KeyError as ke:
+        if DEBUG_MODE:
+            app.logger.warning("Not initial data set in the task creation")
+
     # QueuePersistence connection
     global r
 
@@ -182,7 +186,9 @@ def create_task():
         return jsonify(description="Couldn't create task"), 400
 
     # create task with service included
-    t = async_task.AsyncTask(task_id=str(task_id), user=username, system=system, service=service)
+
+    t = async_task.AsyncTask(task_id=str(task_id), user=username, service=service, system=system,data=init_data)
+
     tasks[t.hash_id] = t
     if JAEGER_AGENT != "":
         try:

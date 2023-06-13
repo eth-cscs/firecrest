@@ -31,6 +31,7 @@
 
       <form class="form-group" action="upload" method="post">
         <table style="border-spacing: 20px;">
+            <tr><td style="padding-right: 20px"><b>Target system</b></td><td>{{ form.machine(class="form-control") }}</td></tr>
             <tr><td style="padding-right: 20px"><b>Target path</b></td><td>{{ form.targetPath(class="form-control") }}</td></tr>
             <tr><td style="padding-right: 20px"><b>Source file</b></td><td>{{ form.sourcePath(class="form-control") }}</td></tr>
             <tr><td style="padding-right: 20px">{{ form.submit(class="form-control") }}</td></tr>
