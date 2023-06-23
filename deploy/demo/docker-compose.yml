@@ -33,6 +33,9 @@ services:
       network: host
     env_file:
       - ./common/common.env
+    environment:
+      - F7T_CA_KEY_PATH=/etc/firecrest/ca-key
+      - F7T_USER_KEY_PATH=/etc/firecrest/user-key.pub
     networks:
       firecrest-internal:
         ipv4_address: 192.168.220.11
@@ -40,8 +43,8 @@ services:
       - 5010:5010
     volumes:
       - ./logs/firecrest:/var/log:delegated
-      - ../test-build/environment/keys/user-key.pub:/user-key.pub:ro
-      - ../test-build/environment/keys/ca-key:/ca-key:ro
+      - ../test-build/environment/keys/user-key.pub:/etc/firecrest/user-key.pub:ro
+      - ../test-build/environment/keys/ca-key:/etc/firecrest/ca-key:ro
       - ./ssl:/ssl
 
   compute:
