@@ -57,7 +57,7 @@ SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
 ### ca-key and user-key.pub keys path
 CA_KEY_PATH = os.environ.get("F7T_CA_KEY_PATH", "/ca-key")
-USER_KEY_PATH = os.environ.get("F7T_USER_KEY_PATH", "/user-key.pub")
+PUB_USER_KEY_PATH = os.environ.get("F7T_PUB_USER_KEY_PATH", "/user-key.pub")
 
 TRACER_HEADER = "uber-trace-id"
 
@@ -435,7 +435,7 @@ def receive():
 
         # create temp dir to store certificate for this request
         td = tempfile.mkdtemp(prefix = "cert")
-        os.symlink(USER_KEY_PATH, td + "/user-key.pub")  # link on temp dir
+        os.symlink(PUB_USER_KEY_PATH, f"{td}/user-key.pub")  # link on temp dir
 
         command = f"ssh-keygen -s {CA_KEY_PATH} -n {username} -V {ssh_expire} -I {CA_KEY_PATH} {force_command} {td}/user-key.pub "
 

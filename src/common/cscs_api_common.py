@@ -81,6 +81,10 @@ USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
+### SSH key paths
+PUB_USER_KEY_PATH = os.environ.get("F7T_PUB_USER_KEY_PATH", "/user-key.pub")
+PRIV_USER_KEY_PATH = os.environ.get("F7T_PRIV_USER_KEY_PATH", "/user-key")
+
 TRACER_HEADER = "uber-trace-id"
 
 
@@ -288,16 +292,16 @@ def create_certificate(headers, cluster_name, cluster_addr, command=None, option
         # create temp dir to store certificate for this request
         td = tempfile.mkdtemp(prefix="dummy")
 
-        os.symlink(os.getcwd() + "/user-key.pub", td + "/user-key.pub")  # link on temp dir
-        os.symlink(os.getcwd() + "/user-key", td + "/user-key")  # link on temp dir
-        certf = open(td + "/user-key-cert.pub", 'w')
+        os.symlink(PUB_USER_KEY_PATH, f"{td}/user-key.pub")  # link on temp dir
+        os.symlink(PRIV_USER_KEY_PATH, f"{td}/user-key")  # link on temp dir
+        certf = open(f"{td}/user-key-cert.pub", 'w')
         certf.write(jcert["certificate"])
         certf.close()
         # stat.S_IRUSR -> owner has read permission
-        os.chmod(td + "/user-key-cert.pub", stat.S_IRUSR)
+        os.chmod(f"{td}/user-key-cert.pub", stat.S_IRUSR)
 
         # keys: [pub_cert, pub_key, priv_key, temp_dir]
-        return [td + "/user-key-cert.pub", td + "/user-key.pub", td + "/user-key", td]
+        return [f"{td}/user-key-cert.pub", f"{td}/user-key.pub", f"{td}/user-key", td]
     except requests.exceptions.SSLError as ssle:
         logging.error(f"(-2) -> {ssle}")
         logging.error(f"(-2) -> {ssle.strerror}")

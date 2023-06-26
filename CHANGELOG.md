@@ -17,7 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - For storage tasks, now the `source` and `target` path are part of the `data` field on the response for all statuses
 
-- For certificator container sets up the environment variables `F7T_CA_KEY_PATH` and `F7T_USER_KEY_PATH` as absolute paths in the container for the CA Private key (`ca-key`) and the user key (`user-key.pub`), respectively. If not set, the default directory will be root (ie, `/ca-key`)
+- For certificator container sets up the environment variables `F7T_CA_KEY_PATH` and `F7T_PUB_USER_KEY_PATH` as absolute paths in the container for the CA Private key (`ca-key`) and the user key (`user-key.pub`), respectively. If not set, the default directory will be root (ie, `/ca-key`)
+
+- For the rest of microservices, the value to set is `F7T_PRIV_USER_KEY_PATH` (`user-key`)
 
 ### Fixed
 

@@ -35,7 +35,7 @@ services:
       - ./common/common.env
     environment:
       - F7T_CA_KEY_PATH=/etc/firecrest/ca-key
-      - F7T_USER_KEY_PATH=/etc/firecrest/user-key.pub
+      - F7T_PUB_USER_KEY_PATH=/etc/firecrest/user-key.pub
     networks:
       firecrest-internal:
         ipv4_address: 192.168.220.11
@@ -54,6 +54,8 @@ services:
       context: ../../
       dockerfile: deploy/docker/compute/Dockerfile
       network: host
+    environment:
+      - F7T_PRIV_USER_KEY_PATH=/etc/firecrest/ssh/user-key
     env_file:
       - ./common/common.env
     networks:
@@ -63,7 +65,7 @@ services:
       - 5006:5006
     volumes:
       - ./logs/firecrest:/var/log:delegated
-      - ../test-build/environment/keys/user-key:/user-key:ro
+      - ../test-build/environment/keys/user-key:/etc/firecrest/ssh/user-key:ro
       - ./ssl:/ssl
 
   status:
