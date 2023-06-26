@@ -55,6 +55,10 @@ USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
+### ca-key and user-key.pub keys path
+CA_KEY_PATH = os.environ.get("F7T_CA_KEY_PATH", "/ca-key")
+USER_KEY_PATH = os.environ.get("F7T_USER_KEY_PATH", "/user-key.pub")
+
 TRACER_HEADER = "uber-trace-id"
 
 REALM_RSA_PUBLIC_KEYS=os.environ.get("F7T_REALM_RSA_PUBLIC_KEY", '').strip('\'"').split(";")
@@ -135,13 +139,13 @@ def check_key_permission():
     # check that CA private key has proper permissions: 400 (no user write, and no access for group and others)
     import stat, sys
     try:
-        cas = os.stat('ca-key').st_mode
+        cas = os.stat(CA_KEY_PATH).st_mode
         if oct(cas & 0o477) != '0o400':
-            msg = "ERROR: wrong 'ca-key' permissions, please set to 400. Exiting."
+            msg = f"ERROR: wrong '{CA_KEY_PATH}' permissions, please set to 400. Exiting."
             app.logger.error(msg)
             sys.exit(msg)
     except OSError as e:
-        msg = f"ERROR: couldn't stat 'ca-key', message: {e.strerror} - Exiting."
+        msg = f"ERROR: couldn't stat '{CA_KEY_PATH}', message: {e.strerror} - Exiting."
         app.logger.error(msg)
         sys.exit(msg)
 
@@ -431,9 +435,9 @@ def receive():
 
         # create temp dir to store certificate for this request
         td = tempfile.mkdtemp(prefix = "cert")
-        os.symlink(os.getcwd() + "/user-key.pub", td + "/user-key.pub")  # link on temp dir
+        os.symlink(USER_KEY_PATH, td + "/user-key.pub")  # link on temp dir
 
-        command = f"ssh-keygen -s ca-key -n {username} -V {ssh_expire} -I ca-key {force_command} {td}/user-key.pub "
+        command = f"ssh-keygen -s {CA_KEY_PATH} -n {username} -V {ssh_expire} -I {CA_KEY_PATH} {force_command} {td}/user-key.pub "
 
     except Exception as e:
         logging.error(e)

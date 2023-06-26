@@ -4,6 +4,8 @@ data:
   F7T_OPA_URL: "{{ .Values.certificator.F7T_OPA_URL }}"
   F7T_OPA_USE: "{{ .Values.certificator.F7T_OPA_USE }}"
   F7T_POLICY_PATH: "{{ .Values.certificator.F7T_POLICY_PATH }}"
+  F7T_CA_KEY_PATH: "{{ .Values.certificator.F7T_CA_KEY_PATH }}"
+  F7T_USER_KEY_PATH: "{{ .Values.certificator.F7T_USER_KEY_PATH }}"
 kind: ConfigMap
 metadata:
   name: certificator-env-file
