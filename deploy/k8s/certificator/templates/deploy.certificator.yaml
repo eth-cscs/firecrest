@@ -44,7 +44,7 @@ items:
           - mountPath: "{{ .Values.certificator.F7T_CA_KEY_PATH }}"
             name: f7t-cert-vol
             subPath: ca-key
-          - mountPath: "{{ .Values.certificator.F7T_USER_KEY_PATH }}"
+          - mountPath: "{{ .Values.certificator.F7T_PUB_USER_KEY_PATH }}"
             name: f7t-cert-user-pub-vol
             subPath: user-key.pub
           - mountPath: /f7t-ssl.crt
