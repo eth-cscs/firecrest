@@ -130,6 +130,7 @@ def chown():
 ##  - path: Filesystem path (Str) *required
 ##  - bytes: optional
 ##  - lines: optional, default is 10
+##  - skip_ending: optional, add '-' before NUM in bytes/lines arguments
 ##  - machinename: str *required
 
 @app.route("/head", methods=["GET"])
@@ -239,6 +240,7 @@ def make_directory():
 ##  - path: Filesystem path (Str) *required
 ##  - bytes: optional
 ##  - lines: optional, default is 10
+##  - skip_beginning: optional, add '+' before NUM in bytes/lines arguments
 ##  - machinename: str *required
 
 @app.route("/tail", methods=["GET"])
@@ -382,6 +384,11 @@ def common_fs_operation(request, command):
         opt = ""
         bytes = request.args.get("bytes", None)
         lines = request.args.get("lines", None)
+        if command ==  "head":
+            reverse_mode = get_boolean_var(request.args.get("skip_ending", None))
+        else:
+            reverse_mode = get_boolean_var(request.args.get("skip_beginning", None))
+
         if bytes and lines:
             return jsonify(description=f"Error on {command} operation", error=f"Can not specify both 'bytes' and 'lines'"), 400
 
@@ -389,13 +396,27 @@ def common_fs_operation(request, command):
             v = validate_input(bytes)
             if v != "":
                 return jsonify(description=f"Error on {command} operation", error=f"'bytes' {v}"), 400
-            opt = f" --bytes='{bytes}' "
+
+            if reverse_mode:
+                if command == "head":
+                    opt = f" --bytes='-{bytes}' "
+                else:
+                    opt = f" --bytes='+{bytes}' "
+            else:
+                opt = f" --bytes='{bytes}' "
 
         if lines:
             v = validate_input(lines)
             if v != "":
                 return jsonify(description=f"Error on {command} operation", error=f"'lines' {v}"), 400
-            opt = f" --lines='{lines}' "
+
+            if reverse_mode:
+                if command == "head":
+                    opt = f" --lines='-{lines}' "
+                else:
+                    opt = f" --lines='+{lines}' "
+            else:
+                opt = f" --lines='{lines}' "
 
         action = f"{command} {opt} -- '{targetPath}'"
         file_transfer = 'download'

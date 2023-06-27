@@ -650,6 +650,9 @@ paths:
           description: Returns the first N lines, accepts K, KB, MB, etc
           schema:
             type: string
+        - name: skip_ending
+          in: query
+          description: The output will be the whole file, without the last NUM bytes/lines of each file. NUM should be specified in the respective argument through `bytes` or `lines`.
       responses:
         '200':
           description: File content successfully returned
@@ -859,6 +862,11 @@ paths:
           description: Returns the last N lines, accepts K, KB, MB, etc
           schema:
             type: string
+        - name: skip_beginning
+          in: query
+          description: The output will start with byte/line NUM of each file. NUM should be specified in the respective argument through `bytes` or `lines`.
+          schema:
+            type: boolean
       responses:
         '200':
           description: File content successfully returned
@@ -1879,7 +1887,7 @@ paths:
                   description: source path to the file in local machine
                 targetPath:
                   type: string
-                  description: absolute path to destination (directory or file)                
+                  description: absolute path to destination (directory or file)
               required:
                 - sourcePath
                 - targetPath
@@ -2024,7 +2032,7 @@ paths:
       parameters:
         - in: query
           name: tasks
-          schema: 
+          schema:
             type: string
           description: Comma-separated list of `{task_id}`
           required: false
@@ -3345,7 +3353,7 @@ components:
           properties:
             url:
               type: string
-              description: Download URL 
+              description: Download URL
             source:
               type: string
               description: Local path to the file to be downloaded

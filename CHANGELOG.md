@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - For the rest of microservices, the value to set is `F7T_PRIV_USER_KEY_PATH` (`user-key`)
 
+- The `head` endpoint has a new argument: `skip_ending`. The output will be the whole file, without the last NUM bytes/lines of each file.
+
+- The `tail` endpoint has a new argument: `skip_beginning`. The output will start with byte/line NUM of each file.
+
 ### Fixed
 
 - Demo template UI client has been fixed in order to integrate latest changes
@@ -31,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Flask version upgraded to `2.3.2` 
+- Flask version upgraded to `2.3.2`
 - Cryptography version upgraded to `39.0.2`
 - Certificator now uses `f7t-base` as base image
 
