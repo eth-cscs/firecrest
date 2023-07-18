@@ -172,7 +172,7 @@ items:
                 content:
                   text/plain:
                     schema:
-                      type: string
+                      $ref: '#/components/schemas/Utilities-notok'
                 headers:
                   X-Machine-Does-Not-Exist:
                     description: Machine does not exist
@@ -237,7 +237,7 @@ items:
                 content:
                   text/plain:
                     schema:
-                      type: string
+                      $ref: '#/components/schemas/Utilities-notok'
                 headers:
                   X-Machine-Does-Not-Exist:
                     description: Machine does not exist
@@ -309,7 +309,7 @@ items:
                 content:
                   text/plain:
                     schema:
-                      type: string
+                      $ref: '#/components/schemas/Utilities-notok'
                 headers:
                   X-Machine-Does-Not-Exist:
                     description: Machine does not exist
@@ -383,7 +383,7 @@ items:
                 content:
                   text/plain:
                     schema:
-                      type: string
+                      $ref: '#/components/schemas/Utilities-notok'
                 headers:
                   X-Machine-Does-Not-Exist:
                     description: Machine does not exist
@@ -458,7 +458,7 @@ items:
                 content:
                   text/plain:
                     schema:
-                      type: string
+                      $ref: '#/components/schemas/Utilities-notok'
                 headers:
                   X-Machine-Does-Not-Exist:
                     description: Machine does not exist
@@ -533,7 +533,7 @@ items:
                 content:
                   text/plain:
                     schema:
-                      type: string
+                      $ref: '#/components/schemas/Utilities-notok'
                 headers:
                   X-Machine-Does-Not-Exist:
                     description: Machine does not exist
@@ -598,7 +598,7 @@ items:
                 content:
                   text/plain:
                     schema:
-                      type: string
+                      $ref: '#/components/schemas/Utilities-notok'
                 headers:
                   X-Machine-Does-Not-Exist:
                     description: Machine does not exist
@@ -657,6 +657,11 @@ items:
               - name: lines
                 in: query
                 description: Returns the first N lines, accepts K, KB, MB, etc
+                schema:
+                  type: string
+              - name: skip_ending
+                in: query
+                description: The output will be the whole file, without the last NUM bytes/lines of each file. NUM should be specified in the respective argument through `bytes` or `lines`.
                 schema:
                   type: string
             responses:
@@ -731,12 +736,16 @@ items:
                     schema:
                       $ref: '#/components/schemas/File-Stat-metadata'
               '400':
-                description: Error in file operation
+                description: Error on stat operation
                 content:
                   text/plain:
                     schema:
-                      type: string
+                      $ref: '#/components/schemas/Utilities-notok'
                 headers:
+                  X-Invalid-Path:
+                    description: <path> is an invalid path
+                    schema:
+                      type: string
                   X-Machine-Does-Not-Exist:
                     description: Machine does not exist
                     schema:
@@ -745,18 +754,19 @@ items:
                     description: Machine is not available
                     schema:
                       type: string
+                  X-Not-A-Directory:
+                    description: targetPath is not a directory
+                    schema:
+                      type: string
                   X-Permission-Denied:
                     description: User does not have permissions to access machine or paths
                     schema:
-                      type: string
-                  X-Invalid-Path:
-                    description: <path> is an invalid path
-                    schema:
-                      type: string
+                      type: string            
                   X-Timeout:
                     description: Command has finished with timeout signal
                     schema:
                       type: string
+
               '401':
                 description: No auth header given
                 content:
@@ -809,7 +819,7 @@ items:
                 content:
                   text/plain:
                     schema:
-                      type: string
+                      $ref: '#/components/schemas/Utilities-notok'
                 headers:
                   X-Machine-Does-Not-Exist:
                     description: Machine does not exist
@@ -868,6 +878,11 @@ items:
                 description: Returns the last N lines, accepts K, KB, MB, etc
                 schema:
                   type: string
+              - name: skip_beginning
+                in: query
+                description: The output will start with byte/line NUM of each file. NUM should be specified in the respective argument through `bytes` or `lines`.
+                schema:
+                  type: boolean
             responses:
               '200':
                 description: File content successfully returned
@@ -938,7 +953,7 @@ items:
                 content:
                   text/plain:
                     schema:
-                      type: string
+                      $ref: '#/components/schemas/Utilities-notok'
                 headers:
                   X-Machine-Does-Not-Exist:
                     description: Machine does not exist
@@ -1001,7 +1016,7 @@ items:
                 content:
                   text/plain:
                     schema:
-                      type: string
+                      $ref: '#/components/schemas/Utilities-notok'
                 headers:
                   X-Machine-Does-Not-Exist:
                     description: Machine does not exist
@@ -1058,7 +1073,7 @@ items:
                 content:
                   text/plain:
                     schema:
-                      type: string
+                      $ref: '#/components/schemas/Utilities-notok'
                 headers:
                   X-Machine-Does-Not-Exist:
                     description: Machine does not exist
@@ -1888,7 +1903,7 @@ items:
                         description: source path to the file in local machine
                       targetPath:
                         type: string
-                        description: absolute path to destination (directory or file)                
+                        description: absolute path to destination (directory or file)
                     required:
                       - sourcePath
                       - targetPath
@@ -2033,7 +2048,7 @@ items:
             parameters:
               - in: query
                 name: tasks
-                schema: 
+                schema:
                   type: string
                 description: Comma-separated list of `{task_id}`
                 required: false
@@ -2457,7 +2472,7 @@ items:
             content:
               '*/*':
                 schema:
-                  $ref: '#/components/schemas/Error'
+                  $ref: '#/components/schemas/Utilities-notok'
           Standard400Error:
             description: Bad Request error
           Standard500Error:
@@ -2597,12 +2612,6 @@ items:
                         type: string
                       unit:
                         type: string
-          Error:
-            properties:
-              code:
-                type: string
-              message:
-                type: string
           Service:
             required:
               - service
@@ -3354,7 +3363,7 @@ items:
                 properties:
                   url:
                     type: string
-                    description: Download URL 
+                    description: Download URL
                   source:
                     type: string
                     description: Local path to the file to be downloaded

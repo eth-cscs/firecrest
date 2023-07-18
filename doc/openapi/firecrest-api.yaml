@@ -163,7 +163,7 @@ paths:
           content:
             text/plain:
               schema:
-                type: string
+                $ref: '#/components/schemas/Utilities-notok'
           headers:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
@@ -228,7 +228,7 @@ paths:
           content:
             text/plain:
               schema:
-                type: string
+                $ref: '#/components/schemas/Utilities-notok'
           headers:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
@@ -300,7 +300,7 @@ paths:
           content:
             text/plain:
               schema:
-                type: string
+                $ref: '#/components/schemas/Utilities-notok'
           headers:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
@@ -374,7 +374,7 @@ paths:
           content:
             text/plain:
               schema:
-                type: string
+                $ref: '#/components/schemas/Utilities-notok'
           headers:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
@@ -449,7 +449,7 @@ paths:
           content:
             text/plain:
               schema:
-                type: string
+                $ref: '#/components/schemas/Utilities-notok'
           headers:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
@@ -524,7 +524,7 @@ paths:
           content:
             text/plain:
               schema:
-                type: string
+                $ref: '#/components/schemas/Utilities-notok'
           headers:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
@@ -589,7 +589,7 @@ paths:
           content:
             text/plain:
               schema:
-                type: string
+                $ref: '#/components/schemas/Utilities-notok'
           headers:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
@@ -653,6 +653,8 @@ paths:
         - name: skip_ending
           in: query
           description: The output will be the whole file, without the last NUM bytes/lines of each file. NUM should be specified in the respective argument through `bytes` or `lines`.
+          schema:
+            type: string
       responses:
         '200':
           description: File content successfully returned
@@ -725,12 +727,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/File-Stat-metadata'
         '400':
-          description: Error in file operation
+          description: Error on stat operation
           content:
             text/plain:
               schema:
-                type: string
+                $ref: '#/components/schemas/Utilities-notok'
           headers:
+            X-Invalid-Path:
+              description: <path> is an invalid path
+              schema:
+                type: string
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
               schema:
@@ -739,18 +745,19 @@ paths:
               description: Machine is not available
               schema:
                 type: string
+            X-Not-A-Directory:
+              description: targetPath is not a directory
+              schema:
+                type: string
             X-Permission-Denied:
               description: User does not have permissions to access machine or paths
               schema:
-                type: string
-            X-Invalid-Path:
-              description: <path> is an invalid path
-              schema:
-                type: string
+                type: string            
             X-Timeout:
               description: Command has finished with timeout signal
               schema:
                 type: string
+
         '401':
           description: No auth header given
           content:
@@ -803,7 +810,7 @@ paths:
           content:
             text/plain:
               schema:
-                type: string
+                $ref: '#/components/schemas/Utilities-notok'
           headers:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
@@ -937,7 +944,7 @@ paths:
           content:
             text/plain:
               schema:
-                type: string
+                $ref: '#/components/schemas/Utilities-notok'
           headers:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
@@ -1000,7 +1007,7 @@ paths:
           content:
             text/plain:
               schema:
-                type: string
+                $ref: '#/components/schemas/Utilities-notok'
           headers:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
@@ -1057,7 +1064,7 @@ paths:
           content:
             text/plain:
               schema:
-                type: string
+                $ref: '#/components/schemas/Utilities-notok'
           headers:
             X-Machine-Does-Not-Exist:
               description: Machine does not exist
@@ -2456,7 +2463,7 @@ components:
       content:
         '*/*':
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/Utilities-notok'
     Standard400Error:
       description: Bad Request error
     Standard500Error:
@@ -2596,12 +2603,6 @@ components:
                   type: string
                 unit:
                   type: string
-    Error:
-      properties:
-        code:
-          type: string
-        message:
-          type: string
     Service:
       required:
         - service

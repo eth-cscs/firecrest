@@ -896,86 +896,90 @@ def check_command_error(error_str, error_code, service_msg):
 
     if error_code == -2:
         header = {"X-Machine-Not-Available": "Machine is not available"}
-        return {"description": service_msg, "status_code": 400, "header": header}
+        return {"description": service_msg, "error": "Machine is not available", "status_code": 400, "header": header}
 
     if error_code == 113:
         header = {"X-Machine-Not-Available":"Machine is not available"}
-        return {"description": service_msg, "status_code": 400, "header": header}
+        return {"description": service_msg, "error":  "Machine is not available", "status_code": 400, "header": header}
 
     if error_code == 124:
         header = {"X-Timeout": "Command has finished with timeout signal"}
-        return {"description": service_msg, "status_code": 400, "header": header}
+        return {"description": service_msg, "error":"Command has finished with timeout signal", "status_code": 400, "header": header}
 
     if error_code == 118:
         header = {"X-Error": "Command execution is not allowed in machine"}
-        return {"description": service_msg, "status_code": 400, "header": header}
+        return {"description": service_msg, "error":"Command execution is not allowed in machine", "status_code": 400, "header": header}
 
     # When certificate doesn't match SSH configuration
     if in_str(error_str,"OPENSSH"):
         header = {"X-Permission-Denied": "User does not have permissions to access machine"}
-        return {"description": service_msg, "status_code": 400, "header": header}
+        return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
 
     if in_str(error_str,"cannot access"):
         header={"X-Invalid-Path":"path is an invalid path"}
-        return {"description": service_msg, "status_code": 400, "header": header}
+        return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
 
     if in_str(error_str,"No such file"):
         if in_str(error_str,"cannot stat"):
             header={"X-Not-Found":"sourcePath not found"}
-            return {"description": service_msg, "status_code": 400, "header": header}
+            return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
 
         # copy: cannot create, rename: cannot move
         if in_str(error_str, "cannot create") or in_str(error_str,"cannot move"):
             header = {"X-Invalid-Path": "sourcePath and/or targetPath are invalid paths"}
-            return {"description": service_msg, "status_code": 400, "header": header}
+            return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
 
         if in_str(error_str,"cannot remove"):
             header = {"X-Invalid-Path": "path is an invalid path."}
-            return {"description": service_msg, "status_code": 400, "header": header}
+            return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
 
         header={"X-Invalid-Path":"path is an invalid path"}
-        return {"description": service_msg, "status_code": 400, "header": header}
+        return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
 
     if in_str(error_str,"cannot open"):
         header = {"X-Permission-Denied": "User does not have permissions to access path"}
-        return {"description":service_msg, "status_code": 400, "header": header}
+        return {"description":service_msg, "error": error_str, "status_code": 400, "header": header}
 
     if in_str(error_str,"Permission denied"):
         header = {"X-Permission-Denied": "User does not have permissions to access path"}
-        return {"description": service_msg, "status_code": 400, "header": header}
+        return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
 
     if in_str(error_str,"exists") and in_str(error_str,"mkdir"):
         header = {"X-Exists": "targetPath directory already exists"}
-        return {"description": service_msg, "status_code": 400, "header": header}
+        return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
 
+    if in_str(error_str,"Not a directory"):
+        header = {"X-Not-A-Directory": "targetPath is not a directory"}
+        return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
+    
     if in_str(error_str,"directory"):
         header = {"X-A-Directory": "path is a directory, can't checksum directories"}
-        return {"description": service_msg, "status_code": 400, "header": header}
+        return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
 
     # if already exists, not overwrite (-i)
     if in_str(error_str,"overwrite"):
         header = {"X-Exists": "targetPath already exists"}
-        return {"description": service_msg, "status_code": 400, "header": header}
+        return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
 
     if in_str(error_str,"not permitted"):
         header = {"X-Permission-Denied": "User does not have permissions to access path"}
-        return {"description": service_msg, "status_code": 400, "header": header}
+        return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
 
     if in_str(error_str,"invalid group"):
         header = {"X-Invalid-Group": "group is an invalid group"}
-        return {"description": service_msg, "status_code": 400, "header": header}
+        return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
 
     if in_str(error_str,"invalid user"):
         header = {"X-Invalid-Owner": "owner is an invalid user"}
-        return {"description": service_msg, "status_code": 400, "header": header}
+        return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
 
     if in_str(error_str, "invalid mode"):
         header = {"X-Invalid-Mode": "mode is an invalid mode"}
-        return {"description": service_msg, "status_code": 400, "header": header}
+        return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
 
     if in_str(error_str, "read permission"):
         header = {"X-Permission-Denied": "User does not have permissions to access path"}
-        return {"description": service_msg, "status_code": 400, "header": header}
+        return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
     header = {"X-Error": error_str}
     return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
 
