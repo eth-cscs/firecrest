@@ -955,6 +955,10 @@ items:
                     schema:
                       $ref: '#/components/schemas/Utilities-notok'
                 headers:
+                  X-Invalid-Path:
+                    description: <path> is invalid
+                    schema:
+                      type: string
                   X-Machine-Does-Not-Exist:
                     description: Machine does not exist
                     schema:
@@ -967,8 +971,8 @@ items:
                     description: User does not have permissions to access machine or path
                     schema:
                       type: string
-                  X-Invalid-Path:
-                    description: <path> is invalid
+                  X-Size-Limit:
+                    description: File exceeds size limit
                     schema:
                       type: string
         '/utilities/upload':
@@ -1189,6 +1193,14 @@ items:
                     schema:
                       $ref: '#/components/schemas/Utilities-notok'
                 headers:
+                  X-A-Directory:
+                    description: <targetPath> is a directory, can't checksum directories
+                    schema:
+                      type: string
+                  X-Invalid-Path:
+                    description: <path> is invalid
+                    schema:
+                      type: string
                   X-Machine-Does-Not-Exist:
                     description: Machine does not exist
                     schema:
@@ -1201,16 +1213,12 @@ items:
                     description: User does not have permissions to access machine or path
                     schema:
                       type: string
-                  X-Invalid-Path:
-                    description: <path> is invalid.
+                  X-Size-Limit:
+                    description: File exceeds size limit
                     schema:
-                      type: string
+                      type: string            
                   X-Timeout:
                     description: Command has finished with timeout signal
-                    schema:
-                      type: string
-                  X-A-Directory:
-                    description: <targetPath> is a directory, can't checksum directories
                     schema:
                       type: string
         '/utilities/whoami':

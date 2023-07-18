@@ -68,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add github workflow for automatic releases.
 - Add new endpoints for `head` and `tail` commands.
 - Add endpoint for the `whoami` command.
+- Add `X-Size-Limit` to `/utilities/download` and `/utilities/view` endpoints API specification
 
 ### Changed
 
