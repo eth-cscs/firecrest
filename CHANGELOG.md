@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Demo template UI client has been fixed in order to integrate latest changes
+- Fixed correct header when the result of an operation in the system is `Not a directory` to `X-Not-A-Directory`
 
 ## [1.13.0]
 
