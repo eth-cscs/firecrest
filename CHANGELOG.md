@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Demo template UI client has been fixed in order to integrate latest changes
+- Fixed correct header when the result of an operation in the system is `Not a directory` to `X-Not-A-Directory`
 
 ## [1.13.0]
 
@@ -67,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add github workflow for automatic releases.
 - Add new endpoints for `head` and `tail` commands.
 - Add endpoint for the `whoami` command.
+- Add `X-Size-Limit` to `/utilities/download` and `/utilities/view` endpoints API specification
 
 ### Changed
 
