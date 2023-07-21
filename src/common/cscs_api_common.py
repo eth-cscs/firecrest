@@ -598,7 +598,7 @@ def create_task(headers, service=None, system=None, init_data=None) -> Union[str
     - service (Union[str,None]): name of the service where the task creation was started ("compute" or "storage")
     - system (Union[str,None]): name of the system which the task was started for
     - init_data (Union[dict,None]): initial data for the task creation
-    
+
     Returns:
     - Union[str,int]: task ID of the newly created task, in case of fail returns -1
     '''
@@ -638,7 +638,7 @@ def update_task(task_id: str, headers: dict, status: str, msg:Union[str,dict,Non
     - status (str): new status of the task
     - msg (Union[str,dict,None]): new data of the task
     - is_json (bool): True if the msg is coded as JSON
-    
+
     Returns:
     - dict: response of the task microservice with the outcome of updating the task
     '''
@@ -665,7 +665,7 @@ def expire_task(task_id, headers, service) -> bool:
     - task_id (str): unique identifier of the async task
     - headers (dict): HTTP headers from the initial call of the user (user identity data is taken from here)
     - service (Union[str,None]): name of the service where the task creation was started ("compute" or "storage")
-    
+
     Returns:
     - bool: True if the task has been expired correctly
     '''
@@ -693,7 +693,7 @@ def delete_task(task_id, headers) -> bool:
     Parameters:
     - task_id (str): unique identifier of the async task
     - headers (dict): HTTP headers from the initial call of the user (user identity data is taken from here)
-        
+
     Returns:
     - bool: True if the task has been deleted correctly
     '''
@@ -722,7 +722,7 @@ def get_task_status(task_id, headers) -> Union[dict,int]:
     Parameters:
     - task_id (str): unique identifier of the async task
     - headers (dict): HTTP headers from the initial call of the user (user identity data is taken from here)
-        
+
     Returns:
     - dict: with status information. If there is an error on the Tasks microservice, then returns -1
     '''
@@ -944,14 +944,14 @@ def check_command_error(error_str, error_code, service_msg):
         header = {"X-Permission-Denied": "User does not have permissions to access path"}
         return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
 
-    if in_str(error_str,"exists") and in_str(error_str,"mkdir"):
-        header = {"X-Exists": "targetPath directory already exists"}
+    if ("File exists" in error_str) and ("mkdir: cannot create directory" in error_str or "ln: failed to create symbolic link" in error_str):
+        header = {"X-Exists": "targetPath already exists"}
         return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
 
     if in_str(error_str,"Not a directory"):
         header = {"X-Not-A-Directory": "targetPath is not a directory"}
         return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
-    
+
     if in_str(error_str,"directory"):
         header = {"X-A-Directory": "path is a directory, can't checksum directories"}
         return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
@@ -980,6 +980,7 @@ def check_command_error(error_str, error_code, service_msg):
     if in_str(error_str, "read permission"):
         header = {"X-Permission-Denied": "User does not have permissions to access path"}
         return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
+
     header = {"X-Error": error_str}
     return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
 
@@ -1031,5 +1032,5 @@ def setup_logging(logging, service):
     else:
         logging.getLogger().setLevel(logging.INFO)
         logging.info("DEBUG_MODE: False")
-    
+
     return logger
