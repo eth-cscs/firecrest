@@ -29,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Demo template UI client has been fixed in order to integrate latest changes
 - Fixed correct header when the result of an operation in the system is `Not a directory` to `X-Not-A-Directory`
+- Fixed the automatic change of the filename in uploaded files with empty spaces and other special characters.
+- Fixed the issue with parsing `ls` when encountering filenames with the `$` character and whitespace.
 
 ## [1.13.0]
 
