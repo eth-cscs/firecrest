@@ -944,14 +944,14 @@ def check_command_error(error_str, error_code, service_msg):
         header = {"X-Permission-Denied": "User does not have permissions to access path"}
         return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
 
-    if in_str(error_str,"exists") and in_str(error_str,"mkdir"):
-        header = {"X-Exists": "targetPath directory already exists"}
+    if ("File exists" in error_str) and ("mkdir: cannot create directory" in error_str or "ln: failed to create symbolic link" in error_str):
+        header = {"X-Exists": "targetPath already exists"}
         return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
 
     if in_str(error_str,"Not a directory"):
         header = {"X-Not-A-Directory": "targetPath is not a directory"}
         return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
-    
+
     if in_str(error_str,"directory"):
         header = {"X-A-Directory": "path is a directory, can't checksum directories"}
         return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
@@ -980,6 +980,7 @@ def check_command_error(error_str, error_code, service_msg):
     if in_str(error_str, "read permission"):
         header = {"X-Permission-Denied": "User does not have permissions to access path"}
         return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
+
     header = {"X-Error": error_str}
     return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
 
