@@ -446,7 +446,7 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
             outlines = output
         else:
             # replace newlines with $ for parsing
-            outlines = output.replace('\n', '$')[:-1]
+            outlines = output[:-1]
 
         # hiding success results from utilities/download, since output is the content of the file
         if file_transfer == "download":
@@ -598,7 +598,7 @@ def create_task(headers, service=None, system=None, init_data=None) -> Union[str
     - service (Union[str,None]): name of the service where the task creation was started ("compute" or "storage")
     - system (Union[str,None]): name of the system which the task was started for
     - init_data (Union[dict,None]): initial data for the task creation
-    
+
     Returns:
     - Union[str,int]: task ID of the newly created task, in case of fail returns -1
     '''
@@ -638,7 +638,7 @@ def update_task(task_id: str, headers: dict, status: str, msg:Union[str,dict,Non
     - status (str): new status of the task
     - msg (Union[str,dict,None]): new data of the task
     - is_json (bool): True if the msg is coded as JSON
-    
+
     Returns:
     - dict: response of the task microservice with the outcome of updating the task
     '''
@@ -665,7 +665,7 @@ def expire_task(task_id, headers, service) -> bool:
     - task_id (str): unique identifier of the async task
     - headers (dict): HTTP headers from the initial call of the user (user identity data is taken from here)
     - service (Union[str,None]): name of the service where the task creation was started ("compute" or "storage")
-    
+
     Returns:
     - bool: True if the task has been expired correctly
     '''
@@ -693,7 +693,7 @@ def delete_task(task_id, headers) -> bool:
     Parameters:
     - task_id (str): unique identifier of the async task
     - headers (dict): HTTP headers from the initial call of the user (user identity data is taken from here)
-        
+
     Returns:
     - bool: True if the task has been deleted correctly
     '''
@@ -722,7 +722,7 @@ def get_task_status(task_id, headers) -> Union[dict,int]:
     Parameters:
     - task_id (str): unique identifier of the async task
     - headers (dict): HTTP headers from the initial call of the user (user identity data is taken from here)
-        
+
     Returns:
     - dict: with status information. If there is an error on the Tasks microservice, then returns -1
     '''
@@ -1031,5 +1031,5 @@ def setup_logging(logging, service):
     else:
         logging.getLogger().setLevel(logging.INFO)
         logging.info("DEBUG_MODE: False")
-    
+
     return logger

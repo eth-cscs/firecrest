@@ -206,7 +206,7 @@ def get():
     reservations = []
 
     # selects only what is between ----- lines
-    output_list = output.split("$")[2:-1]
+    output_list = output.split("\n")[2:-1]
 
 
     for _output in output_list:

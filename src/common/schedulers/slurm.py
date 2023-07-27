@@ -137,7 +137,7 @@ class SlurmScheduler(schedulers.JobScheduler):
 
     def parse_poll_output(self, output):
         jobs = []
-        for job_str in output.split("$"):
+        for job_str in output.split("\n"):
             job_info = job_str.split(SQUEUE_SEP)
             jobs.append(
                 {
@@ -189,7 +189,7 @@ class SlurmScheduler(schedulers.JobScheduler):
 
     def parse_accounting_output(self, output):
         jobs = []
-        for job_str in output.split("$"):
+        for job_str in output.split("\n"):
             job_info = job_str.split("|")
             jobs.append(
                 {

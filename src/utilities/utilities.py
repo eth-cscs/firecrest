@@ -6,7 +6,6 @@
 #
 from flask import Flask, request, jsonify, send_file, g
 import os, logging
-from werkzeug.utils import secure_filename
 from werkzeug.exceptions import BadRequestKeyError
 
 import base64
@@ -16,6 +15,8 @@ from math import ceil
 from flask_opentracing import FlaskTracing
 from jaeger_client import Config
 import opentracing
+import re
+import shlex
 
 from cscs_api_common import check_auth_header, exec_remote_command, check_command_error, get_boolean_var, validate_input, setup_logging
 
@@ -153,18 +154,42 @@ def list_directory():
 
 ## parse ls output
 def ls_parse(request, retval):
-    # file List is retorned as a string separated for a $ character
-    fileList = []
-    if len(retval["msg"].split("$")) == 1:
-        # if only one line is returned, there are two cases:
-        # 1. 'total 0': means directory was empty, so fileList is kept empty
-        # 2. 'r.....   some_file.txt': means 'ls' was to only one file: 'ls /home/user/some.txt'
-        if retval["msg"][0:5]!='total':
-            fileList = retval["msg"].split("$")
-    else:
-        fileList = retval["msg"].split("$")[1:]
+    # Example of ls output
+    # total 8
+    # lrwxrwxrwx 1 username groupname 46 2023-07-25T14:18:00 "filename" -> "target link"
+    # -rw-rw-r-- 1 root root           0 2023-07-24T11:45:35 "root_file.txt"
+    # ...
+    file_pattern = (r'^(?P<type>\S)(?P<permissions>\S+)\s+\d+\s+(?P<user>\S+)\s+'
+                    r'(?P<group>\S+)\s+(?P<size>\d+)\s+(?P<last_modified>(\d|-|T|:)+)\s+(?P<filename>.+)$')
+    matches = re.finditer(file_pattern, retval["msg"], re.MULTILINE)
+    file_list = []
+    for m in matches:
+        tokens = shlex.split(m.group("filename"))
+        if len(tokens) == 1:
+            name = tokens[0]
+            link_target = ""
+        elif len(tokens) == 3:
+            # We could add an assertion that m.group("type") == 'l' if
+            # we want to be sure that this is a link
+            name = tokens[0]
+            link_target = tokens[2]
+        else:
+            app.logger.error(f"Cannot get the filename from this line from ls: {m.group()}")
+            continue
 
-    totalSize = len(fileList)
+        file_list.append({
+            "name": name,
+            "type": m.group("type"),
+            "link_target": link_target,
+            "user": m.group("user"),
+            "group": m.group("group"),
+            "permissions": m.group("permissions"),
+            "last_modified": m.group("last_modified"),
+            "size": m.group("size")
+        })
+
+    totalSize = len(file_list)
+    logging.info(f"Length of file list: {len(file_list)}")
 
     # if pageSize and number were set:
     pageSize = request.args.get("pageSize", None)
@@ -189,38 +214,11 @@ def ls_parse(request, retval):
                 beg_reg=int((pageNumber-1)*pageSize)
                 end_reg=int(pageNumber*pageSize-1)
                 app.logger.info(f"Initial reg {beg_reg}, final reg: {end_reg}")
-                fileList = fileList[beg_reg:end_reg+1]
+                file_list = file_list[beg_reg:end_reg+1]
         except:
             app.logger.info(f"Invalid pageSize ({pageSize}) and/or pageNumber ({pageSize}), returning full list")
 
-    outLabels = ["name","type","link_target","user","group","permissions","last_modified","size"]
-
-    # labels taken from list to dict with default value: ""
-    outList = []
-
-    logging.info(f"Length of file list: {len(fileList)}")
-
-    for files in fileList:
-        line = files.split()
-
-        try:
-            symlink = line[8] # because of the -> which is 7
-        except IndexError:
-            symlink = ""
-
-        outDict = {outLabels[0]:line[6],
-                outLabels[1]:line[0][0],
-                outLabels[2]:symlink,
-                outLabels[3]:line[2],
-                outLabels[4]:line[3],
-                outLabels[5]:line[0][1:],
-                outLabels[6]:line[5],
-                outLabels[7]:line[4]
-                }
-
-        outList.append(outDict)
-
-    return outList
+    return file_list
 
 
 ## mkdir: Make Directory
@@ -425,7 +423,7 @@ def common_fs_operation(request, command):
         showall = ""
         if get_boolean_var(request.args.get("showhidden", False)):
             showall = "-A"
-        action = f"ls -l {showall} --time-style=+%Y-%m-%dT%H:%M:%S -- '{targetPath}'"
+        action = f"ls -l --quoting-style=c {showall} --time-style=+%Y-%m-%dT%H:%M:%S -- '{targetPath}'"
     elif command == "mkdir":
         try:
             p = request.form["p"]
@@ -465,7 +463,7 @@ def common_fs_operation(request, command):
                 return jsonify(description="Failed to upload file", error=f"Filename {v}"), 400
         except:
             return jsonify(description='Error on upload operation', output=''), 400
-        filename = secure_filename(file.filename)
+        filename = file.filename
         action = f"cat > '{targetPath}/{filename}'"
         file_content = file.read()
         file_transfer = 'upload'
@@ -572,7 +570,7 @@ def download():
 
     #TODO: check path doesn't finish with /
     path = request.args.get("sourcePath")
-    file_name = secure_filename(path.split("/")[-1])
+    file_name = os.path.basename(path)
 
     try:
         file_size = int(out["output"]) # in bytes
