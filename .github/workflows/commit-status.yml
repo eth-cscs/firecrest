@@ -1,0 +1,16 @@
+name: Update commit status
+on:
+  push:
+    branches:
+      - 'master'
+
+jobs:
+  commit-internal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ouzi-dev/commit-status-updater@v2
+        with:
+          status: 'success'
+          url: 'https://git.cscs.ch/firecrest/firecrest/-/commit/${{ github.sha }}'
+          name: "CSCS internal CI pipeline"
