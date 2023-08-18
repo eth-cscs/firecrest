@@ -23,7 +23,14 @@ class JobScript:
     """
 
     def __init__(
-        self, name, time, partition, command, dependency_id=None, account=None
+        self,
+        name,
+        time,
+        partition,
+        command,
+        dependency_id=None,
+        account=None,
+        constraint=None
     ):
         self.name = name
         self.time = time
@@ -31,6 +38,7 @@ class JobScript:
         self.command = command
         self.dependency_id = dependency_id
         self.account = account
+        self.constraint = constraint
 
 
 class JobScheduler(abc.ABC):
