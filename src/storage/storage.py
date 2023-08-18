@@ -71,6 +71,9 @@ STORAGE_SCHEDULER = os.environ.get("F7T_STORAGE_SCHEDULER", "Slurm")
 # Scheduller partition used for internal transfers, one per public system
 XFER_PARTITION = os.environ.get("F7T_XFER_PARTITION", "").strip('\'"').split(";")
 
+# Scheduller constraint used for internal transfers, one per public system
+XFER_CONSTRAINT = os.environ.get("F7T_XFER_CONSTRAINT", "").strip('\'"').split(";")
+
 # use project account in submission
 # F7T_USE_SLURM_ACCOUNT is deprecated so we use it only in case F7T_USE_SCHED_PROJECT is not set
 USE_SCHED_PROJECT = get_boolean_var(
@@ -435,13 +438,13 @@ def os_to_fs(task_id):
         cert_list = [f"{td}/user-key-cert.pub", f"{td}/user-key.pub", f"{td}/user-key", td]
 
         # start download from OS to FS
-        update_task(task_id, headers, async_task.ST_DWN_BEG, 
+        update_task(task_id, headers, async_task.ST_DWN_BEG,
                     msg={
-                        "source": objectname, 
-                        "target": upl_file["target"], 
+                        "source": objectname,
+                        "target": upl_file["target"],
                         "system_name": system_name,
                         "system_addr": system_addr
-                        }, 
+                        },
                     is_json=True)
 
         # execute download
@@ -451,11 +454,11 @@ def os_to_fs(task_id):
         if result["error"] == 0:
             update_task(task_id, headers, async_task.ST_DWN_END,
                         msg={
-                            "source": objectname, 
-                            "target": upl_file["target"], 
+                            "source": objectname,
+                            "target": upl_file["target"],
                             "system_name": system_name,
                             "system_addr": system_addr
-                            }, 
+                            },
                         is_json=True)
 
             # No need to delete the dictionary, it will be cleaned on next iteration
@@ -505,7 +508,7 @@ def download_task(headers, system_name, system_addr, sourcePath, task_id):
         app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
         msg = {"error": is_username_ok['reason'], "source": sourcePath, "system_name": system_name}
         update_task(task_id, headers, async_task.ERROR, msg, is_json=True)
-        
+
     container_name = is_username_ok["username"]
 
     if not staging.is_container_created(container_name):
@@ -534,7 +537,7 @@ def download_task(headers, system_name, system_addr, sourcePath, task_id):
     # if upload to SWIFT fails:
     if res["error"] != 0:
         error_msg = f"Upload to Staging area has failed. Object: {object_name}"
-        
+
 
         error_str = res["msg"]
         if in_str(error_str,"OPENSSH"):
@@ -791,7 +794,7 @@ def upload_request():
         system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
         return jsonify(description="No machine name given"), 400
-    
+
     # public endpoints from Kong to users
     if system_name not in SYSTEMS_PUBLIC:
         header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
@@ -810,14 +813,14 @@ def upload_request():
     v = validate_input(sourcePath)
     if v != "":
         return jsonify(description="Failed to upload file", error=f"'sourcePath' {v}"), 400
-        
+
     [headers, ID] = get_tracing_headers(request)
     # checks if the targetPath is a directory (targetPath = "/path/to/dir") that can be accessed by the user
     check_is_dir = is_valid_dir(targetPath, headers, system_name, system_addr)
-    
+
     # if so, then the actual targetPath has to include the name extracted from sourcePath
     _targetPath = f"{targetPath}/{sourcePath.split('/')[-1]}"
-    
+
     if not check_is_dir["result"]:
 
         # check if targetPath is a file path by extracting last part of the path
@@ -828,7 +831,7 @@ def upload_request():
             return jsonify(description="Failed to upload file", error="'targetPath' directory not allowed"), 400, check_is_dir["headers"]
         # if targetPath is a file, then no changes need to be done
         _targetPath = targetPath
-    
+
     # obtain new task from Tasks microservice
     task_id = create_task(headers, service="storage", system=system_name, init_data={"source":sourcePath, "target": _targetPath})
 
@@ -873,13 +876,19 @@ def exec_internal_command(headers, system_idx, command, jobName, jobTime, stageO
     try:
         td = tempfile.mkdtemp(prefix="job")
         ID = headers.get(TRACER_HEADER, '')
+        if XFER_CONSTRAINT == []:
+            constraint = None
+        else:
+            constraint = XFER_CONSTRAINT[system_idx]
+
         script_spec = JobScript(
             name=jobName,
             time=jobTime,
             partition=XFER_PARTITION[system_idx],
             command=command,
             dependency_id=stageOutJobId,
-            account=account
+            account=account,
+            constraint=constraint
         )
 
         with open(td + "/sbatch-job.sh", "w") as sbatch_file:

@@ -80,6 +80,9 @@ class SlurmScheduler(schedulers.JobScheduler):
             f"#SBATCH --ntasks=1\n"
             f"#SBATCH --partition={script_spec.partition}\n"
         )
+        if script_spec.constraint:
+            script += f"#SBATCH --constraint='{script_spec.constraint}'\n"
+
         if script_spec.dependency_id:
             script += f"#SBATCH --dependency=afterok:{script_spec.dependency_id}\n"
 

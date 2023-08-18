@@ -26,6 +26,7 @@ data:
   F7T_UTILITIES_TIMEOUT: "{{ .Values.common.F7T_UTILITIES_TIMEOUT }}"
   F7T_UTILITIES_URL: "{{ .Values.common.F7T_UTILITIES_URL }}"
   F7T_XFER_PARTITION: "{{ .Values.common.F7T_XFER_PARTITION }}"
+  F7T_XFER_CONSTRAINT: "{{ .Values.common.F7T_XFER_CONSTRAINT }}"
 kind: ConfigMap
 metadata:
   name: common-env-file
