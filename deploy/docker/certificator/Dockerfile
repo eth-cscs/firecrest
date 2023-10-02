@@ -7,8 +7,9 @@
 ARG BASE_IMAGE=f7t-base
 FROM $BASE_IMAGE
 
-RUN apt-get update
-RUN apt-get -y install openssh-client
+LABEL org.opencontainers.image.source=https://github.com/eth-cscs/firecrest
+
+RUN apt-get update && apt-get -y install openssh-client
 
 ADD deploy/docker/base/requirements.txt base/requirements.txt
 ADD deploy/docker/certificator/requirements.txt deps/requirements.txt

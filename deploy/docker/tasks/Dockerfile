@@ -5,7 +5,9 @@
 ##  SPDX-License-Identifier: BSD-3-Clause
 ##
 ARG BASE_IMAGE=f7t-base
-from $BASE_IMAGE
+FROM $BASE_IMAGE
+
+LABEL org.opencontainers.image.source=https://github.com/eth-cscs/firecrest
 
 ADD deploy/docker/tasks/requirements.txt deps/requirements.txt
 RUN pip3 install -r deps/requirements.txt

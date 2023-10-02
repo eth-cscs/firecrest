@@ -6,7 +6,7 @@
 ##
 FROM python:3.8.12-slim
 
-RUN pip3 install --upgrade pip
+LABEL org.opencontainers.image.source=https://github.com/eth-cscs/firecrest
 
 ADD deploy/docker/base/requirements.txt base/requirements.txt
-RUN pip3 install -r base/requirements.txt
+RUN pip3 install --upgrade pip && pip3 install -r base/requirements.txt

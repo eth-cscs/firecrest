@@ -1,6 +1,8 @@
 ARG BASE_IMAGE=f7t-base
 from $BASE_IMAGE
 
+LABEL org.opencontainers.image.source=https://github.com/eth-cscs/firecrest
+
 ADD deploy/docker/reservations/requirements.txt deps/requirements.txt
 RUN pip3 install -r deps/requirements.txt
 
