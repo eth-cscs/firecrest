@@ -5,10 +5,11 @@
 ##  SPDX-License-Identifier: BSD-3-Clause
 ##
 ARG BASE_IMAGE=f7t-base
-from $BASE_IMAGE
+FROM $BASE_IMAGE
 
-RUN apt-get update
-RUN apt-get -y install gcc
+LABEL org.opencontainers.image.source=https://github.com/eth-cscs/firecrest
+
+RUN apt-get update && apt-get -y install gcc
 
 ADD deploy/docker/storage/requirements.txt deps/requirements.txt
 RUN pip3 install -r deps/requirements.txt
