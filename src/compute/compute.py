@@ -18,7 +18,7 @@ from math import ceil
 import os
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import RequestEntityTooLarge
-
+import json
 import jwt
 from flask_opentracing import FlaskTracing
 from jaeger_client import Config
@@ -137,7 +137,7 @@ def get_tracing_headers(req):
     return new_headers, ID
 
 # copies file and submits with sbatch
-def submit_job_task(headers, system_name, system_addr, job_file, job_dir, account, use_plugin, task_id):
+def submit_job_task(headers, system_name, system_addr, job_file, job_dir, account, use_plugin, job_env, task_id):
 
     try:
         ID = headers.get(TRACER_HEADER, '')
@@ -159,13 +159,30 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
                 return
 
         plugin_options = [SPANK_PLUGIN_OPTION] if use_plugin else None
-        spec = Job(job_file['filename'], job_dir, account, plugin_options)
+
+        env_file = None
+        if job_env:
+            env_file = f"/dev/shm/firecret.{task_id}.env"
+            action = f"ID={ID} cat > '{env_file}'"
+            retval = exec_remote_command(headers, system_name, system_addr, action, file_transfer="upload", file_content=job_env, no_home=use_plugin)
+            if retval["error"] != 0:
+                app.logger.error(f"(Error uploading environment file: {retval['msg']}")
+                update_task(task_id, headers, async_task.ERROR, "Failed to upload enviroment file")
+                return
+
+        spec = Job(job_file['filename'], job_dir, account, additional_options=plugin_options, env_file=env_file)
         scheduler_command = scheduler.submit(spec)
-        ID = headers.get(TRACER_HEADER, '')
         action=f"ID={ID} {scheduler_command}"
         app.logger.info(action)
 
         retval = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
+
+        if job_env:
+            # delete env file, it was read when submitted
+            action = f"ID={ID} timeout {TIMEOUT} rm -f -- '{env_file}'"
+            retval2 = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
+            if retval2["error"] != 0:
+                app.logger.error(f"(Error deleting environment file: {retval2['msg']}")
 
         if retval["error"] != 0:
             app.logger.error(f"(Error: {retval['msg']}")
@@ -267,16 +284,33 @@ def get_job_files(headers, system_name, system_addr, job_info, output=False, use
 
     return control_info
 
-def submit_job_path_task(headers, system_name, system_addr, fileName, job_dir, account, use_plugin, task_id):
+def submit_job_path_task(headers, system_name, system_addr, fileName, job_dir, account, use_plugin, job_env, task_id):
 
-    plugin_options = [SPANK_PLUGIN_OPTION] if use_plugin else None
-    spec = Job(fileName, job_dir, account, plugin_options)
-    scheduler_command = scheduler.submit(spec)
     ID = headers.get(TRACER_HEADER, '')
+    plugin_options = [SPANK_PLUGIN_OPTION] if use_plugin else None
+    env_file = None
+    if job_env:
+        env_file = f"/dev/shm/firecret.{task_id}.env"
+        action = f"ID={ID} cat > '{env_file}'"
+        retval = exec_remote_command(headers, system_name, system_addr, action, file_transfer="upload", file_content=job_env, no_home=use_plugin)
+        if retval["error"] != 0:
+            app.logger.error(f"(Error uploading environment file: {retval['msg']}")
+            update_task(task_id, headers, async_task.ERROR, "Failed to upload enviroment file")
+            return
+
+    spec = Job(fileName, job_dir, account, additional_options=plugin_options, env_file=env_file)
+    scheduler_command = scheduler.submit(spec)
     action=f"ID={ID} {scheduler_command}"
     app.logger.info(action)
 
     resp = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
+
+    if job_env:
+        # delete env file, it was read when submitted
+        action = f"ID={ID} timeout {TIMEOUT} rm -f -- '{env_file}'"
+        retval2 = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
+        if retval2["error"] != 0:
+            app.logger.error(f"(Error deleting environment file: {retval2['msg']}")
 
     # in case of error:
     if resp["error"] != 0:
@@ -395,13 +429,25 @@ def submit_job_upload():
 
     job_dir = f"{job_base_fs}/{username}/firecrest/{tmpdir}"
     use_plugin  = USE_SPANK_PLUGIN[system_idx]
+    job_env = request.form.get("env", None)
+    if job_env:
+        #convert to text for Slurm: key=value ending with null caracter
+        try:
+            j = json.loads(job_env)
+            text = ""
+            for k,v in j.items():
+                text += f"{k}={v}\0"
+            job_env = text
+        except Exception as e:
+            app.logger.warning("Invalid JSON provided")
+            return jsonify(description="Failed to submit job", error='Invalid JSON environment provided'), 404
 
     app.logger.info(f"Job dir: {job_dir}")
 
     try:
         # asynchronous task creation
         aTask = threading.Thread(target=submit_job_task, name=ID,
-                             args=(headers, system_name, system_addr, job_file, job_dir, account, use_plugin, task_id))
+                             args=(headers, system_name, system_addr, job_file, job_dir, account, use_plugin, job_env, task_id))
 
         aTask.start()
         retval = update_task(task_id, headers, async_task.QUEUED)
@@ -476,11 +522,23 @@ def submit_job_path():
         return jsonify(description="Failed to submit job",error='Error creating task'), 400
 
     job_dir = os.path.dirname(targetPath)
+    job_env = request.form.get("env", None)
+    if job_env:
+        #convert to text for Slurm: key=value ending with null caracter
+        try:
+            j = json.loads(job_env)
+            text = ""
+            for k,v in j.items():
+                text += f"{k}={v}\0"
+            job_env = text
+        except Exception as e:
+            app.logger.warning("Invalid JSON provided")
+            return jsonify(description="Failed to submit job", error='Invalid JSON environment provided'), 404
 
     try:
         # asynchronous task creation
         aTask = threading.Thread(target=submit_job_path_task, name=ID,
-                             args=(headers, system_name, system_addr, targetPath, job_dir, account, use_plugin, task_id))
+                             args=(headers, system_name, system_addr, targetPath, job_dir, account, use_plugin, job_env, task_id))
 
         aTask.start()
         update_task(task_id, headers, async_task.QUEUED, TASKS_URL)

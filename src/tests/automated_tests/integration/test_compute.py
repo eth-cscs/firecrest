@@ -4,6 +4,7 @@
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
 #
+import json
 import pytest
 import requests
 import os
@@ -15,12 +16,17 @@ FIRECREST_URL = os.environ.get("FIRECREST_URL")
 if FIRECREST_URL:
 	TASKS_URL = os.environ.get("FIRECREST_URL") + "/tasks"
 	COMPUTE_URL = os.environ.get("FIRECREST_URL") + "/compute"
+	UTILITIES_URL = os.environ.get("FIRECREST_URL") + "/utilities"
 else:
 	TASKS_URL = os.environ.get("F7T_TASKS_URL")
 	COMPUTE_URL = os.environ.get("F7T_COMPUTE_URL")
+	UTILITIES_URL = os.environ.get("F7T_UTILITIES_URL")
 
 JOBS_URL = COMPUTE_URL + "/jobs"
 SERVER_COMPUTE = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")[0]
+
+JOB_ENV = json.dumps({'F7T_TEST_JOB_ENV': 'a', 'F7T_TEST_JOB_ENV2': '"b 1"'})
+JOB_ENV_OUTPUT = 'a\n"b 1"\n'
 
 ### SSL parameters
 USE_SSL = os.environ.get("F7T_USE_SSL", False)
@@ -30,7 +36,7 @@ SSL_PATH = "../../../deploy/test-build"
 
 # Helper function for job submittings
 def submit_job(machine, headers, file='testsbatch.sh'):
-	files = {'file': ('upload.txt', open(file, 'rb'))}
+	files = {'file': ('upload.sh', open(file, 'rb'))}
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.post(f"{JOBS_URL}/upload", headers=headers, files=files, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
@@ -38,7 +44,7 @@ def submit_job(machine, headers, file='testsbatch.sh'):
 	return resp
 
 def get_task(task_id, headers):
-	url = "{}/{}".format(TASKS_URL, task_id)
+	url = f"{TASKS_URL}/{task_id}"
 	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
 	assert resp.status_code == 200
@@ -92,7 +98,7 @@ def test_list_jobs(machine, headers):
 @pytest.mark.parametrize("machine",  [SERVER_COMPUTE])
 def test_list_job(machine, headers):
 	jobid = -1
-	url = "{}/{}".format(JOBS_URL, jobid)
+	url = f"{JOBS_URL}/{jobid}"
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
@@ -110,7 +116,7 @@ def test_cancel_job(machine, headers):
 	job_id = get_job_id(task_id, headers)
 
 	# cancel job
-	url = "{}/{}".format(JOBS_URL, job_id)
+	url = f"{JOBS_URL}/{job_id}"
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.delete(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
@@ -130,7 +136,7 @@ def test_acct_job(machine, headers):
 	job_id = get_job_id(task_id, headers)
 
 	# cancel job
-	url = "{}/acct".format(COMPUTE_URL)
+	url = f"{COMPUTE_URL}/acct"
 	params = {"jobs": job_id}
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.get(url, headers=headers,params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
@@ -140,6 +146,38 @@ def test_acct_job(machine, headers):
 	# check scancel status
 	task_id = resp.json()["task_id"]
 	check_task_status(resp.json()["task_id"],headers)
+
+	# cancel all previous jobs
+	lj = "1"
+	for i in range(2, job_id):
+		lj += "," + str(i)
+	url = f"{JOBS_URL}/{lj}"
+	resp = requests.delete(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	print(resp.content)
+	assert resp.status_code == 200
+
+# Test job enviroment variables
+@skipif_not_uses_gateway
+def test_job_env(headers):
+	headers.update({"X-Machine-Name": SERVER_COMPUTE})
+	data = {"env" : JOB_ENV}
+	files = {"file": ('upload.sh', open('testsbatch.sh', 'rb'))}
+	resp = requests.post(f"{JOBS_URL}/upload", headers=headers, data=data, files=files, verify=(f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	assert resp.status_code == 201
+	task_id = resp.json()["task_id"]
+	job_id = get_job_id(task_id, headers)
+	params = {"targetPath": f"/tmp/env_{job_id}.out"}
+	url = f"{UTILITIES_URL}/ls"
+	for i in range(10):
+		time.sleep(5)
+		resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+		if resp.status_code == 200:
+			break
+	url = f"{UTILITIES_URL}/head"
+	resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	assert resp.status_code == 200
+	assert json.loads(resp.content)["output"] == JOB_ENV_OUTPUT
+
 
 if __name__ == '__main__':
 	pytest.main()
