@@ -8,7 +8,7 @@ openapi: 3.0.0
 servers:
   - url: "http://localhost:8000"
 info:
-  version: 1.13.1
+  version: 1.14.0
   title: FirecREST Developers API
   description: >
     This API specification is intended for FirecREST developers only. There're some endpoints that are not available in the public version for client developers.
@@ -743,7 +743,7 @@ paths:
             X-Permission-Denied:
               description: User does not have permissions to access machine or paths
               schema:
-                type: string            
+                type: string
             X-Timeout:
               description: Command has finished with timeout signal
               schema:
@@ -1198,7 +1198,7 @@ paths:
             X-Size-Limit:
               description: File exceeds size limit
               schema:
-                type: string            
+                type: string
             X-Timeout:
               description: Command has finished with timeout signal
               schema:
@@ -1280,6 +1280,9 @@ paths:
                 account:
                   type: string
                   description: Name of the account associated to the user in the scheduler. If not set, the one incuded in the sbatch file is taken.
+                env:
+                  type: string
+                  description: serialized JSON dictionary (varName, value) to be loaded as environment variables for the job
               required:
                 - file
       responses:
@@ -1344,6 +1347,9 @@ paths:
                 account:
                   type: string
                   description: Name of the account associated to the user in the scheduler. If not set, the one incuded in the sbatch file is taken.
+                env:
+                  type: string
+                  description: serialized JSON dictionary (varName, value) to be loaded as environment variables for the job
               required:
                 - targetPath
       responses:

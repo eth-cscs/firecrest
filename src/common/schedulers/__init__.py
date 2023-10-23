@@ -11,10 +11,11 @@ class Job:
     """Class with submission specifications
     """
 
-    def __init__(self, job_script, job_dir, account=None, additional_options=None):
+    def __init__(self, job_script, job_dir, account=None, env_file=None, additional_options=None):
         self.job_dir = job_dir
         self.job_script = job_script
         self.account = account
+        self.env_file = env_file
         self.opts = additional_options if additional_options else []
 
 
@@ -30,7 +31,8 @@ class JobScript:
         command,
         dependency_id=None,
         account=None,
-        constraint=None
+        constraint=None,
+        env_file=None
     ):
         self.name = name
         self.time = time
@@ -39,6 +41,7 @@ class JobScript:
         self.dependency_id = dependency_id
         self.account = account
         self.constraint = constraint
+        self.env_file = env_file
 
 
 class JobScheduler(abc.ABC):

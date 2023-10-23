@@ -11,6 +11,9 @@
 #SBATCH --tasks-per-node=1
 #SBATCH --output=testsbatch.output
 #SBATCH --error=testsbatch.error
+#SBATCH --oversubscribe --mem=50M
 
+echo $F7T_TEST_JOB_ENV > /tmp/env_${SLURM_JOB_ID}.out
+echo $F7T_TEST_JOB_ENV2 >> /tmp/env_${SLURM_JOB_ID}.out
 
 sleep 60s

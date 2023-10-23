@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Add constraint in xfer-internal job script when provided by the configuration. The associated environment variable is `F7T_XFER_CONSTRAINT` and can be empty, when no machine needs it. Otherwise, the different constraints should be separated by `;`.
+- Support passing environment variables when submitting a job.
 
 ## [1.13.1]
 

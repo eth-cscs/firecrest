@@ -25,6 +25,9 @@ class SlurmScheduler(schedulers.JobScheduler):
         if submission_spec.account:
             cmd.append(f"--account='{submission_spec.account}'")
 
+        if submission_spec.env_file:
+            cmd.append(f"--export-file='{submission_spec.env_file}'")
+
         cmd += [f"--chdir='{submission_spec.job_dir}'"]
         cmd += self._opts
         cmd += submission_spec.opts
