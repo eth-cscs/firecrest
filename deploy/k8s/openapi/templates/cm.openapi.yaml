@@ -153,11 +153,18 @@ items:
                 schema:
                   type: string
                 allowReserved: true
+              - name: numericUid
+                in: query
+                description: Show UID/GID instead of names
+                schema:
+                  type: boolean
+                default: false
               - name: showhidden
                 in: query
                 description: Show entries starting with '.'
                 schema:
                   type: boolean
+                default: false
               # - $ref: '#/components/parameters/pageSize'
               # - $ref: '#/components/parameters/pageNumber'
             responses:
@@ -761,7 +768,7 @@ items:
                   X-Permission-Denied:
                     description: User does not have permissions to access machine or paths
                     schema:
-                      type: string            
+                      type: string
                   X-Timeout:
                     description: Command has finished with timeout signal
                     schema:
@@ -1216,7 +1223,7 @@ items:
                   X-Size-Limit:
                     description: File exceeds size limit
                     schema:
-                      type: string            
+                      type: string
                   X-Timeout:
                     description: Command has finished with timeout signal
                     schema:

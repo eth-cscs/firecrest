@@ -419,11 +419,14 @@ def common_fs_operation(request, command):
         action = f"{command} {opt} -- '{targetPath}'"
         file_transfer = 'download'
     elif command == "ls":
-        # if set shows entrys starting with . (not including . and/or .. dirs)
-        showall = ""
+        options = ""
         if get_boolean_var(request.args.get("showhidden", False)):
-            showall = "-A"
-        action = f"ls -l --quoting-style=c {showall} --time-style=+%Y-%m-%dT%H:%M:%S -- '{targetPath}'"
+            # if set shows entrys starting with . (not including . and/or .. dirs)
+            options = "-A "
+        if get_boolean_var(request.args.get("numericUid", False)):
+            # do not resolve UID and GID to names
+            options += "--numeric-uid-gid "
+        action = f"ls -l --quoting-style=c {options} --time-style=+%Y-%m-%dT%H:%M:%S -- '{targetPath}'"
     elif command == "mkdir":
         try:
             p = request.form["p"]
