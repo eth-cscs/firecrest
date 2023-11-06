@@ -449,17 +449,50 @@ def parameters():
 
 
 
-    parameters_list = { "utilities": [
-                                        {"name": "UTILITIES_MAX_FILE_SIZE", "value": UTILITIES_MAX_FILE_SIZE, "unit": "MB" },
-                                        {"name" :  "UTILITIES_TIMEOUT",      "value": UTILITIES_TIMEOUT, "unit": "seconds"}
-                                      ] ,
-                        "storage": [
-                                        {"name":"OBJECT_STORAGE" ,"value":OBJECT_STORAGE, "unit": ""},
-                                        {"name":"STORAGE_TEMPURL_EXP_TIME", "value":STORAGE_TEMPURL_EXP_TIME, "unit": "seconds"},
-                                        {"name":"STORAGE_MAX_FILE_SIZE", "value":STORAGE_MAX_FILE_SIZE, "unit": "MB"},
-                                        {"name":"FILESYSTEMS", "value":fs_list, "unit": ""}
-                                ]
-                        }
+    parameters_list = {
+        "utilities": [
+            {
+                "name": "UTILITIES_MAX_FILE_SIZE",
+                "value": UTILITIES_MAX_FILE_SIZE,
+                "unit": "MB",
+                "description": "The maximum allowable file size for various operations "
+                               "of the utilities microservice"
+            },
+            {
+                "name": "UTILITIES_TIMEOUT",
+                "value": UTILITIES_TIMEOUT,
+                "unit": "seconds",
+                "description": "Maximum time duration for executing the commands in "
+                               "the cluster for the utilities microservice."
+            }
+        ] ,
+        "storage": [
+            {
+                "name": "OBJECT_STORAGE",
+                "value": OBJECT_STORAGE,
+                "unit": "",
+                "description": "Type of object storage, like `swift`, `s3v2` or `s3v4`."
+            },
+            {
+                "name": "STORAGE_TEMPURL_EXP_TIME",
+                "value": STORAGE_TEMPURL_EXP_TIME,
+                "unit": "seconds",
+                "description": "Expiration time for temp URLs."
+            },
+            {
+                "name": "STORAGE_MAX_FILE_SIZE",
+                "value": STORAGE_MAX_FILE_SIZE,
+                "unit": "MB",
+                "description": "Maximum file size for temp URLs."
+            },
+            {
+                "name": "FILESYSTEMS",
+                "value": fs_list,
+                "unit": "",
+                "description": "Default filesystem for job submission."
+            }
+        ]
+    }
 
     return jsonify(description="Firecrest's parameters", out=parameters_list), 200
 

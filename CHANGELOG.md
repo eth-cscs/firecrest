@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add constraint in xfer-internal job script when provided by the configuration. The associated environment variable is `F7T_XFER_CONSTRAINT` and can be empty, when no machine needs it. Otherwise, the different constraints should be separated by `;`.
 - Support passing environment variables when submitting a job.
 - Support listing directories without resolving UID/GID.
+- Add description for each parameter in `GET /status/parameters` response.
 
 ## [1.13.1]
 
