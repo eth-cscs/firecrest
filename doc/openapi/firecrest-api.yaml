@@ -2616,6 +2616,8 @@ components:
                   type: string
                 unit:
                   type: string
+                description:
+                  type: string
             utilities:
               type: object
               properties:
@@ -2624,6 +2626,8 @@ components:
                 value:
                   type: string
                 unit:
+                  type: string
+                description:
                   type: string
     Service:
       required:
