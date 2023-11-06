@@ -144,11 +144,18 @@ paths:
           schema:
             type: string
           allowReserved: true
+        - name: numericUid
+          in: query
+          description: Show UID/GID instead of names
+          schema:
+            type: boolean
+            default: false
         - name: showhidden
           in: query
           description: Show entries starting with '.'
           schema:
             type: boolean
+            default: false
         # - $ref: '#/components/parameters/pageSize'
         # - $ref: '#/components/parameters/pageNumber'
       responses:

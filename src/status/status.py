@@ -11,7 +11,7 @@ import multiprocessing as mp
 
 # common modules
 from cscs_api_common import check_auth_header, get_boolean_var, get_username, setup_logging
-
+import json
 import paramiko
 import socket
 import os
@@ -176,30 +176,35 @@ def test_system(machinename, headers, status_list=[]):
         app.logger.error(type(e))
         app.logger.error(e)
 
-
         ## TESTING FILESYSTEMS
         headers["X-Machine-Name"] = machinename
-
         is_username_ok = get_username(headers[AUTH_HEADER_NAME])
-
         if not is_username_ok["result"]:
             app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
             status_list.append({"status": -5, "system": machinename, "filesystem": fs, "reason": is_username_ok['reason']})
             return
 
-        username = is_username_ok["username"]
-
+        failfs = []
         for fs in filesystems.split(","):
-
-            r = requests.get(f"{UTILITIES_URL}/ls",
-                                params={"targetPath":f"{fs}/{username}"},
+            try:
+                r = requests.get(f"{UTILITIES_URL}/ls",
+                                params={"targetPath": fs, "numericUid": "True"},
                                 headers=headers,
-                                verify=(SSL_CRT if USE_SSL else False))
+                                verify=(SSL_CRT if USE_SSL else False),
+                                timeout=(int(UTILITIES_TIMEOUT) + 1))
+                if not r.ok:
+                    failfs.append(fs)
+                else:
+                    j = json.loads(r.content)
+                    if len(j['output']) == 0:
+                        failfs.append(fs)
+            except:
+                failfs.append(fs)
 
-            if not r.ok:
-                app.logger.error("Status: -4")
-                status_list.append({"status": -4, "system": machinename, "filesystem": fs})
-                return
+        if len(failfs) > 0:
+            app.logger.error("Status: -4")
+            status_list.append({"status": -4, "system": machinename, "filesystem": ",".join(failfs)})
+            return
 
         status_list.append({"status": 0, "system": machinename})
 
