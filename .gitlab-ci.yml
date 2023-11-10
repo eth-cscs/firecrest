@@ -283,7 +283,7 @@ tag_release:
 
           echo "Pushing helm charts to $CI_REGISTRY_HELM_URL"
 
-          images="certificator compute reservations status storage tasks utilities";
+          images="config certificator compute reservations status storage tasks utilities openapi kong";
           for img in $images; do
               helm package --version=$CI_COMMIT_TAG --app-version=$CI_COMMIT_TAG deploy/k8s/$img
 
