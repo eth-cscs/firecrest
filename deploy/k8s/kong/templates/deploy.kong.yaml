@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: deploy-kong
-  namespace: {{ .Values.namespace }}
+  namespace: {{ .Values.global.namespace }}
 spec:
   replicas: 1
   selector:
@@ -23,7 +23,7 @@ spec:
           value: "off"  
         name: kong
         ports:
-        - containerPort: 8000
+        - containerPort: {{ .Values.global.F7T_GATEWAY_PORT | atoi }}
         volumeMounts:
         - mountPath: /var/log
           name: logs-endpoint  
@@ -31,7 +31,7 @@ spec:
           name: kong-config  
         startupProbe:
           tcpSocket:
-            port: 8000
+            port: {{ .Values.global.F7T_GATEWAY_PORT | atoi }}
           initialDelaySeconds: 5
           failureThreshold: 1    
       volumes:

@@ -4,21 +4,17 @@ items:
   kind: ConfigMap
   metadata:
     name: f7t-redis
-    namespace: {{ .Values.namespace }}
+    namespace: {{ .Values.global.namespace }}
   data:
-    start_redis.sh: |
-      #!/bin/bash
-      redis-server /redis/redis.conf
-      sleep 30s
     redis.conf: |
       protected-mode yes
-      port 6379
+      port {{ .Values.F7T_PERSIST_PORT }}
       tcp-backlog 511
       timeout 0
       tcp-keepalive 300
       daemonize no
       supervised no
-      pidfile /var/run/redis_6379.pid
+      pidfile /var/run/redis_{{ .Values.F7T_PERSIST_PORT }}.pid
       loglevel debug
       logfile /data/redis.log
       databases 16
@@ -37,7 +33,6 @@ items:
       repl-diskless-sync-delay 5
       repl-disable-tcp-nodelay no
       slave-priority 100
-      requirepass rediS2200
       lazyfree-lazy-eviction no
       lazyfree-lazy-expire no
       lazyfree-lazy-server-del no

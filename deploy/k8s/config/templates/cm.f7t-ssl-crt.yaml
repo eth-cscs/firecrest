@@ -38,4 +38,4 @@ data:
 kind: ConfigMap
 metadata:
   name: f7t-ssl-crt
-  namespace: {{ .Values.namespace }}
+  namespace: {{ .Values.global.namespace }}

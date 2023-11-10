@@ -4,7 +4,7 @@ items:
   kind: ConfigMap
   metadata:
     name: f7t-opa-configmap
-    namespace: {{ .Values.namespace }}
+    namespace: {{ .Values.global.namespace }}
   data:
     data.json: |
       {

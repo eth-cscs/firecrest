@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: deploy-utilities
-  namespace: {{ .Values.namespace }}
+  namespace: {{ .Values.global.namespace }}
 spec:
   replicas: 1
   selector:
@@ -15,11 +15,11 @@ spec:
       generateName: firecrest.utilities-1-
     spec:
       containers:
-      - image: "{{ .Values.registry }}/utilities:{{ .Values.tag }}"
+      - image: "{{ .Values.global.registry }}/utilities:{{ .Values.global.tag }}"
         imagePullPolicy: Always
         name: utilities
         ports:
-        - containerPort: 5004
+        - containerPort: {{ .Values.F7T_UTILITIES_PORT | atoi }}
         envFrom:
         - configMapRef:
             name: common-env-file
@@ -39,13 +39,9 @@ spec:
           subPath: f7t-ssl.key
         startupProbe:
           tcpSocket:
-            port: 5004
+            port: {{ .Values.F7T_UTILITIES_PORT | atoi }}
           initialDelaySeconds: 5
           failureThreshold: 1
-      {{ if .Values.registry_secret_creds }}
-      imagePullSecrets:
-      - name: "{{ .Values.registry_secret_creds }}"
-      {{ end }}
       volumes:
       - emptyDir: {}
         name: logs-endpoint

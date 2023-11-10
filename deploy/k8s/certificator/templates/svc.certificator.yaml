@@ -4,18 +4,18 @@ items:
   kind: Service
   metadata:
     name: svc-certificator
-    namespace: {{ .Values.namespace }}
+    namespace: {{ .Values.global.namespace }}
   spec:
     type: ClusterIP
     selector:
       app: certificator
     ports:
-    - name: "8181"
+    - name: "{{ .Values.F7T_OPA_PORT }}"
       protocol: TCP
-      port: 8181
-      targetPort: 8181
-    - name: "5010"
-      port: TCP
-      port: 5010
-      targetPort: 5010
+      port: {{ .Values.F7T_OPA_PORT | atoi }}
+      targetPort: {{ .Values.F7T_OPA_PORT | atoi }}
+    - name: "{{ .Values.F7T_CERTIFICATOR_PORT }}"
+      protocol: TCP
+      port: {{ .Values.F7T_CERTIFICATOR_PORT | atoi }}
+      targetPort: {{ .Values.F7T_CERTIFICATOR_PORT | atoi }}
 kind: List

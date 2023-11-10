@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: deploy-storage
-  namespace: {{ .Values.namespace }}
+  namespace: {{ .Values.global.namespace }}
 spec:
   replicas: 1
   selector:
@@ -14,11 +14,39 @@ spec:
         app: storage
     spec:
       containers:
-      - image: "{{ .Values.registry }}/storage:{{ .Values.tag }}"
+      - image: "{{ .Values.global.registry }}/storage:{{ .Values.global.tag }}"
         imagePullPolicy: Always
         name: storage
         ports:
-        - containerPort: 5002
+        - containerPort: {{ .Values.F7T_STORAGE_PORT | atoi }}
+        env:
+          - name: F7T_CERT_CIPHER_KEY
+            {{ if eq .Values.global.environment "dev" }}
+            value: {{ .Values.F7T_CERT_CIPHER_KEY }}
+            {{ else }}
+            valueFrom:
+              secretKeyRef:
+                name: firecrest-common-secrets
+                key: F7T_CERT_CIPHER_KEY
+            {{ end }}
+          - name: F7T_S3_SECRET_KEY
+            {{ if eq .Values.global.environment "dev" }}
+            value: {{ .Values.F7T_S3_SECRET_KEY }}
+            {{ else }}
+            valueFrom:
+              secretKeyRef:
+                name: firecrest-common-secrets
+                key: F7T_S3_SECRET_KEY
+            {{ end }}
+          - name: F7T_S3_ACCESS_KEY
+            {{ if eq .Values.global.environment "dev" }}
+            value: {{ .Values.F7T_S3_ACCESS_KEY }}
+            {{ else }}
+            valueFrom:
+              secretKeyRef:
+                name: firecrest-common-secrets
+                key: F7T_S3_ACCESS_KEY
+            {{ end }}
         envFrom:
         - configMapRef:
             name: common-env-file
@@ -38,13 +66,9 @@ spec:
           subPath: f7t-ssl.key
         startupProbe:
           tcpSocket:
-            port: 5002
+            port: {{ .Values.F7T_STORAGE_PORT | atoi }}
           initialDelaySeconds: 5
           failureThreshold: 1
-      {{ if .Values.registry_secret_creds }}
-      imagePullSecrets:
-      - name: "{{ .Values.registry_secret_creds }}"
-      {{ end }}
       volumes:
       - emptyDir: {}
         name: logs-endpoint

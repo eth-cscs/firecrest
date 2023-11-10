@@ -4,7 +4,7 @@ items:
   kind: Deployment
   metadata:
     name: deploy-openapi
-    namespace: {{ .Values.namespace }}
+    namespace: {{ .Values.global.namespace }}
   spec:
     replicas: 1
     selector:

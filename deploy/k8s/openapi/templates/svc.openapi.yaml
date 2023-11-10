@@ -4,12 +4,12 @@ items:
   kind: Service
   metadata:
     name: svc-openapi
-    namespace: {{ .Values.namespace }}
+    namespace: {{ .Values.global.namespace }}
   spec:
     ports:
-    - name: "8080"
-      port: 8080
-      targetPort: 8080
+    - name: "{{ .Values.global.F7T_OPENAPI_PORT }}"
+      port: {{ .Values.global.F7T_OPENAPI_PORT | atoi }}
+      targetPort: {{ .Values.global.F7T_OPENAPI_PORT | atoi }}
     selector:
       app: openapi
   status:

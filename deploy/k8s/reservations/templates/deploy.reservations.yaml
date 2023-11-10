@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: deploy-reservations
-  namespace: {{ .Values.namespace }}
+  namespace: {{ .Values.global.namespace }}
 spec:
   replicas: 1
   selector:
@@ -14,11 +14,11 @@ spec:
         app: reservations
     spec:
       containers:
-      - image: "{{ .Values.registry }}/reservations:{{ .Values.tag }}"
+      - image: "{{ .Values.global.registry }}/reservations:{{ .Values.global.tag }}"
         imagePullPolicy: Always
         name: reservations
         ports:
-        - containerPort: 5005
+        - containerPort: {{ .Values.F7T_RESERVATIONS_PORT | atoi }}
         envFrom:
         - configMapRef:
             name: common-env-file
@@ -38,13 +38,9 @@ spec:
           subPath: f7t-ssl.key
         startupProbe:
           tcpSocket:
-            port: 5005
+            port: {{ .Values.F7T_RESERVATIONS_PORT | atoi }}
           initialDelaySeconds: 5
           failureThreshold: 1
-      {{ if .Values.registry_secret_creds }}
-      imagePullSecrets:
-      - name: "{{ .Values.registry_secret_creds }}"
-      {{ end }}
       volumes:
       - emptyDir: {}
         name: logs-endpoint

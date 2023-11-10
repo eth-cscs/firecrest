@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: deploy-tasks
-  namespace: {{ .Values.namespace }}
+  namespace: {{ .Values.global.namespace }}
 spec:
   replicas: 1
   selector:
@@ -16,13 +16,27 @@ spec:
       containers:
       - name: taskpersistence
         image: redis:5
-        args: ["redis-server", "/redis/redis.conf"]
+        command:
+        - /usr/local/bin/redis-server 
+        - "/redis/redis.conf"
+        - --requirepass 
+        - "$(F7T_PERSIST_PWD)"
         lifecycle:
           postStart:
             exec:
               command: ["/bin/sh", "-c", "sleep 10"]
         ports:
-        - containerPort: 6379
+        - containerPort: {{ .Values.F7T_PERSIST_PORT | atoi }}
+        env:
+          - name: F7T_PERSIST_PWD
+            {{ if eq .Values.global.environment "dev" }}
+            value: {{ .Values.F7T_PERSIST_PWD }}
+            {{ else }} 
+            valueFrom:
+              secretKeyRef:
+                name: firecrest-common-secrets
+                key: F7T_PERSIST_PWD
+            {{ end }}
         volumeMounts:
         - mountPath: /var/log
           name: logs-endpoint
@@ -30,11 +44,22 @@ spec:
           name: data-endpoint
         - mountPath: /redis
           name: redis-config
+      
       - name: tasks
-        image: "{{ .Values.registry }}/tasks:{{ .Values.tag }}"
+        image: "{{ .Values.global.registry }}/tasks:{{ .Values.global.tag }}"
         imagePullPolicy: Always
         ports:
-        - containerPort: 5003
+        - containerPort: {{ .Values.F7T_TASKS_PORT | atoi }}
+        env:
+          - name: F7T_PERSIST_PWD
+            {{ if eq .Values.global.environment "dev" }}
+            value: {{ .Values.F7T_PERSIST_PWD }}
+            {{ else }} 
+            valueFrom:
+              secretKeyRef:
+                name: firecrest-common-secrets
+                key: F7T_PERSIST_PWD
+            {{ end }}
         envFrom:
         - configMapRef:
             name: common-env-file
@@ -51,13 +76,9 @@ spec:
           subPath: f7t-ssl.key
         startupProbe:
           tcpSocket:
-            port: 5003
+            port: {{ .Values.F7T_TASKS_PORT | atoi }}
           initialDelaySeconds: 5
           failureThreshold: 1
-      {{ if .Values.registry_secret_creds }}
-      imagePullSecrets:
-      - name: "{{ .Values.registry_secret_creds }}"
-      {{ end }}
       volumes:
       - name: logs-endpoint
         emptyDir: {}

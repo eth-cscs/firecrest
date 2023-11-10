@@ -55,4 +55,4 @@ data:
 kind: ConfigMap
 metadata:
   name: f7t-ssl-key
-  namespace: {{ .Values.namespace }}
+  namespace: {{ .Values.global.namespace }}

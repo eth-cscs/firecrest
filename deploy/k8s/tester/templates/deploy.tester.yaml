@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: job-tester
-  namespace: {{ .Values.namespace }}
+  namespace: {{ .Values.global.namespace }}
 spec:
 #  selector:
 #    matchLabels:
@@ -14,7 +14,7 @@ spec:
         role: microservice
     spec:
       containers:
-      - image: "{{ .Values.registry }}/tester:{{ .Values.tag }}"
+      - image: "{{ .Values.global.registry }}/tester:{{ .Values.global.tag }}"
         imagePullPolicy: Always
         name: tester
         command: ['bash']
@@ -32,10 +32,6 @@ spec:
         - mountPath: /var/log
           name: logs-endpoint
       restartPolicy: Never
-      {{ if .Values.registry_secret_creds }}
-      imagePullSecrets:
-      - name: "{{ .Values.registry_secret_creds }}"
-      {{ end }}
       volumes:
       - emptyDir: {}
         name: logs-endpoint

@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: deploy-f7t-client
-  namespace: {{ .Values.namespace }}
+  namespace: {{ .Values.global.namespace }}
 spec:
   replicas: 1
   selector:
@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: f7t-client
-        image: "{{ .Values.registry }}/client:{{ .Values.tag }}"
+        image: "{{ .Values.global.registry }}/client:{{ .Values.global.tag }}"
         imagePullPolicy: Always
         ports:
         - containerPort: 5000
@@ -35,10 +35,6 @@ spec:
              port: 5000
           initialDelaySeconds: 5
           failureThreshold: 1
-      {{ if .Values.registry_secret_creds }}
-      imagePullSecrets:
-      - name: "{{ .Values.registry_secret_creds }}"
-      {{ end }}
       volumes:
       - emptyDir: {}
         name: logs-endpoint
