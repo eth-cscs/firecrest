@@ -4,7 +4,7 @@ items:
   kind: Service
   metadata:
     name: svc-cluster
-    namespace: {{ .Values.namespace }}
+    namespace: {{ .Values.global.namespace }}
   spec:
     type: ClusterIP
     selector:

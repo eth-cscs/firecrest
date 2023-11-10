@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: deploy-compute
-  namespace: {{ .Values.namespace }}
+  namespace: {{ .Values.global.namespace }}
 spec:
   replicas: 1
   selector:
@@ -14,11 +14,11 @@ spec:
         app: compute
     spec:
       containers:
-      - image: "{{ .Values.registry }}/compute:{{ .Values.tag }}"
+      - image: "{{ .Values.global.registry }}/compute:{{ .Values.global.tag }}"
         imagePullPolicy: Always
         name: compute
         ports:
-        - containerPort: 5006
+        - containerPort: {{ .Values.F7T_COMPUTE_PORT | atoi }}
         envFrom:
         - configMapRef:
             name: common-env-file
@@ -38,14 +38,10 @@ spec:
           subPath: f7t-ssl.key
         startupProbe:
           tcpSocket:
-            port: 5006
+            port: {{ .Values.F7T_COMPUTE_PORT | atoi }}
           initialDelaySeconds: 5
           failureThreshold: 1
       restartPolicy: Always
-      {{ if .Values.registry_secret_creds }}
-      imagePullSecrets:
-      - name: "{{ .Values.registry_secret_creds }}"
-      {{ end }}
       volumes:
       - emptyDir: {}
         name: logs-endpoint

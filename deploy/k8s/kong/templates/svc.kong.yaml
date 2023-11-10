@@ -4,15 +4,15 @@ items:
   kind: Service
   metadata:
     name: svc-kong
-    namespace: {{ .Values.namespace }}
+    namespace: {{ .Values.global.namespace }}
   spec:
     # type: NodePort
     selector:
       app: kong
     ports:
-    - name: "8000"
-      port: 8000
-      targetPort: 8000      
+    - name: "{{ .Values.global.F7T_GATEWAY_PORT }}"
+      port: {{ .Values.global.F7T_GATEWAY_PORT | atoi }}
+      targetPort: {{ .Values.global.F7T_GATEWAY_PORT | atoi }}
   status:
     loadBalancer: {}
 kind: List

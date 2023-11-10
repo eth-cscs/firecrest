@@ -4,7 +4,7 @@ items:
   kind: ConfigMap
   metadata:
     name: f7t-kong
-    namespace: {{ .Values.namespace }}
+    namespace: {{ .Values.global.namespace }}
   data:
     kong.yaml: |
       _format_version: "1.1"
@@ -50,9 +50,9 @@ items:
 
       jwt_secrets:
       - consumer: firecrest
-        key: http://svc-keycloak:8080/auth/realms/kcrealm
-        algorithm: "RS256"
-        rsa_public_key: "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqB44q32bQp8LbyW6dQvgsjseXESkLT1g5LQKGb+P79AC+nOAtxhn8i/kmgc6zsQH8NlUtNJruLxlzdo2/OGmlDGYZH1x6VmAwvJPJ4er0xPUrvZ8YclxYQC16PY5LFiQRNBMRyQwP5Kne1O46FpmADFVWMfoabdnaqoXexxB56b25o8tE2ulRBgfpnrRgZAvf7kWjugRCNO06FV074FVMYHA1aBk0ICyaFCDM/Tb5oaDyGr5c/ZvdrRUrw8vaiYyMgaAnnJPL75cebGoHeMJaEyZalsHA+iuhRAfeAwpSClsmhVqnfH7a7hqrqumVRo27dydqmfVgpFjU5gbFcBZ5wIDAQAB\n-----END PUBLIC KEY-----"
+        key: "{{ .Values.global.F7T_AUTH_URL }}/auth/realms/{{ .Values.global.F7T_AUTH_REALM }}"
+        algorithm: "{{ .Values.global.F7T_AUTH_REALM_TYPE }}"
+        rsa_public_key: "-----BEGIN PUBLIC KEY-----\n{{ .Values.global.F7T_AUTH_REALM_PUBKEY }}\n-----END PUBLIC KEY-----"
 
       routes:
       - name: reject
@@ -62,45 +62,47 @@ items:
         - /tasks/tasklist
       services:
       - name: compute
-        url: https://svc-compute:5006
+        url: "{{ .Values.global.F7T_COMPUTE_HOST }}:{{ .Values.global.F7T_COMPUTE_PORT }}"
         routes:
         - name: compute
           methods: [DELETE,GET,POST]
           paths:
           - /compute/
-      - name: reservations
-        url: https://svc-reservations:5005
-        routes:
-        - name: reservations
-          methods: [DELETE,GET,POST,PUT]
-          paths:
-          - /reservations
       - name: status
-        url: https://svc-status:5001
+        url: "{{ .Values.global.F7T_STATUS_HOST }}:{{ .Values.global.F7T_STATUS_PORT }}"
         routes:
         - name: status
           methods: [GET]
           paths:
           - /status/
       - name: storage
-        url: https://svc-storage:5002
+        url: "{{ .Values.global.F7T_STORAGE_HOST }}:{{ .Values.global.F7T_STORAGE_PORT }}"
         routes:
         - name: storage
           methods: [GET,POST]
           paths:
           - /storage/
       - name: tasks
-        url: https://svc-tasks:5003
+        url: "{{ .Values.global.F7T_TASKS_HOST }}:{{ .Values.global.F7T_TASKS_PORT }}"
         routes:
         - name: tasks
           methods: [GET]
           paths:
           - /tasks/
       - name: utilities
-        url: https://svc-utilities:5004
+        url: "{{ .Values.global.F7T_UTILITIES_HOST }}:{{ .Values.global.F7T_UTILITIES_PORT }}"
         routes:
         - name: utilities
           methods: [DELETE,GET,POST,PUT]
           paths:
           - /utilities/
+      {{ if .Values.global.include_reservations }}
+      - name: reservations
+        url: "{{ .Values.global.F7T_RESERVATIONS_HOST }}:{{ .Values.global.F7T_RESERVATIONS_PORT }}"
+        routes:
+        - name: reservations
+          methods: [DELETE,GET,POST,PUT]
+          paths:
+          - /reservations
+      {{ end }}
 kind: List

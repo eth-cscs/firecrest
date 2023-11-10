@@ -4,7 +4,7 @@ items:
   kind: Deployment
   metadata:
     name: deploy-certificator
-    namespace: {{ .Values.namespace }}
+    namespace: {{ .Values.global.namespace }}
   spec:
     selector:
       matchLabels:
@@ -19,32 +19,32 @@ items:
           image: openpolicyagent/opa:0.22.0
           args: ["run", "--server", "--log-level=debug", "--log-format=json-pretty", "--skip-version-check", "/opa-files/data.json", "/opa-files/policy.rego"]
           ports:
-          - containerPort: 8181
+          - containerPort: {{ .Values.F7T_OPA_PORT | atoi }}
           volumeMounts:
           - mountPath: /opa-files/
             name: f7t-opa-vol
           startupProbe:
             tcpSocket:
-              port: 8181
+              port: {{ .Values.F7T_OPA_PORT | atoi }}
             initialDelaySeconds: 5
             failureThreshold: 1
         - name: f7t-certificator
-          image: "{{ .Values.registry }}/certificator:{{ .Values.tag }}"
+          image: "{{ .Values.global.registry }}/certificator:{{ .Values.global.tag }}"
           imagePullPolicy: Always
           ports:
-          - containerPort: 5010
+          - containerPort: {{ .Values.F7T_CERTIFICATOR_PORT | atoi }}
           envFrom:
             - configMapRef:
                 name: common-env-file
             - configMapRef:
                 name: certificator-env-file
           command: ["sh"]
-          args: ["-c", "chmod 400 {{ .Values.certificator.F7T_CA_KEY_PATH }}; ls -l /; /usr/local/bin/gunicorn --ciphers TLS_AES_256_GCM_SHA384,TLS_CHACHA20_POLY1305_SHA256,TLS_AES_128_GCM_SHA256,DHE-RSA-AES256-GCM-SHA384,ECDHE-RSA-AES256-GCM-SHA384,ECDHE-RSA-AES128-GCM-SHA256 --ssl-version TLSv1_2 --keyfile $F7T_SSL_KEY --certfile $F7T_SSL_CRT --workers=2 --bind :5010 --error-logfile /var/log/certificator.gunicorn.log certificator:app"]
+          args: ["-c", "/usr/local/bin/gunicorn --ciphers TLS_AES_256_GCM_SHA384,TLS_CHACHA20_POLY1305_SHA256,TLS_AES_128_GCM_SHA256,DHE-RSA-AES256-GCM-SHA384,ECDHE-RSA-AES256-GCM-SHA384,ECDHE-RSA-AES128-GCM-SHA256 --ssl-version TLSv1_2 --keyfile $F7T_SSL_KEY --certfile $F7T_SSL_CRT --workers=2 --bind :5010 --error-logfile /var/log/certificator.gunicorn.log certificator:app"]
           volumeMounts:
-          - mountPath: "{{ .Values.certificator.F7T_CA_KEY_PATH }}"
+          - mountPath: "{{ .Values.F7T_CA_KEY_PATH }}"
             name: f7t-cert-vol
-            subPath: ca-key
-          - mountPath: "{{ .Values.certificator.F7T_PUB_USER_KEY_PATH }}"
+            subPath: ca-key        
+          - mountPath: "{{ .Values.F7T_PUB_USER_KEY_PATH }}"
             name: f7t-cert-user-pub-vol
             subPath: user-key.pub
           - mountPath: /f7t-ssl.crt
@@ -55,21 +55,30 @@ items:
             subPath: f7t-ssl.key
           startupProbe:
             tcpSocket:
-              port: 5010
+              port: {{ .Values.F7T_CERTIFICATOR_PORT | atoi }}
             initialDelaySeconds: 5
             failureThreshold: 1
-        {{ if .Values.registry_secret_creds }}
-        imagePullSecrets:
-        - name: "{{ .Values.registry_secret_creds }}"
-        {{ end }}
         volumes:
         - name: f7t-opa-vol
           configMap:
             name: f7t-opa-configmap
+        
         - name: f7t-cert-vol
+          {{ if eq .Values.global.environment "dev" }}
           configMap:
             name: f7t-ca-ssh-keys
+            items:
+              - key: ca-key
+                path: ca-key
+                mode: 0400
+          {{ else }}
+          secret:
+            secretName: firecrest-ca-key-secret
+            items:
+            - key: F7T_CA_KEY
+              path: ca-key            
             defaultMode: 0400
+          {{ end }}
         - name: f7t-cert-user-pub-vol
           configMap:
             name: f7t-user-ssh-pub-keys

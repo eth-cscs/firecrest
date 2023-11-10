@@ -2,10 +2,10 @@ apiVersion: v1
 kind: Service # this is basically a proxy configuration to route connections to pods
 metadata:
   name: svc-storage
-  namespace: {{ .Values.namespace }}
+  namespace: {{ .Values.global.namespace }}
 spec:
   selector:
     app: storage # will match pods with this label
   ports:
-  - port: 5002 # the service listen on
-    targetPort: 5002 # the pods listen on
+  - port: {{ .Values.F7T_STORAGE_PORT | atoi }} # the service listen on
+    targetPort: {{ .Values.F7T_STORAGE_PORT | atoi }} # the pods listen on

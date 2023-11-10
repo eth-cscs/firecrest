@@ -4,7 +4,7 @@ items:
   kind: ConfigMap
   metadata:
     name: cm-openapi
-    namespace: {{ .Values.namespace }}
+    namespace: {{ .Values.global.namespace }}
   data:
     openapi.yaml: |
       ##
@@ -15,9 +15,9 @@ items:
       ##
       openapi: 3.0.0
       servers:
-        - url: '{{ .Values.common.F7T_KONG_URL }}'
+        - url: '{{ .Values.global.F7T_GATEWAY_HOST }}'
       info:
-        version: '{{ .Values.firecrest_version }}'
+        version: '{{ .Chart.AppVersion }}'
         title: FirecREST API
         description: >
           FirecREST platform, a RESTful Services Gateway to HPC resources, is a

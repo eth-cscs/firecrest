@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: deploy-status
-  namespace: {{ .Values.namespace }}
+  namespace: {{ .Values.global.namespace }}
 spec:
   replicas: 1
   selector:
@@ -15,11 +15,11 @@ spec:
         role: microservice
     spec:
       containers:
-      - image: "{{ .Values.registry }}/status:{{ .Values.tag }}"
+      - image: "{{ .Values.global.registry }}/status:{{ .Values.global.tag }}"
         imagePullPolicy: Always
         name: status
         ports:
-        - containerPort: 5001
+        - containerPort: {{ .Values.F7T_STATUS_PORT | atoi }}
         envFrom:
         - configMapRef:
             name: common-env-file
@@ -36,13 +36,9 @@ spec:
           subPath: f7t-ssl.key
         startupProbe:
           tcpSocket:
-            port: 5001
+            port: {{ .Values.F7T_STATUS_PORT | atoi }}
           initialDelaySeconds: 5
           failureThreshold: 1
-      {{ if .Values.registry_secret_creds }}
-      imagePullSecrets:
-      - name: "{{ .Values.registry_secret_creds }}"
-      {{ end }}
       volumes:
       - emptyDir: {}
         name: logs-endpoint

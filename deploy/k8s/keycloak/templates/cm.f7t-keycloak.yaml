@@ -1514,4 +1514,4 @@ data:
 kind: ConfigMap
 metadata:
   name: f7t-keycloak-configmap
-  namespace: {{ .Values.namespace }}
+  namespace: {{ .Values.global.namespace }}

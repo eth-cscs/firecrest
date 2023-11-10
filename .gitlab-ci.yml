@@ -10,28 +10,30 @@ stages:          # List of stages for jobs, and their order of execution
   - deploy_tds
   - cleanup_dev_images
 
+
 build_images:
   stage: build_images
+  id_tokens:
+    VAULT_ID_TOKEN:
+      aud: $CI_VAULT_ADDR
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v1+[.][0-9]+([.][0-9]+)?$/ || $CI_COMMIT_TAG =~ /^v1+[.][0-9]+([.][0-9]+)-dev+([.][0-9]+)?$/ || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH =~ /^RESTAPI-.{10,}$/'
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
   script:
+    - echo "Build images with tag ${CI_COMMIT_SHORT_SHA}"
+
     - wget https://releases.hashicorp.com/vault/1.11.0/vault_1.11.0_linux_amd64.zip
     - unzip vault_1.11.0_linux_amd64.zip
     - export PATH=$PATH:$(pwd)
-    - export VAULT_ADDR="https://vault.svc.cscs.ch"
-    - export VAULT_TOKEN=$CI_VAULT_TOKEN
-    - CI_K8S_TOKEN="$(vault kv get -field=firecrest-cicd-secret firecrest/dev)"
-    - CI_REGISTRY_GROUP="$(vault kv get -field=REGISTRY_GROUP firecrest/dev)"
-    - CI_REGISTRY_PREFIX="$(vault kv get -field=REPO_PREFIX firecrest/dev)"
-
+    - export VAULT_ADDR="$CI_VAULT_ADDR"
+    
     - mkdir -p /kaniko/.docker
     - echo '{"auths":{"'$CI_REGISTRY'":{"username":"'$CI_REGISTRY_USER'","password":"'$CI_REGISTRY_PASSWORD'"}}}' > /kaniko/.docker/config.json
     - |
 
-        # Base image for each commit
+        # Base image for each commit″
         /kaniko/executor --context ./ --dockerfile deploy/docker/base/Dockerfile --destination ${CI_REGISTRY_PREFIX}/f7t-base:${CI_COMMIT_SHORT_SHA} --cleanup
 
         # Core microservices
@@ -51,7 +53,6 @@ build_images:
         --destination ${CI_REGISTRY_PREFIX}/tester:${CI_COMMIT_SHORT_SHA} --cleanup
 
 
-
 deploy_dev:
   variables:
     CI_NAMESPACE_DEV: firecrest-dev
@@ -63,7 +64,7 @@ deploy_dev:
     name: ${CI_REGISTRY_PREFIX}/ci-util:latest
   script:
     - echo "Deploy development environment"
-    - export VAULT_ADDR="https://vault.svc.cscs.ch"
+    - export VAULT_ADDR="$CI_VAULT_ADDR"
     - export VAULT_TOKEN=$CI_VAULT_TOKEN
     - CI_K8S_TOKEN="$(vault kv get -field=firecrest-cicd-secret firecrest/dev)"
     - CI_REGISTRY_GROUP="$(vault kv get -field=REGISTRY_GROUP firecrest/dev)"
@@ -71,10 +72,8 @@ deploy_dev:
     - |
         printf 'Waiting for other pipelines...'
         ELEVATED_TOKEN="$(vault kv get -field=GITLAB_ACCESS_TOKEN firecrest/dev)"
-        GITLAB_HOST="https://gitlab.cscs.ch"
-        CI_PROJECT_ID=1261
         while true; do
-          READY=$(curl -sS --header "PRIVATE-TOKEN: ${ELEVATED_TOKEN}" "${GITLAB_HOST}/api/v4/projects/${CI_PROJECT_ID}/pipelines?order_by=id&sort=asc&scope=running" | jq '.[0].id=='"${CI_PIPELINE_ID}")
+          READY=$(curl -sS --header "PRIVATE-TOKEN: ${ELEVATED_TOKEN}" "${CI_GITLAB_URL}/api/v4/projects/${CI_PROJECT_ID}/pipelines?order_by=id&sort=asc&scope=running" | jq '.[0].id=='"${CI_PIPELINE_ID}")
           if [ "${READY}" = "true" ]; then
             printf '\nReady!'
             break
@@ -86,20 +85,19 @@ deploy_dev:
     - helm list -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN}
 
     - cd deploy/k8s
+    
     - |
-      echo -e "registry: ${CI_REGISTRY_PREFIX}\ntag: '${CI_COMMIT_SHORT_SHA}' \nnamespace: ${CI_NAMESPACE_DEV}\nregistry_secret_creds: regcred\n" > values-dev.yaml
-      vault kv get -field=values_common firecrest/dev >> values-dev.yaml
-
-      for app in config certificator client compute jaeger keycloak kong minio openapi reservations status storage tasks utilities; do
+      ## adding at the end of values-dev.yaml on global section
+      echo -e "\n  registry: ${CI_REGISTRY_PREFIX}\n  tag: '${CI_COMMIT_SHORT_SHA}' \n  namespace: ${CI_NAMESPACE_DEV}\n" >> values-dev.yaml
+      
+      for app in config certificator compute jaeger keycloak kong minio openapi reservations status storage tasks utilities; do
         helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} "$app" || true
-        vault kv get -field=values_${app} firecrest/dev >> values-dev.yaml 2>/dev/null || true
-        echo >> values-dev.yaml  # add end line
         helm install --wait --wait-for-jobs --timeout 240s -n ${CI_NAMESPACE_DEV} -f values-dev.yaml --kube-token=${CI_K8S_TOKEN} "$app" $app;
       done
     # Cluster is deployed separatelly ALWAYS with tag = latest
     - |
-      echo -e "registry: ${CI_REGISTRY_PREFIX}\ntag: latest \nnamespace: ${CI_NAMESPACE_DEV}\nregistry_secret_creds: regcred\n" > values-cluster-dev.yaml;
-
+      echo -e "global:\n  registry: ${CI_REGISTRY_PREFIX}\n  tag: latest\n  namespace: ${CI_NAMESPACE_DEV}\n" > values-cluster-dev.yaml;
+      
       helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} cluster || true;
       helm install --wait --wait-for-jobs --timeout 180s -n ${CI_NAMESPACE_DEV} -f values-cluster-dev.yaml --kube-token=${CI_K8S_TOKEN} cluster cluster;
 
@@ -169,7 +167,7 @@ cleanup_dev_deployment:
   image:
     name: ${CI_REGISTRY_PREFIX}/ci-util:latest
   script:
-    - export VAULT_ADDR="https://vault.svc.cscs.ch"
+    - export VAULT_ADDR="$CI_VAULT_ADDR"
     - export VAULT_TOKEN=$CI_VAULT_TOKEN
     - CI_K8S_TOKEN="$(vault kv get -field=firecrest-cicd-secret firecrest/dev)"
     - CI_REGISTRY_GROUP="$(vault kv get -field=REGISTRY_GROUP firecrest/dev)"
@@ -194,7 +192,7 @@ tag_release:
   image:
     name: ${CI_REGISTRY_PREFIX}/ci-util:latest
   script:
-    - export VAULT_ADDR="https://vault.svc.cscs.ch"
+    - export VAULT_ADDR="$CI_VAULT_ADDR"
     - export VAULT_TOKEN=$CI_VAULT_TOKEN
     - GITLAB_ACCESS_TOKEN="$(vault kv get -field=GITLAB_ACCESS_TOKEN firecrest/dev)"
     - CI_REGISTRY_GROUP="$(vault kv get -field=REGISTRY_GROUP firecrest/dev)"
@@ -260,6 +258,8 @@ tag_release:
             exit 1
           fi
 
+          echo "Tagging images and helm charts for '$code_tag' deployment"
+
           for tag in $env_tags; do
             if [ "$code_tag" == "prod" && "$tag" != "prod" ]; then
               #  if code_tag indicates prod and tag is 'v1...'
@@ -269,13 +269,34 @@ tag_release:
             fi
             images="certificator compute reservations status storage tasks utilities";
             for img in $images; do
+
+              echo "Tagging image ${CI_REGISTRY_GROUP}/$img/$tag"
               jfrog rt copy --flat=true --url="https://${CI_REGISTRY}/artifactory" --user="${CI_REGISTRY_USER}" --password="${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY_GROUP}/$img/${CI_COMMIT_SHORT_SHA}/" "${CI_REGISTRY_GROUP}/$img/$tag/";
+              
               if [ "$code_tag" == "prod" && "$tag" != "prod" && "$img" != "reservations" ]; then
                 # if code_tag indicates prod and tag is 'v1...', also publish to GitHub
                 crane copy ${CI_REGISTRY_PREFIX}/${img}:${tag} ghcr.io/eth-cscs/firecrest/f7t-${img}:${tag}
               fi
+                
             done
           done
+
+          echo "Pushing helm charts to $CI_REGISTRY_HELM_URL"
+
+          images="certificator compute reservations status storage tasks utilities";
+          for img in $images; do
+              helm package --version=$CI_COMMIT_TAG --app-version=$CI_COMMIT_TAG deploy/k8s/$img
+
+              file=$(find . -iname "$img-*.tgz" -print -maxdepth 1)
+              
+              sha1=`sha1sum $file | awk '{print $1}'`
+              sha256=`sha256sum $file | awk '{print $1}'`
+              md5=`md5sum $file | awk '{print $1}'`
+
+              echo "Pushing helm chart ${CI_REGISTRY_HELM_URL}/${file}"
+              curl -H "X-JFrog-Art-Api:${CI_REGISTRY_PASSWORD}" -H "X-Checksum-md5:${md5}" -H "X-Checksum-sha1:${sha1}" -H "X-Checksum-sha256:${sha256}" -T $file ${CI_REGISTRY_HELM_URL}
+          done
+
         else
           echo "The tag does not belong to master the branch";
           exit 0
@@ -285,46 +306,15 @@ tag_release:
 
 deploy_tds:
   variables:
-    DOCKER_AUTH_CONFIG: '{"auths":{"${CI_REGISTRY}":{"username":"${CI_REGISTRY_USER}","password":"${CI_REGISTRY_PASSWORD}"}}}'
-    CI_NAMESPACE_TDS: firecrest-tds
-    CI_NAMESPACE_TDS_APPS: firecrest-tds-apps
+    RELEASE_VERSION: ${CI_COMMIT_TAG}
+    RELEASE_ENVIRONMENT: "tds"
+    RELEASE_SERVICE: "firecrest-api"
   needs:
     - job: tag_release
   stage: deploy_tds
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v1+[.][0-9]+([.][0-9]+)-dev+([.][0-9]+)?$/'
-  image:
-    name: ${CI_REGISTRY_PREFIX}/ci-util:latest
-  script:
-    - export VAULT_ADDR="https://vault.svc.cscs.ch"
-    - export VAULT_TOKEN=$CI_VAULT_TOKEN
-    - CI_K8S_TOKEN="$(vault kv get -field=firecrest-cicd-secret firecrest/dev)"
-
-    - cd deploy/k8s
-    - |
-      echo -e "registry: ${CI_REGISTRY_PREFIX}" > values-tds.yaml
-      echo -e "firecrest_version: ${CI_COMMIT_TAG}" >> values-tds.yaml
-      echo -e "namespace: ${CI_NAMESPACE_TDS}" >> values-tds.yaml
-      echo -e "registry_secret_creds: regcred" >> values-tds.yaml
-      echo -e "tag: tds" >> values-tds.yaml
-
-      vault kv get -field=values_common firecrest/tds >> values-tds.yaml
-
-      for app in config compute jaeger reservations status storage tasks utilities ; do
-        helm uninstall -n ${CI_NAMESPACE_TDS} --kube-token=${CI_K8S_TOKEN} "$app" || true
-        vault kv get -field=values_${app} firecrest/tds >> values-tds.yaml 2>/dev/null || true
-        echo >> values-tds.yaml  # add end line
-        helm install  --wait --wait-for-jobs --timeout 180s -n ${CI_NAMESPACE_TDS} -f values-tds.yaml --kube-token=${CI_K8S_TOKEN} "$app" $app;
-      done
-
-      echo -e "firecrest_version: ${CI_COMMIT_TAG}" > values-tds-apps.yaml
-      echo -e "namespace: ${CI_NAMESPACE_TDS_APPS}" >> values-tds-apps.yaml
-      vault kv get -field=values_common firecrest/tds >> values-tds-apps.yaml
-
-      helm uninstall -n ${CI_NAMESPACE_TDS_APPS} --kube-token=${CI_K8S_TOKEN} openapi || true
-      helm install  --wait --wait-for-jobs --timeout 180s -n ${CI_NAMESPACE_TDS_APPS} -f values-tds-apps.yaml --kube-token=${CI_K8S_TOKEN} openapi openapi;
-
-
+  trigger: ArgoCD/apps/firecrest
   when: on_success
 
 cleanup_dev_images:
@@ -336,7 +326,7 @@ cleanup_dev_images:
   image:
     name: ${CI_REGISTRY_PREFIX}/ci-util:latest
   script:
-    - export VAULT_ADDR="https://vault.svc.cscs.ch"
+    - export VAULT_ADDR="$CI_VAULT_ADDR"
     - export VAULT_TOKEN=$CI_VAULT_TOKEN
     - CI_REGISTRY_GROUP="$(vault kv get -field=REGISTRY_GROUP firecrest/dev)"
     - CI_REGISTRY_PREFIX="$(vault kv get -field=REPO_PREFIX firecrest/dev)"
