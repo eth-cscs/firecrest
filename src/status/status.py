@@ -489,7 +489,7 @@ def parameters():
                 "name": "FILESYSTEMS",
                 "value": fs_list,
                 "unit": "",
-                "description": "Default filesystem for job submission."
+                "description": "Available filesystems through the API."
             }
         ]
     }
