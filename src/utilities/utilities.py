@@ -23,7 +23,7 @@ from cscs_api_common import check_auth_header, exec_remote_command, check_comman
 CERTIFICATOR_URL = os.environ.get("F7T_CERTIFICATOR_URL")
 UTILITIES_PORT   = os.environ.get("F7T_UTILITIES_PORT", 5000)
 
-AUTH_HEADER_NAME = 'Authorization'
+AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME","Authorization")
 
 UTILITIES_TIMEOUT = int(os.environ.get("F7T_UTILITIES_TIMEOUT", "5"))
 

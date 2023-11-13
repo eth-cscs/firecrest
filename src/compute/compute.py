@@ -26,7 +26,7 @@ import opentracing
 
 from schedulers import Job
 
-AUTH_HEADER_NAME = 'Authorization'
+AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME","Authorization")
 
 CERTIFICATOR_URL= os.environ.get("F7T_CERTIFICATOR_URL")
 TASKS_URL       = os.environ.get("F7T_TASKS_URL")

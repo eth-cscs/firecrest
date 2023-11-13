@@ -7,6 +7,7 @@ F7T_POLICY_PATH: v1/data/f7t/authz
 F7T_CA_KEY_PATH: /ca-key
 F7T_PUB_USER_KEY_PATH: /user-key.pub
 # common
+F7T_AUTH_HEADER_NAME: Authorization
 F7T_AUTH_REQUIRED_SCOPE: firecrest
 F7T_AUTH_ROLE: firecrest-sa
 F7T_AUTH_TOKEN_AUD: ""

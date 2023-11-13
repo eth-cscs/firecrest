@@ -29,7 +29,7 @@ def get_boolean_var(var):
     # 1
     return var.upper() == "TRUE" or var.upper() == "YES" or var == "1"
 
-AUTH_HEADER_NAME = 'Authorization'
+AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME","Authorization")
 
 AUTH_AUDIENCE = os.environ.get("F7T_AUTH_TOKEN_AUD", '').strip('\'"')
 ALLOWED_USERS = os.environ.get("F7T_AUTH_ALLOWED_USERS", '').strip('\'"').split(";")

@@ -39,7 +39,7 @@ def get_boolean_var(var):
 
 DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
-AUTH_HEADER_NAME = 'Authorization'
+AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME","Authorization")
 
 REALM_RSA_PUBLIC_KEYS=os.environ.get("F7T_REALM_RSA_PUBLIC_KEY", '').strip('\'"').split(";")
 

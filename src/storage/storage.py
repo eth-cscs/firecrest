@@ -39,7 +39,7 @@ KONG_URL         = os.environ.get("F7T_KONG_URL")
 
 STORAGE_PORT     = os.environ.get("F7T_STORAGE_PORT", 5000)
 
-AUTH_HEADER_NAME = 'Authorization'
+AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME","Authorization")
 
 # SYSTEMS_PUBLIC: list of allowed systems
 # remove quotes and split into array
