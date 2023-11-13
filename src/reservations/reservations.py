@@ -19,7 +19,7 @@ from flask_opentracing import FlaskTracing
 from jaeger_client import Config
 import opentracing
 
-AUTH_HEADER_NAME = 'Authorization'
+AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME","Authorization")
 
 RESERVATIONS_PORT    = os.environ.get("F7T_RESERVATIONS_PORT", 5050)
 

@@ -17,9 +17,7 @@ from cscs_api_common import check_auth_header, get_username, check_header, \
     get_boolean_var, setup_logging, validate_input
 import tasks_persistence as persistence
 
-
-
-AUTH_HEADER_NAME = 'Authorization'
+AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME","Authorization")
 
 KONG_URL    = os.environ.get("F7T_KONG_URL")
 
