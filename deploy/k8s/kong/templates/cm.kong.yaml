@@ -47,6 +47,8 @@ items:
       consumers:
       - username: firecrest
         custom_id: firecrest
+      - username: docs
+        custom_id: docs
 
       jwt_secrets:
       - consumer: firecrest
@@ -68,6 +70,18 @@ items:
           methods: [DELETE,GET,POST]
           paths:
           - /compute/
+      - name: docs
+        url: "{{ .Values.global.F7T_SWAGGER_HOST }}:{{ .Values.global.F7T_SWAGGER_PORT }}"
+        routes:
+        - name: docs
+          methods: [GET]
+          paths:
+            - /docs
+          strip_path: false
+          plugins:
+          - name: jwt
+            config:
+              anonymous: docs
       - name: status
         url: "{{ .Values.global.F7T_STATUS_HOST }}:{{ .Values.global.F7T_STATUS_PORT }}"
         routes:

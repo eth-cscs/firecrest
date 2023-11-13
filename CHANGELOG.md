@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI/CD pipeline is now adapted to create helm charts images and push to a repository when TDS or Prod are tagged
   - Also secrets now can be managed from ExternalSecrets on K8s deployment
   - Deployment on TDS triggers ArgoCD deployment
+- Demo and k8s deployments have the Swagger UI API specification at unauthenticated `/docs` endpoint
 
 ## [1.13.1]
 

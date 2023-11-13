@@ -75,8 +75,6 @@ global:
   F7T_DEBUG_MODE: True
   F7T_GATEWAY_HOST: "svc-kong"
   F7T_GATEWAY_PORT: "8000"
-  F7T_OPENAPI_HOST: "svc-openapi"
-  F7T_OPENAPI_PORT: "8080"
   F7T_SWAGGER_HOST: "http://svc-openapi"
   F7T_SWAGGER_PORT: "8080"
   F7T_CERTIFICATOR_PORT: "5010"
