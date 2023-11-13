@@ -28,7 +28,7 @@ build_images:
     - unzip vault_1.11.0_linux_amd64.zip
     - export PATH=$PATH:$(pwd)
     - export VAULT_ADDR="$CI_VAULT_ADDR"
-    
+
     - mkdir -p /kaniko/.docker
     - echo '{"auths":{"'$CI_REGISTRY'":{"username":"'$CI_REGISTRY_USER'","password":"'$CI_REGISTRY_PASSWORD'"}}}' > /kaniko/.docker/config.json
     - |
@@ -85,11 +85,14 @@ deploy_dev:
     - helm list -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN}
 
     - cd deploy/k8s
-    
+
     - |
       ## adding at the end of values-dev.yaml on global section
       echo -e "\n  registry: ${CI_REGISTRY_PREFIX}\n  tag: '${CI_COMMIT_SHORT_SHA}' \n  namespace: ${CI_NAMESPACE_DEV}\n" >> values-dev.yaml
-      
+
+      # link API specification inside chart
+      ln -s ../../../../doc/openapi/firecrest-api.yaml openapi/files/firecrest-api.yaml
+
       for app in config certificator compute jaeger keycloak kong minio openapi reservations status storage tasks utilities; do
         helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} "$app" || true
         helm install --wait --wait-for-jobs --timeout 240s -n ${CI_NAMESPACE_DEV} -f values-dev.yaml --kube-token=${CI_K8S_TOKEN} "$app" $app;
@@ -97,7 +100,7 @@ deploy_dev:
     # Cluster is deployed separatelly ALWAYS with tag = latest
     - |
       echo -e "global:\n  registry: ${CI_REGISTRY_PREFIX}\n  tag: latest\n  namespace: ${CI_NAMESPACE_DEV}\n" > values-cluster-dev.yaml;
-      
+
       helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} cluster || true;
       helm install --wait --wait-for-jobs --timeout 180s -n ${CI_NAMESPACE_DEV} -f values-cluster-dev.yaml --kube-token=${CI_K8S_TOKEN} cluster cluster;
 
@@ -125,11 +128,8 @@ deploy_dev:
         while :
         do
             sleep 20s;
-
             tester_pod=$(kubectl get pods --selector=job-name=job-tester -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" --output=jsonpath='{.items[*].metadata.name}');
-
             echo "Tester pod is: $tester_pod";
-
             pdstatus=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" $tester_pod -o jsonpath="{.status.phase}");
 
             if [ "$pdstatus" = "Running" ] || [ "$pdstatus" = "Pending" ]; then
@@ -272,12 +272,12 @@ tag_release:
 
               echo "Tagging image ${CI_REGISTRY_GROUP}/$img/$tag"
               jfrog rt copy --flat=true --url="https://${CI_REGISTRY}/artifactory" --user="${CI_REGISTRY_USER}" --password="${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY_GROUP}/$img/${CI_COMMIT_SHORT_SHA}/" "${CI_REGISTRY_GROUP}/$img/$tag/";
-              
+
               if [ "$code_tag" == "prod" && "$tag" != "prod" && "$img" != "reservations" ]; then
                 # if code_tag indicates prod and tag is 'v1...', also publish to GitHub
                 crane copy ${CI_REGISTRY_PREFIX}/${img}:${tag} ghcr.io/eth-cscs/firecrest/f7t-${img}:${tag}
               fi
-                
+
             done
           done
 
@@ -288,7 +288,7 @@ tag_release:
               helm package --version=$CI_COMMIT_TAG --app-version=$CI_COMMIT_TAG deploy/k8s/$img
 
               file=$(find . -iname "$img-*.tgz" -print -maxdepth 1)
-              
+
               sha1=`sha1sum $file | awk '{print $1}'`
               sha256=`sha256sum $file | awk '{print $1}'`
               md5=`md5sum $file | awk '{print $1}'`

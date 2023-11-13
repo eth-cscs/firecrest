@@ -103,7 +103,6 @@ services:
       F7T_S3_REGION: us-east-1
       F7T_STORAGE_POLLING_INTERVAL: 60
       F7T_CERT_CIPHER_KEY: 'Df6UZuoPoJ2u5yRwxNfFQ46Nwy8eW1OGTcuhlqn4ONo='
-      #debug: "True"
     networks:
       firecrest-internal:
         ipv4_address: 192.168.220.5
@@ -124,7 +123,6 @@ services:
     environment:
       - F7T_PERSIST_PORT=6379
       - F7T_PERSIST_PWD=rediS2200
-      - F7T_DEBUG_MODE=True
       - F7T_COMPUTE_TASK_EXP_TIME=86400
       - F7T_STORAGE_TASK_EXP_TIME=2678400
     depends_on:
@@ -226,7 +224,7 @@ services:
       - ./logs/keycloak:/opt/jboss/keycloak/standalone/log/:delegated
 
   kong:
-    image: kong:2.5.0
+    image: kong:2.8.4
     container_name: kong
     environment:
       - KONG_DATABASE=off
@@ -281,12 +279,14 @@ services:
       - ./ssl:/ssl
 
   openapi:
-    image: swaggerapi/swagger-ui:v3.47.1
+    image: swaggerapi/swagger-ui:v4.19.1
     container_name: openapi
-    ports:
-      - "9090:8080"
+    networks:
+      firecrest-internal:
+        ipv4_address: 192.168.220.41
     environment:
       SWAGGER_JSON: /tmp/firecrest-api.yaml
+      BASE_URL: /docs
     volumes:
       - ../../doc/openapi/:/tmp/
 

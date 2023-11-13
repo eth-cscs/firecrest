@@ -11,32 +11,32 @@ spec:
   template:
     metadata:
       labels:
-        app: kong    
-        role: gateway  
+        app: kong
+        role: gateway
     spec:
       containers:
-      - image: kong:2.5
+      - image: kong:2.8.4
         env:
         - name: KONG_DECLARATIVE_CONFIG
           value: /kong/kong.yaml
         - name: KONG_DATABASE
-          value: "off"  
+          value: "off"
         name: kong
         ports:
         - containerPort: {{ .Values.global.F7T_GATEWAY_PORT | atoi }}
         volumeMounts:
         - mountPath: /var/log
-          name: logs-endpoint  
+          name: logs-endpoint
         - mountPath: /kong
-          name: kong-config  
+          name: kong-config
         startupProbe:
           tcpSocket:
             port: {{ .Values.global.F7T_GATEWAY_PORT | atoi }}
           initialDelaySeconds: 5
-          failureThreshold: 1    
+          failureThreshold: 1
       volumes:
       - emptyDir: {}
-        name: logs-endpoint 
+        name: logs-endpoint
       - name: kong-config
         configMap:
           name: f7t-kong

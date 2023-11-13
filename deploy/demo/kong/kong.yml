@@ -47,6 +47,8 @@ plugins:
 consumers:
 - username: firecrest
   custom_id: firecrest
+- username: docs
+  custom_id: docs
 
 jwt_secrets:
 - consumer: firecrest
@@ -69,6 +71,18 @@ services:
     methods: [DELETE,GET,POST]
     paths:
     - /compute/
+- name: docs
+  url: http://192.168.220.41:8080
+  routes:
+  - name: docs
+    methods: [GET]
+    paths:
+      - /docs
+    strip_path: false
+    plugins:
+    - name: jwt
+      config:
+        anonymous: docs
 - name: status
   url: https://192.168.220.4:5001
   routes:

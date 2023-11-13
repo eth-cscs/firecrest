@@ -1,6 +1,6 @@
 # FirecREST demo
 
-This demo uses [Docker Compose](https://docs.docker.com/compose/install/) to setup containers for FirecREST microservices, a template client, Keycloak, Kong, Redis, Minio and a dummy cluster with Slurm.
+This demo uses [Docker Compose](https://docs.docker.com/compose/install/) to setup containers for FirecREST microservices, a template client, Keycloak, Kong, Redis, Minio and a dummy cluster with Slurm. It should also work with Podman and [Podman Compose](https://github.com/containers/podman-compose) for a rootless setup.
 
 ## Quick start
 
@@ -19,7 +19,9 @@ To start containers:
 
 `docker-compose up`
 
-Then, go to `http://localhost:7000`  User is `test1` and password is `test11`
+The web client is available at `http://localhost:7000`  User is `test1` and password is `test11`
+
+The API is at `http://localhost:8000` and the specification is at `http://localhost:8000/docs`
 
 
 To stop all containers:
