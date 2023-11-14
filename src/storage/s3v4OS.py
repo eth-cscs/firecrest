@@ -22,12 +22,13 @@ logger = logging.getLogger(__name__)
 
 class S3v4(ObjectStorage):
 
-    def __init__(self, priv_url, publ_url, user, passwd, region):
+    def __init__(self, priv_url, publ_url, user, passwd, region, tenant = None):
         self.user     = user
         self.passwd   = passwd
         self.priv_url = priv_url
         self.publ_url = publ_url
         self.region   = region
+        self.tenant   = tenant
 
     def get_object_storage(self):
         return "Amazon S3 - Signature v4"
@@ -351,13 +352,14 @@ class S3v4(ObjectStorage):
 
         signature = hmac.new(signing_key, base64Policy.encode('utf-8'), hashlib.sha256).hexdigest()
 
-
         retval = {}
+
+        presigned_url = f"{endpoint_url}/{containername}" if (self.tenant is None) else f"{endpoint_url}/{self.tenant}:{containername}"
 
         retval["parameters"] = {
 
             "method": httpVerb,
-            "url": f"{endpoint_url}/{containername}",
+            "url": presigned_url,
             "data": {
                 "key": prefix + "/" + objectname,
                 "x-amz-algorithm": algorithm,
@@ -372,7 +374,7 @@ class S3v4(ObjectStorage):
             "headers": {}
         }
 
-        command = f"curl --show-error -s -i -X {httpVerb} {endpoint_url}/{containername}"
+        command = f"curl --show-error -s -i -X {httpVerb} {presigned_url}"
 
         for k,v in retval["parameters"]["data"].items():
             command += f" -F '{k}={v}'"
