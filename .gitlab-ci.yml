@@ -93,7 +93,7 @@ deploy_dev:
       # link API specification inside chart
       ln -s ../../../../doc/openapi/firecrest-api.yaml openapi/files/firecrest-api.yaml
 
-      for app in config certificator compute jaeger keycloak kong minio openapi reservations status storage tasks utilities; do
+      for app in config client certificator compute jaeger keycloak kong minio openapi reservations status storage tasks utilities; do
         helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} "$app" || true
         helm install --wait --wait-for-jobs --timeout 240s -n ${CI_NAMESPACE_DEV} -f values-dev.yaml --kube-token=${CI_K8S_TOKEN} "$app" $app;
       done
