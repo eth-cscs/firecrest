@@ -23,7 +23,7 @@ items:
             value: storage_access_key
           - name: MINIO_SECRET_KEY
             value: storage_secret_key
-          image: minio/minio:RELEASE.2021-02-01T22-56-52Z
+          image: minio/minio:RELEASE.2022-10-24T18-35-07Z
           name: minio-k8-ci
           ports:
           - containerPort: 9000
