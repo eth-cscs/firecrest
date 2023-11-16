@@ -17,7 +17,7 @@ from cscs_api_common import create_task, update_task, get_task_status
 from cscs_api_common import exec_remote_command
 from cscs_api_common import create_certificate
 from cscs_api_common import in_str
-from cscs_api_common import is_valid_file, is_valid_dir, check_command_error, get_boolean_var, validate_input, setup_logging
+from cscs_api_common import is_valid_file, is_valid_dir, check_command_error, get_boolean_var, get_null_var, validate_input, setup_logging
 
 from schedulers import JobScript
 
@@ -251,7 +251,7 @@ def create_staging():
         S3_ACCESS_KEY  = os.environ.get("F7T_S3_ACCESS_KEY")
         S3_SECRET_KEY  = os.environ.get("F7T_S3_SECRET_KEY")
         S3_REGION      = os.environ.get("F7T_S3_REGION")
-        S3_TENANT      = os.environ.get("F7T_S3_TENANT", None)
+        S3_TENANT      = get_null_var(os.environ.get("F7T_S3_TENANT", None))
 
         staging = S3v4(priv_url=S3_PRIVATE_URL, publ_url=S3_PUBLIC_URL, user=S3_ACCESS_KEY, passwd=S3_SECRET_KEY, region=S3_REGION, tenant=S3_TENANT)
 

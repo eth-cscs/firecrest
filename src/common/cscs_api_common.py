@@ -37,6 +37,15 @@ def get_boolean_var(var):
     return var.upper() == "TRUE" or var.upper() == "YES" or var == "1"
 
 
+# Checks if an environment variable injected to F7T is a valid True value
+# var <- object
+# returns -> value | None 
+def get_null_var(var):
+    var = str(var).upper()
+
+    return None if (len(var) == 0 or var == "NONE" or var == "NULL") else var
+
+
 DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME","Authorization")
