@@ -282,6 +282,8 @@ tag_release:
           done
 
           echo "Pushing helm charts to $CI_REGISTRY_HELM_URL"
+          # include API specification inside chart folder
+          cp ../../../../doc/openapi/firecrest-api.yaml openapi/files/firecrest-api.yaml
 
           images="config certificator compute reservations status storage tasks utilities openapi kong";
           for img in $images; do
