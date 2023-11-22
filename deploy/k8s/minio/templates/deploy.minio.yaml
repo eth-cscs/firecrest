@@ -17,7 +17,7 @@ items:
           app: minio
       spec:
         containers:
-        - args: ["minio", "server", "/data"]
+        - args: ["minio", "server", "/data", "--console-address", ":9001"]
           env:
           - name: MINIO_ACCESS_KEY
             value: storage_access_key
