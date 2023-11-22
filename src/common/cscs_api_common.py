@@ -37,6 +37,15 @@ def get_boolean_var(var):
     return var.upper() == "TRUE" or var.upper() == "YES" or var == "1"
 
 
+# Checks if an environment variable injected to F7T is a valid True value
+# var <- object
+# returns -> value | None 
+def get_null_var(var):
+    var = str(var).upper()
+
+    return None if (len(var) == 0 or var == "NONE" or var == "NULL") else var
+
+
 DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME","Authorization")
@@ -116,6 +125,8 @@ def check_header(header):
         for realm_pubkey in realm_pubkey_list:
             if DEBUG_MODE:
                 logging.debug(f"Trying decoding with [...{realm_pubkey[71:81]}...] public key...")
+                logging.debug(f"Getting JWT from header {AUTH_HEADER_NAME}")
+                logging.debug(f"Value: {token}")
             try:
                 if AUTH_AUDIENCE == '':
                     decoded = jwt.decode(token, realm_pubkey, algorithms=[realm_pubkey_type], options={'verify_aud': False})
@@ -195,6 +206,8 @@ def get_username(header):
         for realm_pubkey in realm_pubkey_list:
             if DEBUG_MODE:
                 logging.debug(f"Trying decoding with [...{realm_pubkey[71:81]}...] public key...")
+                logging.debug(f"Getting JWT from header {AUTH_HEADER_NAME}")
+                logging.debug(f"Value: {token}")
             try:
                 if AUTH_AUDIENCE == '':
                     decoded = jwt.decode(token, realm_pubkey, algorithms=[realm_pubkey_type], options={'verify_aud': False})

@@ -59,6 +59,7 @@ F7T_S3_ACCESS_KEY: storage_access_key
 F7T_S3_PRIVATE_URL: "http://svc-minio.firecrest-dev:9000"
 F7T_S3_PUBLIC_URL: "http://svc-minio.firecrest-dev:9000"
 F7T_S3_REGION: "us-east-1"
+F7T_S3_TENANT: null
 F7T_STORAGE_POLLING_INTERVAL: 60
 # tasks
 F7T_TASKS_PORT: "5003"
