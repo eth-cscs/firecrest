@@ -100,8 +100,8 @@ TRACER_HEADER = "uber-trace-id"
 # checks JWT from Keycloak, optionally validates signature. It only receives the content of header's auth pair (not key:content)
 def check_header(header):
 
-    # header = "Bearer ey...", remove first 7 chars
-    token = header[7:]
+    # header = remove the "Bearer " string
+    token = header.replace("Bearer ","") 
     decoding_result = False
     decoding_reason = ""
 
@@ -179,8 +179,8 @@ def check_header(header):
 # returns username
 def get_username(header):
 
-    # header = "Bearer ey...", remove first 7 chars
-    token = header[7:]
+    # header = remove the "Bearer " string
+    token = header.replace("Bearer ","")
     decoding_result = False
     decoding_reason = ""
 

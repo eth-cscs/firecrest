@@ -301,7 +301,7 @@ tag_release:
 
         else
           echo "The tag does not belong to master the branch";
-          exit 0
+          exit 1
         fi
 
   when: on_success
