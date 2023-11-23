@@ -186,7 +186,7 @@ class SlurmScheduler(schedulers.JobScheduler):
 
         # --parsable2 = limits with | character not ending with it
         cmd += [
-            "--format='jobid,partition,jobname,user,state,start,cputime,end,NNodes,NodeList,ExitCode'",
+            "--format='jobid,partition,jobname,user,state,start,cputime,end,NNodes,NodeList,ExitCode,elapsed'",
             "--noheader",
             "--parsable2",
         ]
@@ -206,6 +206,9 @@ class SlurmScheduler(schedulers.JobScheduler):
                     "state": job_info[4],
                     "start_time": job_info[5],
                     "time": job_info[6],
+                    "cpu_time": job_info[6],
+                    "elapsed_time": job_info[11],
+                    "termination_time": job_info[7],
                     "time_left": job_info[7],
                     "nodes": job_info[8],
                     "nodelist": job_info[9],

@@ -2840,6 +2840,12 @@ components:
           type: string
         time:
           type: string
+        cpu_time:
+          type: string
+        elapsed_time:
+          type: string
+        termination_time:
+          type: string
         time_left:
           type: string
         nodes:
