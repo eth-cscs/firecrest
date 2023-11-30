@@ -10,3 +10,5 @@ kind: ConfigMap
 metadata:
   name: certificator-env-file
   namespace: {{ .Values.global.namespace }}
+  annotations:
+    reloader.stakater.com/match: "true"

@@ -28,3 +28,5 @@ kind: ConfigMap
 metadata:
   name: storage-env-file
   namespace: {{ .Values.global.namespace }}
+  annotations:
+    reloader.stakater.com/match: "true"

@@ -5,6 +5,11 @@ items:
   metadata:
     name: deploy-certificator
     namespace: {{ .Values.global.namespace }}
+    {{ if ne .Values.global.environment "dev" }}
+    annotations:
+      configmap.reloader.stakater.com/reload: "certificator-env-file,common-env-file"
+      secret.reloader.stakater.com/reload: "firecrest-ca-key-secret"
+    {{ end }}
   spec:
     selector:
       matchLabels:
