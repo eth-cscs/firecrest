@@ -47,8 +47,11 @@ items:
           credentials: false
           max_age: 3600
       consumers:
-      - username: firecrest
-        custom_id: firecrest
+      {{- range .Values.global.auth }}
+      - username: "{{ .username }}"
+        custom_id: "{{ .username }}"
+      {{- end }}
+      
       - username: docs
         custom_id: docs
 
