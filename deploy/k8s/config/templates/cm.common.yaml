@@ -21,7 +21,9 @@ data:
   {{- range .Values.global.auth }}
   F7T_REALM_RSA_PUBLIC_KEY: "{{ .F7T_AUTH_REALM_PUBKEY }};"
   {{- end }}
-  F7T_REALM_RSA_TYPE: "{{ .Values.global.auth.F7T_AUTH_REALM_TYPE }}"
+  {{- range .Values.global.auth }}
+  F7T_REALM_RSA_TYPE: "{{ .F7T_AUTH_REALM_TYPE }}"
+  {{- end }}
   F7T_SSH_CERTIFICATE_WRAPPER: "{{ .Values.F7T_SSH_CERTIFICATE_WRAPPER }}"
   F7T_SSL_CRT: "{{ .Values.F7T_SSL_CRT }}"
   F7T_SSL_KEY: "{{ .Values.F7T_SSL_KEY }}"
