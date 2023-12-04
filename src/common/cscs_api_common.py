@@ -41,9 +41,9 @@ def get_boolean_var(var):
 # var <- object
 # returns -> value | None 
 def get_null_var(var):
-    var = str(var).upper()
+    _var = str(var).upper()
 
-    return None if (len(var) == 0 or var == "NONE" or var == "NULL") else var
+    return None if (len(_var) == 0 or _var == "NONE" or _var == "NULL") else var
 
 
 DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
