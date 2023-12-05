@@ -18,12 +18,8 @@ data:
   F7T_JAEGER_AGENT: "{{ .Values.F7T_JAEGER_AGENT }}"
   F7T_KONG_URL: "{{ .Values.F7T_KONG_URL }}"  
   F7T_OBJECT_STORAGE: "{{ .Values.F7T_OBJECT_STORAGE }}"
-  {{- range .Values.global.auth }}
-  F7T_REALM_RSA_PUBLIC_KEY: "{{ .F7T_AUTH_REALM_PUBKEY }};"
-  {{- end }}
-  {{- range .Values.global.auth }}
-  F7T_REALM_RSA_TYPE: "{{ .F7T_AUTH_REALM_TYPE }}"
-  {{- end }}
+  F7T_REALM_RSA_PUBLIC_KEY: '{{ include "list.listPubKeys" . }}'
+  F7T_REALM_RSA_TYPE: '{{ include "list.listPubKeyTypes" . }}'
   F7T_SSH_CERTIFICATE_WRAPPER: "{{ .Values.F7T_SSH_CERTIFICATE_WRAPPER }}"
   F7T_SSL_CRT: "{{ .Values.F7T_SSL_CRT }}"
   F7T_SSL_KEY: "{{ .Values.F7T_SSL_KEY }}"
