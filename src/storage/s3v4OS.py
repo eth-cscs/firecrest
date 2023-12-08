@@ -374,7 +374,7 @@ class S3v4(ObjectStorage):
             "headers": {}
         }
 
-        command = f"curl --show-error -s -i -X {httpVerb} {presigned_url}"
+        command = f"curl -f --show-error -s -i -X {httpVerb} {presigned_url}"
 
         for k,v in retval["parameters"]["data"].items():
             command += f" -F '{k}={v}'"
