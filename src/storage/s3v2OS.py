@@ -319,7 +319,7 @@ class S3v2(ObjectStorage):
             "headers": {}
         }
 
-        command = f"curl --show-error -s -i -X {httpVerb} '{url}?AWSAccessKeyId={self.user}&Signature={sig}&Expires={expires}' -T {sourcepath}"
+        command = f"curl -f --show-error -s -i -X {httpVerb} '{url}?AWSAccessKeyId={self.user}&Signature={sig}&Expires={expires}' -T {sourcepath}"
 
         retval["command"] = command
 
