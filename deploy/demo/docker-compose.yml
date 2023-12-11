@@ -180,7 +180,7 @@ services:
     image: f7t-client
     container_name: client
     build:
-      context: ../../src/tests/template_client
+      context: ../../examples/UI-code-flow
       dockerfile: ./Dockerfile
       network: host
     networks:

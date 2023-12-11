@@ -45,7 +45,7 @@ build_images:
         if [ "$CI_COMMIT_TAG" != "" ]; then exit 0; fi
 
         # build web client
-        /kaniko/executor --context src/tests/template_client --dockerfile ./Dockerfile \
+        /kaniko/executor --context examples/UI-code-flow --dockerfile ./Dockerfile \
         --destination ${CI_REGISTRY_PREFIX}/client:${CI_COMMIT_SHORT_SHA} --cleanup
 
         # build tester

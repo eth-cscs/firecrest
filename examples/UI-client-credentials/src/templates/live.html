@@ -1,0 +1,648 @@
+{% extends "base.html" %}
+
+{% block head %}
+    {{ super () }}
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="https://unpkg.com/bootstrap-table@1.18.3/dist/bootstrap-table.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+
+    {% block title %}
+        <title>FirecREST Live</title>
+    {% endblock title %}
+{% endblock head%}
+
+
+{% block style %}
+{{ super() }}
+<style>
+   
+#parent {
+    height: 200px;
+    width: 400px;
+    /*background: green;*/
+    margin: 0 auto;
+    text-align: center;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+}
+#success_job_submission {
+    height: 150px;
+    width: 250px;
+    margin: 0 auto;
+    /*top: 24px;*/
+    /*color: white*/
+}
+#error_job_submission {
+    height: 150px;
+    width: 250px;
+    margin: 0 auto;
+    /*top: 24px;*/
+    /*color: white*/
+}
+
+#spinner{
+    width: 3rem; 
+    height: 3rem;
+
+}
+
+#dir_table{
+    
+    /*width: 290px;*/
+    font-size: 11px;
+    
+}
+
+#postprocess{
+    vertical-align: top; 
+}
+
+#postimage {
+
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    
+}
+
+#postimage img{
+
+    /*vertical-align: top; 
+    width: 400px;
+    height: 400px;*/
+    margin-left: auto;
+    margin-right: auto;
+    display: block;
+}
+
+.bd-example-modal-lg .modal-dialog{
+    display: table;
+    position: relative;
+    margin: 0 auto;
+    top: calc(50% - 24px);
+  }
+  
+  .bd-example-modal-lg .modal-dialog .modal-content{
+    background-color: transparent;
+    border: none;
+  }
+
+</style>
+
+{% endblock style %}
+
+{% block scripts %}
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js" integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ==" crossorigin="anonymous"></script>
+{{ super() }}
+
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+
+<script src="https://unpkg.com/bootstrap-table@1.21.4/dist/bootstrap-table.min.js"></script>
+<script src="https://unpkg.com/bootstrap-table@1.21.4/dist/extensions/toolbar/bootstrap-table-toolbar.min.js"></script>
+<script src="https://unpkg.com/bootstrap-table@1.21.4/dist/extensions/auto-refresh/bootstrap-table-auto-refresh.js"></script>
+<script src="https://unpkg.com/bootstrap-table@1.21.4/dist/extensions/multiple-sort/bootstrap-table-multiple-sort.js"></script>
+
+<script>
+
+    $(document).ready(function(){
+        // start up the SocketIO connection to the server - the namespace 'test' is also included here if necessary
+        console.log('Socket connected to: http://' + document.domain + ':' + location.port + '/');
+        
+        var socket = io.connect('http://' + document.domain + ':' + location.port + '/');
+        // this is a callback that triggers when the "my response" event is emitted by the server.
+        socket.on('error', function(msg) {
+            console.log("Socket Error: "+msg);
+            error_msg(msg.data);
+        });
+
+        socket.on('success', function(msg) {
+            console.log("Socket Success: "+msg);
+            success_msg(msg.data)
+        });
+        
+    });
+
+
+    // creates an HTML form on-the-fly with hidden fields to send "data" JSON as POST method to "url"
+	function createFormPost(url,data){ /*data is a dictionary*/
+		
+		var form = document.createElement("form");
+		form.setAttribute("method", "POST");
+		form.setAttribute("action", url);
+
+		for(var key in data){
+			if(data.hasOwnProperty(key)) {
+				var field = document.createElement("input");
+				field.setAttribute("type","hidden");
+				field.setAttribute("name",key);
+				field.setAttribute("value",data[key]);
+				form.appendChild(field);
+			}
+		}
+		
+		document.body.appendChild(form);
+		form.submit();
+	}
+
+    
+
+    
+
+    function submit_job(){
+
+        $('.spin-modal').modal('show');
+
+        $.ajax({
+            type: 'POST',
+            url: '/submit_job',
+            data: jQuery.param({"numberOfNodes": $("#numberOfNodes").val(),
+                                "jobName": $("#jobName").val(),
+                                "partition": $("#partition").val(),   
+                                "steps": $("#steps").val(),
+                                "constraint": $("#constraint").val(),
+                            }),
+
+            success: function(data){
+
+                $('.spin-modal').modal('hide');
+
+                console.log(data["data"]);
+
+                createFormPost("/",{"msg": data["data"], "error":0} );
+
+                                
+                
+            },
+
+            error: function(data){
+                $('.spin-modal').modal('hide');
+
+                data_dict = {"msg": "Job couldn't be submitted. <br>Error: "+data.responseJSON["data"],
+                                "error": 1};
+
+                createFormPost("/",data_dict);
+            
+            },
+        });
+
+    }
+
+    function postprocessing(){
+
+        $('.spin-modal').modal('show');
+
+        $.ajax({
+            type: 'POST',
+            url: '/submit_job',
+            data: jQuery.param({"numberOfNodes": 1,
+                                "jobName": $("#jobName").val(),
+                                "partition": $("#partition").val(),   
+                                "steps": "1",
+                                "constraint": $("#constraint").val(),
+                                "isPostProcess": true,
+                            }),
+        
+            success: function(data){
+
+                $('.spin-modal').modal('hide');
+                createFormPost("/",{"msg": data["data"], "error":0} );
+                
+            },
+    
+            error: function(data){
+                
+                $('.spin-modal').modal('hide');
+                data_dict = {"msg": "PostProcessing Job couldn't be submitted. <br>Error: "+data.responseJSON["data"],
+                                "error": 1};
+
+                createFormPost("/",data_dict);
+              
+            },
+         });
+
+    }
+
+    function success_msg(msg){
+
+        console.log("Writing Success div");
+
+        $('<div id="success-alert" class="alert alert-success alert-dismissible fade show" role="alert">'+ 
+			 '<strong>Success</strong> '+msg+
+			 '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>'+
+	 	  '</div>').prependTo("#msg_placeholder");
+
+
+		$("#success-alert").fadeTo(5000, 500).slideUp(500, function(){
+			$("#success-alert").slideUp(500);
+		});
+
+    }
+
+    function error_msg(msg){
+        console.log("Writing Error div");
+
+        $('<div id="error-alert" class="alert alert-error alert-dismissible fade show" role="alert">'+ 
+			 '<strong>Error</strong> '+msg+
+			 '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>'+
+	 	  '</div>').prependTo("#msg_placeholder");
+
+
+		$("#error-alert").fadeTo(5000, 500).slideUp(500, function(){
+			$("#error-alert").slideUp(500);
+		});
+    }
+
+    
+    
+
+    function rowStyle(row,index){
+
+        if (row.state == "RUNNING"){
+            return{ classes: "table-primary" }
+        }
+
+        if (row.state == "PENDING"){
+            return{ classes: "table-light" }
+        }
+
+        if (row.state == "FAILED"){
+            return{ classes: "table-danger" }
+        }
+
+        if (row.state == "COMPLETED"){
+            return{ classes: "table-success" }
+        }
+
+        if (row.state == "CANCELLED"){
+            return{ classes: "table-warning" }
+        }
+
+        return {};
+
+    }
+
+    
+</script>
+
+{% endblock scripts %}
+
+{% block content %}
+
+
+<div class="spin-modal fade bd-example-modal-lg" data-backdrop="static" data-keyboard="false" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="spinner-border text-secondary" role="status">
+			<span class="visually-hidden">Loading...</span>
+		  </div>
+		  
+    </div>
+</div>
+
+
+
+<table>
+    <tr>
+        <td><img width="150px" src="static/logo.png"> </td>
+
+        <td><h1>FirecREST Live </h1></td>
+    </tr>
+</table>
+
+<div id="msg_placeholder"></div>
+
+{% if error == "0" %}
+
+
+    <div id="success-alert" class="alert alert-success alert-dismissible" role="alert"> 
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <strong>Success</strong> {{ msg }}
+    </div> 
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script>
+        
+        $("#success-alert").fadeTo(5000, 500).slideUp(500, function(){
+            $("#success-alert").slideUp(500);
+        });
+    </script>
+
+
+{% elif error == "1" %}
+    <div id="error-alert" class="alert alert-danger alert-dismissible" role="alert">
+        <strong>Error</strong> {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div> 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script>
+
+        $("#error-alert").fadeTo(5000, 500).slideUp(500, function(){
+            $("#error-alert").slideUp(500);
+        });
+    </script>
+
+{% endif %}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-auto">
+            <h3>Jobs for user <mark>{{ g.user }}</mark> in <mark>{{ data["system"] }}</mark></h3>
+        </div>
+       <div class="col-lg-auto">
+                {% if data["system_status"] is defined %}
+                    {% if data["system_status"] == "avail" %}
+                        <span class="badge bg-success">System available <i class="bi bi-check-square"></i></span>
+                    
+                    {% elif data["system_status"] == "notavail" %} 
+                        <span class="badge bg-danger">System not available <i class="bi bi-x-square"></i></span>    
+                    {% else %} 
+                        <span class="badge bg-warning">FirecREST not working<i class="bi bi-exclamation-square"></i></span>
+                    {% endif %}
+
+                {% endif %}
+            
+        </div>
+        
+    </div>
+    
+
+<!-- -->
+
+    <div class="row">
+        <div class="col-lg-12">
+            <table
+            id="table"
+            class="table table-condensed"
+            data-toggle="table"
+            data-height="400"  
+            data-pagination="true"
+            data-url="/list_jobs"  
+            data-auto-refresh="true"
+            data-auto-refresh-interval="15"
+            data-auto-refresh-status="true"
+            data-auto-refresh-silent="false"
+            data-row-style="rowStyle"
+            data-sort-name="state"
+            >
+            <thead>
+                <tr>
+                <th data-sortable="false" data-field="jobid">Job ID</th>
+                <th data-sortable="false" data-field="name">Job Name</th>
+                <th data-field="nodelist">Node List</th>
+                <th data-field="nodes">Nodes</th>
+                <th data-field="partition">Partition</th>
+                <th data-sortable="false" data-field="start_time">Start Time</th>
+                <th data-sorter="stateSorter" data-sortable="true" data-field="state">State</th>
+                <th data-sortable="false" data-field="time">Time</th>
+                </tr>
+            </thead>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+
+
+<div class="container-fluid">
+    <div class="row">
+
+        <div class="col-lg-2">
+
+            <form  class="form-group" style="width: 200px;">
+                <h3>Parameters</h3> <br>
+                <div class="form-group">
+                <label for="numberOfNodes">Number of nodes</label>
+                <input 
+                    {% if session["numberOfNodes"] is defined %}
+                        value="{{ session["numberOfNodes"] }}" 
+                    {% else %}
+                        value="1"
+                    {% endif %}
+                    type="number" class="form-control" id="numberOfNodes" name="numberOfNodes" placeholder="1">
+                </div>
+
+                <div class="form-group">
+                    <label for="steps">Steps</label>
+                    <input 
+            
+                    {% if session["steps"] is defined %}
+                        value="{{ session["steps"] }}" 
+                    {% else %}
+                        value="5"
+                    {% endif %}
+            
+                    type="number" class="form-control" id="steps" name="steps" placeholder="1">
+                </div>
+
+                <div class="form-group">
+                    <label for="jobName">Job Name</label>
+                    <input 
+                    {% if session["jobName"] is defined %}
+                        value="{{ session["jobName"] }}" 
+                    {% else %}
+                        value="FirecRESTJob"
+                    {% endif %}
+                
+                
+                        type="text" class="form-control" name="jobName" id="jobName" placeholder="f7t_test">
+                </div>
+
+                <div class="form-group">
+                    <label for="partition">Partition</label>
+                    <select class="form-control" name="partition" id="partition">
+                        {% for partition in data["partitions"] %}
+                            {% if session["partition"] is defined %}
+                                {% if session["partition"] == partition %}
+                                    <option selected> {{ partition }} </option>
+                                {% else %}
+                                    <option> {{ partition }} </option>
+                                {% endif %}
+
+                            {% else %}
+                                <option> {{ partition }} </option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="constraints">Constraints</label>
+                    <select class="form-control" name="constraint" id="constraint">
+                        {% for constraint in data["constraints"] %}
+                            {% if session["constraint"] is defined %}
+                                {% if session["constraint"] == constraint %}
+                                    <option selected> {{ constraint }} </option>
+                                {% else %}
+                                    <option> {{ constraint }} </option>
+                                {% endif %}
+                            {% else %}
+                                <option> {{ constraint }} </option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <br>
+
+                <button {% if data["system_status"] != "avail" %} disabled="disabled" {% endif %}
+                 onclick="submit_job();" class="btn btn-primary" type="button">Submit Jobs</button>
+
+            </form>
+
+    
+        </div>
+
+
+        <div class="col-lg-4">
+
+            <h3>Working directory</h3> <br>
+            Base directory <kbd>{{ data["job_dir"] }}</kbd> <br>
+
+            {% if session["jobDir"] is defined %} 
+                Problem directory: <pre><kbd>{{ session["jobDir"] }}</kbd></pre>
+            {% else %}
+                Problem directory: <pre><kbd>Not yet defined</kbd></pre>
+            {% endif %}
+            <table
+            id="dir_table"
+            data-toggle="table"
+            data-height="400"  
+            data-pagination="true"
+
+            {% if session["jobDir"] is defined %}
+                data-url="/list_files?path={{ session['jobDir'] }}"  
+            {% endif %}
+
+            data-show-multi-sort="true"
+            data-show-multi-sort-button="false"
+            data-sort-priority='[{"sortName": "last_modified", "sortOrder": "desc"}]'
+            data-auto-refresh="true"
+            data-auto-refresh-interval="15"
+            data-auto-refresh-status="true"
+            data-auto-refresh-silent="false"
+            data-search="true"
+            data-row-style="rowStyle"
+            >
+            <thead>
+                <tr>
+                <th data-sortable="true" data-field="name">Name</th>
+                <th data-sortable="true" data-field="last_modified">Modified</th>
+                <th class="text-right" data-field="size">Size [b]</th>
+                </tr>
+            </thead>
+            </table>
+        </div>
+
+
+        <div class="col-lg-6">
+            <h3>PostProcess</h3> <br>
+            <div id="postprocess">
+                <button
+                {% if session["jobDir"] is defined %}
+                    enabled="enabled"
+                {% else %}
+                    disabled="disabled"
+                {% endif %}
+                onclick="postprocessing();" class="btn btn-primary" type="button">
+                {% if session["activePost"] is defined and session["activePost"] == true %}
+                    Update Postprocessing
+                {% else %}
+                    Start Postprocessing
+                {% endif %}
+
+                
+                </button>
+                <br>
+                <br>
+
+                <div id="postimage">
+                    <img  id="result_image"  class="img-fluid">
+
+
+                </div>
+
+            </div>
+        
+        </div>
+    </div>
+
+<div id="parent"></div>
+
+<div class="spin-modal fade bd-example-modal-lg" data-backdrop="static" data-keyboard="false" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="spinner-border text-secondary" role="status">
+			<span class="visually-hidden">Loading...</span>
+		  </div>
+		  
+    </div>
+</div>
+
+<script>
+    function stateSorter(a,b,rowA,rowB){
+
+
+        /*state_orders = ["COMPLETED","RUNNING","PENDING", "FAILED"];
+
+        console.log(a+" - "+b);
+        if (a == "RUNNING") return -1;
+        if (b == "RUNNING") return -1;
+        */
+        console.log(a,b);
+        return 0;
+
+    }
+</script>
+
+    {% if session["activePost"] is defined and session["activePost"] == true %} 
+    
+        <script>
+            
+            function show_image(){
+
+                $.ajax({
+                    type: 'GET',
+                    url: '/results',
+                        
+                        success: function(data){
+
+                        imgURL = data["data"]+"?time="+ new Date().getTime();
+                        console.log("Show Image Data: "+data);
+                        console.log("URL: "+imgURL);
+
+                        $("#result_image").attr("src",imgURL);
+
+                        
+                    },
+
+                    error: function(data){
+                        
+                        console.error(data.responseJSON["data"]);
+
+                    
+                    },
+                });
+
+
+            }
+
+            show_image();
+
+
+            setInterval(show_image, 10000);
+
+        </script>
+
+    {% endif %}
+
+
+
+
+
+
+
+{% endblock %}
