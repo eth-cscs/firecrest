@@ -3,6 +3,10 @@ kind: Deployment
 metadata:
   name: deploy-status
   namespace: {{ .Values.global.namespace }}
+  {{ if ne .Values.global.environment "dev" }}
+  annotations:
+    configmap.reloader.stakater.com/reload: "status-env-file,common-env-file"
+  {{ end }}
 spec:
   replicas: 1
   selector:

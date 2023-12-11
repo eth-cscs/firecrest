@@ -3,6 +3,11 @@ kind: Deployment
 metadata:
   name: deploy-storage
   namespace: {{ .Values.global.namespace }}
+  {{ if ne .Values.global.environment "dev" }}
+  annotations:
+    configmap.reloader.stakater.com/reload: "storage-env-file,common-env-file"
+    secret.reloader.stakater.com/reload: "firecrest-common-secrets"
+  {{ end }}
 spec:
   replicas: 1
   selector:

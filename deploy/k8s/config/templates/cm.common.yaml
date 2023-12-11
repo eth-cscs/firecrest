@@ -18,8 +18,8 @@ data:
   F7T_JAEGER_AGENT: "{{ .Values.F7T_JAEGER_AGENT }}"
   F7T_KONG_URL: "{{ .Values.F7T_KONG_URL }}"  
   F7T_OBJECT_STORAGE: "{{ .Values.F7T_OBJECT_STORAGE }}"
-  F7T_REALM_RSA_PUBLIC_KEY: "{{ .Values.global.F7T_AUTH_REALM_PUBKEY }}"
-  F7T_REALM_RSA_TYPE: "{{ .Values.global.F7T_AUTH_REALM_TYPE }}"
+  F7T_REALM_RSA_PUBLIC_KEY: '{{ include "list.listPubKeys" . }}'
+  F7T_REALM_RSA_TYPE: '{{ include "list.listPubKeyTypes" . }}'
   F7T_SSH_CERTIFICATE_WRAPPER: "{{ .Values.F7T_SSH_CERTIFICATE_WRAPPER }}"
   F7T_SSL_CRT: "{{ .Values.F7T_SSL_CRT }}"
   F7T_SSL_KEY: "{{ .Values.F7T_SSL_KEY }}"
@@ -33,3 +33,5 @@ kind: ConfigMap
 metadata:
   name: common-env-file
   namespace: {{ .Values.global.namespace }}
+  annotations:
+    reloader.stakater.com/match: "true"
