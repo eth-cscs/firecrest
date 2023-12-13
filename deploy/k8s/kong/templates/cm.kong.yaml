@@ -49,20 +49,16 @@ items:
 
       consumers:
       {{- range .Values.global.auth }}
-      - username: {{ .username }}
-        custom_id: {{ .username }}
+      - jwt_secrets:
+        - key: "{{ .F7T_AUTH_ISSUER }}"
+          algorithm: "{{ .F7T_AUTH_REALM_TYPE }}"
+          rsa_public_key: "-----BEGIN PUBLIC KEY-----\n{{ .F7T_AUTH_REALM_PUBKEY }}\n-----END PUBLIC KEY-----"
+        username: "{{ .username }}"
       {{- end }}
+      
       - username: docs
         custom_id: docs
 
-      {{- range .Values.global.auth }}
-      jwt_secrets:
-      - key: "{{ .F7T_AUTH_URL }}/auth/realms/{{ .F7T_AUTH_REALM }}"
-        algorithm: "{{ .F7T_AUTH_REALM_TYPE }}"
-        rsa_public_key: "-----BEGIN PUBLIC KEY-----\n{{ .F7T_AUTH_REALM_PUBKEY }}\n-----END PUBLIC KEY-----"
-        consumer: "{{ .username }}"
-      {{- end }}
-        
       routes:
       - name: reject
         # rejects any undefined route with 'request-termination' plugin
