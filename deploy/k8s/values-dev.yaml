@@ -93,7 +93,6 @@ global:
   F7T_RESERVATIONS_HOST: "https://svc-reservations"
   auth:
     - username: kc-demo
-      F7T_AUTH_URL: "http://svc-keycloak:8080"
-      F7T_AUTH_REALM: "kcrealm"
+      F7T_AUTH_ISSUER: "http://svc-keycloak:8080/auth/realms/kcrealm"
       F7T_AUTH_REALM_PUBKEY: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqB44q32bQp8LbyW6dQvgsjseXESkLT1g5LQKGb+P79AC+nOAtxhn8i/kmgc6zsQH8NlUtNJruLxlzdo2/OGmlDGYZH1x6VmAwvJPJ4er0xPUrvZ8YclxYQC16PY5LFiQRNBMRyQwP5Kne1O46FpmADFVWMfoabdnaqoXexxB56b25o8tE2ulRBgfpnrRgZAvf7kWjugRCNO06FV074FVMYHA1aBk0ICyaFCDM/Tb5oaDyGr5c/ZvdrRUrw8vaiYyMgaAnnJPL75cebGoHeMJaEyZalsHA+iuhRAfeAwpSClsmhVqnfH7a7hqrqumVRo27dydqmfVgpFjU5gbFcBZ5wIDAQAB'
       F7T_AUTH_REALM_TYPE: "RS256"
