@@ -105,7 +105,7 @@ items:
         - name: tasks
           methods: [GET]
           paths:
-          - /tasks/
+          - /tasks
       - name: utilities
         url: "{{ .Values.global.F7T_UTILITIES_HOST }}:{{ .Values.global.F7T_UTILITIES_PORT }}"
         routes:
