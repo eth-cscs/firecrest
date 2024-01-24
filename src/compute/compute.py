@@ -598,22 +598,26 @@ def list_jobs():
     pageSize    = request.args.get("pageSize", None)
     pageNumber  = request.args.get("pageNumber", None)
 
-    if pageSize != None and pageNumber != None:
-        try:
-            pageNumber  = int(pageNumber)
-            pageSize    = int(pageSize)
-
-            if pageSize not in [10,25,50,100]:
+    if pageSize is not None or pageNumber is not None:
+        if pageSize is not None:
+            try:
+                pageSize = int(pageSize)
+            except ValueError:
                 pageSize = 25
-
-        except ValueError:
-            pageNumber = 0
+                app.logger.error("pageSize cannot be converted to integer, so default (25) will be used")
+        else:
+            # if not set, by default
             pageSize = 25
-            app.logger.error("Wrong pageNumber and/or pageSize")
-    else:
-        # if not set, by default
-        pageNumber  = 0
-        pageSize    = 25
+
+        if pageNumber is not None:
+            try:
+                pageNumber = int(pageNumber)
+            except ValueError:
+                pageNumber = 0
+                app.logger.error("pageNumber cannot be converted to integer, so default (0) will be used")
+        else:
+            # if not set, by default
+            pageNumber = 0
 
     # by default empty
     job_aux_list = None
@@ -690,25 +694,19 @@ def list_job_task(headers,system_name, system_addr,action,task_id,pageSize,pageN
     app.logger.info(f"Size jobs: {len(jobList)}")
 
     # pagination
-    totalSize   = len(jobList)
-    pageNumber  = float(pageNumber)
-    pageSize    = float(pageSize)
-
-    totalPages = int(ceil(float(totalSize) / float(pageSize)))
-
-    if DEBUG_MODE:
+    if pageNumber is not None and pageSize is not None:
+        totalSize   = len(jobList)
+        totalPages = int(ceil(float(totalSize) / float(pageSize)))
         app.logger.debug(f"Total Size: {totalSize} - Total Pages: {totalPages}")
 
-    if pageNumber < 0 or pageNumber > totalPages-1:
-        app.logger.warning(f"pageNumber ({pageNumber}) greater than total pages ({totalPages}), set to default = 0")
-        pageNumber = 0
+        if pageNumber < 0 or pageNumber > totalPages-1:
+            app.logger.warning(f"pageNumber ({pageNumber}) greater than total pages ({totalPages}), set to default = 0")
+            pageNumber = 0
 
-    beg_reg = int(pageNumber * pageSize)
-    end_reg = int( (pageNumber+1 * pageSize) -1 )
-
-    app.logger.info(f"Initial reg {beg_reg}, final reg: {end_reg}")
-
-    jobList = jobList[beg_reg:end_reg + 1]
+        beg_reg = pageNumber * pageSize
+        end_reg = beg_reg + pageSize
+        app.logger.info(f"Initial reg {beg_reg}, final reg: {end_reg-1}")
+        jobList = jobList[beg_reg:end_reg]
 
     jobs = {}
     for job_index, jobinfo in enumerate(jobList):
@@ -896,7 +894,7 @@ def cancel_job(jobid):
         return data, 400
 
 
-def acct_task(headers, system_name, system_addr, action, task_id):
+def acct_task(headers, system_name, system_addr, action, task_id, pageSize, pageNumber):
     # exec remote command
     resp = exec_remote_command(headers, system_name, system_addr, action)
 
@@ -918,6 +916,22 @@ def acct_task(headers, system_name, system_addr, action, task_id):
         return
 
     jobs = scheduler.parse_accounting_output(resp["msg"])
+    app.logger.info(f"Size jobs: {len(jobs)}")
+
+    # pagination
+    if pageNumber is not None and pageSize is not None:
+        totalSize   = len(jobs)
+        totalPages = int(ceil(float(totalSize) / float(pageSize)))
+        app.logger.debug(f"Total Size: {totalSize} - Total Pages: {totalPages}")
+
+        if pageNumber < 0 or pageNumber > totalPages-1:
+            app.logger.warning(f"pageNumber ({pageNumber}) greater than total pages ({totalPages}), set to default = 0")
+            pageNumber = 0
+
+        beg_reg = pageNumber * pageSize
+        end_reg = beg_reg + pageSize
+        app.logger.info(f"Initial reg {beg_reg}, final reg: {end_reg-1}")
+        jobs = jobs[beg_reg:end_reg]
 
     # as it is a json data to be stored in Tasks, the is_json=True
     update_task(task_id, headers, async_task.SUCCESS, jobs, is_json=True)
@@ -960,10 +974,33 @@ def acct():
     endtime   = request.args.get("endtime","")
     # check optional parameter jobs=jobidA,jobidB,jobidC
     jobs = request.args.get("jobs", "")
+    pageSize    = request.args.get("pageSize", None)
+    pageNumber  = request.args.get("pageNumber", None)
     if jobs != "":
         v = validate_input(jobs)
         if v != "":
             return jsonify(description="Failed to retrieve account information", error=f"'jobs' {v}"), 400
+
+    if pageSize is not None or pageNumber is not None:
+        if pageSize is not None:
+            try:
+                pageSize = int(pageSize)
+            except ValueError:
+                pageSize = 25
+                app.logger.error("pageSize cannot be converted to integer, so default (25) will be used")
+        else:
+            # if not set, by default
+            pageSize = 25
+
+        if pageNumber is not None:
+            try:
+                pageNumber = int(pageNumber)
+            except ValueError:
+                pageNumber = 0
+                app.logger.error("pageNumber cannot be converted to integer, so default (0) will be used")
+        else:
+            # if not set, by default
+            pageNumber = 0
 
     sched_cmd = scheduler.accounting(
         jobids=jobs.split(','),
@@ -984,7 +1021,7 @@ def acct():
 
         # asynchronous task creation
         aTask = threading.Thread(target=acct_task, name=ID,
-                                 args=(headers, system_name, system_addr, action, task_id))
+                                 args=(headers, system_name, system_addr, action, task_id, pageSize, pageNumber))
 
         aTask.start()
         task_url = f"{KONG_URL}/tasks/{task_id}"

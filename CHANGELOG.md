@@ -16,14 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add support for Object Storage Tenants in S3v4 object storage. The associated environment variable is `F7T_S3_TENANT` and it can be empty or be `null` or `none` when the tenant is not needed. Otherwise the tenant name has to be set.
 - The task that is returned from a successful `GET /jobs/acct` would returns the attribute `time`, which is `cputime` from slurm. The attribute will remain and `cputime` and `elapsed` will be also returned. Similarly, `time_left` is actually the time of termination of the jobs. `time_left` will remain for compatibility reasons, but `elapsed` attribute will also be returned.
 - Added `F7T_AUTH_ISSUER` to specify the JWT token issuer to be checked by Kong GW
-  - Removed `F7T_AUTH_REALM` and `F7T_AUTH_URL` which are no longer needed
+- Removed `F7T_AUTH_REALM` and `F7T_AUTH_URL` which are no longer needed
 
-## Changed
+### Changed
 
 - CI/CD pipeline is now adapted to create helm charts images and push to a repository when TDS or Prod are tagged
   - Also secrets now can be managed from ExternalSecrets on K8s deployment
   - Deployment on TDS triggers ArgoCD deployment
 - Demo and k8s deployments have the Swagger UI API specification at unauthenticated `/docs` endpoint
+
+### Fixed
+
+- Take into account `pageNumber` and `pageSize` arguments in `GET /compute/jobs` and `GET /compute/acct`.
 
 ## [1.13.1]
 
