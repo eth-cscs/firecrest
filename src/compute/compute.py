@@ -685,9 +685,20 @@ def list_job_task(headers,system_name, system_addr,action,task_id,pageSize,pageN
         return
 
     if len(resp["msg"]) == 0:
-         update_task(task_id, headers, async_task.SUCCESS, {}, True)
-         return
+        if pageNumber is None:
+            update_task(task_id, headers, async_task.SUCCESS, {}, True)
+        elif pageNumber < 0:
+            err_msg = f"pageNumber ({pageNumber}) cannot be a negative number"
+            app.logger.error(err_msg)
+            update_task(task_id, headers, async_task.ERROR, err_msg)
+        elif pageNumber >= 1:
+            err_msg = f"pageNumber ({pageNumber}) is greater than total pages (1)"
+            app.logger.error(err_msg)
+            update_task(task_id, headers, async_task.ERROR, err_msg)
+        else:
+            update_task(task_id, headers, async_task.SUCCESS, {}, True)
 
+        return
 
     # on success:
     jobList = scheduler.parse_poll_output(resp["msg"])
@@ -695,13 +706,19 @@ def list_job_task(headers,system_name, system_addr,action,task_id,pageSize,pageN
 
     # pagination
     if pageNumber is not None and pageSize is not None:
-        totalSize   = len(jobList)
+        totalSize = len(jobList)
         totalPages = int(ceil(float(totalSize) / float(pageSize)))
         app.logger.debug(f"Total Size: {totalSize} - Total Pages: {totalPages}")
 
-        if pageNumber < 0 or pageNumber > totalPages-1:
-            app.logger.warning(f"pageNumber ({pageNumber}) greater than total pages ({totalPages}), set to default = 0")
-            pageNumber = 0
+        if pageNumber < 0 or pageNumber >= totalPages:
+            if pageNumber < 0:
+                err_msg = f"pageNumber ({pageNumber}) cannot be a negative number"
+            else:
+                err_msg = f"pageNumber ({pageNumber}) is greater than total pages ({totalPages})"
+
+            app.logger.error(err_msg)
+            update_task(task_id, headers, async_task.ERROR, err_msg)
+            return
 
         beg_reg = pageNumber * pageSize
         end_reg = beg_reg + pageSize
@@ -912,7 +929,19 @@ def acct_task(headers, system_name, system_addr, action, task_id, pageSize, page
         return
 
     if len(resp["msg"]) == 0:
-        update_task(task_id, headers, async_task.SUCCESS, {}, True)
+        if pageNumber is None:
+            update_task(task_id, headers, async_task.SUCCESS, {}, True)
+        elif pageNumber < 0:
+            err_msg = f"pageNumber ({pageNumber}) cannot be a negative number"
+            app.logger.error(err_msg)
+            update_task(task_id, headers, async_task.ERROR, err_msg)
+        elif pageNumber >= 1:
+            err_msg = f"pageNumber ({pageNumber}) is greater than total pages (1)"
+            app.logger.error(err_msg)
+            update_task(task_id, headers, async_task.ERROR, err_msg)
+        else:
+            update_task(task_id, headers, async_task.SUCCESS, {}, True)
+
         return
 
     jobs = scheduler.parse_accounting_output(resp["msg"])
@@ -920,13 +949,19 @@ def acct_task(headers, system_name, system_addr, action, task_id, pageSize, page
 
     # pagination
     if pageNumber is not None and pageSize is not None:
-        totalSize   = len(jobs)
+        totalSize = len(jobs)
         totalPages = int(ceil(float(totalSize) / float(pageSize)))
         app.logger.debug(f"Total Size: {totalSize} - Total Pages: {totalPages}")
 
-        if pageNumber < 0 or pageNumber > totalPages-1:
-            app.logger.warning(f"pageNumber ({pageNumber}) greater than total pages ({totalPages}), set to default = 0")
-            pageNumber = 0
+        if pageNumber < 0 or pageNumber >= totalPages:
+            if pageNumber < 0:
+                err_msg = f"pageNumber ({pageNumber}) cannot be a negative number"
+            else:
+                err_msg = f"pageNumber ({pageNumber}) is greater than total pages ({totalPages})"
+
+            app.logger.error(err_msg)
+            update_task(task_id, headers, async_task.ERROR, err_msg)
+            return
 
         beg_reg = pageNumber * pageSize
         end_reg = beg_reg + pageSize
