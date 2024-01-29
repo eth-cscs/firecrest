@@ -17,6 +17,8 @@ data:
   F7T_GUNICORN_SSL: "{{ .Values.F7T_GUNICORN_SSL }}"
   F7T_JAEGER_AGENT: "{{ .Values.F7T_JAEGER_AGENT }}"
   F7T_KONG_URL: "{{ .Values.F7T_KONG_URL }}"  
+  F7T_LOG_TYPE: "stdout"
+  F7T_GUNICORN_LOG: ""
   F7T_OBJECT_STORAGE: "{{ .Values.F7T_OBJECT_STORAGE }}"
   F7T_REALM_RSA_PUBLIC_KEY: '{{ include "list.listPubKeys" . }}'
   F7T_REALM_RSA_TYPE: '{{ include "list.listPubKeyTypes" . }}'

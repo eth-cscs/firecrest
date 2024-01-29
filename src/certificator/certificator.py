@@ -17,6 +17,7 @@ from jaeger_client import Config
 import requests
 import re
 import threading
+import sys
 
 # Checks if an environment variable injected to F7T is a valid True value
 # var <- object
@@ -108,15 +109,24 @@ class LogRequestFormatter(logging.Formatter):
         return super().format(record)
 
 def setup_logging(logging, service):
-    LOG_PATH = os.environ.get("F7T_LOG_PATH", '/var/log').strip('\'"')
-    # timed rotation: 1 (interval) rotation per day (when="D")
-    logHandler = TimedRotatingFileHandler(f'{LOG_PATH}/{service}.log', when='D', interval=1)
+    logger = logging.getLogger()
+    LOG_TYPE = os.environ.get("F7T_LOG_TYPE", "file").strip('\'"')
+    if LOG_TYPE == "file":
+        LOG_PATH = os.environ.get("F7T_LOG_PATH", '/var/log').strip('\'"')
+        # timed rotation: 1 (interval) rotation per day (when="D")
+        logHandler = TimedRotatingFileHandler(f'{LOG_PATH}/{service}.log', when='D', interval=1)
+    elif LOG_TYPE == "stdout":
+        logHandler = logging.StreamHandler(stream=sys.stdout)
+    else:
+        msg = f"Unknown F7T_LOG_TYPE: {LOG_TYPE}"
+        logger.error(msg)
+        sys.exit(msg)
+
 
     logFormatter = LogRequestFormatter('%(asctime)s,%(msecs)d %(thread)s [%(TID)s] %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                                      '%Y-%m-%dT%H:%M:%S')
     logHandler.setFormatter(logFormatter)
 
-    logger = logging.getLogger()
     # set handler to logger
     logger.addHandler(logHandler)
     if DEBUG_MODE:
