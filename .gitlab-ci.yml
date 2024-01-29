@@ -261,7 +261,7 @@ tag_release:
           echo "Tagging images and helm charts for '$code_tag' deployment"
 
           for tag in $env_tags; do
-            if [ "$code_tag" == "prod" && "$tag" != "prod" ]; then
+            if [ "$code_tag" == "prod" ] && [ "$tag" != "prod" ]; then
               #  if code_tag indicates prod and tag is 'v1...'
               GH_USER = $(vault kv get -field=ghcr_pat_user firecrest/prod/)"
               GH_PAT = $(vault kv get -field=ghcr_pat_token firecrest/prod/)"
@@ -273,7 +273,7 @@ tag_release:
               echo "Tagging image ${CI_REGISTRY_GROUP}/$img/$tag"
               jfrog rt copy --flat=true --url="https://${CI_REGISTRY}/artifactory" --user="${CI_REGISTRY_USER}" --password="${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY_GROUP}/$img/${CI_COMMIT_SHORT_SHA}/" "${CI_REGISTRY_GROUP}/$img/$tag/";
 
-              if [ "$code_tag" == "prod" && "$tag" != "prod" && "$img" != "reservations" ]; then
+              if [ "$code_tag" == "prod" ] && [ "$tag" != "prod" ] && [ "$img" != "reservations" ]; then
                 # if code_tag indicates prod and tag is 'v1...', also publish to GitHub
                 crane copy ${CI_REGISTRY_PREFIX}/${img}:${tag} ghcr.io/eth-cscs/firecrest/f7t-${img}:${tag}
               fi
