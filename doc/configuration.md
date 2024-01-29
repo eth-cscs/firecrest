@@ -8,6 +8,7 @@ The environment variables can be grouped in:
     1. Service discovery and network properties (port, SSL, URL)
     2. Service behavior (debug, timeout, max file size)
     3. Task persistence (Redis)
+    4. Gunicorn configuration
 2. Site/cluster integration
     1. IAM integration
         1. OIDC integration with Keycloak
@@ -28,10 +29,18 @@ The environment variables can be grouped in:
 `F7T_CERTIFICATOR_URL`, `F7T_COMPUTE_URL`, `F7T_RESERVATIONS_URL`, `F7T_STATUS_URL`, `F7T_STORAGE_URL`, `F7T_TASKS_URL`,  `F7T_UTILITIES_URL` | yes | | Used internally by microservices to communicate to each other. Status uses `F7T_<service>_URL` to query them. Depending on network configuration, they may match internal URLs defined on Kong configuration|
 |`F7T_DEBUG_MODE` | no | False ||
 |`F7T_LOG_PATH`   | no | /var/log ||
+|`F7T_LOG_TYPE`   | no | file | Valid values are 'file' and 'stdout' |
 |`F7T_UTILITIES_MAX_FILE_SIZE` | no | 5 | In megabytes, used by Compute and Utilities file upload|
 |`F7T_UTILITIES_TIMEOUT`       | no | 5 | In seconds, timeout for synchronous commands|
 |`F7T_STATUS_SERVICES` | yes | | List of services Status will query/report|
 |`F7T_PERSISTENCE_IP`, `F7T_PERSIST_PORT`, `F7T_PERSIST_PWD`| yes | | IP, port and password to connect to Redis (required only by Tasks)|
+
+### 1.4. Gunicorn configuration
+| **Name** | **Required** | **Default value** | **Notes** |
+| -------- | -----------  | ----------------- | --------- |
+|`F7T_GUNICORN_LOG`   | no | `--error-logfile ${F7T_LOG_PATH}/<service>.gunicorn.log` | Set to empty for stdout output |
+|`F7T_GUNICORN_SSL`   | no | `--ciphers TLS_AES_256_GCM_SHA384,TLS_CHACHA20_POLY1305_SHA256,TLS_AES_128_GCM_SHA256,DHE-RSA-AES256-GCM-SHA384,ECDHE-RSA-AES256-GCM-SHA384,ECDHE-RSA-AES128-GCM-SHA256 --ssl-version TLSv1_2 --keyfile $F7T_SSL_KEY --certfile $F7T_SSL_CRT` ||
+|`F7T_GUNICORN_WORKER` | no | `--workers=1 --threads=1` ||
 
 
 ## 2. Site/cluster integration
