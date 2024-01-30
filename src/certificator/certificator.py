@@ -442,6 +442,7 @@ def receive():
             return jsonify(description='Invalid command'), 400
 
         force_command = f"-O force-command=\"{force_command} {force_opt}\""
+        force_command = force_command.replace('$', '\$')
 
         # create temp dir to store certificate for this request
         td = tempfile.mkdtemp(prefix = "cert")

@@ -50,6 +50,19 @@ def test_opa(machine,addr,expected_response_code,headers):
 	assert resp.status_code == expected_response_code
 
 
+# Test get a certificate
+@skipif_uses_gateway
+def test_forbidden_chars(headers):
+	# test forbidden char
+	fc = chr(0) + chr(9) + "(;"
+	for c in fc:
+		params = {"command": base64.urlsafe_b64encode(f"ls {c}".encode()).decode(),
+			  "cluster": SYSTEM_NAME, "addr": SYSTEM_ADDR }
+		resp = requests.get(CERTIFICATOR_URL, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+		print(resp.content)
+		assert resp.status_code == 400
+
+
 # Test get status of certificator microservice
 @skipif_uses_gateway
 def test_status(headers):
