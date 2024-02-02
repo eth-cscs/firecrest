@@ -472,7 +472,12 @@ def common_fs_operation(request, command):
         file_transfer = 'upload'
         success_code = 201
     elif command == "whoami":
-        action = "id -un" # id command is already whitelisted
+        groups = request.args.get("groups")
+        whoami_groups = get_boolean_var(groups)
+        if not whoami_groups:
+            action = "id -un" # id command is already whitelisted
+        else:
+            action = "id"
         success_code = 200
     else:
         app.logger.error(f"Unknown command on common_fs_operation: {command}")
@@ -524,7 +529,33 @@ def common_fs_operation(request, command):
         description="File upload successful"
     elif command == "whoami":
         description = "Username"
-        output = retval["msg"]
+        whoami_response = retval["msg"]
+        output = whoami_response
+        if whoami_groups:
+
+            # uid=1001(user01) gid=1000(users) groups=1000(users),1001(user01),10222(group01),22222(group02)
+
+            uid_i = whoami_response.find("(", whoami_response.find("uid=",0))
+            uid_j = whoami_response.find(")", whoami_response.find("uid=",0))
+            uid   = whoami_response[uid_i+1 : uid_j]
+
+            gid_i = whoami_response.find("(", whoami_response.find("gid=",0))
+            gid_j = whoami_response.find(")", whoami_response.find("gid=",0))
+            gid   = whoami_response[gid_i+1 : gid_j]
+
+            groups = []
+
+            group_list = whoami_response[gid_j+1:].split(",")
+            
+            for group in group_list:
+                group_i  = group.find("(", 0)
+                group_j  = group.find(")", 0)
+                group_id = group[group_i+1 : group_j]
+
+                groups.append(group_id)
+
+
+            output = {"uid": uid, "gid": gid, "groups": groups}
 
     return jsonify(description=description, output=output), success_code
 
