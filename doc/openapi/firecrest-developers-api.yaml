@@ -8,7 +8,7 @@ openapi: 3.0.0
 servers:
   - url: "/"
 info:
-  version: 1.14.0
+  version: 1.14.1
   title: FirecREST Developers API
   description: >
     This API specification is intended for FirecREST developers only. There're some endpoints that are not available in the public version for client developers.
@@ -21,9 +21,6 @@ paths:
         description, and status.
       tags:
         - Status
-      # parameters:
-      #   - $ref: '#/components/parameters/pageSize'
-      #   - $ref: '#/components/parameters/pageNumber'
       responses:
         '200':
           description: List of services with status and description.
@@ -1210,6 +1207,7 @@ paths:
               description: Command has finished with timeout signal
               schema:
                 type: string
+
   '/utilities/whoami':
     parameters:
       - name: X-Machine-Name
@@ -1223,7 +1221,7 @@ paths:
         description: returns a list of groups of the user
         required: false
         schema: 
-          type: boolean      
+          type: boolean
     get:
       summary: Returns current system username
       description: 'Returns the current username on the {X-Machine-Name}.'
@@ -2060,7 +2058,7 @@ paths:
           name: tasks
           schema:
             type: string
-          description: Comma-separated list of `{taskid}`
+          description: Comma-separated list of `{task_id}`
           required: false
       responses:
         '200':

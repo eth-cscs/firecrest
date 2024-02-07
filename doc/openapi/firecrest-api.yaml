@@ -8,7 +8,7 @@ openapi: 3.0.0
 servers:
   - url: "/"
 info:
-  version: 1.14.0
+  version: 1.14.1
   title: FirecREST API
   description: >
     FirecREST platform, a RESTful Services Gateway to HPC resources, is a
@@ -1222,12 +1222,18 @@ paths:
 
   '/utilities/whoami':
     parameters:
-      - in: header
-        name: X-Machine-Name
+      - name: X-Machine-Name
+        in: header
         description: The system name
         required: true
         schema:
           type: string
+      - name: groups
+        in: query
+        description: returns a list of groups of the user
+        required: false
+        schema: 
+          type: boolean
     get:
       summary: Returns current system username
       description: 'Returns the current username on the {X-Machine-Name}.'
@@ -1239,8 +1245,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Utilities-ok'
-
+                oneOf:
+                  - $ref: '#/components/schemas/Utilities-ok'
+                  - $ref: '#/components/schemas/Whoami-Ok-With-Groups'
         '400':
           description: Failed to return username
           content:
@@ -2632,11 +2639,11 @@ components:
           type: string
         status:
           type: string
+        status_code:
+          type: integer
           enum:
             - available
             - unavailable
-        status_code:
-          type: integer
         description:
           type: string
     Services:
@@ -2749,6 +2756,28 @@ components:
           type: string
         output:
           type: string
+    Whoami-Ok-With-Groups:
+      type: object
+      properties:
+        description:
+          type: string
+        output:
+          type: object
+          properties:
+            uid:
+              description: Unix User ID (user name)
+              type: string
+            gid:
+              description: Primary Unix Group ID (group name) of the User
+              type: string
+            groups: 
+              description: List of Unix Group IDs (primary and secondary) to which the User belong to
+              type: array              
+              properties:
+                items:
+                  description: Secondary Unix Group ID
+                  type: string
+
     Utilities-notok:
       type: object
       properties:
