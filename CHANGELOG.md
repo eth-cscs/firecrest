@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add F7T_LOG_TYPE to select logging to files or stdout.
 - Add F7T_GUNICORN_LOG for Gunicorn logs.
 
+### Fixed
+
+- Fixed demo images dependency declarations preventing docker-compose to build successfully.
+
+
 ## [1.14.0]
 
 ### Added
