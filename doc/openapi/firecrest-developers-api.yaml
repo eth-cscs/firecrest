@@ -1222,6 +1222,7 @@ paths:
         required: false
         schema: 
           type: boolean
+          default: false
     get:
       summary: Returns current system username
       description: 'Returns the current username on the {X-Machine-Name}.'
@@ -2984,7 +2985,7 @@ components:
               description: Primary Unix Group ID (group name) of the User
               type: string
             groups: 
-              description: List of Unix Group IDs (primary and secondary) to which the User belong to
+              description: List of Unix Group IDs (primary and secondary) to which the User belongs to
               type: array              
               properties:
                 items:
