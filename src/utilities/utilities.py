@@ -528,34 +528,39 @@ def common_fs_operation(request, command):
     elif command == "upload":
         description="File upload successful"
     elif command == "whoami":
-        description = "Username"
+        description = "User information"
         whoami_response = retval["msg"]
         output = whoami_response
         if whoami_groups:
 
-            # uid=1001(user01) gid=1000(users) groups=1000(users),1001(user01),10222(group01),22222(group02)
+            uid_i   = whoami_response.find("=",0)
+            uname_i = whoami_response.find("(", whoami_response.find("uid=",0))
+            uname_j = whoami_response.find(")", whoami_response.find("uid=",0))
+            uname   = whoami_response[uname_i+1 : uname_j]
+            uid     = whoami_response[uid_i+1:uname_i]
+            user_json = {"name": uname, "id": uid}
 
-            uid_i = whoami_response.find("(", whoami_response.find("uid=",0))
-            uid_j = whoami_response.find(")", whoami_response.find("uid=",0))
-            uid   = whoami_response[uid_i+1 : uid_j]
-
-            gid_i = whoami_response.find("(", whoami_response.find("gid=",0))
-            gid_j = whoami_response.find(")", whoami_response.find("gid=",0))
-            gid   = whoami_response[gid_i+1 : gid_j]
+            gid_i   = whoami_response.find("=",uname_j)
+            gname_i = whoami_response.find("(", whoami_response.find("gid=",0))
+            gname_j = whoami_response.find(")", whoami_response.find("gid=",0))
+            gname   = whoami_response[gname_i+1 : gname_j]
+            gid     = whoami_response[gid_i+1 : gname_i]
+            group_json = {"name": gname, "id": gid}
 
             groups = []
 
-            group_list = whoami_response[gid_j+1:].split(",")
+            group_list = whoami_response[whoami_response.find("=",gname_j)+1:].split(",")
             
             for group in group_list:
-                group_i  = group.find("(", 0)
-                group_j  = group.find(")", 0)
-                group_id = group[group_i+1 : group_j]
+                gname_i = group.find("(", 0)
+                gname_j = group.find(")", 0)
+                gname   = group[gname_i+1 : gname_j]
+                gid     = group[:gname_i]
 
-                groups.append(group_id)
+                groups.append({"name": gname, "id": gid})
 
 
-            output = {"uid": uid, "gid": gid, "groups": groups}
+            output = {"user": user_json, "group": group_json, "groups": groups}
 
     return jsonify(description=description, output=output), success_code
 

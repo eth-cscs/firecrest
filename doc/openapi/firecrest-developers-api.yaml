@@ -2975,22 +2975,42 @@ components:
       properties:
         description:
           type: string
+          default: User information
         output:
           type: object
           properties:
-            uid:
-              description: Unix User ID (user name)
-              type: string
-            gid:
-              description: Primary Unix Group ID (group name) of the User
-              type: string
-            groups: 
-              description: List of Unix Group IDs (primary and secondary) to which the User belongs to
-              type: array              
+            user:
+              description: Unix user name and ID
+              type: object
               properties:
-                items:
-                  description: Secondary Unix Group ID
+                name:
+                  description: Unix user name
                   type: string
+                id:
+                  description: Unix user ID
+                  type: string
+            group:
+              description: Primary user's Unix group name and ID
+              type: object
+              properties:
+                name:
+                  description: Primary user's Unix group name
+                  type: string
+                id:
+                  description: Primary user's Unix group ID
+                  type: string
+            groups: 
+              description: List of Unix group names and IDs (primary and secondary) to which the user belongs to
+              type: array              
+              items:
+                type: object
+                properties:
+                  name:
+                    description: Secondary user's Unix group name
+                    type: string
+                  id:
+                    description: Seconfary user's Unix group ID
+                    type: string
 
     Utilities-notok:
       type: object
