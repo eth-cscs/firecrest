@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `/utilities/whoami` adds the `boolean` parameter "`groups`" which set on `true` returns a dictionary with `uid`, `gid`, and `groups`
 - Add F7T_LOG_TYPE to select logging to files or stdout.
 - Add F7T_GUNICORN_LOG for Gunicorn logs.
 

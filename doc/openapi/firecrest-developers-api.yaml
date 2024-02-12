@@ -8,7 +8,7 @@ openapi: 3.0.0
 servers:
   - url: "/"
 info:
-  version: 1.14.0
+  version: 1.14.1
   title: FirecREST Developers API
   description: >
     This API specification is intended for FirecREST developers only. There're some endpoints that are not available in the public version for client developers.
@@ -21,9 +21,6 @@ paths:
         description, and status.
       tags:
         - Status
-      # parameters:
-      #   - $ref: '#/components/parameters/pageSize'
-      #   - $ref: '#/components/parameters/pageNumber'
       responses:
         '200':
           description: List of services with status and description.
@@ -1210,14 +1207,22 @@ paths:
               description: Command has finished with timeout signal
               schema:
                 type: string
+
   '/utilities/whoami':
     parameters:
-      - in: header
-        name: X-Machine-Name
+      - name: X-Machine-Name
+        in: header
         description: The system name
         required: true
         schema:
           type: string
+      - name: groups
+        in: query
+        description: returns a list of groups of the user
+        required: false
+        schema: 
+          type: boolean
+          default: false
     get:
       summary: Returns current system username
       description: 'Returns the current username on the {X-Machine-Name}.'
@@ -1229,8 +1234,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Utilities-ok'
-
+                oneOf:
+                  - $ref: '#/components/schemas/Utilities-ok'
+                  - $ref: '#/components/schemas/Whoami-Ok-With-Groups'
         '400':
           description: Failed to return username
           content:
@@ -2053,7 +2059,7 @@ paths:
           name: tasks
           schema:
             type: string
-          description: Comma-separated list of `{taskid}`
+          description: Comma-separated list of `{task_id}`
           required: false
       responses:
         '200':
@@ -2964,6 +2970,48 @@ components:
           type: string
         output:
           type: string
+    Whoami-Ok-With-Groups:
+      type: object
+      properties:
+        description:
+          type: string
+          default: User information
+        output:
+          type: object
+          properties:
+            user:
+              description: Unix user name and ID
+              type: object
+              properties:
+                name:
+                  description: Unix user name
+                  type: string
+                id:
+                  description: Unix user ID
+                  type: string
+            group:
+              description: Primary user's Unix group name and ID
+              type: object
+              properties:
+                name:
+                  description: Primary user's Unix group name
+                  type: string
+                id:
+                  description: Primary user's Unix group ID
+                  type: string
+            groups: 
+              description: List of Unix group names and IDs (primary and secondary) to which the user belongs to
+              type: array              
+              items:
+                type: object
+                properties:
+                  name:
+                    description: Secondary user's Unix group name
+                    type: string
+                  id:
+                    description: Seconfary user's Unix group ID
+                    type: string
+
     Utilities-notok:
       type: object
       properties:
