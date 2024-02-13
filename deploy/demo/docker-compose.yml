@@ -275,6 +275,8 @@ services:
     networks:
       firecrest-internal:
         ipv4_address: 192.168.220.13
+    ports:
+      - "6379:6379"
     volumes:
       - ./taskpersistence/redis.conf:/redis.conf:ro
       - ./taskpersistence-data:/data:delegated
