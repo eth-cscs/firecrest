@@ -81,7 +81,6 @@ def save_task(r,task,exp_time=None) -> bool:
     
     Parameters:
     - r (StrictRedis): object with connection details to a redis database
-    - id (str): internal ID of the task
     - task (dict): task data 
     - exp_time (int) (optional, default=None): seconds to expire the task
 
@@ -115,7 +114,7 @@ def set_expire_task(r,task,secs) -> bool:
     
     Parameters:
     - r (StrictRedis): object with connection details to a redis database
-    - task (Task): task object
+    - task (dict): task data 
     - secs (int): seconds to expire the task
 
     Returns:
@@ -146,7 +145,7 @@ def del_task(r,task) -> bool:
     
     Parameters:
     - r (StrictRedis): object with connection details to a redis database
-    - task (Task): task object
+    - task (dict): task data
     
     Returns:
     - True if the task was correctly deleted, otherwise False
@@ -272,7 +271,6 @@ def get_service_tasks(r,service,status_code=None) -> Union[dict,None]:
     
     Parameters:
     - r (StrictRedis): object with connection details to a redis database
-    - user (str): username of the owner of the task
     - service (str): service of tasks to return
     - status_code (str) (optional): status code of the tasks to return
 
@@ -289,11 +287,15 @@ def get_service_tasks(r,service,status_code=None) -> Union[dict,None]:
         # scan_iter iterates between matching keys
 
 
-        for task_id in r.scan_iter(match="task_*:{service}:*".format(service=service)):
+        for task_id in r.scan_iter(match="task_*"):
 
             # get service key value from task_id dict key
             # serv = r.hget(task_id,"service")
             # changed since now is a serialized string, after python redis==3.x
+
+            #skip if the service specified in the task_id is different
+            if task_id.split(":")[1] != service:
+                continue
 
             json_task = r.get(task_id)
             # logging.info(json_task)
