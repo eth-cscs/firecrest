@@ -137,6 +137,7 @@ services:
       - F7T_PERSIST_PWD=rediS2200
       - F7T_COMPUTE_TASK_EXP_TIME=86400
       - F7T_STORAGE_TASK_EXP_TIME=2678400
+      - F7T_PROFILE_MODE=TRUE
     networks:
       firecrest-internal:
         ipv4_address: 192.168.220.6
@@ -275,6 +276,8 @@ services:
     networks:
       firecrest-internal:
         ipv4_address: 192.168.220.13
+    ports:
+      - 6379:6379
     volumes:
       - ./taskpersistence/redis.conf:/redis.conf:ro
       - ./taskpersistence-data:/data:delegated

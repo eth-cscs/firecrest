@@ -5,7 +5,7 @@
 #  SPDX-License-Identifier: BSD-3-Clause
 #
 from flask import Flask, request, jsonify, g
-
+from werkzeug.middleware.profiler import ProfilerMiddleware
 # task states
 import async_task
 import os
@@ -47,6 +47,8 @@ DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 tasks = {}
 
 app = Flask(__name__)
+app.config['PROFILE'] = get_boolean_var(os.environ.get("F7T_PROFILE_MODE", False))
+app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[10])
 
 logger = setup_logging(logging, 'tasks')
 
