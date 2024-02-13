@@ -200,7 +200,7 @@ def create_task():
     if service == "compute":
         exp_time = COMPUTE_TASK_EXP_TIME
 
-    persistence.save_task(r,id=task_id,task=t.get_status(),exp_time=exp_time)
+    persistence.save_task(r,task=t.get_internal_status(),exp_time=exp_time)
 
     # {"id":task_id,
     #               "status":async_task.QUEUED,
@@ -315,7 +315,7 @@ def update_task(id):
         exp_time = COMPUTE_TASK_EXP_TIME
 
     #update task in persistence server
-    if not persistence.save_task(r, id=tasks[hash_id].task_id, task=tasks[hash_id].get_internal_status(), exp_time=exp_time):
+    if not persistence.save_task(r, task=tasks[hash_id].get_internal_status(), exp_time=exp_time):
         app.logger.error("Error saving task")
         app.logger.error(tasks[hash_id].get_internal_status())
         return jsonify(description="Couldn't update task"), 400
@@ -355,7 +355,7 @@ def delete_task(id):
     try:
         global r
 
-        if not persistence.set_expire_task(r,id=tasks[hash_id].task_id,secs=300):
+        if not persistence.set_expire_task(r,tasks[hash_id],secs=300):
             return jsonify(error=f"Failed to delete task {hash_id} on persistence server"), 400
 
         data = jsonify(success=f"Task {hash_id} deleted")
@@ -417,7 +417,7 @@ def expire_task(id):
         global r
 
         app.logger.info(f"Set expiration for task {tasks[hash_id].task_id} - {exp_time} secs")
-        if not persistence.set_expire_task(r,id=tasks[hash_id].task_id,secs=exp_time):
+        if not persistence.set_expire_task(r,tasks[hash_id],secs=exp_time):
             app.logger.warning(f"Task couldn't be marked as expired")
             return jsonify(error="Failed to set expiration time on task in persistence server"), 400
 
