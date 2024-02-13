@@ -8,3 +8,4 @@ __pycache__/
 **/minio/data/
 **/deploy/demo/minio/
 doc/build/
+.DS_Store
