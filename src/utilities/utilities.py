@@ -472,7 +472,12 @@ def common_fs_operation(request, command):
         file_transfer = 'upload'
         success_code = 201
     elif command == "whoami":
-        action = "id -un" # id command is already whitelisted
+        groups = request.args.get("groups")
+        whoami_groups = get_boolean_var(groups)
+        if not whoami_groups:
+            action = "id -un" # id command is already whitelisted
+        else:
+            action = "id"
         success_code = 200
     else:
         app.logger.error(f"Unknown command on common_fs_operation: {command}")
@@ -523,8 +528,39 @@ def common_fs_operation(request, command):
     elif command == "upload":
         description="File upload successful"
     elif command == "whoami":
-        description = "Username"
-        output = retval["msg"]
+        description = "User information"
+        whoami_response = retval["msg"]
+        output = whoami_response
+        if whoami_groups:
+
+            uid_i   = whoami_response.find("=",0)
+            uname_i = whoami_response.find("(", whoami_response.find("uid=",0))
+            uname_j = whoami_response.find(")", whoami_response.find("uid=",0))
+            uname   = whoami_response[uname_i+1 : uname_j]
+            uid     = whoami_response[uid_i+1:uname_i]
+            user_json = {"name": uname, "id": uid}
+
+            gid_i   = whoami_response.find("=",uname_j)
+            gname_i = whoami_response.find("(", whoami_response.find("gid=",0))
+            gname_j = whoami_response.find(")", whoami_response.find("gid=",0))
+            gname   = whoami_response[gname_i+1 : gname_j]
+            gid     = whoami_response[gid_i+1 : gname_i]
+            group_json = {"name": gname, "id": gid}
+
+            groups = []
+
+            group_list = whoami_response[whoami_response.find("=",gname_j)+1:].split(",")
+            
+            for group in group_list:
+                gname_i = group.find("(", 0)
+                gname_j = group.find(")", 0)
+                gname   = group[gname_i+1 : gname_j]
+                gid     = group[:gname_i]
+
+                groups.append({"name": gname, "id": gid})
+
+
+            output = {"user": user_json, "group": group_json, "groups": groups}
 
     return jsonify(description=description, output=output), success_code
 
