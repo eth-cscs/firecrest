@@ -318,7 +318,7 @@ def get_service_tasks(r,service,status_code=None) -> Union[dict,None]:
                     if task["status"] not in status_code:
                         continue
 
-                task_dict[task_id] = task
+                task_dict[task["hash_id"]] = task
 
         return task_dict
 
