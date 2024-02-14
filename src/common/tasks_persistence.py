@@ -227,7 +227,7 @@ def get_user_tasks(r,user,task_list=None, status_code=None) -> Union[dict,None]:
         for task_id in r.scan_iter(match="task_{user}:*".format(user=user)):
 
             # if task_list is not empty, and not found in the sublist of user tasks, then is skipped
-            if (task_list != None) and (task_id.split(":")[2] not in task_list):
+            if (task_list != None) and (task_id.decode('latin-1').split(":")[2] not in task_list):
                 continue
 
             json_task = r.get(task_id)
@@ -294,7 +294,7 @@ def get_service_tasks(r,service,status_code=None) -> Union[dict,None]:
             # changed since now is a serialized string, after python redis==3.x
 
             #skip if the service specified in the task_id is different
-            if task_id.split(":")[1] != service:
+            if task_id.decode('latin-1').split(":")[1] != service:
                 continue
 
             json_task = r.get(task_id)
