@@ -33,13 +33,13 @@ SA_CLIENT_ID  = os.environ.get("F7T_SA_CLIENT_ID")
 
 machine = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")[0]
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope='session')
 def headers():
 
     # authorization with fake jwt
-    #if SA_LOGIN.lower() != 'true':
-    #    auth = f"Bearer {jwt.encode(payload, 'secret', algorithm='HS256')}"
-    #    return {"Authorization": auth, "Accept" : "application/json", "X-Firecrest-Service": "storage", "X-Machine-Name": machine}
+    if SA_LOGIN.lower() != 'true':
+        auth = f"Bearer {jwt.encode(payload, 'secret', algorithm='HS256')}"
+        return {"Authorization": auth, "Accept" : "application/json", "X-Firecrest-Service": "storage", "X-Machine-Name": machine}
 
     # authorization with sa account
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
