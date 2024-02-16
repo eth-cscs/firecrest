@@ -9,7 +9,7 @@ servers:
   - url: "/"
 info:
   version: 1.15.0
-  title: FirecREST API
+  title: FirecREST Developers API
   description: >
     This API specification is intended for FirecREST developers only. There're some endpoints that are not available in the public version for client developers.
 paths:
