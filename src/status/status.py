@@ -14,7 +14,7 @@ from cscs_api_common import check_auth_header, get_boolean_var, get_username, se
 import json
 import paramiko
 import socket
-import os
+import os, ast
 from flask_opentracing import FlaskTracing
 from jaeger_client import Config
 import opentracing
@@ -23,10 +23,8 @@ import opentracing
 AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME","Authorization")
 
 SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
-# ; separated for system (related with SYSTEMS_PUBLIC length, and for each filesystem mounted inside each system, separated with ":")
-# example: let's suppose SYSTEMS_PUBLIC="cluster1;cluster2", cluster1 has "/fs-c1-1" and "/fs-c1-2", and cluster2 has mounted "/fs-c2-1":
-# FILESYSTEMS = "/fs-c1-1,/fs-c1-2;fs-c2-1"
-FILESYSTEMS = os.environ.get("F7T_FILESYSTEMS").strip('\'"').split(";")
+
+FILESYSTEMS = ast.literal_eval(os.environ.get("F7T_FILESYSTEMS", {}))
 
 SERVICES = os.environ.get("F7T_STATUS_SERVICES").strip('\'"').split(";") # ; separated service names
 SYSTEMS  = os.environ.get("F7T_STATUS_SYSTEMS").strip('\'"').split(";")  # ; separated systems names
@@ -48,6 +46,7 @@ UTILITIES_TIMEOUT = os.environ.get("F7T_UTILITIES_TIMEOUT", 'default')
 STORAGE_TEMPURL_EXP_TIME = os.environ.get("F7T_STORAGE_TEMPURL_EXP_TIME", 'default')
 STORAGE_MAX_FILE_SIZE = os.environ.get("F7T_STORAGE_MAX_FILE_SIZE", 'default')
 OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE", '(none)')
+COMPUTE_SCHEDULER = os.environ.get("F7T_COMPUTE_SCHEDULER", "Slurm")
 
 TRACER_HEADER = "uber-trace-id"
 
@@ -148,11 +147,17 @@ def test_system(machinename, headers, status_list=[]):
         status_list.append( {"status": -3, "system": machinename} )
         return
 
+    if machinename not in FILESYSTEMS:
+        status_list.append( {"status": -3, "system": machinename} )
+        return
+    
     for i in range(len(SYSTEMS_PUBLIC)):
         if SYSTEMS_PUBLIC[i] == machinename:
             machine = SYSTEMS[i]
-            filesystems = FILESYSTEMS[i]
             break
+
+    mounted_fs = FILESYSTEMS[machinename]
+                
 
     # try to connect (unsuccesfully) with dummy user and pwd, catching SSH exception
     try:
@@ -185,21 +190,21 @@ def test_system(machinename, headers, status_list=[]):
             return
 
         failfs = []
-        for fs in filesystems.split(","):
+        for fs in mounted_fs:
             try:
                 r = requests.get(f"{UTILITIES_URL}/ls",
-                                params={"targetPath": fs, "numericUid": "True"},
+                                params={"targetPath": fs["path"], "numericUid": "True"},
                                 headers=headers,
                                 verify=(SSL_CRT if USE_SSL else False),
                                 timeout=(int(UTILITIES_TIMEOUT) + 1))
                 if not r.ok:
-                    failfs.append(fs)
+                    failfs.append(fs["path"])
                 else:
                     j = json.loads(r.content)
                     if len(j['output']) == 0:
-                        failfs.append(fs)
+                        failfs.append(fs["path"])
             except:
-                failfs.append(fs)
+                failfs.append(fs["path"])
 
         if len(failfs) > 0:
             app.logger.error("Status: -4")
@@ -235,8 +240,128 @@ def test_system(machinename, headers, status_list=[]):
 
     return
 
+def check_fs(system,filesystem, headers):
 
-# get service information about a particular servicename
+    headers["X-Machine-Name"] = system
+    
+    try:
+        r = requests.get(f"{UTILITIES_URL}/ls",
+                        params={"targetPath": filesystem, "numericUid": "True"},
+                        headers=headers,
+                        verify=(SSL_CRT if USE_SSL else False),
+                        timeout=(int(UTILITIES_TIMEOUT) + 1))
+        if not r.ok:
+            return 400
+        else:
+            j = json.loads(r.content)
+            if len(j['output']) == 0:
+                return 400
+    except:
+        return 400
+    
+    return 200
+
+
+def check_filesystem(system, filesystems,headers):
+    
+    resp_json = []
+    try:
+        
+        for fs in filesystems:
+            resp_fs = {}
+
+            resp_fs["name"] = fs["name"]
+            resp_fs["path"] = fs["path"]
+            resp_fs["description"] = fs["description"]
+        
+
+            status_code = check_fs(system, fs["path"], headers)
+            resp_fs["status_code"] = status_code
+            if status_code == 200:
+                resp_fs["status"] = "available"
+            elif status_code == 400:
+                resp_fs["status"] = "no available"
+
+            resp_json.append(resp_fs)
+    except KeyError as ke:
+        app.logger.error(ke)
+        return {"out":"Error in filesystem configuration", "status_code": 400}    
+        
+    return {"out": resp_json, "status_code": 200}
+
+
+# get information about of all filesystems
+@app.route("/filesystems", methods=["GET"])
+@check_auth_header
+def get_all_filesystems():
+
+    [headers, ID] = get_tracing_headers(request)
+
+    # resp_json json to fill with responses from each system
+    resp_json = {}
+
+    
+    for system in FILESYSTEMS:
+
+        if system not in SYSTEMS_PUBLIC:
+            return jsonify(description="Filesystem information", out=f"System '{system}' doesn't exist"), 404
+
+        if DEBUG_MODE:
+            app.logger.debug(f"Checking filesystems in {system}")
+        
+        resp_json[system] = []
+        try:
+            
+            filesystems = FILESYSTEMS[system]
+
+            if DEBUG_MODE:
+                app.logger.debug(f"Checking filesystems in {system}")
+
+            resp_system = check_filesystem(system,filesystems,headers)
+
+            resp_json[system] = resp_system["output"]
+
+        except KeyError as ke:
+            app.logger.error(ke.args)
+            return jsonify(description="Filesystem information", out=f"Machine {system} doesn't exist"), 404
+
+    return jsonify(description="Filesystem information", out=resp_json), 200
+    
+
+    
+
+
+
+# get information about a specific system
+@app.route("/filesystems/<system>", methods=["GET"])
+@check_auth_header
+def get_system_filesystems(system):
+
+    [headers, ID] = get_tracing_headers(request)
+
+    # resp_json json to fill with responses from each system
+    resp_json = {}
+
+    if system not in SYSTEMS_PUBLIC:
+        return jsonify(description=f"Filesystem information for system {system}", out=f"System '{system}' doesn't exist"), 404
+
+    try:
+        filesystems = FILESYSTEMS[system]
+        if DEBUG_MODE:
+            app.logger.debug(f"Checking filesystems in {system}")
+
+        resp_system = check_filesystem(system,filesystems,headers)
+
+        resp_json = resp_system["out"]
+
+    except KeyError as ke:
+        app.logger.error(ke.args)
+        return jsonify(description=f"Filesystem information for system {system}", out=f"System '{system}' doesn't exist"), 404
+
+    return jsonify(description=f"Filesystem information for system {system}", out=resp_json), 200
+
+
+# get service information about a particular system
 @app.route("/systems/<machinename>", methods=["GET"])
 @check_auth_header
 def status_system(machinename):
@@ -282,6 +407,7 @@ def status_system(machinename):
     return jsonify(description="System information", out=out), 200
 
 
+# return information of all systems configured
 @app.route("/systems",methods=["GET"])
 @check_auth_header
 def status_systems():
@@ -309,6 +435,8 @@ def status_systems():
     for p in process_list:
         p.join()
 
+    app.logger.debug(status_list)
+
     for res in status_list:
         status = res["status"]
         system = res["system"]
@@ -321,10 +449,10 @@ def status_systems():
     #
         if status == -5:
             reason = res["reason"]
-            ret_dict={"system":machinename, "status":"not available", "description": f"Error on JWT token: {reason}"}
+            ret_dict={"system":system, "status":"not available", "description": f"Error on JWT token: {reason}"}
         if status == -4:
             filesystem = res["filesystem"]
-            ret_dict={"system":machinename, "status":"not available", "description": f"Filesystem {filesystem} is not available"}
+            ret_dict={"system":system, "status":"not available", "description": f"Filesystem {filesystem} is not available"}
         elif status == -2:
              ret_dict = {"system": system, "status": "not available", "description": "System down"}
         elif status == -1:
@@ -438,18 +566,29 @@ def status_services():
 def parameters():
     # { <microservice>: [ "name": <parameter>,  "value": <value>, "unit": <unit> } , ... ] }
 
-    systems = SYSTEMS_PUBLIC # list of systems
-    filesystems = FILESYSTEMS # list of filesystems, position related with SYSTEMS_PUBLIC
-
     fs_list = []
+    for system_fs in FILESYSTEMS:
+        mounted_fs = []
+        if system_fs not in SYSTEMS_PUBLIC:
+            continue
 
-    for i in range(len(systems)):
-        mounted = filesystems[i].split(",")
-        fs_list.append({"system": systems[i], "mounted": mounted})
+        for fs in FILESYSTEMS[system_fs]:
+            mounted_fs.append(fs["path"])
+
+        fs_list.append({"system": system_fs, "mounted": mounted_fs})
 
 
 
     parameters_list = {
+        "compute": [
+            { 
+                "name" : "COMPUTE_SCHEDULER",
+                "value": COMPUTE_SCHEDULER,
+                "unit": "",
+                "description": "Type of resource and workload secheduler used in "
+                               "compute microservice"  
+            }
+        ],
         "utilities": [
             {
                 "name": "UTILITIES_MAX_FILE_SIZE",
@@ -495,7 +634,6 @@ def parameters():
     }
 
     return jsonify(description="Firecrest's parameters", out=parameters_list), 200
-
 
 
 @app.before_request

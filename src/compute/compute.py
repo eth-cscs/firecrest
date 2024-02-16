@@ -65,9 +65,6 @@ COMPUTE_BASE_FS     = os.environ.get("F7T_COMPUTE_BASE_FS").strip('\'"').split("
 # Detect scheduler object type
 COMPUTE_SCHEDULER = os.environ.get("F7T_COMPUTE_SCHEDULER", "Slurm")
 
-# scopes: get appropiate for jobs/storage, eg:  firecrest-tds.cscs.ch, firecrest-production.cscs.ch
-FIRECREST_SERVICE = os.environ.get("F7T_FIRECREST_SERVICE", '').strip('\'"')
-
 TAIL_BYTES = os.environ.get("F7T_TAIL_BYTES",1000)
 
 #max file size for sbatch upload in MB (POST compute/job)
