@@ -319,7 +319,7 @@ def get_all_filesystems():
 
             resp_system = check_filesystem(system,filesystems,headers)
 
-            resp_json[system] = resp_system["output"]
+            resp_json[system] = resp_system["out"]
 
         except KeyError as ke:
             app.logger.error(ke.args)

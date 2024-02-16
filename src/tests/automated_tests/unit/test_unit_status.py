@@ -82,7 +82,24 @@ def test_status_filesystems(system,fs_name,status_code,headers):
 			assert fs["status_code"] == status_code
 			break
 	
+@skipif_not_uses_gateway
+@pytest.mark.parametrize("system,fs_name,status_code", STATUS_CODES_FS)
+def test_status_all_filesystems(system,fs_name,status_code,headers):
+	url = f"{STATUS_URL}/filesystems"
+	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	# /home is OK, and /scratch is wrong
+	print(resp.content)
+	assert "out" in resp.json()
 
+	system_list = resp.json()["out"]
+
+	assert system in system_list
+
+
+	for fs in system_list[system]:
+		if fs["name"] == fs_name:
+			assert fs["status_code"] == status_code
+			break
 
 
 @skipif_not_uses_gateway
