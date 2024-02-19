@@ -7,7 +7,7 @@
 
 # partially based on https://github.com/giovtorres/slurm-docker-cluster
 
-FROM centos:7
+FROM --platform=linux/amd64 centos:7
 
 ARG SLURM_VERSION=22.05.5
 

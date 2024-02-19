@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.1]
+
+### Added
+
+- `/utilities/whoami` adds the `boolean` parameter "`groups`" which set on `true` returns a dictionary with `uid`, `gid`, and `groups`
+- Add F7T_LOG_TYPE to select logging to files or stdout.
+- Add F7T_GUNICORN_LOG for Gunicorn logs.
+
+### Fixed
+
+- Fixed demo images dependency declarations preventing docker-compose to build successfully.
+- Fixed check when submitted an empty batch file on `POST /compute/jobs/upload`
+- Fixed error message when `GET /status/systems` encounters error in one filesystem
+
+
 ## [1.14.0]
 
 ### Added
@@ -15,14 +30,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add description for each parameter in `GET /status/parameters` response.
 - Add support for Object Storage Tenants in S3v4 object storage. The associated environment variable is `F7T_S3_TENANT` and it can be empty or be `null` or `none` when the tenant is not needed. Otherwise the tenant name has to be set.
 - The task that is returned from a successful `GET /jobs/acct` would returns the attribute `time`, which is `cputime` from slurm. The attribute will remain and `cputime` and `elapsed` will be also returned. Similarly, `time_left` is actually the time of termination of the jobs. `time_left` will remain for compatibility reasons, but `elapsed` attribute will also be returned.
+- Added `F7T_AUTH_ISSUER` to specify the JWT token issuer to be checked by Kong GW
+- Removed `F7T_AUTH_REALM` and `F7T_AUTH_URL` which are no longer needed
 - Add `examples` directory for practical use cases of FirecREST.
 
-## Changed
+### Changed
 
 - CI/CD pipeline is now adapted to create helm charts images and push to a repository when TDS or Prod are tagged
   - Also secrets now can be managed from ExternalSecrets on K8s deployment
   - Deployment on TDS triggers ArgoCD deployment
 - Demo and k8s deployments have the Swagger UI API specification at unauthenticated `/docs` endpoint
+
+### Fixed
+
+- Take into account `pageNumber` and `pageSize` arguments in `GET /compute/jobs` and `GET /compute/acct`.
 
 ## [1.13.1]
 

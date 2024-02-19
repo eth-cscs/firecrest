@@ -20,6 +20,7 @@ import base64
 import re
 import time
 import threading
+import sys
 
 from typing import Union
 
@@ -39,11 +40,11 @@ def get_boolean_var(var):
 
 # Checks if an environment variable injected to F7T is a valid True value
 # var <- object
-# returns -> value | None 
+# returns -> value | None
 def get_null_var(var):
-    var = str(var).upper()
+    _var = str(var).upper()
 
-    return None if (len(var) == 0 or var == "NONE" or var == "NULL") else var
+    return None if (len(_var) == 0 or _var == "NONE" or _var == "NULL") else var
 
 
 DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
@@ -101,7 +102,7 @@ TRACER_HEADER = "uber-trace-id"
 def check_header(header):
 
     # header = remove the "Bearer " string
-    token = header.replace("Bearer ","") 
+    token = header.replace("Bearer ","")
     decoding_result = False
     decoding_reason = ""
 
@@ -1025,16 +1026,23 @@ class LogRequestFormatter(logging.Formatter):
         return super().format(record)
 
 def setup_logging(logging, service):
-    LOG_PATH = os.environ.get("F7T_LOG_PATH", '/var/log').strip('\'"')
-    # timed rotation: 1 (interval) rotation per day (when="D")
-    logHandler = TimedRotatingFileHandler(f'{LOG_PATH}/{service}.log', when='D', interval=1)
+    logger = logging.getLogger()
+
+    LOG_TYPE = os.environ.get("F7T_LOG_TYPE", "file").strip('\'"')
+    if LOG_TYPE == "file":
+        LOG_PATH = os.environ.get("F7T_LOG_PATH", '/var/log').strip('\'"')
+        # timed rotation: 1 (interval) rotation per day (when="D")
+        logHandler = TimedRotatingFileHandler(f'{LOG_PATH}/{service}.log', when='D', interval=1)
+    elif LOG_TYPE == "stdout":
+        logHandler = logging.StreamHandler(stream=sys.stdout)
+    else:
+        msg = f"Unknown F7T_LOG_TYPE: {LOG_TYPE}"
+        logger.error(msg)
+        sys.exit(msg)
 
     logFormatter = LogRequestFormatter('%(asctime)s,%(msecs)d %(thread)s [%(TID)s] %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                                      '%Y-%m-%dT%H:%M:%S')
     logHandler.setFormatter(logFormatter)
-
-    # get app log (Flask+werkzeug+python)
-    logger = logging.getLogger()
 
     # set handler to logger
     logger.addHandler(logHandler)

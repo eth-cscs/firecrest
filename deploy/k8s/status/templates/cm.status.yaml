@@ -7,3 +7,5 @@ kind: ConfigMap
 metadata:
   name: status-env-file
   namespace: {{ .Values.global.namespace }}
+  annotations:
+    reloader.stakater.com/match: "true"

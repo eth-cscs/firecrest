@@ -42,16 +42,23 @@ DATA_FILE = [ (SERVER_UTILITIES, 200, ".bashrc") ,
 		 (SERVER_UTILITIES, 400, "(a"),
 		 (SERVER_UTILITIES, 400, "`hostname`") ]
 
-# test data for stat
+# test data for 'stat'
 DATA_STAT = [ (SERVER_UTILITIES, 200, ".bashrc") ,
 		 (SERVER_UTILITIES, 200, "/var/log/messages") ,
          ("someservernotavailable", 400, ".bashrc"),
-		 (SERVER_UTILITIES, 400, "nofile") ,
-		 (SERVER_UTILITIES, 400, "/\\") ,
-		 (SERVER_UTILITIES, 400, "a>b"),
-		 (SERVER_UTILITIES, 400, "a<b"),
-		 (SERVER_UTILITIES, 400, "(a"),
-		 (SERVER_UTILITIES, 400, "`hostname`") ]
+		 (SERVER_UTILITIES, 400, "nofile") ]
+
+# test data for 'mkdir' using forbidden chars
+DATA_CHARS = [ (SERVER_UTILITIES, 201, "/tmp/f7t-$UID") ,
+	(SERVER_UTILITIES, 201, "/tmp/f7t-$F7T_UTILITIES_TIMEOUT") ,
+	(SERVER_UTILITIES, 400, "/tmp/a\\") ,
+	(SERVER_UTILITIES, 400, "/tmp/a>b"),
+	(SERVER_UTILITIES, 400, "/tmp/a<b"),
+	(SERVER_UTILITIES, 400, "/tmp/(a"),
+	(SERVER_UTILITIES, 400, "/tmp/a" + chr(0)),
+	(SERVER_UTILITIES, 400, "/tmp/a" + chr(0) + "a"),
+	(SERVER_UTILITIES, 400, "/tmp/a" + chr(13) + "a"),
+	(SERVER_UTILITIES, 400, "/tmp/`hostname`") ]
 
 # test data for #mkdir, symlink
 DATA_201 = [ (SERVER_UTILITIES, 201) , ("someservernotavailable", 400)]
@@ -307,6 +314,7 @@ def test_download(machine, expected_response_code, headers):
 	resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	assert resp.status_code == expected_response_code
 
+
 @skipif_not_uses_gateway
 @pytest.mark.parametrize("machine, expected_response_code", DATA)
 def test_whoami(machine, expected_response_code, headers):
@@ -316,6 +324,17 @@ def test_whoami(machine, expected_response_code, headers):
 	if resp.ok:
 		assert resp.json()["output"] == CURRENT_USER
 
+	assert resp.status_code == expected_response_code
+
+
+@pytest.mark.parametrize("machine, expected_response_code, file_name", DATA_CHARS)
+def test_forbidden_chars(machine, expected_response_code, file_name, headers):
+	data = {"targetPath": file_name, "p" : "true"}
+	url = f"{UTILITIES_URL}/mkdir"
+	headers.update({"X-Machine-Name": machine})
+	resp = requests.post(url, headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	print(resp.content)
+	print(resp.headers)
 	assert resp.status_code == expected_response_code
 
 

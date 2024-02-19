@@ -24,7 +24,11 @@ data:
   F7T_SWIFT_ACCOUNT: "{{ .Values.F7T_SWIFT_ACCOUNT }}"
   F7T_SWIFT_USER: "{{ .Values.F7T_SWIFT_USER }}"
   F7T_SWIFT_PASS: "{{ .Values.F7T_SWIFT_PASS }}"
+  F7T_XFER_CONSTRAINT: "{{ .Values.F7T_XFER_CONSTRAINT }}"
+  F7T_XFER_PARTITION: "{{ .Values.F7T_XFER_PARTITION }}"
 kind: ConfigMap
 metadata:
   name: storage-env-file
   namespace: {{ .Values.global.namespace }}
+  annotations:
+    reloader.stakater.com/match: "true"

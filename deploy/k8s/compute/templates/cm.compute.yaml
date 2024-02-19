@@ -9,3 +9,5 @@ kind: ConfigMap
 metadata:
   name: compute-env-file
   namespace: {{ .Values.global.namespace }}
+  annotations:
+    reloader.stakater.com/match: "true"

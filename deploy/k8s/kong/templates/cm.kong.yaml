@@ -5,6 +5,8 @@ items:
   metadata:
     name: f7t-kong
     namespace: {{ .Values.global.namespace }}
+    annotations:
+      reloader.stakater.com/match: "true"
   data:
     kong.yaml: |
       _format_version: "1.1"
@@ -44,17 +46,18 @@ items:
           - Content-Type
           credentials: false
           max_age: 3600
+
       consumers:
-      - username: firecrest
-        custom_id: firecrest
+      {{- range .Values.global.auth }}
+      - jwt_secrets:
+        - key: "{{ .F7T_AUTH_ISSUER }}"
+          algorithm: "{{ .F7T_AUTH_REALM_TYPE }}"
+          rsa_public_key: "-----BEGIN PUBLIC KEY-----\n{{ .F7T_AUTH_REALM_PUBKEY }}\n-----END PUBLIC KEY-----"
+        username: "{{ .username }}"
+      {{- end }}
+      
       - username: docs
         custom_id: docs
-
-      jwt_secrets:
-      - consumer: firecrest
-        key: "{{ .Values.global.F7T_AUTH_URL }}/auth/realms/{{ .Values.global.F7T_AUTH_REALM }}"
-        algorithm: "{{ .Values.global.F7T_AUTH_REALM_TYPE }}"
-        rsa_public_key: "-----BEGIN PUBLIC KEY-----\n{{ .Values.global.F7T_AUTH_REALM_PUBKEY }}\n-----END PUBLIC KEY-----"
 
       routes:
       - name: reject
@@ -102,7 +105,7 @@ items:
         - name: tasks
           methods: [GET]
           paths:
-          - /tasks/
+          - /tasks
       - name: utilities
         url: "{{ .Values.global.F7T_UTILITIES_HOST }}:{{ .Values.global.F7T_UTILITIES_PORT }}"
         routes:
