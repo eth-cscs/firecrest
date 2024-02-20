@@ -26,7 +26,7 @@ old_key_pattern = re.compile("^task_([a-z0-9]+)+$")
 def key_is_old_format(key:str):
     return old_key_pattern.match(key)
 
-new_key_pattern = re.compile("^task_([\S]+):([\S]+):([a-z0-9]+)$")
+new_key_pattern = re.compile("^task_([A-z0-9_@\\.\\!$%&-]+):([A-z0-9_@\\.\\!$%&-]+):([a-z0-9]+)$")
 def key_is_new_format(key:str):
     return new_key_pattern.match(key)
 
@@ -45,7 +45,7 @@ for task_id in r.scan_iter(match="task_*"):
     json_task = r.get(task_id)
     task = json.loads(json_task.decode('latin-1'))
     ttl  = r.ttl(task_id)
-
+    
     if(key_is_old_format(task_id.decode('latin-1'))):
         num_old_keys+=1
         print("Found: '{key}' with TTL:{ttl}".format(key=task_id.decode('latin-1'),ttl=ttl))
@@ -55,7 +55,7 @@ for task_id in r.scan_iter(match="task_*"):
             num_errors+=1
         else:
             print("-> new key: '{key}'".format(key=new_key))
-            r.setex(new_key,ttl,json_task)
+            #r.setex(new_key,ttl,json_task)
             old_taks = r.get(task_id)
             new_task = r.get(new_key)
             if(old_taks==new_task):
