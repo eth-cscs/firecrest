@@ -108,7 +108,7 @@ class AsyncTask():
     def get_internal_status(self):
 
         return {
-                "task_id": self.hash_id,
+                "task_id": self.task_id,
                 "hash_id": self.hash_id,
                 "user": self.user,
                 "status": self.status_code,
@@ -147,7 +147,7 @@ class AsyncTask():
             _data = self.data
 
         return {
-                "task_id": self.hash_id,
+                "task_id": self.task_id,
                 "hash_id": self.hash_id,
                 "user": self.user,
                 "status": self.status_code,

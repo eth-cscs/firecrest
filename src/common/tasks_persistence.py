@@ -50,7 +50,11 @@ def create_connection(host,port,passwd="",db=0) -> Union[redis.StrictRedis,None]
         return None
 
 def generate_task_id(task) -> str:
+    #Note: consider escaping the ':' symbol from user and service
     return "task_{user}:{service}:{id}".format(user=task["user"],service=task["service"],id=task["task_id"])
+
+def extract_task_id(key:str) -> str:
+    return key[key.rfind(":")+1:]
 
 
 # incrementes task id by 1
@@ -178,15 +182,15 @@ def get_all_tasks(r) -> Union[dict,None]:
         # scan returns: [cursor, [list of keys]]
         # task_list = r.scan(cursor=0, match="task_*")[1]
 
-        for task_id in r.scan_iter(match="task_*"):
+        for redis_task_id in r.scan_iter(match="task_*"):
 
 
             # djson = r.hgetall(task_id)
-            task_json = r.get(task_id)
+            task_json = r.get(redis_task_id)
 
             # decode because redis stores it in Bytes not string
             task_json = task_json.decode('latin-1')
-            task_id = task_id.decode('latin-1')
+            task_id = extract_task_id(redis_task_id.decode('latin-1'))
 
             # if d is empty, task_id was removed
             # this should be fixed with r.expire

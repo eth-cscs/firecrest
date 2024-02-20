@@ -82,11 +82,8 @@ def init_queue():
     task_list = persistence.get_all_tasks(r)
 
     # key = task_id ; values = {status_code,user,data}
-    for rid, value in task_list.items():
+    for task_id, value in task_list.items():
 
-        # task_list has id with format task_id, ie: task_2
-        # therefore it must be splitted by "_" char:
-        task_id = rid.split("_")[1]
 
         status  = value["status"]
         user    = value["user"]
