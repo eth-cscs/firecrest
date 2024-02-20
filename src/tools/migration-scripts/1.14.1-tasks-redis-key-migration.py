@@ -26,6 +26,13 @@ old_key_pattern = re.compile("^task_([a-z0-9]+)+$")
 def key_is_old_format(key:str):
     return old_key_pattern.match(key)
 
+def extract_old_key(key:str):
+    result = old_key_pattern.search(key)
+    if result:
+        return result.group(1)
+    else:
+        return result
+
 new_key_pattern = re.compile("^task_([A-z0-9_@\\.\\!$%&-]+):([A-z0-9_@\\.\\!$%&-]+):([a-z0-9]+)$")
 def key_is_new_format(key:str):
     return new_key_pattern.match(key)
@@ -49,6 +56,8 @@ for task_id in r.scan_iter(match="task_*"):
     if(key_is_old_format(task_id.decode('latin-1'))):
         num_old_keys+=1
         print("Found: '{key}' with TTL:{ttl}".format(key=task_id.decode('latin-1'),ttl=ttl))
+        #ovveride task_id due to bug
+        task["task_id"]=extract_old_key(task_id.decode('latin-1'))
         new_key = generate_task_id(task)
         if(not key_is_new_format(new_key)):
             print("Error: new key format mismatch!")
@@ -65,6 +74,7 @@ for task_id in r.scan_iter(match="task_*"):
                 print("Error: new task data does not match original!")
                 num_errors+=1
         print("\n")
+        #break
 print("\n\n")
 print("==================================================")
 print("Migration completed!")
