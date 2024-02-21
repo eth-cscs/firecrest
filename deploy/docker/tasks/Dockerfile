@@ -17,6 +17,8 @@ ADD src/common/async_task.py async_task.py
 ADD src/common/cscs_api_common.py cscs_api_common.py
 ADD src/common/tasks_persistence.py tasks_persistence.py
 
+ADD src/tools/migration-scripts/1.14.1-tasks-redis-key-migration.py migration-scripts/1.14.1-tasks-redis-key-migration.py
+
 ENV F7T_TASKS_PORT 5000
 ENV F7T_LOG_PATH /var/log
 ENV F7T_SSL_CRT /ssl/f7t_internal.crt
