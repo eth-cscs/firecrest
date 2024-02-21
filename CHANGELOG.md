@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed demo images dependency declarations preventing docker-compose to build successfully.
+- Fixed check when submitted an empty batch file on `POST /compute/jobs/upload` 
+- Fixed error message when `GET /status/systems` encounters error in one filesystem
 
 
 ## [1.14.0]

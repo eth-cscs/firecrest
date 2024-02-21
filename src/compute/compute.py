@@ -401,6 +401,13 @@ def submit_job_upload():
             app.logger.error('No batch file selected')
             error = jsonify(description="Failed to submit job file", error='No batch file selected')
             return error, 400
+        
+        # decoding content, since from read() method it returns binary encoding
+        if job_file['content'].decode() == '':
+            app.logger.error('Batch file is empty')
+            error = jsonify(description="Failed to submit job file", error='Batch file is empty')
+            return error, 400
+
 
     except RequestEntityTooLarge as re:
         app.logger.error(re.description)
