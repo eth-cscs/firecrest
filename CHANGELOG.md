@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Improved retrieval of tasks from persistence storage
+- Improved retrieval of tasks from persistence storage.
 
 ### Fixed
 
