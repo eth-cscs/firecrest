@@ -46,9 +46,12 @@ DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 # task dict, key is the task_id
 tasks = {}
 
+
 app = Flask(__name__)
-app.config['PROFILE'] = get_boolean_var(os.environ.get("F7T_PROFILE_MODE", False))
-app.wsgi_app = ProfilerMiddleware(app.wsgi_app, restrictions=[10])
+profiling_middle_ware = ProfilerMiddleware(app.wsgi_app,
+                                           restrictions=[15],
+                                           filename_format="{method}.{path}.prof",
+                                           profile_dir='./profs')
 
 logger = setup_logging(logging, 'tasks')
 
@@ -435,9 +438,14 @@ def expire_task(id):
 @app.route("/status",methods=["GET"])
 @check_auth_header
 def status():
-
     app.logger.info("Test status of service")
-    return jsonify(success="ack"), 200
+    if("PROFILE" in request.headers):
+        app.wsgi_app = profiling_middle_ware
+        return jsonify(success="profiling activated!"), 200
+    else:
+        return jsonify(success="ack"), 200
+    
+    
 
 
 # entry point for all tasks by all users (only used by internal)
