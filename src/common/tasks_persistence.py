@@ -49,9 +49,9 @@ def create_connection(host,port,passwd="",db=0) -> Union[redis.StrictRedis,None]
         logging.error(e)
         return None
 
-def generate_task_id(task) -> str:
+def generate_task_id(task_id:int,task) -> str:
     #Note: consider escaping the ':' symbol from user and service
-    return "task_{user}:{service}:{id}".format(user=task["user"],service=task["service"],id=task["task_id"])
+    return "task_{user}:{service}:{id}".format(user=task["user"],service=task["service"],id=task_id)
 
 def extract_task_id(key:str) -> str:
     return key[key.rfind(":")+1:]
@@ -79,7 +79,7 @@ def incr_last_task_id(r) -> Union[int,None]:
 # save task status in redis server
 # if success, returns True, otherwise, False
 # task is the result of AsynkTask.get_status(), that's a dictionary with all fields
-def save_task(r,task,exp_time=None) -> bool:
+def save_task(r,task_id:int,task,exp_time=None) -> bool:
     '''
     Save the task in backend persistence service
     
@@ -93,7 +93,7 @@ def save_task(r,task,exp_time=None) -> bool:
 
     '''
 
-    task_id = generate_task_id(task)
+    task_id = generate_task_id(task_id,task)
     # mapping = {"status":status, "user":user, "data":data}
     logging.info(f"save_task {task_id} in REDIS")
 
@@ -112,7 +112,7 @@ def save_task(r,task,exp_time=None) -> bool:
 
 
 # set task expiration
-def set_expire_task(r,task,secs) -> bool:
+def set_expire_task(r,task_id:int,task,secs) -> bool:
     '''
     Set expiration time for a specific task
     
@@ -125,7 +125,7 @@ def set_expire_task(r,task,secs) -> bool:
     - True if the task was correctly set as expired, otherwise False
 
     '''
-    task_id = generate_task_id(task)
+    task_id = generate_task_id(task_id,task)
     try:
         # change to expire, because delete mantain deleted keys in redis
         # and iterate over them
@@ -143,7 +143,7 @@ def set_expire_task(r,task,secs) -> bool:
 
 # delete task from redis server
 # if success, returns True, otherwise, False
-def del_task(r,task) -> bool:
+def del_task(r,task_id,task) -> bool:
     '''
     Deletes a task by a given id (set expiration time for a specific task to 0)
     
@@ -158,7 +158,7 @@ def del_task(r,task) -> bool:
 
     # use set_expire_task with 0 seconds
     # it's better than delete
-    return set_expire_task(r, task, 0)
+    return set_expire_task(r,task_id, task, 0)
 
 
 # return all task in dict format
