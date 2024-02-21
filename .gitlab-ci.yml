@@ -196,7 +196,7 @@ tag_release:
 
         env_tags="$CI_COMMIT_TAG prod"
         code_tag="prod"
-        if [ "$is_master" == "true" || $CI_COMMIT_TAG =~ "dev" ]; then
+        if [ "$is_master" == "true"] || [$CI_COMMIT_TAG =~ "dev" ]; then
 
           if [[ $CI_COMMIT_TAG =~ "dev" ]]; then
             env_tags="$CI_COMMIT_TAG tds"
