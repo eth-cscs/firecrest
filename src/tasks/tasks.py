@@ -50,7 +50,7 @@ tasks = {}
 app = Flask(__name__)
 profiling_middle_ware = ProfilerMiddleware(app.wsgi_app,
                                            restrictions=[15],
-                                           filename_format="{method}.{path}.prof",
+                                           filename_format="tasks.{method}.{path}.{elapsed:.0f}ms.{time:.0f}.prof",
                                            profile_dir='/var/log/profs')
 
 logger = setup_logging(logging, 'tasks')
@@ -439,7 +439,7 @@ def expire_task(id):
 @check_auth_header
 def status():
     app.logger.info("Test status of service")
-    if("PROFILE" in request.headers):
+    if("X-F7T-PROFILE" in request.headers):
         app.wsgi_app = profiling_middle_ware
         return jsonify(success="profiling activated!"), 200
     else:

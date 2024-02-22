@@ -48,6 +48,7 @@ services:
       - ../test-build/environment/keys/user-key.pub:/etc/firecrest/user-key.pub:ro
       - ../test-build/environment/keys/ca-key:/etc/firecrest/ca-key:ro
       - ./ssl:/ssl
+      - ./logs/profs:/var/log/profs
 
   compute:
     image: f7t-compute
@@ -71,6 +72,7 @@ services:
       - ./logs/firecrest:/var/log:delegated
       - ../test-build/environment/keys/user-key:/etc/firecrest/ssh/user-key:ro
       - ./ssl:/ssl
+      - ./logs/profs:/var/log/profs
 
   status:
     image: f7t-status
@@ -119,6 +121,7 @@ services:
       - ./logs/firecrest:/var/log:delegated
       - ../test-build/environment/keys/user-key:/user-key:ro
       - ./ssl:/ssl
+      - ./logs/profs:/var/log/profs
 
   tasks:
     image: f7t-tasks
@@ -167,6 +170,7 @@ services:
       - ./logs/firecrest:/var/log:delegated
       - ../test-build/environment/keys/user-key:/user-key:ro
       - ./ssl:/ssl
+      - ./logs/profs:/var/log/profs
 
   reservations:
     image: f7t-reservations
@@ -188,6 +192,7 @@ services:
       - ./logs/firecrest:/var/log:delegated
       - ../test-build/environment/keys/user-key:/user-key:ro
       - ./ssl:/ssl
+      - ./logs/profs:/var/log/profs
 
   # web client
   client:

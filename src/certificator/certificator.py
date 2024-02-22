@@ -6,6 +6,7 @@
 #
 import subprocess, os, tempfile
 from flask import Flask, request, jsonify, g
+from werkzeug.middleware.profiler import ProfilerMiddleware
 import functools
 import jwt
 
@@ -80,6 +81,10 @@ if len(REALM_RSA_PUBLIC_KEYS) != 0:
 DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 app = Flask(__name__)
+profiling_middle_ware = ProfilerMiddleware(app.wsgi_app,
+                                           restrictions=[15],
+                                           filename_format="certificator.{method}.{path}.{elapsed:.0f}ms.{time:.0f}.prof",
+                                           profile_dir='/var/log/profs')
 
 JAEGER_AGENT = os.environ.get("F7T_JAEGER_AGENT", "").strip('\'"')
 if JAEGER_AGENT != "":
@@ -476,7 +481,11 @@ def receive():
 @check_auth_header
 def status():
     app.logger.info("Test status of service")
-    return jsonify(success="ack"), 200
+    if("X-F7T-PROFILE" in request.headers):
+        app.wsgi_app = profiling_middle_ware
+        return jsonify(success="profiling activated!"), 200
+    else:
+        return jsonify(success="ack"), 200
 
 @app.before_request
 def f_before_request():

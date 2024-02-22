@@ -27,6 +27,7 @@ ADD src/common/async_task.py async_task.py
 ADD src/common/cscs_api_common.py cscs_api_common.py
 ADD src/common/schedulers schedulers
 
+RUN mkdir /var/log/profs
 
 ENV F7T_STORAGE_PORT 5000
 ENV F7T_LOG_PATH /var/log
