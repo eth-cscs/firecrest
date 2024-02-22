@@ -196,6 +196,30 @@ tag_release:
 
         env_tags="$CI_COMMIT_TAG prod"
         code_tag="prod"
+
+        #adding temporary debug code to find the right condition
+        if [ "$is_master" == "true"]; then
+          echo "1 is true"
+        fi
+        if [[ $CI_COMMIT_TAG =~ "dev" ]]; then
+          echo "2 is true"
+        fi
+        if [ "$is_master" == "true"] || [[ $CI_COMMIT_TAG =~ "dev" ]]; then
+          echo "3 is true"
+        fi
+        if [ "$is_master" == "true" || $CI_COMMIT_TAG =~ "dev" ]; then
+          echo "4 is true"
+        fi
+        if [[ "$is_master" == "true" || $CI_COMMIT_TAG =~ "dev" ]]; then
+          echo "5 is true"
+        fi
+        if [ "$is_master" == "true"] || [ $CI_COMMIT_TAG =~ "dev" ]; then
+          echo "6 is true"
+        fi
+        if [ "$is_master" == "true"] || [ "$CI_COMMIT_TAG" =~ "dev" ]; then
+          echo "7 is true"
+        fi
+
         if [ "$is_master" == "true"] || [[$CI_COMMIT_TAG =~ "dev" ]]; then
 
           if [[ $CI_COMMIT_TAG =~ "dev" ]]; then
