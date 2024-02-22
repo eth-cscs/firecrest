@@ -145,6 +145,7 @@ services:
     volumes:
       - ./logs/firecrest:/var/log:delegated
       - ./ssl:/ssl
+      - ./logs/profs:/var/log/profs
 
   utilities:
     image: f7t-utilities

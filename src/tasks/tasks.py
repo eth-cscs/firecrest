@@ -51,7 +51,7 @@ app = Flask(__name__)
 profiling_middle_ware = ProfilerMiddleware(app.wsgi_app,
                                            restrictions=[15],
                                            filename_format="{method}.{path}.prof",
-                                           profile_dir='./profs')
+                                           profile_dir='/var/log/profs')
 
 logger = setup_logging(logging, 'tasks')
 
