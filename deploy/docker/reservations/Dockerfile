@@ -9,6 +9,8 @@ RUN pip3 install -r deps/requirements.txt
 ADD src/reservations/reservations.py reservations.py
 ADD src/common/cscs_api_common.py cscs_api_common.py
 
+RUN mkdir /var/log/profs
+
 ENV F7T_RESERVATIONS_PORT 5000
 ENV F7T_LOG_PATH /var/log
 ENV F7T_SSL_CRT /ssl/f7t_internal.crt
