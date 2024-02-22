@@ -196,7 +196,45 @@ tag_release:
 
         env_tags="$CI_COMMIT_TAG prod"
         code_tag="prod"
+
+        #adding temporary debug code to find the right condition
+        
+        echo "START - Debug pipeline condition"
+
+        if [ "$is_master" == "true" ]; then
+          echo "1 is true"
+        else  
+          echo "1 is false"
+        fi
+        if [[ $CI_COMMIT_TAG =~ "dev" ]]; then
+          echo "2 is true"
+        else  
+          echo "2 is false"
+        fi
+        if [ "$is_master" == "true" ] || [[ $CI_COMMIT_TAG =~ "dev" ]]; then
+          echo "3 is true"
+        else  
+          echo "3 is false"
+        fi
         if [ "$is_master" == "true" || $CI_COMMIT_TAG =~ "dev" ]; then
+          echo "4 is true"
+        else  
+          echo "4 is false"
+        fi
+        if [[ "$is_master" == "true" || $CI_COMMIT_TAG =~ "dev" ]]; then
+          echo "5 is true"
+        else  
+          echo "5 is false"
+        fi
+        if [ "$is_master" == "true" ] || [ $CI_COMMIT_TAG =~ "dev" ]; then
+          echo "6 is true"
+        else  
+          echo "6 is false"
+        fi
+
+        echo "END - debug pipeline"
+
+        if [ "$is_master" == "true" ] || [[ $CI_COMMIT_TAG =~ "dev" ]]; then
 
           if [[ $CI_COMMIT_TAG =~ "dev" ]]; then
             env_tags="$CI_COMMIT_TAG tds"
