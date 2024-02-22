@@ -58,7 +58,10 @@ if __name__ == "__main__":
                 num_errors+=1
             else:
                 print("-> new key: '{key}'".format(key=new_key))
-                r.setex(new_key,ttl,json_task)
+                if(ttl==None):
+                    r.set(new_key,json_task)
+                else:
+                    r.setex(new_key,ttl,json_task)
                 old_taks = r.get(task_id)
                 new_task = r.get(new_key)
                 if(old_taks==new_task):
