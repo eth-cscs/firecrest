@@ -280,7 +280,7 @@ def check_filesystem(system, filesystems,headers):
             if status_code == 200:
                 resp_fs["status"] = "available"
             elif status_code == 400:
-                resp_fs["status"] = "no available"
+                resp_fs["status"] = "not available"
 
             resp_json.append(resp_fs)
     except KeyError as ke:
@@ -582,10 +582,10 @@ def parameters():
     parameters_list = {
         "compute": [
             { 
-                "name" : "COMPUTE_SCHEDULER",
+                "name" : "WORKLOAD_MANAGER",
                 "value": COMPUTE_SCHEDULER,
                 "unit": "",
-                "description": "Type of resource and workload secheduler used in "
+                "description": "Type of resource and workload manager used in "
                                "compute microservice"  
             }
         ],
