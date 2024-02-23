@@ -238,7 +238,7 @@ services:
       - ./logs/keycloak:/opt/jboss/keycloak/standalone/log/:delegated
 
   kong:
-    image: kong:2.8.4
+    image: kong:3.6.0
     container_name: kong
     environment:
       - KONG_DATABASE=off
