@@ -53,8 +53,12 @@ def generate_task_id(task_id:int,task) -> str:
     #Note: consider escaping the ':' symbol from user and service
     return "task_{user}:{service}:{id}".format(user=task["user"],service=task["service"],id=task_id)
 
-def extract_task_id(key:str) -> str:
-    return key[key.rfind(":")+1:]
+def key_parts(key:str) -> str:
+    keyparts = key.split(":")
+    if(len(keyparts)!= 3):
+        return None,None,None
+    else:
+        return keyparts[0][5:],keyparts[1],keyparts[2]
 
 
 # incrementes task id by 1
@@ -190,7 +194,9 @@ def get_all_tasks(r) -> Union[dict,None]:
 
             # decode because redis stores it in Bytes not string
             task_json = task_json.decode('latin-1')
-            task_id = extract_task_id(redis_task_id.decode('latin-1'))
+            user,service,task_id = key_parts(redis_task_id.decode('latin-1'))
+            if task_id==None:
+                continue
 
             # if d is empty, task_id was removed
             # this should be fixed with r.expire
@@ -230,9 +236,6 @@ def get_user_tasks(r,user,task_list=None, status_code=None) -> Union[dict,None]:
         # scan_iter iterates between matching keys
         for task_id in r.scan_iter(match="task_{user}:*".format(user=user)):
 
-            # if task_list is not empty, and not found in the sublist of user tasks, then is skipped
-            if (task_list != None) and (task_id.decode('latin-1').split(":")[2] not in task_list):
-                continue
 
             json_task = r.get(task_id)
             # logging.info(json_task)
@@ -253,6 +256,10 @@ def get_user_tasks(r,user,task_list=None, status_code=None) -> Union[dict,None]:
                     # if the status doesn't match the list, then is skipped
                     if task["status"] not in status_code:
                         continue
+                
+                # if task_list is not empty, and not found in the sublist of user tasks, then is skipped
+                if (task_list != None) and (task["hash_id"] not in task_list):
+                    continue
 
                 task_dict[task["hash_id"]] = task
                 
@@ -298,7 +305,8 @@ def get_service_tasks(r,service,status_code=None) -> Union[dict,None]:
             # changed since now is a serialized string, after python redis==3.x
 
             #skip if the service specified in the task_id is different
-            if task_id.decode('latin-1').split(":")[1] != service:
+            user,service,id = key_parts(task_id.decode('latin-1'))
+            if service==None or service != service:
                 continue
 
             json_task = r.get(task_id)
