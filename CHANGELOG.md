@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Upgraded `kong` gateway to [v3.6.0](https://docs.konghq.com/gateway/changelog/#3600)
 - Upgraded `cryptography`package to [v42.0.4](https://cryptography.io/en/latest/changelog/#v42-0-4)
 - Upgraded `paramiko` package to [v3.4.0](https://github.com/paramiko/paramiko/tree/3.4.0)
 
