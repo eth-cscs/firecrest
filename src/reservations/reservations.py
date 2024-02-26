@@ -5,7 +5,7 @@
 #  SPDX-License-Identifier: BSD-3-Clause
 #
 from flask import Flask, request, jsonify, g
-
+from werkzeug.middleware.profiler import ProfilerMiddleware
 from werkzeug.exceptions import BadRequestKeyError, InternalServerError, MethodNotAllowed
 
 # task states
@@ -44,6 +44,10 @@ DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 
 app = Flask(__name__)
+profiling_middle_ware = ProfilerMiddleware(app.wsgi_app,
+                                           restrictions=[15],
+                                           filename_format="reservations.{method}.{path}.{elapsed:.0f}ms.{time:.0f}.prof",
+                                           profile_dir='/var/log/profs')
 
 logger = setup_logging(logging, 'reservations')
 
@@ -534,7 +538,11 @@ def delete(reservation):
 def status():
     app.logger.info("Test status of service")
     # TODO: check backend reservation binary to truthfully respond this request
-    return jsonify(success="ack"), 200
+    if("X-F7T-PROFILE" in request.headers):
+        app.wsgi_app = profiling_middle_ware
+        return jsonify(success="profiling activated!"), 200
+    else:
+        return jsonify(success="ack"), 200
 
 @app.errorhandler(MethodNotAllowed)
 def page_not_found(e):

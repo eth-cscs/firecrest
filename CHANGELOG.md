@@ -5,13 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.14.1]
+## [1.15.0]
 
 ### Added
 
-- `/utilities/whoami` adds the `boolean` parameter "`groups`" which set on `true` returns a dictionary with `uid`, `gid`, and `groups`
+- Added the endpoints `GET /status/filesystems` and `GET /status/filesystems/<system>`, providing enhancement in terms of filesystem availability
+- The endpoint `/utilities/whoami` adds the `boolean` parameter "`groups`" which set on `true` returns a dictionary with `uid`, `gid`, and `groups`
+- Added the parameter `WORKLOAD_MANAGER` in `GET /status/parameters` to provide information on the resource and workload manager used for compute
 - Add F7T_LOG_TYPE to select logging to files or stdout.
 - Add F7T_GUNICORN_LOG for Gunicorn logs.
+- Add profiling midelware.
 
 ### Changed
 
@@ -23,6 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed check when submitted an empty batch file on `POST /compute/jobs/upload` 
 - Fixed error message when `GET /status/systems` encounters error in one filesystem
 
+### Changed
+
+- Upgraded `kong` gateway to [v3.6.0](https://docs.konghq.com/gateway/changelog/#3600)
+- Upgraded `cryptography`package to [v42.0.4](https://cryptography.io/en/latest/changelog/#v42-0-4)
+- Upgraded `paramiko` package to [v3.4.0](https://github.com/paramiko/paramiko/tree/3.4.0)
 
 ## [1.14.0]
 
