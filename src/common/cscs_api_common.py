@@ -256,7 +256,11 @@ def get_username(header):
         return {"result": True, "reason":"", "username": decoded['preferred_username']}
 
 def in_str(stringval, substring):
-    return substring in stringval
+    if isinstance(stringval, str):
+        return substring in stringval
+    else:
+        return False
+    
 
 # SSH certificates creation
 # returns pub key certificate name
@@ -958,7 +962,7 @@ def check_command_error(error_str, error_code, service_msg):
         header = {"X-Permission-Denied": "User does not have permissions to access path"}
         return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
 
-    if ("File exists" in error_str) and ("mkdir: cannot create directory" in error_str or "ln: failed to create symbolic link" in error_str):
+    if in_str(error_str,"File exists") and (in_str(error_str,"mkdir: cannot create directory") or in_str(error_str,"ln: failed to create symbolic link")):
         header = {"X-Exists": "targetPath already exists"}
         return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
 
