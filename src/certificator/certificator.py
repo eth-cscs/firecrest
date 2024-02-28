@@ -19,7 +19,6 @@ import requests
 import re
 import threading
 import sys
-from shlex import quote
 
 # Checks if an environment variable injected to F7T is a valid True value
 # var <- object
