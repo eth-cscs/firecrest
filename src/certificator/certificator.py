@@ -34,7 +34,6 @@ def get_boolean_var(var):
 AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME","Authorization")
 
 AUTH_AUDIENCE = os.environ.get("F7T_AUTH_TOKEN_AUD", '').strip('\'"')
-ALLOWED_USERS = os.environ.get("F7T_AUTH_ALLOWED_USERS", '').strip('\'"').split(";")
 AUTH_REQUIRED_SCOPE = os.environ.get("F7T_AUTH_REQUIRED_SCOPE", '').strip('\'"')
 
 AUTH_ROLE = os.environ.get("F7T_AUTH_ROLE", '').strip('\'"')
@@ -50,10 +49,10 @@ FORBIDDEN_COMMAND_CHARS = r'[\<\|\;\"\\\(\)\x00-\x1F\x60]'
 # OPA endpoint
 OPA_USE = get_boolean_var(os.environ.get("F7T_OPA_USE",False))
 OPA_URL = os.environ.get("F7T_OPA_URL","http://localhost:8181").strip('\'"')
-POLICY_PATH = os.environ.get("F7T_POLICY_PATH","v1/data/f7t/authz").strip('\'"')
+OPA_POLICY_PATH = os.environ.get("F7T_OPA_POLICY_PATH","v1/data/f7t/authz").strip('\'"')
 
 ### SSL parameters
-USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
+USE_SSL = get_boolean_var(os.environ.get("F7T_SSL_USE", False))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
@@ -144,7 +143,7 @@ def setup_logging(logging, service):
     logging.getLogger('werkzeug').disabled = True
 
     if OPA_USE:
-        logging.info(f"OPA: enabled, using {OPA_URL}/{POLICY_PATH}")
+        logging.info(f"OPA: enabled, using {OPA_URL}/{OPA_POLICY_PATH}")
     else:
         logging.info(f"OPA: disabled")
 
@@ -182,7 +181,7 @@ def check_user_auth(username,system):
         input = {"input":{"user": f"{username}", "system": f"{system}"}}
 
         try:
-            resp_opa = requests.post(f"{OPA_URL}/{POLICY_PATH}", json=input, verify= (SSL_CRT if USE_SSL else False))
+            resp_opa = requests.post(f"{OPA_URL}/{OPA_POLICY_PATH}", json=input, verify= (SSL_CRT if USE_SSL else False))
             msg = f"{resp_opa.status_code} {resp_opa.text}"
             logging.info(f"resp_opa: {msg}")
 

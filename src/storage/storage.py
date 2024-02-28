@@ -31,43 +31,55 @@ from flask_opentracing import FlaskTracing
 from jaeger_client import Config
 import opentracing
 
-## READING vars environment vars
+## READING environment vars
 
-CERTIFICATOR_URL = os.environ.get("F7T_CERTIFICATOR_URL")
-TASKS_URL        = os.environ.get("F7T_TASKS_URL")
-COMPUTE_URL      = os.environ.get("F7T_COMPUTE_URL")
-KONG_URL         = os.environ.get("F7T_KONG_URL")
+### SSL parameters
+USE_SSL = get_boolean_var(os.environ.get("F7T_SSL_USE", False))
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
-STORAGE_PORT     = os.environ.get("F7T_STORAGE_PORT", 5000)
+F7T_SCHEME_PROTOCOL = ("https" if USE_SSL else "http")
+
+# Internal microservices communication
+## certificator
+CERTIFICATOR_HOST = os.environ.get("F7T_CERTIFICATOR_HOST","127.0.0.1") 
+CERTIFICATOR_PORT = os.environ.get("F7T_CERTIFICATOR_PORT","5000")
+CERTIFICATOR_URL = f"{F7T_SCHEME_PROTOCOL}://{CERTIFICATOR_HOST}:{CERTIFICATOR_PORT}"
+## tasks
+TASKS_HOST = os.environ.get("F7T_TASKS_HOST","127.0.0.1") 
+TASKS_PORT = os.environ.get("F7T_TASKS_PORT","5003")
+TASKS_URL = f"{F7T_SCHEME_PROTOCOL}://{TASKS_HOST}:{TASKS_PORT}"
+## compute
+COMPUTE_HOST = os.environ.get("F7T_COMPUTE_HOST","127.0.0.1") 
+COMPUTE_PORT = os.environ.get("F7T_COMPUTE_PORT","5006")
+COMPUTE_URL = f"{F7T_SCHEME_PROTOCOL}://{COMPUTE_HOST}:{COMPUTE_PORT}"
+
+## local port for microservice
+STORAGE_PORT     = os.environ.get("F7T_STORAGE_PORT", "5002")
 
 AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME","Authorization")
 
 # SYSTEMS_PUBLIC: list of allowed systems
 # remove quotes and split into array
-SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
+SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC_NAME","").strip('\'"').split(";")
 # internal machines to submit/query jobs
-SYS_INTERNALS_COMPUTE = os.environ.get("F7T_SYSTEMS_INTERNAL_COMPUTE").strip('\'"').split(";")
+SYSTEMS_INTERNAL_COMPUTE   = os.environ.get("F7T_SYSTEMS_INTERNAL_COMPUTE", os.environ.get("F7T_SYSTEMS_INTERNAL_NAME","")).strip('\'"').split(";")
 # Machine with filesystems where to download or upload files:
-SYS_INTERNALS_STORAGE = os.environ.get("F7T_SYSTEMS_INTERNAL_STORAGE").strip('\'"').split(";")
-# internal machines for small operations
-SYS_INTERNALS_UTILITIES  = os.environ.get("F7T_SYSTEMS_INTERNAL_UTILITIES").strip('\'"').split(";")
+SYSTEMS_INTERNAL_STORAGE = os.environ.get("F7T_SYSTEMS_INTERNAL_STORAGE", os.environ.get("F7T_SYSTEMS_INTERNAL_NAME","")).strip('\'"').split(";")
 # Machine to send xfer-internal jobs, as defined in SYSTEMS_PUBLIC
-STORAGE_JOBS_MACHINE = os.environ.get("F7T_STORAGE_JOBS_MACHINE", os.environ.get("F7T_SYSTEMS_PUBLIC")).strip('\'"').split(";")
+STORAGE_JOBS_MACHINE = os.environ.get("F7T_STORAGE_JOBS_MACHINE", os.environ.get("F7T_SYSTEMS_PUBLIC_NAME","")).strip('\'"').split(";")
 
 ###### ENV VAR FOR DETECT TECHNOLOGY OF STAGING AREA:
-OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE", "").strip('\'"')
+OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE", "s3v4").strip('\'"')
 
-OS_AUTH_URL             = os.environ.get("F7T_OS_AUTH_URL")
-OS_IDENTITY_PROVIDER    = os.environ.get("F7T_OS_IDENTITY_PROVIDER")
-OS_IDENTITY_PROVIDER_URL= os.environ.get("F7T_OS_IDENTITY_PROVIDER_URL")
-OS_PROTOCOL             = os.environ.get("F7T_OS_PROTOCOL")
-OS_PROJECT_ID           = os.environ.get("F7T_OS_PROJECT_ID")
-
-# SECRET KEY for temp url without using Token
-SECRET_KEY              = os.environ.get("F7T_SECRET_KEY")
+OS_AUTH_URL             = os.environ.get("F7T_OS_AUTH_URL", "")
+OS_IDENTITY_PROVIDER    = os.environ.get("F7T_OS_IDENTITY_PROVIDER", "")
+OS_IDENTITY_PROVIDER_URL= os.environ.get("F7T_OS_IDENTITY_PROVIDER_URL", "")
+OS_PROTOCOL             = os.environ.get("F7T_OS_PROTOCOL","openid")
+OS_PROJECT_ID           = os.environ.get("F7T_OS_PROJECT_ID", "")
 
 # Detect scheduler object type
-STORAGE_SCHEDULER = os.environ.get("F7T_STORAGE_SCHEDULER", "Slurm")
+STORAGE_SCHEDULER = os.environ.get("F7T_STORAGE_SCHEDULER", os.environ.get("F7T_COMPUTE_SCHEDULER", "Slurm"))
 
 # Scheduller partition used for internal transfers, one per public system
 XFER_PARTITION = os.environ.get("F7T_XFER_PARTITION", "").strip('\'"').split(";")
@@ -81,8 +93,8 @@ USE_SCHED_PROJECT = get_boolean_var(
     os.environ.get("F7T_USE_SCHED_PROJECT", os.environ.get("F7T_USE_SLURM_ACCOUNT", False))
 )
 
-# Expiration time for temp URLs in seconds, by default 30 days
-STORAGE_TEMPURL_EXP_TIME = int(os.environ.get("F7T_STORAGE_TEMPURL_EXP_TIME", "2592000").strip('\'"'))
+# Expiration time for temp URLs in seconds, by default 7 days
+STORAGE_TEMPURL_EXP_TIME = int(os.environ.get("F7T_STORAGE_TEMPURL_EXP_TIME", "604800").strip('\'"'))
 # max file size for temp URLs in MegaBytes, by default 5120 MB = 5 GB
 STORAGE_MAX_FILE_SIZE = int(os.environ.get("F7T_STORAGE_MAX_FILE_SIZE", "5120").strip('\'"'))
 # for use on signature of URL it must be in bytes (MB*1024*1024 = Bytes)
@@ -93,10 +105,7 @@ UTILITIES_TIMEOUT = int(os.environ.get("F7T_UTILITIES_TIMEOUT", "5").strip('\'"'
 STORAGE_POLLING_INTERVAL = int(os.environ.get("F7T_STORAGE_POLLING_INTERVAL", "60").strip('\'"'))
 CERT_CIPHER_KEY = os.environ.get("F7T_CERT_CIPHER_KEY", "").strip('\'"').encode('utf-8')
 
-### SSL parameters
-USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
-SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
-SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
+
 
 TRACER_HEADER = "uber-trace-id"
 
@@ -221,28 +230,31 @@ def create_staging():
         from swiftOS import Swift
 
         # Object Storage URL & data:
-        SWIFT_PRIVATE_URL = os.environ.get("F7T_SWIFT_PRIVATE_URL")
         SWIFT_PUBLIC_URL = os.environ.get("F7T_SWIFT_PUBLIC_URL")
-        SWIFT_API_VERSION = os.environ.get("F7T_SWIFT_API_VERSION")
-        SWIFT_ACCOUNT = os.environ.get("F7T_SWIFT_ACCOUNT")
+        SWIFT_PRIVATE_URL = os.environ.get("F7T_SWIFT_PRIVATE_URL", SWIFT_PUBLIC_URL)
+        SWIFT_API_VERSION = os.environ.get("F7T_SWIFT_API_VERSION", "v1")
+        SWIFT_ACCOUNT = OS_PROJECT_ID
         SWIFT_USER = os.environ.get("F7T_SWIFT_USER")
         SWIFT_PASS = os.environ.get("F7T_SWIFT_PASS")
+        # SECRET KEY for temp url without using Token
+        SWIFT_SECRET_KEY = os.environ.get("F7T_SWIFT_SECRET_KEY")
 
         priv_url = f"{SWIFT_PRIVATE_URL}/{SWIFT_API_VERSION}/AUTH_{SWIFT_ACCOUNT}"
         publ_url = f"{SWIFT_PUBLIC_URL}/{SWIFT_API_VERSION}/AUTH_{SWIFT_ACCOUNT}"
 
-        staging = Swift(priv_url=priv_url,publ_url=publ_url, user=SWIFT_USER, passwd=SWIFT_PASS, secret=SECRET_KEY)
+
+        staging = Swift(priv_url=priv_url,publ_url=publ_url, user=SWIFT_USER, passwd=SWIFT_PASS, secret=SWIFT_SECRET_KEY)
 
     elif OBJECT_STORAGE == "s3v2":
         app.logger.info("Object Storage selected: S3v2")
         from s3v2OS import S3v2
 
         # For S3:
-        S3_PRIVATE_URL = os.environ.get("F7T_S3_PRIVATE_URL")
         S3_PUBLIC_URL  = os.environ.get("F7T_S3_PUBLIC_URL")
+        S3_PRIVATE_URL = os.environ.get("F7T_S3_PRIVATE_URL", S3_PUBLIC_URL)
         S3_ACCESS_KEY  = os.environ.get("F7T_S3_ACCESS_KEY")
         S3_SECRET_KEY  = os.environ.get("F7T_S3_SECRET_KEY")
-        S3_REGION      = os.environ.get("F7T_S3_REGION")
+        S3_REGION      = os.environ.get("F7T_S3_REGION", "us-east-1")
 
         staging = S3v2(priv_url=S3_PRIVATE_URL, publ_url=S3_PUBLIC_URL, user=S3_ACCESS_KEY, passwd=S3_SECRET_KEY)
 
@@ -251,11 +263,15 @@ def create_staging():
         from s3v4OS import S3v4
 
         # For S3:
+        # For S3:
+        S3_PRIVATE_URL = os.environ.get("F7T_S3_PRIVATE_URL")
+        # For S3:        
         S3_PRIVATE_URL = os.environ.get("F7T_S3_PRIVATE_URL")
         S3_PUBLIC_URL  = os.environ.get("F7T_S3_PUBLIC_URL")
+        S3_PRIVATE_URL = os.environ.get("F7T_S3_PRIVATE_URL", S3_PUBLIC_URL)
         S3_ACCESS_KEY  = os.environ.get("F7T_S3_ACCESS_KEY")
         S3_SECRET_KEY  = os.environ.get("F7T_S3_SECRET_KEY")
-        S3_REGION      = os.environ.get("F7T_S3_REGION")
+        S3_REGION      = os.environ.get("F7T_S3_REGION", "us-east-1")
         S3_TENANT      = get_null_var(os.environ.get("F7T_S3_TENANT", None))
 
         staging = S3v4(priv_url=S3_PRIVATE_URL, publ_url=S3_PUBLIC_URL, user=S3_ACCESS_KEY, passwd=S3_SECRET_KEY, region=S3_REGION, tenant=S3_TENANT)
@@ -596,7 +612,7 @@ def download_request():
 
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS_STORAGE[system_idx]
+    system_addr = SYSTEMS_INTERNAL_STORAGE[system_idx]
 
     sourcePath = request.form.get("sourcePath", None) # path file in cluster
     v = validate_input(sourcePath)
@@ -627,7 +643,7 @@ def download_request():
 
         storage_tasks[task_id].start()
 
-        task_url = f"{KONG_URL}/tasks/{task_id}"
+        task_url = f"/tasks/{task_id}"
         data = jsonify(success="Task created", task_url=task_url, task_id=task_id)
         return data, 201
 
@@ -808,7 +824,7 @@ def upload_request():
 
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS_STORAGE[system_idx]
+    system_addr = SYSTEMS_INTERNAL_STORAGE[system_idx]
 
     targetPath = request.form.get("targetPath", None) # path to save file in cluster
     v = validate_input(targetPath)
@@ -855,7 +871,7 @@ def upload_request():
 
         storage_tasks[task_id].start()
 
-        task_url = f"{KONG_URL}/tasks/{task_id}"
+        task_url = f"/tasks/{task_id}"
 
         data = jsonify(success="Task created",task_url=task_url,task_id=task_id)
         return data, 201
@@ -963,7 +979,7 @@ def internal_operation(request, command):
     # actual machine for submitting Slurm job may be different:
     system_name = STORAGE_JOBS_MACHINE[system_idx]
     system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS_COMPUTE[system_idx]
+    system_addr = SYSTEMS_INTERNAL_COMPUTE[system_idx]
 
     targetPath = request.form.get("targetPath", None)  # path to save file in cluster
     v = validate_input(targetPath)

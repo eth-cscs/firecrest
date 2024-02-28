@@ -71,11 +71,24 @@ AUTH_REQUIRED_SCOPE = os.environ.get("F7T_AUTH_REQUIRED_SCOPE", '').strip('\'"')
 
 AUTH_ROLE = os.environ.get("F7T_AUTH_ROLE", '').strip('\'"')
 
+### SSL parameters
+USE_SSL = get_boolean_var(os.environ.get("F7T_SSL_USE", False))
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
-CERTIFICATOR_URL = os.environ.get("F7T_CERTIFICATOR_URL")
-TASKS_URL = os.environ.get("F7T_TASKS_URL")
+F7T_SCHEME_PROTOCOL = ("https" if USE_SSL else "http")
 
-F7T_SSH_CERTIFICATE_WRAPPER = get_boolean_var(os.environ.get("F7T_SSH_CERTIFICATE_WRAPPER", False))
+# Internal microservices communication
+## certificator
+CERTIFICATOR_HOST = os.environ.get("F7T_CERTIFICATOR_HOST","127.0.0.1") 
+CERTIFICATOR_PORT = os.environ.get("F7T_CERTIFICATOR_PORT","5000")
+CERTIFICATOR_URL = f"{F7T_SCHEME_PROTOCOL}://{CERTIFICATOR_HOST}:{CERTIFICATOR_PORT}"
+## tasks
+TASKS_HOST = os.environ.get("F7T_TASKS_HOST","127.0.0.1") 
+TASKS_PORT = os.environ.get("F7T_TASKS_PORT","5003")
+TASKS_URL = f"{F7T_SCHEME_PROTOCOL}://{TASKS_HOST}:{TASKS_PORT}"
+
+SSH_CERTIFICATE_WRAPPER_USE = get_boolean_var(os.environ.get("F7T_SSH_CERTIFICATE_WRAPPER_USE", False))
 
 # Fobidden chars on user path/parameters: wihtout scapes: < > | ; " ' & \ ( ) x00-x1F \x60
 #   r'...' specifies it's a regular expression with special treatment for \
@@ -84,12 +97,9 @@ FORBIDDEN_INPUT_CHARS = r'[\<\>\|\;\"\'\&\\\(\)\x00-\x1F\x60]'
 # OPA endpoint
 OPA_USE = get_boolean_var(os.environ.get("F7T_OPA_USE",False))
 OPA_URL = os.environ.get("F7T_OPA_URL","http://localhost:8181").strip('\'"')
-POLICY_PATH = os.environ.get("F7T_POLICY_PATH","v1/data/f7t/authz").strip('\'"')
+OPA_POLICY_PATH = os.environ.get("F7T_OPA_POLICY_PATH","v1/data/f7t/authz").strip('\'"')
 
-### SSL parameters
-USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
-SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
-SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
+
 
 ### SSH key paths
 PUB_USER_KEY_PATH = os.environ.get("F7T_PUB_USER_KEY_PATH", "/user-key.pub")
@@ -384,9 +394,9 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
                        timeout=10,
                        disabled_algorithms={'keys': ['rsa-sha2-256', 'rsa-sha2-512']})
 
-        if F7T_SSH_CERTIFICATE_WRAPPER:
+        if SSH_CERTIFICATE_WRAPPER_USE:
             if DEBUG_MODE:
-                logging.debug(f"Using F7T_SSH_CERTIFICATE_WRAPPER.")
+                logging.debug(f"Using F7T_SSH_CERTIFICATE_WRAPPER_USE option")
 
             # read cert to send it as a command to the server
             with open(pub_cert, 'r') as cert_file:
@@ -883,9 +893,9 @@ def check_user_auth(username,system):
         try:
             input = {"input":{"user": f"{username}", "system": f"{system}"}}
             if DEBUG_MODE:
-                logging.debug(f"OPA: enabled, using {OPA_URL}/{POLICY_PATH}")
+                logging.debug(f"OPA: enabled, using {OPA_URL}/{OPA_POLICY_PATH}")
 
-            resp_opa = requests.post(f"{OPA_URL}/{POLICY_PATH}", json=input)
+            resp_opa = requests.post(f"{OPA_URL}/{OPA_POLICY_PATH}", json=input)
 
             logging.info(resp_opa.content)
 

@@ -22,30 +22,35 @@ import opentracing
 
 AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME","Authorization")
 
-SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
+SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC_NAME","").strip('\'"').split(";")
 
 FILESYSTEMS = ast.literal_eval(os.environ.get("F7T_FILESYSTEMS", {}))
 
-SERVICES = os.environ.get("F7T_STATUS_SERVICES").strip('\'"').split(";") # ; separated service names
-SYSTEMS  = os.environ.get("F7T_STATUS_SYSTEMS").strip('\'"').split(";")  # ; separated systems names
-
-STATUS_PORT = os.environ.get("F7T_STATUS_PORT", 5000)
-UTILITIES_URL = os.environ.get("F7T_UTILITIES_URL","")
-
-SERVICES_DICT = {}
+SERVICES = os.environ.get("F7T_STATUS_SERVICES","").strip('\'"').split(";") # ; separated service names
+SYSTEMS  = os.environ.get("F7T_SYSTEMS_INTERNAL_STATUS", os.environ.get("F7T_SYSTEMS_INTERNAL_NAME", "")).strip('\'"').split(";")  # ; separated systems names
 
 ### SSL parameters
-USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
+USE_SSL = get_boolean_var(os.environ.get("F7T_SSL_USE", False))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
+STATUS_PORT = os.environ.get("F7T_STATUS_PORT", "5001")
+
+F7T_SCHEME_PROTOCOL = ("https" if USE_SSL else "http")
+
+UTILITIES_HOST = os.environ.get("F7T_UTILITIES_HOST","127.0.0.1") 
+UTILITIES_PORT = os.environ.get("F7T_UTILITIES_PORT","5004")
+UTILITIES_URL = f"{F7T_SCHEME_PROTOCOL}://{UTILITIES_HOST}:{UTILITIES_PORT}"
+
+SERVICES_DICT = {}
+
 
 ### parameters
-UTILITIES_MAX_FILE_SIZE = os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE", 'default')
-UTILITIES_TIMEOUT = os.environ.get("F7T_UTILITIES_TIMEOUT", 'default')
-STORAGE_TEMPURL_EXP_TIME = os.environ.get("F7T_STORAGE_TEMPURL_EXP_TIME", 'default')
-STORAGE_MAX_FILE_SIZE = os.environ.get("F7T_STORAGE_MAX_FILE_SIZE", 'default')
-OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE", '(none)')
+UTILITIES_MAX_FILE_SIZE = os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE", '5')
+UTILITIES_TIMEOUT = os.environ.get("F7T_UTILITIES_TIMEOUT", '5')
+STORAGE_TEMPURL_EXP_TIME = os.environ.get("F7T_STORAGE_TEMPURL_EXP_TIME", '604800')
+STORAGE_MAX_FILE_SIZE = os.environ.get("F7T_STORAGE_MAX_FILE_SIZE", '5120')
+OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE", 's3v4')
 COMPUTE_SCHEDULER = os.environ.get("F7T_COMPUTE_SCHEDULER", "Slurm")
 
 TRACER_HEADER = "uber-trace-id"
@@ -73,10 +78,12 @@ else:
 
 def set_services():
     for servicename in SERVICES:
-        URL_ENV_VAR = f"F7T_{servicename.upper()}_URL"
-        serviceurl = os.environ.get(URL_ENV_VAR)
-        if serviceurl:
-            SERVICES_DICT[servicename] = serviceurl
+        SERVICE_HOST_ENV_VAR_NAME = f"F7T_{servicename.upper()}_HOST"
+        SERVICE_PORT_ENV_VAR_NAME = f"F7T_{servicename.upper()}_PORT"
+        service_host = os.environ.get(SERVICE_HOST_ENV_VAR_NAME)
+        service_port = os.environ.get(SERVICE_PORT_ENV_VAR_NAME)
+        if service_host and service_port:
+            SERVICES_DICT[servicename] = f"{F7T_SCHEME_PROTOCOL}://{service_host}:{service_port}"
 
 # create services list
 set_services()

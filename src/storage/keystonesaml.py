@@ -19,11 +19,11 @@ log = logging.getLogger(__name__)
 class KeystoneSAML(Keystone):
 
     def __init__(self):
-        self.OS_AUTH_URL             = os.environ.get("F7T_OS_AUTH_URL")
-        self.OS_IDENTITY_PROVIDER    = os.environ.get("F7T_OS_IDENTITY_PROVIDER")
-        self.OS_IDENTITY_PROVIDER_URL= os.environ.get("F7T_OS_IDENTITY_PROVIDER_URL")
-        self.OS_PROTOCOL             = os.environ.get("F7T_OS_PROTOCOL")
-        self.OS_PROJECT_ID           = os.environ.get("F7T_OS_PROJECT_ID")
+        self.OS_AUTH_URL             = os.environ.get("F7T_OS_AUTH_URL","")
+        self.OS_IDENTITY_PROVIDER    = os.environ.get("F7T_OS_IDENTITY_PROVIDER","")
+        self.OS_IDENTITY_PROVIDER_URL= os.environ.get("F7T_OS_IDENTITY_PROVIDER_URL","")
+        self.OS_PROTOCOL             = os.environ.get("F7T_OS_PROTOCOL", "openid")
+        self.OS_PROJECT_ID           = os.environ.get("F7T_OS_PROJECT_ID","")
 
     # returns a valid token if username & password are valid keystone credentials
     def authenticate(self,username,password):

@@ -10,6 +10,11 @@ import os
 from test_globals import *
 from markers import skipif_not_uses_gateway, skipif_uses_gateway
 
+### SSL parameters
+USE_SSL = os.environ.get("F7T_SSL_USE", False)
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_PATH = "../../../deploy/test-build"
+
 FIRECREST_URL = os.environ.get("FIRECREST_URL")
 USE_GATEWAY  = (os.environ.get("USE_GATEWAY","false").lower() == "true")
 
@@ -17,14 +22,15 @@ USE_GATEWAY  = (os.environ.get("USE_GATEWAY","false").lower() == "true")
 if FIRECREST_URL and USE_GATEWAY:
     STORAGE_URL = os.environ.get("FIRECREST_URL") + "/storage"
 else:
-    STORAGE_URL = os.environ.get("F7T_STORAGE_URL")
+    F7T_SCHEME_PROTOCOL = ("https" if USE_SSL else "http")
+        
+    STORAGE_HOST = os.environ.get("F7T_STORAGE_HOST","127.0.0.1") 
+    STORAGE_PORT = os.environ.get("F7T_STORAGE_PORT","5002")
+    STORAGE_URL = f"{F7T_SCHEME_PROTOCOL}://{STORAGE_HOST}:{STORAGE_PORT}"
 
-### SSL parameters
-USE_SSL = os.environ.get("F7T_USE_SSL", False)
-SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
-SSL_PATH = "../../../deploy/test-build"
 
-machine = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")[0]
+
+machine = os.environ.get("F7T_SYSTEMS_PUBLIC_NAME").strip('\'"').split(";")[0]
 
 # test upload request: ask for an upload task (must throw 200 OK)
 @skipif_not_uses_gateway

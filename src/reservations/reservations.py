@@ -24,15 +24,16 @@ AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME","Authorization")
 RESERVATIONS_PORT    = os.environ.get("F7T_RESERVATIONS_PORT", 5050)
 
 # SYSTEMS: list of ; separated systems allowed
-SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
-# internal machines for file operations
-SYS_INTERNALS   = os.environ.get("F7T_SYSTEMS_INTERNAL_COMPUTE").strip('\'"').split(";")
+SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC_NAME","").strip('\'"').split(";")
+
+# internal machines to use commands
+SYSTEMS_INTERNAL_COMPUTE   = os.environ.get("F7T_SYSTEMS_INTERNAL_COMPUTE", os.environ.get("F7T_SYSTEMS_INTERNAL_NAME","")).strip('\'"').split(";")
 
 # time out for rsvmgmt command
 TIMEOUT = os.environ.get("F7T_RESERVATIONS_TIMEOUT", 30)
 
 ### SSL parameters
-USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
+USE_SSL = get_boolean_var(os.environ.get("F7T_SSL_USE", False))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
@@ -154,7 +155,7 @@ def get():
 
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS[system_idx]
+    system_addr = SYSTEMS_INTERNAL_COMPUTE[system_idx]
 
     [headers, ID] = get_tracing_headers(request)
     # list reservations
@@ -258,7 +259,7 @@ def post():
 
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS[system_idx]
+    system_addr = SYSTEMS_INTERNAL_COMPUTE[system_idx]
 
     # checking input data
     # getting reservation name from request form
@@ -373,7 +374,7 @@ def put(reservation):
 
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS[system_idx]
+    system_addr = SYSTEMS_INTERNAL_COMPUTE[system_idx]
 
     # checking input data
     if not check_name(reservation):
@@ -490,7 +491,7 @@ def delete(reservation):
 
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS[system_idx]
+    system_addr = SYSTEMS_INTERNAL_COMPUTE[system_idx]
 
     # checking input data
     if not check_name(reservation):

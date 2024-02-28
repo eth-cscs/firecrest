@@ -3,7 +3,7 @@ F7T_CERTIFICATOR_PORT: "5010"
 F7T_OPA_URL: http://localhost:8181
 F7T_OPA_PORT: "8181"
 F7T_OPA_USE: "True"
-F7T_POLICY_PATH: v1/data/f7t/authz
+F7T_OPA_POLICY_PATH: v1/data/f7t/authz
 F7T_CA_KEY_PATH: /ca-key
 F7T_PUB_USER_KEY_PATH: /user-key.pub
 # common
@@ -11,31 +11,33 @@ F7T_AUTH_HEADER_NAME: Authorization
 F7T_AUTH_REQUIRED_SCOPE: firecrest
 F7T_AUTH_ROLE: firecrest-sa
 F7T_AUTH_TOKEN_AUD: ""
-F7T_CERTIFICATOR_URL: https://svc-certificator:5010
-F7T_COMPUTE_URL: https://svc-compute:5006
+F7T_CERTIFICATOR_HOST: svc-certificator
+F7T_COMPUTE_HOST: svc-compute
 F7T_FILESYSTEMS: "{
                    'cluster': [{'name':'HOME', 'path':'/home', 'description':'Users home filesystem'} , 
                                {'name':'SCRATCH', 'path':'/scratch', 'description':'Scratch filesystem'}] 
                  } "
 F7T_GUNICORN_SSL: --ciphers TLS_AES_256_GCM_SHA384,TLS_CHACHA20_POLY1305_SHA256,TLS_AES_128_GCM_SHA256,DHE-RSA-AES256-GCM-SHA384,ECDHE-RSA-AES256-GCM-SHA384,ECDHE-RSA-AES128-GCM-SHA256 --ssl-version TLSv1_2 --keyfile /f7t-ssl.key --certfile /f7t-ssl.crt
 F7T_JAEGER_AGENT: svc-jaeger
-F7T_KONG_URL: http://svc-kong:8000
 F7T_BASE_URL: http://svc-kong:8000
 F7T_OBJECT_STORAGE: s3v4
-F7T_RESERVATIONS_URL: https://svc-reservations:5005
-F7T_SSH_CERTIFICATE_WRAPPER: True
+F7T_RESERVATIONS_HOST: svc-reservations
+F7T_SSH_CERTIFICATE_WRAPPER_USE: True
+F7T_SSL_USE: True
 F7T_SSL_CRT: /f7t-ssl.crt
 F7T_SSL_KEY: /f7t-ssl.key
-F7T_STATUS_URL: https://svc-status:5001 
+F7T_STATUS_HOST: svc-status
 F7T_STORAGE_MAX_FILE_SIZE: 512000
-F7T_STORAGE_URL: https://svc-storage:5002
+F7T_STORAGE_HOST: svc-storage
+F7T_SYSTEMS_INTERNAL_NAME: 'svc-cluster:22'
+F7T_SYSTEMS_INTERNAL_STATUS: 'svc-cluster:22'
 F7T_SYSTEMS_INTERNAL_COMPUTE: 'svc-cluster:22'
 F7T_SYSTEMS_INTERNAL_UTILITIES: 'svc-cluster:22'
-F7T_SYSTEMS_PUBLIC: 'cluster'
-F7T_TASKS_URL: https://svc-tasks:5003
+F7T_SYSTEMS_PUBLIC_NAME: 'cluster'
+F7T_TASKS_HOST: svc-tasks
 F7T_UTILITIES_MAX_FILE_SIZE: 5
 F7T_UTILITIES_TIMEOUT: 5
-F7T_UTILITIES_URL: https://svc-utilities:5004
+F7T_UTILITIES_HOST: svc-utilities
 # compute
 F7T_COMPUTE_BASE_FS: "/home;/home"
 F7T_COMPUTE_PORT: "5006"
@@ -47,7 +49,6 @@ F7T_RESERVATIONS_TIMEOUT: 30
 # status
 F7T_STATUS_PORT: "5001"
 F7T_STATUS_SERVICES: 'certificator;utilities;compute;tasks;storage;reservations'
-F7T_STATUS_SYSTEMS: 'svc-cluster:22'
 # storage
 F7T_CERT_CIPHER_KEY: Df6UZuoPoJ2u5yRwxNfFQ46Nwy8eW1OGTcuhlqn4ONo=
 F7T_STORAGE_JOBS_MACHINE: "cluster"
@@ -65,7 +66,7 @@ F7T_XFER_PARTITION: "xfer"
 F7T_XFER_CONSTRAINT: ""
 # tasks
 F7T_TASKS_PORT: "5003"
-F7T_PERSISTENCE_IP: localhost
+F7T_PERSIST_HOST: localhost
 F7T_PERSIST_PORT: "6379"
 F7T_PERSIST_PWD: rediS2200
 F7T_COMPUTE_TASK_EXP_TIME: "86400"
@@ -82,19 +83,19 @@ global:
   F7T_SWAGGER_HOST: "http://svc-openapi"
   F7T_SWAGGER_PORT: "8080"
   F7T_CERTIFICATOR_PORT: "5010"
-  F7T_CERTIFICATOR_HOST: "https://svc-certificator"
+  F7T_CERTIFICATOR_HOST: "svc-certificator"
   F7T_COMPUTE_PORT: "5006"
-  F7T_COMPUTE_HOST: "https://svc-compute"
+  F7T_COMPUTE_HOST: "svc-compute"
   F7T_STATUS_PORT: "5001"
-  F7T_STATUS_HOST: "https://svc-status"
+  F7T_STATUS_HOST: "svc-status"
   F7T_STORAGE_PORT: "5002"
-  F7T_STORAGE_HOST: "https://svc-storage"
+  F7T_STORAGE_HOST: "svc-storage"
   F7T_TASKS_PORT: "5003"
-  F7T_TASKS_HOST: "https://svc-tasks"
+  F7T_TASKS_HOST: "svc-tasks"
   F7T_UTILITIES_PORT: "5004"
-  F7T_UTILITIES_HOST: "https://svc-utilities"
+  F7T_UTILITIES_HOST: "svc-utilities"
   F7T_RESERVATIONS_PORT: "5005"
-  F7T_RESERVATIONS_HOST: "https://svc-reservations"
+  F7T_RESERVATIONS_HOST: "svc-reservations"
   auth:
     - username: kc-demo
       F7T_AUTH_ISSUER: "http://svc-keycloak:8080/auth/realms/kcrealm"

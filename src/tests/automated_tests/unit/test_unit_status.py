@@ -9,6 +9,10 @@ import requests
 import os
 from markers import skipif_not_uses_gateway
 
+### SSL parameters
+USE_SSL = os.environ.get("F7T_SSL_USE", False)
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_PATH = "../../../deploy/test-build"
 
 FIRECREST_URL = os.environ.get("FIRECREST_URL")
 USE_GATEWAY  = (os.environ.get("USE_GATEWAY","false").lower() == "true")
@@ -16,14 +20,13 @@ USE_GATEWAY  = (os.environ.get("USE_GATEWAY","false").lower() == "true")
 if FIRECREST_URL and USE_GATEWAY:
 	STATUS_URL = os.environ.get("FIRECREST_URL") + "/status"
 else:
-    STATUS_URL = os.environ.get("F7T_STATUS_URL")
+	F7T_SCHEME_PROTOCOL = ("https" if USE_SSL else "http")
+	STATUS_HOST = os.environ.get("F7T_STATUS_HOST","127.0.0.1") 
+	STATUS_PORT = os.environ.get("F7T_STATUS_PORT","5001")
+	STATUS_URL = f"{F7T_SCHEME_PROTOCOL}://{STATUS_HOST}:{STATUS_PORT}"
 
-SYSTEMS = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
+SYSTEMS = os.environ.get("F7T_SYSTEMS_PUBLIC_NAME").strip('\'"').split(";")
 
-### SSL parameters
-USE_SSL = os.environ.get("F7T_USE_SSL", False)
-SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
-SSL_PATH = "../../../deploy/test-build"
 
 @skipif_not_uses_gateway
 @pytest.mark.parametrize("system",SYSTEMS)

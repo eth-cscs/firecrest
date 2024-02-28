@@ -12,6 +12,12 @@ from markers import skipif_not_uses_gateway
 
 pytestmark = pytest.mark.reservations
 
+# SSL parameters
+USE_SSL = os.environ.get("F7T_SSL_USE", False)
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_PATH = "../../../deploy/test-build"
+VERIFY = (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False)
+
 # Requests Parameters
 FIRECREST_URL = os.environ.get("FIRECREST_URL")
 USE_GATEWAY  = (os.environ.get("USE_GATEWAY","false").lower() == "true")
@@ -19,14 +25,14 @@ USE_GATEWAY  = (os.environ.get("USE_GATEWAY","false").lower() == "true")
 if FIRECREST_URL and USE_GATEWAY:
 	RESERVATIONS_URL = os.environ.get("FIRECREST_URL") + "/reservations"
 else:
-    RESERVATIONS_URL = os.environ.get("F7T_RESERVATIONS_URL")
-SYSTEM = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")[0]
+	F7T_SCHEME_PROTOCOL = ("https" if USE_SSL else "http")
+	RESERVATIONS_HOST = os.environ.get("F7T_RESERVATIONS_HOST","127.0.0.1") 
+	RESERVATIONS_PORT = os.environ.get("F7T_RESERVATIONS_PORT","5005")
+	RESERVATIONS_URL = f"{F7T_SCHEME_PROTOCOL}://{RESERVATIONS_HOST}:{RESERVATIONS_PORT}"
 
-# SSL parameters
-USE_SSL = os.environ.get("F7T_USE_SSL", False)
-SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
-SSL_PATH = "../../../deploy/test-build"
-VERIFY = (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False)
+SYSTEM = os.environ.get("F7T_SYSTEMS_PUBLIC_NAME").strip('\'"').split(";")[0]
+
+
 
 # Time examples
 d1 = (datetime.datetime.now() + datetime.timedelta(days=5)).strftime("%Y-%m-%dT%H:%M:%S")

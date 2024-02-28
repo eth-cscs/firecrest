@@ -13,24 +13,35 @@ from test_globals import *
 import urllib.request, urllib.parse, urllib.error
 from markers import skipif_not_uses_gateway
 
+### SSL parameters
+USE_SSL = os.environ.get("F7T_SSL_USE", False)
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_PATH = "../../../deploy/test-build"
+
 FIRECREST_URL = os.environ.get("FIRECREST_URL")
 if FIRECREST_URL:
     TASKS_URL = os.environ.get("FIRECREST_URL") + "/tasks"
     STORAGE_URL = os.environ.get("FIRECREST_URL") + "/storage"
     UTILITIES_URL = os.environ.get("FIRECREST_URL") + "/utilities"
 else:
-    TASKS_URL = os.environ.get("F7T_TASKS_URL")
-    STORAGE_URL = os.environ.get("F7T_STORAGE_URL")
-    UTILITIES_URL = os.environ.get("F7T_UTILITIES_URL")
+    F7T_SCHEME_PROTOCOL = ("https" if USE_SSL else "http")
+    
+    TASKS_HOST = os.environ.get("F7T_TASKS_HOST","127.0.0.1") 
+    TASKS_PORT = os.environ.get("F7T_TASKS_PORT","5003")
+    TASKS_URL = f"{F7T_SCHEME_PROTOCOL}://{TASKS_HOST}:{TASKS_PORT}"
+
+    STORAGE_HOST = os.environ.get("F7T_STORAGE_HOST","127.0.0.1") 
+    STORAGE_PORT = os.environ.get("F7T_STORAGE_PORT","5002")
+    STORAGE_URL = f"{F7T_SCHEME_PROTOCOL}://{STORAGE_HOST}:{STORAGE_PORT}"
+
+    UTILITIES_HOST = os.environ.get("F7T_UTILITIES_HOST","127.0.0.1") 
+    UTILITIES_PORT = os.environ.get("F7T_UTILITIES_PORT","5004")
+    UTILITIES_URL = f"{F7T_SCHEME_PROTOCOL}://{UTILITIES_HOST}:{UTILITIES_PORT}"
 
 # same server used for utilities and external upload storage
-SERVER_UTILITIES_STORAGE = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")[0]
-OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE")
+SERVER_UTILITIES_STORAGE = os.environ.get("F7T_SYSTEMS_PUBLIC_NAME").strip('\'"').split(";")[0]
+OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE", "s3v4")
 
-### SSL parameters
-USE_SSL = os.environ.get("F7T_USE_SSL", False)
-SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
-SSL_PATH = "../../../deploy/test-build"
 
 def get_task(task_id, headers):
     headers["X-Machine-Name"] = SERVER_UTILITIES_STORAGE

@@ -115,7 +115,7 @@ For configuration, this service requires:
 Redis is used by the Task microservice as a key-value store that can persist data on disk. It does not need to connect to any other service.
 
 For configuration, this service requires:
-- define password and port (standard is 6379). Then set `F7T_PERSISTENCE_IP`, `F7T_PERSIST_PORT`, `F7T_PERSIST_PWD` for the Task microservice
+- define password and port (standard is 6379). Then set `F7T_PERSIST_HOST`, `F7T_PERSIST_PORT`, `F7T_PERSIST_PWD` for the Task microservice
 
 
 ### Tracing
@@ -130,7 +130,11 @@ For configuration, this service requires:
 ### Cluster integration
 
 FirecREST has a delegation microservice, named Certificator, that allows to perform actions on behalf of the user. It takes the username defined in the JWT and creates an SSH certificate to execute commands on behalf of the user.
-FirecREST microservices connect via SSH to one or more machines to execute compute, storage and utilities related commands. These machines are defined as lists on `F7T_SYSTEMS_INTERNAL_COMPUTE`, `F7T_SYSTEMS_INTERNAL_STORAGE` and `F7T_SYSTEMS_INTERNAL_UTILITIES` respectively, although usually it is the same one. To be able to authenticate, the SSH server must trust a SSH Certificate Authority (CA) key.
+
+FirecREST microservices connect via SSH to one or more machines to execute compute, storage and utilities related commands. These machines are defined as lists on `F7T_SYSTEMS_INTERNAL_NAME`. To be able to authenticate, the SSH server must trust a SSH Certificate Authority (CA) key.
+
+If different login nodes has been setup for executing different functionalities of FirecREST, those machines can be set using the variables `F7T_SYSTEMS_INTERNAL_STATUS`
+`F7T_SYSTEMS_INTERNAL_COMPUTE`, `F7T_SYSTEMS_INTERNAL_STORAGE` and `F7T_SYSTEMS_INTERNAL_UTILITIES` respectively. 
 
 
 ### Workload manager
@@ -169,8 +173,10 @@ cp -a $F7T_GIT_DIR/deploy/demo/* .
 
 Edit this new `$F7T_INSTALL/common/common.env` to point to your cluster or SSH server and optionally customize other options, for example:
 ```bash
-F7T_SYSTEMS_PUBLIC='mycluster'
+F7T_SYSTEMS_PUBLIC_NAME='mycluster'
 # define IP or hostname to execute commands, in the same order as the systems. Can be the same machine
+F7T_SYSTEMS_INTERNAL_NAME='IP:PORT'
+F7T_SYSTEMS_INTERNAL_STATUS='IP:PORT'
 F7T_SYSTEMS_INTERNAL_COMPUTE='IP:PORT'
 F7T_SYSTEMS_INTERNAL_STORAGE='IP:PORT'
 F7T_SYSTEMS_INTERNAL_UTILITIES='IP:PORT'
@@ -179,7 +185,7 @@ F7T_STORAGE_JOBS_MACHINE='mycluster'
 # Slurm partition where transfer jobs run
 F7T_XFER_PARTITION='normal'
 # machine to check availability, same as previous
-F7T_STATUS_SYSTEMS='IP:PORT'
+F7T_SYSTEMS_INTERNAL_STATUS='IP:PORT'
 # disable OPA
 F7T_OPA_USE=False
 ```
@@ -251,9 +257,9 @@ The private key (`user-key`) must only be readable by the owner (permissions mod
 The public key (`user-key.pub`) is only required by Certificator and must be in the same directory as the microservice code.
 
 The following variables are not required by every microservice, but for simplicity they can be put together in the same file:
-- `F7T_CERTIFICATOR_URL`, `F7T_COMPUTE_UR`, `F7T_RESERVATIONS_URL`, `F7T_STORAGE_URL`, `F7T_TASKS_URL`, `F7T_UTILITIES_URL`: internal URL (not exposed to users) used by microservices to communicate between them.
+- `F7T_CERTIFICATOR_HOST`, `F7T_COMPUTE_HOST`, `F7T_RESERVATIONS_HOST`, `F7T_STORAGE_HOST`, `F7T_TASKS_HOST`, `F7T_UTILITIES_HOST`: internal HostName, DNS, IP (not exposed to users) used by microservices to communicate between them.
 - `F7T_REALM_RSA_PUBLIC_KEY`, if defined also requires: `F7T_REALM_RSA_TYPE`
-- `F7T_SYSTEMS_PUBLIC`: list of systems names, as seen by users.
+- `F7T_SYSTEMS_PUBLIC_NAME`: list of systems names, as seen by users.
 
 There are additional options at `doc/configuration.md`
 
@@ -289,7 +295,7 @@ No extra configuration required, file `user-key` must be available as described 
 
 This service connects to the object storage so credentials must be exclusive to this service. Depending on the type of OS, relevant variables are:
 - S3: `F7T_S3_ACCESS_KEY`, `F7T_S3_SECRET_KEY`
-- Swift: `F7T_SWIFT_ACCOUNT`, `F7T_SWIFT_USER`, `F7T_SWIFT_PASS`, `F7T_SECRET_KEY`
+- Swift: `F7T_SWIFT_USER`, `F7T_SWIFT_PASS`, `F7T_SECRET_KEY`
 
 Also variable `F7T_CERT_CIPHER_KEY` must be exclusive, it is used internally to protect long term certificates (for file downloading from OS to cluster) on the Redis database.
 

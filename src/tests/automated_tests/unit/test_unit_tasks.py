@@ -11,18 +11,24 @@ import os
 # from markers import host_environment_test
 from markers import skipif_uses_gateway, skipif_not_uses_gateway
 
+### SSL parameters
+USE_SSL = os.environ.get("F7T_SSL_USE", False)
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_PATH = "../../../deploy/test-build"
+
 FIRECREST_URL = os.environ.get("FIRECREST_URL","")
 USE_GATEWAY  = (os.environ.get("USE_GATEWAY","false").lower() == "true")
 
 if FIRECREST_URL and USE_GATEWAY:
 	TASKS_URL = os.environ.get("FIRECREST_URL") + "/tasks"
 else:
-    TASKS_URL = os.environ.get("F7T_TASKS_URL")
+    F7T_SCHEME_PROTOCOL = ("https" if USE_SSL else "http")
+    
+    TASKS_HOST = os.environ.get("F7T_TASKS_HOST","127.0.0.1") 
+    TASKS_PORT = os.environ.get("F7T_TASKS_PORT","5003")
+    TASKS_URL = f"{F7T_SCHEME_PROTOCOL}://{TASKS_HOST}:{TASKS_PORT}"
 
-### SSL parameters
-USE_SSL = os.environ.get("F7T_USE_SSL", False)
-SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
-SSL_PATH = "../../../deploy/test-build"
+
 
 INVALID_CODE1 = "9999"
 INVALID_CODE2 = "47777"

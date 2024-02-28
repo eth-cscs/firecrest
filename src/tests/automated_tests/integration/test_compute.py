@@ -11,6 +11,10 @@ import os
 import time
 from markers import skipif_not_uses_gateway
 
+### SSL parameters
+USE_SSL = os.environ.get("F7T_SSL_USE", False)
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_PATH = "../../../deploy/test-build"
 
 FIRECREST_URL = os.environ.get("FIRECREST_URL")
 if FIRECREST_URL:
@@ -18,20 +22,27 @@ if FIRECREST_URL:
 	COMPUTE_URL = os.environ.get("FIRECREST_URL") + "/compute"
 	UTILITIES_URL = os.environ.get("FIRECREST_URL") + "/utilities"
 else:
-	TASKS_URL = os.environ.get("F7T_TASKS_URL")
-	COMPUTE_URL = os.environ.get("F7T_COMPUTE_URL")
-	UTILITIES_URL = os.environ.get("F7T_UTILITIES_URL")
+	F7T_SCHEME_PROTOCOL = ("https" if USE_SSL else "http")
+	
+	TASKS_HOST = os.environ.get("F7T_TASKS_HOST","127.0.0.1") 
+	TASKS_PORT = os.environ.get("F7T_TASKS_PORT","5003")
+	TASKS_URL = f"{F7T_SCHEME_PROTOCOL}://{TASKS_HOST}:{TASKS_PORT}"
+	
+	COMPUTE_HOST = os.environ.get("F7T_COMPUTE_HOST","127.0.0.1") 
+	COMPUTE_PORT = os.environ.get("F7T_COMPUTE_PORT","5006")
+	COMPUTE_URL = f"{F7T_SCHEME_PROTOCOL}://{COMPUTE_HOST}:{COMPUTE_PORT}"
+
+	UTILITIES_HOST = os.environ.get("F7T_UTILITIES_HOST","127.0.0.1") 
+	UTILITIES_PORT = os.environ.get("F7T_UTILITIES_PORT","5004")
+	UTILITIES_URL = f"{F7T_SCHEME_PROTOCOL}://{UTILITIES_HOST}:{UTILITIES_PORT}"
 
 JOBS_URL = COMPUTE_URL + "/jobs"
-SERVER_COMPUTE = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")[0]
+SERVER_COMPUTE = os.environ.get("F7T_SYSTEMS_PUBLIC_NAME").strip('\'"').split(";")[0]
 
 JOB_ENV = json.dumps({'F7T_TEST_JOB_ENV': 'a', 'F7T_TEST_JOB_ENV2': '"b 1"'})
 JOB_ENV_OUTPUT = 'a\n"b 1"\n'
 
-### SSL parameters
-USE_SSL = os.environ.get("F7T_USE_SSL", False)
-SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
-SSL_PATH = "../../../deploy/test-build"
+
 
 
 # Helper function for job submittings

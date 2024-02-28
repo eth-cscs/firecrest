@@ -29,23 +29,33 @@ from schedulers import Job
 
 AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME","Authorization")
 
-CERTIFICATOR_URL= os.environ.get("F7T_CERTIFICATOR_URL")
-TASKS_URL       = os.environ.get("F7T_TASKS_URL")
-KONG_URL        = os.environ.get("F7T_KONG_URL")
-
-COMPUTE_PORT    = os.environ.get("F7T_COMPUTE_PORT", 5000)
-
 ### SSL parameters
-USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
+USE_SSL = get_boolean_var(os.environ.get("F7T_SSL_USE", False))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
+F7T_SCHEME_PROTOCOL = ("https" if USE_SSL else "http")
 
-# SYSTEMS_PUBLIC: list of allowed systems
+# Internal microservices communication
+## certificator
+CERTIFICATOR_HOST = os.environ.get("F7T_CERTIFICATOR_HOST","127.0.0.1") 
+CERTIFICATOR_PORT = os.environ.get("F7T_CERTIFICATOR_PORT","5000")
+CERTIFICATOR_URL = f"{F7T_SCHEME_PROTOCOL}://{CERTIFICATOR_HOST}:{CERTIFICATOR_PORT}"
+## tasks
+TASKS_HOST = os.environ.get("F7T_TASKS_HOST","127.0.0.1") 
+TASKS_PORT = os.environ.get("F7T_TASKS_PORT","5003")
+TASKS_URL = f"{F7T_SCHEME_PROTOCOL}://{TASKS_HOST}:{TASKS_PORT}"
+
+## local port for microservice
+COMPUTE_PORT    = os.environ.get("F7T_COMPUTE_PORT", "5006")
+
+# SYSTEMS: list of allowed systems
 # remove quotes and split into array
-SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
+# PUBLIC NAMES
+SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC_NAME","").strip('\'"').split(";")
+
 # internal machines to submit/query jobs
-SYS_INTERNALS   = os.environ.get("F7T_SYSTEMS_INTERNAL_COMPUTE").strip('\'"').split(";")
+SYSTEMS_INTERNAL_COMPUTE   = os.environ.get("F7T_SYSTEMS_INTERNAL_COMPUTE", os.environ.get("F7T_SYSTEMS_INTERNAL_NAME","")).strip('\'"').split(";")
 
 # Does the job machine have the spank plugin
 USE_SPANK_PLUGIN = os.environ.get("F7T_USE_SPANK_PLUGIN", None)
@@ -58,7 +68,7 @@ if USE_SPANK_PLUGIN != None:
     SPANK_PLUGIN_OPTION = os.environ.get("F7T_SPANK_PLUGIN_OPTION","--nohome")
 else:
     # if not set, create a list of False values, one for each SYSTEM
-    USE_SPANK_PLUGIN = [False]*len(SYS_INTERNALS)
+    USE_SPANK_PLUGIN = [False]*len(SYSTEMS_INTERNAL_COMPUTE)
 
 # JOB base Filesystem: ["/scratch";"/home"]
 COMPUTE_BASE_FS     = os.environ.get("F7T_COMPUTE_BASE_FS").strip('\'"').split(";")
@@ -69,8 +79,8 @@ COMPUTE_SCHEDULER = os.environ.get("F7T_COMPUTE_SCHEDULER", "Slurm")
 TAIL_BYTES = os.environ.get("F7T_TAIL_BYTES",1000)
 
 #max file size for sbatch upload in MB (POST compute/job)
-MAX_FILE_SIZE = int(os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE", "5"))
-TIMEOUT = int(os.environ.get("F7T_UTILITIES_TIMEOUT", "5"))
+UTILITIES_MAX_FILE_SIZE = int(os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE", "5"))
+UTILITIES_TIMEOUT = int(os.environ.get("F7T_UTILITIES_TIMEOUT", "5"))
 
 TRACER_HEADER = "uber-trace-id"
 
@@ -80,7 +90,7 @@ profiling_middle_ware = ProfilerMiddleware(app.wsgi_app,
                                            filename_format="compute.{method}.{path}.{elapsed:.0f}ms.{time:.0f}.prof",
                                            profile_dir='/var/log/profs')
 # max content length for upload in bytes
-app.config['MAX_CONTENT_LENGTH'] = int(MAX_FILE_SIZE) * 1024 * 1024
+app.config['MAX_CONTENT_LENGTH'] = int(UTILITIES_MAX_FILE_SIZE) * 1024 * 1024
 
 DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
@@ -138,7 +148,7 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
     try:
         ID = headers.get(TRACER_HEADER, '')
         # create tmpdir for sbatch file
-        action = f"ID={ID} timeout {TIMEOUT} mkdir -p -- '{job_dir}'"
+        action = f"ID={ID} timeout {UTILITIES_TIMEOUT} mkdir -p -- '{job_dir}'"
         retval = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
 
         if retval["error"] != 0:
@@ -175,7 +185,7 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
 
         if job_env:
             # delete env file, it was read when submitted
-            action = f"ID={ID} timeout {TIMEOUT} rm -f -- '{env_file}'"
+            action = f"ID={ID} timeout {UTILITIES_TIMEOUT} rm -f -- '{env_file}'"
             retval2 = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
             if retval2["error"] != 0:
                 app.logger.error(f"(Error deleting environment file: {retval2['msg']}")
@@ -251,7 +261,7 @@ def get_job_files(headers, system_name, system_addr, job_info, output=False, use
             control_info["job_info_extra"] = resp["msg"]
             return control_info
 
-        time.sleep(TIMEOUT) # wait until next try
+        time.sleep(UTILITIES_TIMEOUT) # wait until next try
 
     control_dict = scheduler.parse_job_info(resp["msg"])
 
@@ -268,12 +278,12 @@ def get_job_files(headers, system_name, system_addr, job_info, output=False, use
         # tail -n {number_of_lines_since_end} or
         # tail -c {number_of_bytes} --> 1000B = 1KB
 
-        action = f"ID={ID} timeout {TIMEOUT} tail -c {TAIL_BYTES} -- '{control_info['job_file_out']}'"
+        action = f"ID={ID} timeout {UTILITIES_TIMEOUT} tail -c {TAIL_BYTES} -- '{control_info['job_file_out']}'"
         resp = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
         if resp["error"] == 0:
             control_info["job_data_out"] = resp["msg"]
 
-        action = f"ID={ID} timeout {TIMEOUT} tail -c {TAIL_BYTES} -- '{control_info['job_file_err']}'"
+        action = f"ID={ID} timeout {UTILITIES_TIMEOUT} tail -c {TAIL_BYTES} -- '{control_info['job_file_err']}'"
         resp = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
         if resp["error"] == 0:
             control_info["job_data_err"] = resp["msg"]
@@ -303,7 +313,7 @@ def submit_job_path_task(headers, system_name, system_addr, fileName, job_dir, a
 
     if job_env:
         # delete env file, it was read when submitted
-        action = f"ID={ID} timeout {TIMEOUT} rm -f -- '{env_file}'"
+        action = f"ID={ID} timeout {UTILITIES_TIMEOUT} rm -f -- '{env_file}'"
         retval2 = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
         if retval2["error"] != 0:
             app.logger.error(f"(Error deleting environment file: {retval2['msg']}")
@@ -336,7 +346,7 @@ def submit_job_path_task(headers, system_name, system_addr, fileName, job_dir, a
 @app.errorhandler(413)
 def request_entity_too_large(error):
     app.logger.error(error)
-    return jsonify(description=f"Failed to upload batch script. The file is over {MAX_FILE_SIZE} MB"), 413
+    return jsonify(description=f"Failed to upload batch script. The file is over {UTILITIES_MAX_FILE_SIZE} MB"), 413
 
 # Submit a batch script to the workload manager on the target system.
 # The batch script is uploaded as a file
@@ -365,7 +375,7 @@ def submit_job_upload():
 
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS[system_idx]
+    system_addr = SYSTEMS_INTERNAL_COMPUTE[system_idx]
 
     [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
@@ -407,7 +417,7 @@ def submit_job_upload():
 
     except RequestEntityTooLarge as re:
         app.logger.error(re.description)
-        data = jsonify(description="Failed to submit job file", error=f"File is bigger than {MAX_FILE_SIZE} MB")
+        data = jsonify(description="Failed to submit job file", error=f"File is bigger than {UTILITIES_MAX_FILE_SIZE} MB")
         return data, 413
     except Exception as e:
         data = jsonify(description="Failed to submit job file",error=e)
@@ -455,7 +465,7 @@ def submit_job_upload():
         aTask.start()
         retval = update_task(task_id, headers, async_task.QUEUED)
 
-        task_url = f"{KONG_URL}/tasks/{task_id}"
+        task_url = f"/tasks/{task_id}"
         data = jsonify(success="Task created", task_id=task_id, task_url=task_url)
         return data, 201
 
@@ -484,7 +494,7 @@ def submit_job_path():
 
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS[system_idx]
+    system_addr = SYSTEMS_INTERNAL_COMPUTE[system_idx]
     use_plugin = USE_SPANK_PLUGIN[system_idx]
 
     targetPath = request.form.get("targetPath", None)
@@ -546,7 +556,7 @@ def submit_job_path():
         aTask.start()
         update_task(task_id, headers, async_task.QUEUED, TASKS_URL)
 
-        task_url = f"{KONG_URL}/tasks/{task_id}"
+        task_url = f"/tasks/{task_id}"
         data = jsonify(success="Task created", task_id=task_id, task_url=task_url)
         return data, 201
 
@@ -572,7 +582,7 @@ def list_jobs():
 
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS[system_idx]
+    system_addr = SYSTEMS_INTERNAL_COMPUTE[system_idx]
 
     [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
@@ -658,7 +668,7 @@ def list_jobs():
 
         aTask.start()
 
-        task_url = f"{KONG_URL}/tasks/{task_id}"
+        task_url = f"/tasks/{task_id}"
 
         data = jsonify(success="Task created", task_id=task_id, task_url=task_url)
         return data, 200
@@ -764,7 +774,7 @@ def list_job(jobid):
 
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS[system_idx]
+    system_addr = SYSTEMS_INTERNAL_COMPUTE[system_idx]
 
     [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
@@ -804,7 +814,7 @@ def list_job(jobid):
 
         aTask.start()
 
-        task_url = f"{KONG_URL}/tasks/{task_id}"
+        task_url = f"/tasks/{task_id}"
 
         data = jsonify(success="Task created", task_id=task_id, task_url=task_url)
         return data, 200
@@ -867,7 +877,7 @@ def cancel_job(jobid):
 
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS[system_idx]
+    system_addr = SYSTEMS_INTERNAL_COMPUTE[system_idx]
 
     v = validate_input(jobid)
     if v != "":
@@ -904,7 +914,7 @@ def cancel_job(jobid):
 
         update_task(task_id, headers, async_task.QUEUED)
 
-        task_url = f"{KONG_URL}/tasks/{task_id}"
+        task_url = f"/tasks/{task_id}"
 
         data = jsonify(success="Task created", task_id=task_id, task_url=task_url)
         return data, 200
@@ -993,7 +1003,7 @@ def acct():
 
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS[system_idx]
+    system_addr = SYSTEMS_INTERNAL_COMPUTE[system_idx]
 
     [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
@@ -1062,7 +1072,7 @@ def acct():
                                  args=(headers, system_name, system_addr, action, task_id, pageSize, pageNumber))
 
         aTask.start()
-        task_url = f"{KONG_URL}/tasks/{task_id}"
+        task_url = f"/tasks/{task_id}"
 
         data = jsonify(success="Task created", task_id=task_id, task_url=task_url)
         return data, 200
