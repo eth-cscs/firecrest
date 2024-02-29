@@ -446,28 +446,33 @@ def receive():
             app.logger.error(f"Forbidden char on command or option: {force_command} {force_opt}")
             return jsonify(description='Invalid command'), 400
 
-        force_command = f"-O force-command=\"{force_command} {force_opt}\""
-        #force_command = force_command.replace('$', '\$')
 
         # create temp dir to store certificate for this request
         td = tempfile.mkdtemp(prefix = "cert")
         os.symlink(PUB_USER_KEY_PATH, f"{td}/user-key.pub")  # link on temp dir
 
-        commands = ["ssh-keygen",
-                    "-s {CA_KEY_PATH}",
-                    "-n {username}".format(username=username),
-                    "-V {ssh_expire}".format(ssh_expire=ssh_expire),
-                    "-I {CA_KEY_PATH}".format(CA_KEY_PATH=CA_KEY_PATH),
-                    "{force_command}".format(force_command=quote(force_command)),
+        command = ["ssh-keygen",
+                    "-s",
+                    "{CA_KEY_PATH}".format(CA_KEY_PATH=CA_KEY_PATH),
+                    "-n",
+                    "{username}".format(username=username),
+                    "-V",
+                    "{ssh_expire}".format(ssh_expire=ssh_expire),
+                    "-I",
+                    "{CA_KEY_PATH}".format(CA_KEY_PATH=CA_KEY_PATH),
+                    "-O",
+                    "force-command={force_command} {force_opt}".format(force_command=force_command,force_opt=force_opt),
                     "{td}/user-key.pub".format(td=td)
                     ]
-
+ 
     except Exception as e:
         logging.error(e)
         return jsonify(description=f"Error creating certificate: {e}", error=-1), 400
 
+        
     try:
-        result = subprocess.run(commands, shell=False)
+        #To prvent shell hijacking don't run the with shell=True
+        result = subprocess.run(command, shell=False, check=True)
         with open(td + '/user-key-cert.pub', 'r') as cert_file:
             cert = cert_file.read()
 
