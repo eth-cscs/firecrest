@@ -453,16 +453,16 @@ def receive():
 
         command = ["ssh-keygen",
                     "-s",
-                    "{CA_KEY_PATH}".format(CA_KEY_PATH=CA_KEY_PATH),
+                    f"{CA_KEY_PATH}",
                     "-n",
-                    "{username}".format(username=username),
+                    f"{username}",
                     "-V",
-                    "{ssh_expire}".format(ssh_expire=ssh_expire),
+                    f"{ssh_expire}",
                     "-I",
-                    "{CA_KEY_PATH}".format(CA_KEY_PATH=CA_KEY_PATH),
+                    f"{CA_KEY_PATH}",
                     "-O",
-                    "force-command={force_command} {force_opt}".format(force_command=force_command,force_opt=force_opt),
-                    "{td}/user-key.pub".format(td=td)
+                    f"force-command={force_command} {force_opt}",
+                    f"{td}/user-key.pub"
                     ]
  
     except Exception as e:
