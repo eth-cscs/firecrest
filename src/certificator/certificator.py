@@ -471,7 +471,7 @@ def receive():
 
         
     try:
-        #To prvent shell hijacking don't run the with shell=True
+        #To prvent shell hijacking don't run commands with shell=True
         result = subprocess.run(command, shell=False, check=True)
         with open(td + '/user-key-cert.pub', 'r') as cert_file:
             cert = cert_file.read()
