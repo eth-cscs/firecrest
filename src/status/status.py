@@ -19,12 +19,20 @@ from flask_opentracing import FlaskTracing
 from jaeger_client import Config
 import opentracing
 
+app = Flask(__name__)
+logger = setup_logging(logging, 'status')
 
 AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME","Authorization")
 
 SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
 
-FILESYSTEMS = ast.literal_eval(os.environ.get("F7T_FILESYSTEMS", {}))
+try:
+    FILESYSTEMS = ast.literal_eval(os.environ.get("F7T_FILESYSTEMS", {}).strip('\'"'))
+except Exception as e:
+    app.logger.error(e)
+    app.logger.error("Error parsing F7T_FILESYSTEMS env var. Filesystems information will not be available")
+    app.logger.error(f"Current value: F7T_FILESYSTEMS={os.environ.get('F7T_FILESYSTEMS')}")
+    FILESYSTEMS = {}
 
 SERVICES = os.environ.get("F7T_STATUS_SERVICES").strip('\'"').split(";") # ; separated service names
 SYSTEMS  = os.environ.get("F7T_STATUS_SYSTEMS").strip('\'"').split(";")  # ; separated systems names
@@ -53,9 +61,7 @@ TRACER_HEADER = "uber-trace-id"
 # debug on console
 DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
-app = Flask(__name__)
 
-logger = setup_logging(logging, 'status')
 
 JAEGER_AGENT = os.environ.get("F7T_JAEGER_AGENT", "").strip('\'"')
 if JAEGER_AGENT != "":
