@@ -3,7 +3,7 @@ data:
   F7T_COMPUTE_BASE_FS: "{{ .Values.F7T_COMPUTE_BASE_FS }}"
   F7T_COMPUTE_PORT: "{{ .Values.F7T_COMPUTE_PORT }}"
   F7T_SPANK_PLUGIN_OPTION: "{{ .Values.F7T_SPANK_PLUGIN_OPTION }}"
-  F7T_USE_SPANK_PLUGIN: "{{ .Values.F7T_USE_SPANK_PLUGIN }}"
+  F7T_SPANK_PLUGIN_USE: "{{ .Values.F7T_SPANK_PLUGIN_USE }}"
 kind: ConfigMap
 metadata:
   name: compute-env-file

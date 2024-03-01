@@ -500,7 +500,7 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
             else:
                 result = {"error": 0, "msg": outlines}
         elif stderr_errno > 0:
-            # Solving when stderr_errno = 1 and no_home plugin used (F7T_USE_SPANK_PLUGIN)
+            # Solving when stderr_errno = 1 and no_home plugin used (F7T_SPANK_PLUGIN_USE)
             # stderr_errno = 1
             # stderr_errda = "Could not chdir to home directory /users/eirinik: No such file or directory
             # ERROR: you must specify a project account (-A <account>)sbatch: error: cli_filter plugin terminated with error"

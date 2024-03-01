@@ -58,17 +58,17 @@ SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC_NAME","").strip('\'"').spli
 SYSTEMS_INTERNAL_COMPUTE   = os.environ.get("F7T_SYSTEMS_INTERNAL_COMPUTE", os.environ.get("F7T_SYSTEMS_INTERNAL_NAME","")).strip('\'"').split(";")
 
 # Does the job machine have the spank plugin
-USE_SPANK_PLUGIN = os.environ.get("F7T_USE_SPANK_PLUGIN", None)
-if USE_SPANK_PLUGIN != None:
-    USE_SPANK_PLUGIN = USE_SPANK_PLUGIN.strip('\'"').split(";")
+SPANK_PLUGIN_USE = os.environ.get("F7T_SPANK_PLUGIN_USE", None)
+if SPANK_PLUGIN_USE != None:
+    SPANK_PLUGIN_USE = SPANK_PLUGIN_USE.strip('\'"').split(";")
     # cast to boolean
-    for i in range(len(USE_SPANK_PLUGIN)):
-        USE_SPANK_PLUGIN[i] = get_boolean_var(USE_SPANK_PLUGIN[i])
+    for i in range(len(SPANK_PLUGIN_USE)):
+        SPANK_PLUGIN_USE[i] = get_boolean_var(SPANK_PLUGIN_USE[i])
     # spank plugin option value
     SPANK_PLUGIN_OPTION = os.environ.get("F7T_SPANK_PLUGIN_OPTION","--nohome")
 else:
     # if not set, create a list of False values, one for each SYSTEM
-    USE_SPANK_PLUGIN = [False]*len(SYSTEMS_INTERNAL_COMPUTE)
+    SPANK_PLUGIN_USE = [False]*len(SYSTEMS_INTERNAL_COMPUTE)
 
 # JOB base Filesystem: ["/scratch";"/home"]
 COMPUTE_BASE_FS     = os.environ.get("F7T_COMPUTE_BASE_FS").strip('\'"').split(";")
@@ -441,7 +441,7 @@ def submit_job_upload():
     username = is_username_ok["username"]
 
     job_dir = f"{job_base_fs}/{username}/firecrest/{tmpdir}"
-    use_plugin  = USE_SPANK_PLUGIN[system_idx]
+    use_plugin  = SPANK_PLUGIN_USE[system_idx]
     job_env = request.form.get("env", None)
     if job_env:
         #convert to text for Slurm: key=value ending with null caracter
@@ -495,7 +495,7 @@ def submit_job_path():
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
     system_addr = SYSTEMS_INTERNAL_COMPUTE[system_idx]
-    use_plugin = USE_SPANK_PLUGIN[system_idx]
+    use_plugin = SPANK_PLUGIN_USE[system_idx]
 
     targetPath = request.form.get("targetPath", None)
     v = validate_input(targetPath)
