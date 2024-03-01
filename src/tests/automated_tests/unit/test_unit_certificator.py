@@ -43,7 +43,7 @@ def test_receive(headers):
 	print(f"F7T_SSL_USE env var: {os.environ.get('F7T_SSL_USE')}")
 	print(f"USE_SSL var: {USE_SSL}")
 
-	resp = requests.get(CERTIFICATOR_URL, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(CERTIFICATOR_URL, headers=headers, params=params, verify=False)
 	print(resp.content)
 	assert resp.status_code == 200
 
@@ -53,7 +53,7 @@ def test_opa(machine,addr,expected_response_code,headers):
 	# url = f"{CERTIFICATOR_URL}/?command=" + base64.urlsafe_b64encode("ls".encode()).decode()
 	params = {"command": base64.urlsafe_b64encode("ls".encode()).decode(),
 			  "cluster": machine, "addr": addr }
-	resp = requests.get(CERTIFICATOR_URL, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(CERTIFICATOR_URL, headers=headers, params=params, verify=False)
 	print(resp.content)
 	assert resp.status_code == expected_response_code
 
@@ -66,7 +66,7 @@ def test_forbidden_chars(headers):
 	for c in fc:
 		params = {"command": base64.urlsafe_b64encode(f"ls {c}".encode()).decode(),
 			  "cluster": SYSTEM_NAME, "addr": SYSTEM_ADDR }
-		resp = requests.get(CERTIFICATOR_URL, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+		resp = requests.get(CERTIFICATOR_URL, headers=headers, params=params, verify=False)
 		print(resp.content)
 		assert resp.status_code == 400
 
@@ -75,7 +75,7 @@ def test_forbidden_chars(headers):
 @skipif_uses_gateway
 def test_status(headers):
 	url = f"{CERTIFICATOR_URL}/status"
-	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, verify=False)
 	print(resp.content)
 	assert resp.status_code == 200
 
