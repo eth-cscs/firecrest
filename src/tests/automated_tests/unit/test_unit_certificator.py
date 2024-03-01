@@ -38,7 +38,11 @@ def test_receive(headers):
 	# url = f"{CERTIFICATOR_URL}/?command=" + base64.urlsafe_b64encode("ls".encode()).decode()
 	params = {"command": base64.urlsafe_b64encode("ls".encode()).decode(),
 			  "cluster": SYSTEM_NAME, "addr": SYSTEM_ADDR }
+	
 	print(f"CERTIFICATOR_URL: {CERTIFICATOR_URL}")
+	print(f"F7T_SSL_USE env var: {os.environ.get('F7T_SSL_USE')}")
+	print(f"USE_SSL var: {USE_SSL}")
+
 	resp = requests.get(CERTIFICATOR_URL, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
 	assert resp.status_code == 200
