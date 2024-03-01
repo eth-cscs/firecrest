@@ -12,7 +12,7 @@ from markers import skipif_not_uses_gateway, skipif_uses_gateway
 import json
 
 ### SSL parameters
-USE_SSL = os.environ.get("F7T_SSL_USE", False)
+USE_SSL = (os.environ.get("F7T_SSL_USE","false").lower() == "true")
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_PATH = "../../../deploy/test-build"
 
@@ -22,14 +22,14 @@ USE_GATEWAY  = (os.environ.get("USE_GATEWAY","false").lower() == "true")
 if FIRECREST_URL and USE_GATEWAY:
 	UTILITIES_URL = os.environ.get("FIRECREST_URL") + "/utilities"
 else:
-	F7T_SCHEME_PROTOCOL = ("https" if USE_SSL == "True" else "http")
+	F7T_SCHEME_PROTOCOL = ("https" if USE_SSL else "http")
 	UTILITIES_HOST = os.environ.get("F7T_UTILITIES_HOST","127.0.0.1") 
 	UTILITIES_PORT = os.environ.get("F7T_UTILITIES_PORT","5004")
 	UTILITIES_URL = f"{F7T_SCHEME_PROTOCOL}://{UTILITIES_HOST}:{UTILITIES_PORT}"
 
 SERVER_UTILITIES = os.environ.get("F7T_SYSTEMS_PUBLIC_NAME").strip('\'"').split(";")[0]
 
-
+print(f"UTILITIES_URL: {UTILITIES_URL}")
 
 
 # test data for rename, chmod,chown, download,upload

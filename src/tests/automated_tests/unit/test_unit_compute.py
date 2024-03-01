@@ -11,7 +11,7 @@ from markers import skipif_uses_gateway, skipif_not_uses_gateway
 from test_globals import *
 
 ### SSL parameters
-USE_SSL = os.environ.get("F7T_SSL_USE", False)
+USE_SSL = (os.environ.get("F7T_SSL_USE","false").lower() == "true")
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_PATH = "../../../deploy/test-build"
 
@@ -20,7 +20,7 @@ USE_GATEWAY  = (os.environ.get("USE_GATEWAY","false").lower() == "true")
 if FIRECREST_URL and USE_GATEWAY:
 	COMPUTE_URL = os.environ.get("FIRECREST_URL") + "/compute"
 else:
-	F7T_SCHEME_PROTOCOL = ("https" if USE_SSL == "True" else "http")
+	F7T_SCHEME_PROTOCOL = ("https" if USE_SSL else "http")
 	COMPUTE_HOST = os.environ.get("F7T_COMPUTE_HOST","127.0.0.1") 
 	COMPUTE_PORT = os.environ.get("F7T_COMPUTE_PORT","5006")
 	COMPUTE_URL = f"{F7T_SCHEME_PROTOCOL}://{COMPUTE_HOST}:{COMPUTE_PORT}"
@@ -28,7 +28,7 @@ else:
 JOBS_URL = COMPUTE_URL + "/jobs"
 SERVER_COMPUTE = os.environ.get("F7T_SYSTEMS_PUBLIC_NAME").strip('\'"').split(";")[0]
 
-
+print(f"COMPUTE_URL: {COMPUTE_URL}")
 
 
 # test data: (server name, expected response code)

@@ -11,7 +11,7 @@ from markers import skipif_uses_gateway
 import base64
 
 ### SSL parameters
-USE_SSL = os.environ.get("F7T_SSL_USE", False)
+USE_SSL = (os.environ.get("F7T_SSL_USE","false").lower() == "true")
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_PATH = "../../../deploy/test-build"
 
@@ -20,8 +20,9 @@ USE_GATEWAY  = (os.environ.get("USE_GATEWAY","false").lower() == "true")
 
 if FIRECREST_URL and USE_GATEWAY:
 	CERTIFICATOR_URL = os.environ.get("FIRECREST_URL") + "/certificator"
+	
 else:
-	F7T_SCHEME_PROTOCOL = ("https" if USE_SSL == "True" else "http")
+	F7T_SCHEME_PROTOCOL = ("https" if USE_SSL else "http")
 	CERTIFICATOR_HOST = os.environ.get("F7T_CERTIFICATOR_HOST","127.0.0.1") 
 	CERTIFICATOR_PORT = os.environ.get("F7T_CERTIFICATOR_PORT","5000")
 	CERTIFICATOR_URL = f"{F7T_SCHEME_PROTOCOL}://{CERTIFICATOR_HOST}:{CERTIFICATOR_PORT}"
@@ -29,7 +30,7 @@ else:
 SYSTEM_NAME = os.environ.get("F7T_SYSTEMS_PUBLIC_NAME").strip('\'"').split(";")[0]
 SYSTEM_ADDR = os.environ.get("F7T_SYSTEMS_INTERNAL_NAME").strip('\'"').split(";")[0]
 
-
+print(f"CERTIFICATOR_URL: {CERTIFICATOR_URL}")
 
 
 OPA_DATA = [("not_existing_system", "not_existing_addr", 401), (SYSTEM_NAME, SYSTEM_ADDR, 200)]

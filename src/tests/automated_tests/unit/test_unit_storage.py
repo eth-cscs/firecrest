@@ -11,7 +11,7 @@ from test_globals import *
 from markers import skipif_not_uses_gateway, skipif_uses_gateway
 
 ### SSL parameters
-USE_SSL = os.environ.get("F7T_SSL_USE", False)
+USE_SSL = (os.environ.get("F7T_SSL_USE","false").lower() == "true")
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_PATH = "../../../deploy/test-build"
 
@@ -22,13 +22,13 @@ USE_GATEWAY  = (os.environ.get("USE_GATEWAY","false").lower() == "true")
 if FIRECREST_URL and USE_GATEWAY:
     STORAGE_URL = os.environ.get("FIRECREST_URL") + "/storage"
 else:
-    F7T_SCHEME_PROTOCOL = ("https" if USE_SSL == "True" else "http")
+    F7T_SCHEME_PROTOCOL = ("https" if USE_SSL else "http")
         
     STORAGE_HOST = os.environ.get("F7T_STORAGE_HOST","127.0.0.1") 
     STORAGE_PORT = os.environ.get("F7T_STORAGE_PORT","5002")
     STORAGE_URL = f"{F7T_SCHEME_PROTOCOL}://{STORAGE_HOST}:{STORAGE_PORT}"
 
-
+print(f"STORAGE_URL: {STORAGE_URL}")
 
 machine = os.environ.get("F7T_SYSTEMS_PUBLIC_NAME").strip('\'"').split(";")[0]
 

@@ -12,7 +12,7 @@ import os
 from markers import skipif_uses_gateway, skipif_not_uses_gateway
 
 ### SSL parameters
-USE_SSL = os.environ.get("F7T_SSL_USE", False)
+USE_SSL = (os.environ.get("F7T_SSL_USE","false").lower() == "true")
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_PATH = "../../../deploy/test-build"
 
@@ -22,13 +22,13 @@ USE_GATEWAY  = (os.environ.get("USE_GATEWAY","false").lower() == "true")
 if FIRECREST_URL and USE_GATEWAY:
 	TASKS_URL = os.environ.get("FIRECREST_URL") + "/tasks"
 else:
-    F7T_SCHEME_PROTOCOL = ("https" if USE_SSL == "True" else "http")
+    F7T_SCHEME_PROTOCOL = ("https" if USE_SSL else "http")
     
     TASKS_HOST = os.environ.get("F7T_TASKS_HOST","127.0.0.1") 
     TASKS_PORT = os.environ.get("F7T_TASKS_PORT","5003")
     TASKS_URL = f"{F7T_SCHEME_PROTOCOL}://{TASKS_HOST}:{TASKS_PORT}"
 
-
+print(f"TASKS_URL: {TASKS_URL}")
 
 INVALID_CODE1 = "9999"
 INVALID_CODE2 = "47777"
