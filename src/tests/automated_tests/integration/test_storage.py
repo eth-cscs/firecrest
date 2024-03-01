@@ -46,7 +46,7 @@ OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE", "s3v4")
 def get_task(task_id, headers):
     headers["X-Machine-Name"] = SERVER_UTILITIES_STORAGE
     url = f"{TASKS_URL}/{task_id}"
-    resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+    resp = requests.get(url, headers=headers, verify=False)
     print(resp.content)
     assert resp.status_code == 200
     return resp
@@ -73,7 +73,7 @@ def test_post_upload_request(headers,targetPath, expected_response_code):
     headers["X-Machine-Name"] = SERVER_UTILITIES_STORAGE
     # request upload form
     data = { "sourcePath": "testsbatch.sh", "targetPath": targetPath  }
-    resp = requests.post(STORAGE_URL + "/xfer-external/upload", headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+    resp = requests.post(STORAGE_URL + "/xfer-external/upload", headers=headers, data=data, verify=False)
     assert resp.status_code == expected_response_code 
 
     if expected_response_code != 201:
@@ -108,7 +108,7 @@ def test_post_upload_request(headers,targetPath, expected_response_code):
 
         # this is the only way signature doesn't break!
         with open(data["sourcePath"], 'rb') as data:
-            resp= requests.put(url, data=data, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+            resp= requests.put(url, data=data, params=params, verify=False)
 
     elif (OBJECT_STORAGE == "s3v4"):
         post_data =  [('key', msg["parameters"]["data"]["key"]), ('policy', msg["parameters"]["data"]["policy"]), ('x-amz-algorithm', msg["parameters"]["data"]["x-amz-algorithm"])
@@ -116,7 +116,7 @@ def test_post_upload_request(headers,targetPath, expected_response_code):
         ('x-amz-signature', msg["parameters"]["data"]["x-amz-signature"])]
 
         files = {'file': open(data["sourcePath"],'rb')}
-        resp = requests.post(url, data=post_data, files=files, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+        resp = requests.post(url, data=post_data, files=files, verify=False)
 
     else:
         # swift post request
@@ -124,7 +124,7 @@ def test_post_upload_request(headers,targetPath, expected_response_code):
         ('signature', msg["signature"]), ('redirect', msg["redirect"])]
 
         with open(data["sourcePath"], 'rb') as data:
-            resp= requests.put(url, data=data, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+            resp= requests.put(url, data=data, params=params, verify=False)
 
     print(resp.text)
 
@@ -133,7 +133,7 @@ def test_post_upload_request(headers,targetPath, expected_response_code):
     # download from OS to FS is automatic
     download_ok = False
     for i in range(20):
-        r = requests.get(TASKS_URL +"/"+task_id, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+        r = requests.get(TASKS_URL +"/"+task_id, headers=headers, verify=False)
         assert r.status_code == 200
         if r.json()["task"]["status"] == "114": # import async_tasks -> async_tasks.ST_DWN_END
             download_ok = True
@@ -151,7 +151,7 @@ def test_post_download_request(headers):
     headers["X-Machine-Name"] = SERVER_UTILITIES_STORAGE
     # request upload form
     data = { "sourcePath": "/ssh_command_wrapper.sh" }
-    resp = requests.post(f"{STORAGE_URL}/xfer-external/download", headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+    resp = requests.post(f"{STORAGE_URL}/xfer-external/download", headers=headers, data=data, verify=False)
     assert resp.status_code == 201
 
     task_id = resp.json()["task_id"]
@@ -179,7 +179,7 @@ def test_post_download_request(headers):
     # invalidate:
 
     headers["X-Task-Id"] = task_id
-    resp = requests.post(f"{STORAGE_URL}/xfer-external/invalidate", headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+    resp = requests.post(f"{STORAGE_URL}/xfer-external/invalidate", headers=headers, verify=False)
 
     assert resp.status_code == 201
 
@@ -191,7 +191,7 @@ def test_internal_cp(machine, headers):
     headers["X-Machine-Name"] = SERVER_UTILITIES_STORAGE
     data = {"sourcePath": USER_HOME + "/testsbatch.sh", "targetPath": USER_HOME + "/testsbatch2.sh"}
     url = f"{STORAGE_URL}/xfer-internal/cp"
-    resp = requests.post(url, headers=headers,data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+    resp = requests.post(url, headers=headers,data=data, verify=False)
     assert resp.status_code == 201
 
     task_id = resp.json()["task_id"]
@@ -204,7 +204,7 @@ def test_internal_cp(machine, headers):
     params = {"targetPath": USER_HOME + "/testsbatch.sh", "showhidden" : "true"}
     url = f"{UTILITIES_URL}/ls"
     headers.update({"X-Machine-Name": machine})
-    resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+    resp = requests.get(url, headers=headers, params=params, verify=False)
     print(resp.json())
     print(machine)
     assert resp.status_code == 200

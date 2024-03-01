@@ -49,14 +49,14 @@ JOB_ENV_OUTPUT = 'a\n"b 1"\n'
 def submit_job(machine, headers, file='testsbatch.sh'):
 	files = {'file': ('upload.sh', open(file, 'rb'))}
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.post(f"{JOBS_URL}/upload", headers=headers, files=files, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.post(f"{JOBS_URL}/upload", headers=headers, files=files, verify=False)
 	print(resp.content)
 	assert resp.status_code == 201
 	return resp
 
 def get_task(task_id, headers):
 	url = f"{TASKS_URL}/{task_id}"
-	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, verify=False)
 	print(resp.content)
 	assert resp.status_code == 200
 	return resp
@@ -97,7 +97,7 @@ def test_submit_job(machine, headers):
 @pytest.mark.parametrize("machine", [SERVER_COMPUTE])
 def test_list_jobs(machine, headers):
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.get(JOBS_URL, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(JOBS_URL, headers=headers, verify=False)
 	print(resp.content)
 	assert resp.status_code == 200
 
@@ -111,7 +111,7 @@ def test_list_job(machine, headers):
 	jobid = -1
 	url = f"{JOBS_URL}/{jobid}"
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, verify=False)
 	print(resp.content)
 	assert resp.status_code == 400
 	# task_id = resp.json()["task_id"]
@@ -129,7 +129,7 @@ def test_cancel_job(machine, headers):
 	# cancel job
 	url = f"{JOBS_URL}/{job_id}"
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.delete(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.delete(url, headers=headers, verify=False)
 	print(resp.content)
 	assert resp.status_code == 200
 
@@ -150,7 +150,7 @@ def test_acct_job(machine, headers):
 	url = f"{COMPUTE_URL}/acct"
 	params = {"jobs": job_id}
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.get(url, headers=headers,params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers,params=params, verify=False)
 	print(resp.content)
 	assert resp.status_code == 200
 
@@ -163,7 +163,7 @@ def test_acct_job(machine, headers):
 	for i in range(2, job_id):
 		lj += "," + str(i)
 	url = f"{JOBS_URL}/{lj}"
-	resp = requests.delete(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.delete(url, headers=headers, verify=False)
 	print(resp.content)
 	assert resp.status_code == 200
 
@@ -173,7 +173,7 @@ def test_job_env(headers):
 	headers.update({"X-Machine-Name": SERVER_COMPUTE})
 	data = {"env" : JOB_ENV}
 	files = {"file": ('upload.sh', open('testsbatch.sh', 'rb'))}
-	resp = requests.post(f"{JOBS_URL}/upload", headers=headers, data=data, files=files, verify=(f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.post(f"{JOBS_URL}/upload", headers=headers, data=data, files=files, verify=False)
 	assert resp.status_code == 201
 	task_id = resp.json()["task_id"]
 	job_id = get_job_id(task_id, headers)
@@ -181,11 +181,11 @@ def test_job_env(headers):
 	url = f"{UTILITIES_URL}/ls"
 	for i in range(10):
 		time.sleep(5)
-		resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+		resp = requests.get(url, headers=headers, params=params, verify=False)
 		if resp.status_code == 200:
 			break
 	url = f"{UTILITIES_URL}/head"
-	resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, params=params, verify=False)
 	assert resp.status_code == 200
 	assert json.loads(resp.content)["output"] == JOB_ENV_OUTPUT
 

@@ -57,7 +57,7 @@ STATUS_CODES_SERVICES.append(("not-a-service",404))
 @pytest.mark.parametrize("system,status_code", STATUS_CODES_SYSTEMS)
 def test_status_system(system, status_code, headers):
 	url = f"{STATUS_URL}/systems/{system}"
-	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, verify=False)
 	print(resp.content)
 	# assert 'description' in resp.json()
 	assert status_code == resp.status_code
@@ -65,7 +65,7 @@ def test_status_system(system, status_code, headers):
 @skipif_not_uses_gateway
 def test_status_systems(headers):
 	url = f"{STATUS_URL}/systems"
-	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, verify=False)
 	print(resp.content)
 	assert 'description' in resp.json()
 
@@ -73,7 +73,7 @@ def test_status_systems(headers):
 @pytest.mark.parametrize("system,fs_name,status_code", STATUS_CODES_FS)
 def test_status_filesystems(system,fs_name,status_code,headers):
 	url = f"{STATUS_URL}/filesystems/{system}"
-	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, verify=False)
 	# /home is OK, and /scratch is wrong
 	print(resp.content)
 
@@ -90,7 +90,7 @@ def test_status_filesystems(system,fs_name,status_code,headers):
 @pytest.mark.parametrize("system,fs_name,status_code", STATUS_CODES_FS)
 def test_status_all_filesystems(system,fs_name,status_code,headers):
 	url = f"{STATUS_URL}/filesystems"
-	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, verify=False)
 	# /home is OK, and /scratch is wrong
 	print(resp.content)
 	assert "out" in resp.json()
@@ -110,7 +110,7 @@ def test_status_all_filesystems(system,fs_name,status_code,headers):
 @pytest.mark.parametrize("service,status_code", STATUS_CODES_SERVICES)
 def test_status_service(service, status_code, headers):
 	url = f"{STATUS_URL}/services/{service}"
-	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, verify=False)
 	print(resp.json())
 	# assert 'description' in resp.json()
 	assert status_code == resp.json()["status_code"]
@@ -118,7 +118,7 @@ def test_status_service(service, status_code, headers):
 @skipif_not_uses_gateway
 def test_status_services(headers):
 	url = f"{STATUS_URL}/services"
-	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, verify=False)
 	print(resp.content)
 	# print(resp.json())
 	assert 'description' in resp.json()
@@ -127,7 +127,7 @@ def test_status_services(headers):
 def test_parameters(headers):
 	print(STATUS_URL)
 	url = f"{STATUS_URL}/parameters"
-	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, verify=False)
 	print(resp.content)
 	assert resp.status_code == 200
 

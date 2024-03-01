@@ -16,7 +16,7 @@ pytestmark = pytest.mark.reservations
 USE_SSL = (os.environ.get("F7T_SSL_USE","false").lower() == "true")
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_PATH = "../../../deploy/test-build"
-VERIFY = (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False)
+VERIFY = False
 
 # Requests Parameters
 FIRECREST_URL = os.environ.get("FIRECREST_URL")

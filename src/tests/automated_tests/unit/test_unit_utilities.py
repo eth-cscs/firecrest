@@ -112,7 +112,7 @@ def test_view(machine, targetPath, expected_response_code, headers):
 
 	headers.update({ "X-Machine-Name": machine })
 
-	resp = requests.get(url=url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url=url, headers=headers, params=params, verify=False)
 
 	print(resp.json())
 	print(resp.headers)
@@ -127,7 +127,7 @@ def test_checksum(machine, targetPath, expected_response_code, headers):
 
 	headers.update({ "X-Machine-Name": machine })
 
-	resp = requests.get(url=url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url=url, headers=headers, params=params, verify=False)
 
 	print(resp.json())
 	print(resp.headers)
@@ -142,7 +142,7 @@ def test_upload(machine, expected_response_code, headers):
 	url = f"{UTILITIES_URL}/upload"
 	headers.update({"X-Machine-Name": machine})
 	print(machine)
-	resp = requests.post(url, headers=headers, data=data, files=files, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.post(url, headers=headers, data=data, files=files, verify=False)
 	print(resp.content)
 	print(resp.headers)
 	assert resp.status_code == expected_response_code
@@ -154,7 +154,7 @@ def test_file_type(machine, expected_response_code, file_name, headers):
 	url = f"{UTILITIES_URL}/file"
 	params = {"targetPath": file_name}
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, params=params, verify=False)
 	print(resp.content)
 	print(resp.headers)
 	assert resp.status_code == expected_response_code
@@ -166,7 +166,7 @@ def test_stat(machine, expected_response_code, file_name, headers):
 	url = f"{UTILITIES_URL}/stat"
 	params = {"targetPath": file_name}
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, params=params, verify=False)
 	print(resp.content)
 	print(resp.headers)
 	assert resp.status_code == expected_response_code
@@ -178,7 +178,7 @@ def test_file_type_error(machine, expected_response_code, headers):
 	url = f"{UTILITIES_URL}/file"
 	params = {"targetPath": ".bashrc"}
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, params=params, verify=False)
 	print(resp.content)
 	print(resp.headers)
 	assert resp.status_code == expected_response_code
@@ -188,7 +188,7 @@ def test_file_type_error(machine, expected_response_code, headers):
 def exec_chmod(machine, headers, data):
 	url = f"{UTILITIES_URL}/chmod"
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.put(url, headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.put(url, headers=headers, data=data, verify=False)
 	return resp
 
 
@@ -217,7 +217,7 @@ def test_chown(machine, expected_response_code, headers):
 	data = {"targetPath": USER_HOME + "/testsbatch.sh", "owner" : CURRENT_USER , "group": CURRENT_USER}
 	url = f"{UTILITIES_URL}/chown"
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.put(url, headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.put(url, headers=headers, data=data, verify=False)
 	print(resp.content)
 	assert resp.status_code == expected_response_code
 
@@ -232,7 +232,7 @@ def test_head_tail(command, machine, filename, bytes, lines, expected_response_c
 
 	url = f"{UTILITIES_URL}/{command}"
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, params=params, verify=False)
 	assert resp.status_code == expected_response_code
 	if expected_response_code == 200:
 		assert json.loads(resp.content)["output"] == output
@@ -244,7 +244,7 @@ def test_list_directory(machine, targetPath, expected_response_code, headers):
 	params = {"targetPath": targetPath, "showhidden" : "true"}
 	url = f"{UTILITIES_URL}/ls"
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, params=params, verify=False)
 	print(json.dumps(resp.json(),indent=2))
 	print(resp.headers)
 	assert resp.status_code == expected_response_code
@@ -256,7 +256,7 @@ def test_make_directory(machine, expected_response_code, headers):
 	data = {"targetPath": USER_HOME + "/samplefolder/samplesubfolder", "p" : "true"}
 	url = f"{UTILITIES_URL}/mkdir"
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.post(url, headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.post(url, headers=headers, data=data, verify=False)
 	print(resp.content)
 	assert resp.status_code == expected_response_code
 
@@ -267,7 +267,7 @@ def test_rename(machine, expected_response_code, headers):
 	data = {"sourcePath": USER_HOME + "/samplefolder/", "targetPath" : USER_HOME + "/sampleFolder/"}
 	url = f"{UTILITIES_URL}/rename"
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.put(url, headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.put(url, headers=headers, data=data, verify=False)
 	print(resp.content)
 	assert resp.status_code == expected_response_code
 
@@ -279,7 +279,7 @@ def test_copy(machine, expected_response_code, headers):
 	data = {"sourcePath": USER_HOME + "/sampleFolder", "targetPath" : USER_HOME + "/sampleFoldercopy"}
 	url = f"{UTILITIES_URL}/copy"
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.post(url, headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.post(url, headers=headers, data=data, verify=False)
 	print(resp.content)
 	assert resp.status_code == expected_response_code
 
@@ -290,7 +290,7 @@ def test_symlink(machine, expected_response_code, headers):
 	data = {"targetPath": USER_HOME + "/testsbatch.sh", "linkPath" : USER_HOME + "/sampleFolder/testlink"}
 	url = f"{UTILITIES_URL}/symlink"
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.post(url, headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.post(url, headers=headers, data=data, verify=False)
 	print(resp.content)
 	print(machine)
 	assert resp.status_code == expected_response_code
@@ -304,7 +304,7 @@ def test_rm(machine, expected_response_code, headers):
 	data = {"targetPath": USER_HOME + "/sampleFolder/"}
 	url = f"{UTILITIES_URL}/rm"
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.delete(url, headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.delete(url, headers=headers, data=data, verify=False)
 	print(resp.content)
 	assert resp.status_code == expected_response_code
 
@@ -315,7 +315,7 @@ def test_download(machine, expected_response_code, headers):
 	params = {"sourcePath": USER_HOME + "/testsbatch.sh"}
 	url = f"{UTILITIES_URL}/download"
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, params=params, verify=False)
 	assert resp.status_code == expected_response_code
 
 
@@ -324,7 +324,7 @@ def test_download(machine, expected_response_code, headers):
 def test_whoami(machine, expected_response_code, headers):
 	url = f"{UTILITIES_URL}/whoami"
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.get(url, headers=headers, params={}, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, params={}, verify=False)
 	if resp.ok:
 		assert resp.json()["output"] == CURRENT_USER
 
@@ -336,7 +336,7 @@ def test_forbidden_chars(machine, expected_response_code, file_name, headers):
 	data = {"targetPath": file_name, "p" : "true"}
 	url = f"{UTILITIES_URL}/mkdir"
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.post(url, headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.post(url, headers=headers, data=data, verify=False)
 	print(resp.content)
 	print(resp.headers)
 	assert resp.status_code == expected_response_code
@@ -346,7 +346,7 @@ def test_forbidden_chars(machine, expected_response_code, file_name, headers):
 @skipif_uses_gateway
 def test_status(headers):
 	url = f"{UTILITIES_URL}/status"
-	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, verify=False)
 	print(resp.content)
 	print(resp.headers)
 	assert resp.status_code == 200
