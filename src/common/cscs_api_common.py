@@ -72,7 +72,7 @@ AUTH_REQUIRED_SCOPE = os.environ.get("F7T_AUTH_REQUIRED_SCOPE", '').strip('\'"')
 AUTH_ROLE = os.environ.get("F7T_AUTH_ROLE", '').strip('\'"')
 
 ### SSL parameters
-USE_SSL = get_boolean_var(os.environ.get("F7T_SSL_USE", False))
+USE_SSL = get_boolean_var(os.environ.get("F7T_SSL_USE", True))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 

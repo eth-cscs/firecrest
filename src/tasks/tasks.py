@@ -27,7 +27,7 @@ PERSIST_PORT = os.environ.get("F7T_PERSIST_PORT", "6379")
 PERSIST_PWD  = os.environ.get("F7T_PERSIST_PWD")
 
 ### SSL parameters
-USE_SSL = get_boolean_var(os.environ.get("F7T_SSL_USE", False))
+USE_SSL = get_boolean_var(os.environ.get("F7T_SSL_USE", True))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 

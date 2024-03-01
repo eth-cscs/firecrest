@@ -33,7 +33,7 @@ SYSTEMS_INTERNAL_COMPUTE   = os.environ.get("F7T_SYSTEMS_INTERNAL_COMPUTE", os.e
 TIMEOUT = os.environ.get("F7T_RESERVATIONS_TIMEOUT", 30)
 
 ### SSL parameters
-USE_SSL = get_boolean_var(os.environ.get("F7T_SSL_USE", False))
+USE_SSL = get_boolean_var(os.environ.get("F7T_SSL_USE", True))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 

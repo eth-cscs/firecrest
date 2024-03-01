@@ -32,12 +32,12 @@ The most complete way of installing is to setup 3 hosts:
 
 ### Need to set the value to adapt to your deployment
 
-| **Name** | **Needs to be configured?** | **Default value** | **Definition** | **Hosts where it's used** |
-| -------- | -----------  | ----------------- | --------- | ---- |
-|`F7T_REALM_RSA_PUBLIC_KEY`      | **YES** | `''`  | Value of [OIDC/OAuth2 Server Public Client Keys](https://datatracker.ietf.org/doc/html/rfc6749#section-2.1). This is the public key used for the Identity Provider (IdP) to sign the [JWT Access Token](https://jwt.io/introduction). If there are more than one IdP, list the public keys in a semicolon separated list | `Backend`, `Certificator`, `Gateway` |
-|`F7T_REALM_RSA_TYPE`            | **YES** | `''`  | Value of [cryptographic algorithm used to sign JWT](https://datatracker.ietf.org/doc/html/rfc7518#section-3). Values are found in the `alg` part of the header of the JWT (`"alg": "RS256"`, `"alg": "HS256"`, etc). If there are more than one IdP, list algorithms in a semicolon separated list following the order of the keys in `F7T_REALM_RSA_PUBLIC_KEY` | `Backend`, `Certificator`, `Gateway` |
-|`F7T_SYSTEMS_PUBLIC_NAME`            | **YES** | `''`  | Public name(s) of the systems/HPC clusters interfaced by FirecREST. This name is a "familiar" name for users/clients. If more than one system is interfaced by FirecREST, then set this value with a semicolon separated list of names | `Backend` |
-|`F7T_SYSTEMS_INTERNAL_NAME`  | **YES** | `''`  | Internal DNS(s), IP(s) and SSH port(s) (in the form `<DNS_or_IP>:<SSH_port>`) used for SSH connection and command execution in relative order of `F7T_SYSTEMS_PUBLIC_NAME` (example: `192.168.220.12:22`, `cluster01.svc.com:22;cluster02.svc.com:22`). This is usually a "login node" of the HPC system| `Backend` |
+| **Name** | **Needs to be configured?** | **Default value** | **Definition** | **Hosts where it's used** | **Change from this version** | 
+| ------ | -----------  | ------ | ----- | ---- | ----------------- |
+|`F7T_REALM_RSA_PUBLIC_KEY`      | **YES** | `''`  | Value of [OIDC/OAuth2 Server Public Client Keys](https://datatracker.ietf.org/doc/html/rfc6749#section-2.1). This is the public key used for the Identity Provider (IdP) to sign the [JWT Access Token](https://jwt.io/introduction). If there are more than one IdP, list the public keys in a semicolon separated list | `Backend`, `Certificator`, `Gateway` | |
+|`F7T_REALM_RSA_TYPE`            | **YES** | `''`  | Value of [cryptographic algorithm used to sign JWT](https://datatracker.ietf.org/doc/html/rfc7518#section-3). Values are found in the `alg` part of the header of the JWT (`"alg": "RS256"`, `"alg": "HS256"`, etc). If there are more than one IdP, list algorithms in a semicolon separated list following the order of the keys in `F7T_REALM_RSA_PUBLIC_KEY` | `Backend`, `Certificator`, `Gateway` | |
+|`F7T_SYSTEMS_PUBLIC_NAME`            | **YES** | `''`  | Public name(s) of the systems/HPC clusters interfaced by FirecREST. This name is a "familiar" name for users/clients. If more than one system is interfaced by FirecREST, then set this value with a semicolon separated list of names | `Backend` | Replaces `F7T_SYSTEMS_PUBLIC` |
+|`F7T_SYSTEMS_INTERNAL_NAME`  | **YES** | `''`  | Internal DNS(s), IP(s) and SSH port(s) (in the form `<DNS_or_IP>:<SSH_port>`) used for SSH connection and command execution in relative order of `F7T_SYSTEMS_PUBLIC_NAME` (example: `192.168.220.12:22`, `cluster01.svc.com:22;cluster02.svc.com:22`). This is usually a "login node" of the HPC system| `Backend` | New on this version |
 |`F7T_STATUS_SERVICES`           | **YES** | `''`  | Semicolon separated list of FirecREST services to report status (example: `compute;storage;utilities`) |  `Backend` |
 |`F7T_OBJECT_STORAGE`            | **YES** | `'s3v4'`  | Object Storage Technology name used as staging area. Supported values: [`'swift'`](https://docs.openstack.org/swift/latest/), [`'s3v2'`](https://docs.aws.amazon.com/AmazonS3/latest/API/Welcome.html), [`'s3v4'`](https://docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-authenticating-requests.html) | `Backend` |
 |`F7T_FILESYSTEMS` | **YES** | `{}` | Dictionary object with information on filesystems present in each `F7T_SYSTEMS_PUBLIC_NAME` machine. You can set per filesystem a public `name`, the absolute root `path`, and a brief `description`. <br>Example:<br><pre><code>F7T_FILESYSTEMS="{'cluster01': [{'name':'PROJECT','path':'/project','description':'Project Filesystem'},</code><br><code>          {'name':'STORE', 'path':'/store', 'description':'Long term filesystem'},</code><br><code>    {'name':'SCRATCH', 'path':'/scratch', 'description':'Fast Lustre filesystem'} ],</code><br><code>'cluster02': [         {'name':'PROJECT','path':'/project','description':'Project Filesystem'},</code><br><code>          {'name':'STORE', 'path':'/store', 'description':'Long term filesystem'},</code><br><code>  {'name':'HOME', 'path':'/home', 'description':'Home filesystem'}] }"</code></pre> | `Backend`|
@@ -46,23 +46,23 @@ The most complete way of installing is to setup 3 hosts:
 
 **IMPORTANT**: the values of the following variables are sensitive, it is important that you secure them and don't expose them in a public repository (GitLab, GitHub, etc)
 
-| **Name** | **Needs to be configured?** | **Default value** | **Definition** | **Hosts where it's used** |
-| -------- | -----------  | ----------------- | --------- | ---- |
-|`F7T_PERSIST_PWD`| **YES** |  `''` | of the redis database used in `taskpersistence` container |  `Backend` |
+| **Name** | **Needs to be configured?** | **Default value** | **Definition** | **Hosts where it's used** |  **Change from this version** | 
+| -------- | -----------  | ----------------- | --------- | ---- | ------- |
+|`F7T_PERSIST_PWD`| **YES** |  `''` | Password of the redis database used in `taskpersistence` container |  `Backend` | |
 
 
 
 ### Can be left as default
 
-| **Name** | **Needs to be configured?** | **Default value** | **Definition** | **Hosts where it is used** |
-| -------- | -----------  | ----------------- | --------- | ---- |
-|`F7T_CERTIFICATOR_HOST`| NO | `'127.0.0.1'` | Hostname, IP or DNS of machine where the container for the `certificator` microservice is executed| `Backend`, `Certificator` |
-|`F7T_COMPUTE_HOST`     | NO | `'127.0.0.1'` | Hostname, IP or DNS of the container for the `compute` microservice| `Backend`, `Gateway` |
-|`F7T_RESERVATION_HOST` | NO | `'127.0.0.1'` | Hostname, IP or DNS of the container for the `reservation` microservice| `Backend`, `Gateway` (deprecated) |
-|`F7T_STATUS_HOST`      | NO | `'127.0.0.1'` | Hostname, IP or DNS of the container for the `status` microservice| `Backend`, `Gateway` |
-|`F7T_STORAGE_HOST`     | NO | `'127.0.0.1'` | Hostname, IP or DNS of the container for the `storage` microservice| `Backend`, `Gateway` |
-|`F7T_TASKS_HOST`       | NO | `'127.0.0.1'` | Hostname, IP or DNS of the container for the `tasks` microservice| `Backend`, `Gateway` |
-|`F7T_UTILITIES_HOST`   | NO | `'127.0.0.1'` | Hostname, IP or DNS of the container for the `utilities` microservice| `Backend`, `Gateway` |
+| **Name** | **Needs to be configured?** | **Default value** | **Definition** | **Hosts where it is used** |  **Change from this version** | 
+| -------- | -----------  | ----------------- | --------- | ---- | ------ |
+|`F7T_CERTIFICATOR_HOST`| NO | `'127.0.0.1'` | Hostname, IP or DNS of machine where the container for the `certificator` microservice is executed| `Backend`, `Certificator` | Replaces `F7T_CERTIFICATOR_URL` |
+|`F7T_COMPUTE_HOST`     | NO | `'127.0.0.1'` | Hostname, IP or DNS of the container for the `compute` microservice| `Backend`, `Gateway` | Replaces `F7T_COMPUTE_URL` |
+|`F7T_RESERVATION_HOST` | NO | `'127.0.0.1'` | Hostname, IP or DNS of the container for the `reservation` microservice| `Backend`, `Gateway` (deprecated) |  Replaces `F7T_RESERVATION_URL` | 
+|`F7T_STATUS_HOST`      | NO | `'127.0.0.1'` | Hostname, IP or DNS of the container for the `status` microservice| `Backend`, `Gateway` |  Replaces `F7T_STATUS_URL` | 
+|`F7T_STORAGE_HOST`     | NO | `'127.0.0.1'` | Hostname, IP or DNS of the container for the `storage` microservice| `Backend`, `Gateway` |  Replaces `F7T_STORAGE_URL` | 
+|`F7T_TASKS_HOST`       | NO | `'127.0.0.1'` | Hostname, IP or DNS of the container for the `tasks` microservice| `Backend`, `Gateway` |   Replaces `F7T_TASKS_URL` | 
+|`F7T_UTILITIES_HOST`   | NO | `'127.0.0.1'` | Hostname, IP or DNS of the container for the `utilities` microservice| `Backend`, `Gateway` |    Replaces `F7T_UTILITIES_URL` | 
 |`F7T_CERTIFICATOR_PORT`| NO | `'5000'`      | TCP Port where the `certificator` microservice is exposed| `Certificator`, `Gateway` |
 |`F7T_COMPUTE_PORT`     | NO | `'5006'`      | TCP Port where the `compute` microservice is exposed| `Backend`, `Gateway` |
 |`F7T_RESERVATIONS_PORT`| NO | `'5005'`      | TCP Port where the `reservations` microservice is exposed| `Backend`, `Gateway`  (deprecated) |
@@ -70,7 +70,7 @@ The most complete way of installing is to setup 3 hosts:
 |`F7T_STORAGE_PORT`     | NO | `'5002'`      | TCP Port where the `storage` microservice is exposed| `Backend`, `Gateway` |
 |`F7T_TASKS_PORT`       | NO | `'5003'`      | TCP Port where the `tasks` microservice is exposed| `Backend`, `Gateway` |
 |`F7T_UTILITIES_PORT`   | NO | `'5004'`      | TCP Port where the `utilities` microservice is exposed| `Backend`, `Gateway` |
-|`F7T_SSL_USE`          | NO | `False`        | Set to `True` if it's desired to expose internal microservices with HTTPS (recommended) | `Backend`, `Certificator` |
+|`F7T_SSL_USE`          | NO | `True`        | Set to `True` if it's desired to expose internal microservices with HTTPS (recommended) | `Backend`, `Certificator` | Replaces `F7T_USE_SSL` |
 |`F7T_SSL_CRT`          | Only if `F7T_SSL_USE=True`   | `''`        | Path to the SSL Certificate Key for exposing the container with HTTPS protocol (recommended). | `Backend`, `Certificator` |
 |`F7T_SSL_KEY`          | Only if `F7T_SSL_USE=True`   | `''`        | Path to the SSL Public Key for exposing the container with HTTPS protocol (recommended). Only used if `F7T_SSL_USE=True`  | `Backend`, `Certificator` |
 |`F7T_DEBUG_MODE`       | NO  | `False`     | Set to `True` to log debug type information | `Backend` |
@@ -89,15 +89,15 @@ The most complete way of installing is to setup 3 hosts:
 |`F7T_AUTH_TOKEN_AUD`          | NO | `''` | Name of the [access token audience](https://datatracker.ietf.org/doc/html/rfc6749#section-3.3) used to allow client application to access FirecREST. This depends on the configuration of the IdP | `Backend`, `Certificator` |
 |`F7T_UTILITIES_MAX_FILE_SIZE` | NO | `5` | Value in **megabytes** of the maximum size of file that can be uploaded/downloaded using `/utilities` | `Backend` |
 |`F7T_UTILITIES_TIMEOUT`       | NO | `5` | Value in **seconds** for timing out a login node command using `/utilities` | `Backend` |
-|`F7T_PERSIST_HOST`            | NO | `'127.0.0.1'` | Hostname or IP of the redis database used in `taskpersistence` container |  `Backend` |
+|`F7T_PERSIST_HOST`            | NO | `'127.0.0.1'` | Hostname or IP of the redis database used in `taskpersistence` container |  `Backend` | Replaces `F7T_PERSISTENCE_IP` |
 |`F7T_PERSIST_PORT`            | NO | `'6379'` | Port number of the redis database used in `taskpersistence` container |  `Backend` |
-|`F7T_SPANK_PLUGIN_USE`        | NO | `False`   | Set to `True` if the system scheduler uses a [spank](https://slurm.schedmd.com/spank.html) when submitting jobs. If there is more than one system configured, there should be a semicolon separated list in relative order to `F7T_SYSTEMS_PUBLIC_NAME` values |  `Backend`|
+|`F7T_SPANK_PLUGIN_USE`        | NO | `False`   | Set to `True` if the system scheduler uses a [spank](https://slurm.schedmd.com/spank.html) when submitting jobs. If there is more than one system configured, there should be a semicolon separated list in relative order to `F7T_SYSTEMS_PUBLIC_NAME` values |  `Backend`| Replaces `F7T_USE_SPANK_PLUGIN` |
 |`F7T_SPANK_PLUGIN_OPTION` | only if `F7T_SPANK_PLUGIN_USE=True` | `--nohome`| Name of the option to use in the workload manager command. If there is more than one system configured, there should be a semicolon separated list in relative order to `F7T_SYSTEMS_PUBLIC_NAME` values |  `Backend`|
 |`F7T_COMPUTE_SCHEDULER`  | NO | `'Slurm'`| Set to the name of the of the Workload Manager scheduler adapter class. By default it can be found in `/src/common/schedulers` | `Backend`|
-|`F7T_SSH_CERTIFICATE_WRAPPER_USE`  | NO | `False`| If set to `True` it enables FirecREST to send an SSH Certificate as command for execution. Requires a serverside [SSH ForceCommand](https://shaner.life/the-little-known-ssh-forcecommand/) wrapper | `Backend`|
+|`F7T_SSH_CERTIFICATE_WRAPPER_USE`  | NO | `False`| If set to `True` it enables FirecREST to send an SSH Certificate as command for execution. Requires a serverside [SSH ForceCommand](https://shaner.life/the-little-known-ssh-forcecommand/) wrapper | `Backend`| Replaces `F7T_SSH_CERTIFICATE_WRAPPER` |
 |`F7T_PRIV_USER_KEY_PATH`| NO | `'/user-key'` | Set the absolute path in the containers on `Backend` where the user Public Key is stored in order to create SSH certificates |  `Backend` |
 |`F7T_PUB_USER_KEY_PATH`| NO | `'/user-key.pub'` | Set the absolute path in the containers on `Backend` where the user's Private Key is stored in order to create SSH certificates | `Certificator` |
-|`F7T_SYSTEMS_INTERNAL_STATUS`   | NO | the value on `F7T_SYSTEMS_INTERNAL_NAME` | Internal DNS(s), IP(s) and SSH port(s) used for **testing system availability via SSH**  in the form `<DNS_or_IP>:<SSH_port>` in relative order of `F7T_SYSTEMS_PUBLIC_NAME` (example: `192.168.220.12:22`, `cluster01.svc.com:22;cluster02.svc.com:22`). **Note**: Set this variable only if you use a dedicated server for  `status` microservice | `Backend` |
+|`F7T_SYSTEMS_INTERNAL_STATUS`   | NO | the value on `F7T_SYSTEMS_INTERNAL_NAME` | Internal DNS(s), IP(s) and SSH port(s) used for **testing system availability via SSH**  in the form `<DNS_or_IP>:<SSH_port>` in relative order of `F7T_SYSTEMS_PUBLIC_NAME` (example: `192.168.220.12:22`, `cluster01.svc.com:22;cluster02.svc.com:22`). **Note**: Set this variable only if you use a dedicated server for  `status` microservice | `Backend` | Replaces `F7T_STATUS_SYSTEMS` |
 |`F7T_SYSTEMS_INTERNAL_COMPUTE`  | NO |the value on `F7T_SYSTEMS_INTERNAL_NAME`   | Internal DNS(s), IP(s) and SSH port(s) used for **job submissions on the workload manager** (SLURM, PBS, LSF, etc) in the form `<DNS_or_IP>:<SSH_port>` in relative order of `F7T_SYSTEMS_PUBLIC_NAME` (example: `192.168.220.12:22`, `cluster01.svc.com:22;cluster02.svc.com:22`). **Note**: Set this variable only if you use a dedicated server for `compute` microservice | `Backend` |
 |`F7T_SYSTEMS_INTERNAL_STORAGE`  | NO | the value on `F7T_SYSTEMS_INTERNAL_NAME`   | Internal DNS(s), IP(s) and SSH port(s) used for **moving data between Filesystems and Object Storage** in the form `<DNS_or_IP>:<SSH_port>` in relative order of `F7T_SYSTEMS_PUBLIC_NAME` (example: `192.168.220.12:22`, `cluster01.svc.com:22;cluster02.svc.com:22`). **Note**: Set this variable only if you use a dedicated server for `storage` microservice| `Backend` |
 |`F7T_SYSTEMS_INTERNAL_UTILITIES`| NO |the value on `F7T_SYSTEMS_INTERNAL_NAME`   | Internal DNS(s), IP(s) and SSH port(s) used for **small filesystem operations** in the form `<DNS_or_IP>:<SSH_port>` in relative order of `F7T_SYSTEMS_PUBLIC_NAME` (example: `192.168.220.12:22`, `cluster01.svc.com:22;cluster02.svc.com:22`). **Note**: Set this variable only if you use a dedicated server for `utilities` microservice| `Backend` |
@@ -111,20 +111,20 @@ The most complete way of installing is to setup 3 hosts:
 
 **Important** FirecREST provides support for 2 Object Storage technologies: OpenStack Swift and AWS S3. Depending on your infrastructure or cloud needs, you can select in the variable `F7T_OBJECT_STORAGE` any of these options:
 
-- `'swift'``: for OpenStack Swift 
-- `'s3v2': for AWS S3 with v2 signature
-- `'s3v4': for AWS S3 with v4 signature (by default and recommended)
+- `'swift'`: for OpenStack Swift 
+- `'s3v2'`: for AWS S3 with v2 signature
+- `'s3v4'`: for AWS S3 with v4 signature (**by default and recommended**)
 
 ### Need to set the value to adapt to your deployment
 
-| **Name** | **Needs to be configured?** | **Default value** | **Definition** | **Hosts where it's used** |
-| -------- | -----------  | ----------------- | --------- | ---- |
+| **Name** | **Needs to be configured?** | **Default value** | **Definition** | **Hosts where it's used** |   **Change from this version** | 
+| -------- | -----------  | ----------------- | --------- | ---- | -- |
 |`F7T_OS_AUTH_URL`               | only if `F7T_OBJECT_STORAGE='swift'` | `''` |OpenStack Keystone identity service endpoint for authentication for OIDC or SAML |  `Backend` |
 |`F7T_OS_IDENTITY_PROVIDER`      | only if `F7T_OBJECT_STORAGE='swift'` | `''` | OpenStack Keystone Server Authentication Identity Provider Name for OIDC or SAML |  `Backend` |
 |`F7T_OS_IDENTITY_PROVIDER_URL`  | only if `F7T_OBJECT_STORAGE='swift'` | `''` | OpenStack Keystone Server Authentication Identity Provider URL for SAML (example: `<idp_url>/auth/realms/<realm>/protocol/saml/`)|  `Backend` |
 |`F7T_OS_KEYSTONE_AUTH`          | only if `F7T_OBJECT_STORAGE='swift'` | `''` | OpenStack Keystone Authentication Method. Supported values are `'oidc` and `'saml'` |  `Backend` |
 |`F7T_OS_PROTOCOL`               | only if `F7T_OBJECT_STORAGE='swift'` | `'openid'` | OpenStack Keystone Protocol for federated plugin for OIDC or SAML|  `Backend` |
-|`F7T_OS_PROJECT_ID`             | only if `F7T_OBJECT_STORAGE='swift'` | `''` | OpenStack Project ID of the Object Storage Service Account for FirecREST|  `Backend` |
+|`F7T_OS_PROJECT_ID`             | only if `F7T_OBJECT_STORAGE='swift'` | `''` | OpenStack Project ID of the Object Storage Service Account for FirecREST|  `Backend` | Duplicates `F7T_SWIFT_ACCOUNT` |
 |`F7T_OS_CLIENT_ID`              | only if `F7T_OBJECT_STORAGE='swift'` | `''` | OIDC Client ID for token exchange between OIDC IdP and OpenStack Keystone |  `Backend` |
 |`F7T_OS_DISCOVERY_ENDPOINT`     | only if `F7T_OBJECT_STORAGE='swift'` | `''` | Discovery endpoint for OIDC IdP (example: `<idp_url>/auth/realms/<realm>/protocol/.well-known/openid-configuration`) |  `Backend` |
 |`F7T_SWIFT_PUBLIC_URL`          | only if `F7T_OBJECT_STORAGE='swift'` | `''` | Public URL of the Object Storage server|  `Backend` |
@@ -140,13 +140,13 @@ The most complete way of installing is to setup 3 hosts:
 
 **IMPORTANT**: the values of the following variables are sensitive, it is important that you secure them and don't expose them in a public repository (GitLab, GitHub, etc)
 
-| **Name** | **Needs to be configured?** | **Default value** | **Definition** | **Hosts where it's used** |
-| -------- | -----------  | ----------------- | --------- | ---- |
+| **Name** | **Needs to be configured?** | **Default value** | **Definition** | **Hosts where it's used** |   **Change from this version** | 
+| -------- | -----------  | ----------------- | --------- | ---- | ------- |
 |`F7T_CERT_CIPHER_KEY`  | **YES** | `''`| value of the cipher key used to encrypt SSH certificates for large data transfer. FirecREST uses Fernet library to create these keys. Use the following code to create a new key before storing it in your secret management service: <br><pre><code>$ python3 </code><br><code>>>> from cryptography.fernet import Fernet</code><br><code>>>> Fernet.generate_key() </code><br><code>b'ADa7v8lnih7zB0JrhsZfqVEQlRujrClQXQRlRkNKS2Y='</code></pre> | `Backend` |
 |`F7T_OS_CLIENT_SECRET`         | only if `F7T_OBJECT_STORAGE='swift'` | `''` | OIDC Client Secret for token exchange between OIDC IdP and Keystone |  `Backend` |
 |`F7T_SWIFT_USER`               | only if `F7T_OBJECT_STORAGE='swift'` | `''` | UID of the Service Account user of the Object Storage |  `Backend` |
 |`F7T_SWIFT_PASS`               | only if `F7T_OBJECT_STORAGE='swift'` | `''` | Password of the Service Account user of the Object Storage |  `Backend` |
-|`F7T_SWIFT_SECRET_KEY`         | only if `F7T_OBJECT_STORAGE='swift'` | `''` | Secret key configured in [OpenStack Swift](https://docs.openstack.org/swift/latest/api/temporary_url_middleware.html#secret-keys) service to encrypt self-signed temporary URLs |  `Backend` |
+|`F7T_SWIFT_SECRET_KEY`         | only if `F7T_OBJECT_STORAGE='swift'` | `''` | Secret key configured in [OpenStack Swift](https://docs.openstack.org/swift/latest/api/temporary_url_middleware.html#secret-keys) service to encrypt self-signed temporary URLs |  `Backend` | Replaces `F7T_SECRET_KEY` |
 |`F7T_S3_ACCESS_KEY`            | only if `F7T_OBJECT_STORAGE='s3v2' or 's3v4'` | `''`| AWS S3 Access Key of the Service Account user of the Object Storage | `Backend` |
 |`F7T_S3_SECRET_KEY`            | only if `F7T_OBJECT_STORAGE='s3v2' or 's3v4'` | `''`| AWS S3 Access Key of the Service Account user of the Object Storage | `Backend` |
 

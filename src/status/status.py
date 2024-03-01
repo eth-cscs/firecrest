@@ -30,7 +30,7 @@ SERVICES = os.environ.get("F7T_STATUS_SERVICES","").strip('\'"').split(";") # ; 
 SYSTEMS  = os.environ.get("F7T_SYSTEMS_INTERNAL_STATUS", os.environ.get("F7T_SYSTEMS_INTERNAL_NAME", "")).strip('\'"').split(";")  # ; separated systems names
 
 ### SSL parameters
-USE_SSL = get_boolean_var(os.environ.get("F7T_SSL_USE", False))
+USE_SSL = get_boolean_var(os.environ.get("F7T_SSL_USE", True))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
