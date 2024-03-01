@@ -29,6 +29,7 @@ data:
   F7T_REALM_RSA_PUBLIC_KEY: '{{ include "list.listPubKeys" . }}'
   F7T_REALM_RSA_TYPE: '{{ include "list.listPubKeyTypes" . }}'
   F7T_SSH_CERTIFICATE_WRAPPER_USE: "{{ .Values.F7T_SSH_CERTIFICATE_WRAPPER_USE }}"
+  F7T_SSL_USE: "{{ .Values.F7T_SSL_USE }}"
   F7T_SSL_CRT: "{{ .Values.F7T_SSL_CRT }}"
   F7T_SSL_KEY: "{{ .Values.F7T_SSL_KEY }}"
   F7T_SYSTEMS_INTERNAL_NAME: "{{ .Values.F7T_SYSTEMS_INTERNAL_NAME }}"
