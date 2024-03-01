@@ -25,7 +25,7 @@ USE_GATEWAY  = (os.environ.get("USE_GATEWAY","false").lower() == "true")
 if FIRECREST_URL and USE_GATEWAY:
 	RESERVATIONS_URL = os.environ.get("FIRECREST_URL") + "/reservations"
 else:
-	F7T_SCHEME_PROTOCOL = ("https" if USE_SSL else "http")
+	F7T_SCHEME_PROTOCOL = ("https" if USE_SSL == "True" else "http")
 	RESERVATIONS_HOST = os.environ.get("F7T_RESERVATIONS_HOST","127.0.0.1") 
 	RESERVATIONS_PORT = os.environ.get("F7T_RESERVATIONS_PORT","5005")
 	RESERVATIONS_URL = f"{F7T_SCHEME_PROTOCOL}://{RESERVATIONS_HOST}:{RESERVATIONS_PORT}"

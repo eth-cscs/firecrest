@@ -20,7 +20,7 @@ USE_GATEWAY  = (os.environ.get("USE_GATEWAY","false").lower() == "true")
 if FIRECREST_URL and USE_GATEWAY:
 	STATUS_URL = os.environ.get("FIRECREST_URL") + "/status"
 else:
-	F7T_SCHEME_PROTOCOL = ("https" if USE_SSL else "http")
+	F7T_SCHEME_PROTOCOL = ("https" if USE_SSL == "True" else "http")
 	STATUS_HOST = os.environ.get("F7T_STATUS_HOST","127.0.0.1") 
 	STATUS_PORT = os.environ.get("F7T_STATUS_PORT","5001")
 	STATUS_URL = f"{F7T_SCHEME_PROTOCOL}://{STATUS_HOST}:{STATUS_PORT}"

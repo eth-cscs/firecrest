@@ -24,7 +24,7 @@ if FIRECREST_URL:
     STORAGE_URL = os.environ.get("FIRECREST_URL") + "/storage"
     UTILITIES_URL = os.environ.get("FIRECREST_URL") + "/utilities"
 else:
-    F7T_SCHEME_PROTOCOL = ("https" if USE_SSL else "http")
+    F7T_SCHEME_PROTOCOL = ("https" if USE_SSL == "True" else "http")
     
     TASKS_HOST = os.environ.get("F7T_TASKS_HOST","127.0.0.1") 
     TASKS_PORT = os.environ.get("F7T_TASKS_PORT","5003")
