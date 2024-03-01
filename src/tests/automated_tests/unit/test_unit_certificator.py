@@ -11,12 +11,12 @@ from markers import skipif_uses_gateway
 import base64
 
 ### SSL parameters
-USE_SSL = (os.environ.get("F7T_SSL_USE","false").lower() == "true")
+USE_SSL = (str(os.environ.get("F7T_SSL_USE","false")).lower() == "true")
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_PATH = "../../../deploy/test-build"
 
 FIRECREST_URL = os.environ.get("FIRECREST_URL","")
-USE_GATEWAY  = (os.environ.get("USE_GATEWAY","false").lower() == "true")
+USE_GATEWAY  = (str(os.environ.get("USE_GATEWAY","false")).lower() == "true")
 
 if FIRECREST_URL and USE_GATEWAY:
 	CERTIFICATOR_URL = os.environ.get("FIRECREST_URL") + "/certificator"
@@ -30,9 +30,6 @@ else:
 SYSTEM_NAME = os.environ.get("F7T_SYSTEMS_PUBLIC_NAME").strip('\'"').split(";")[0]
 SYSTEM_ADDR = os.environ.get("F7T_SYSTEMS_INTERNAL_NAME").strip('\'"').split(";")[0]
 
-print(f"CERTIFICATOR_URL: {CERTIFICATOR_URL}")
-
-
 OPA_DATA = [("not_existing_system", "not_existing_addr", 401), (SYSTEM_NAME, SYSTEM_ADDR, 200)]
 
 # Test get a certificate
@@ -41,6 +38,7 @@ def test_receive(headers):
 	# url = f"{CERTIFICATOR_URL}/?command=" + base64.urlsafe_b64encode("ls".encode()).decode()
 	params = {"command": base64.urlsafe_b64encode("ls".encode()).decode(),
 			  "cluster": SYSTEM_NAME, "addr": SYSTEM_ADDR }
+	print(f"CERTIFICATOR_URL: {CERTIFICATOR_URL}")
 	resp = requests.get(CERTIFICATOR_URL, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)
 	assert resp.status_code == 200
