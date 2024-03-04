@@ -16,6 +16,7 @@ ADD src/tasks/tasks.py tasks.py
 ADD src/common/async_task.py async_task.py
 ADD src/common/cscs_api_common.py cscs_api_common.py
 ADD src/common/tasks_persistence.py tasks_persistence.py
+ADD src/tools/migration-scripts/1.14.1-tasks-redis-key-migration.py migration-scripts/1.14.1-tasks-redis-key-migration.py
 
 RUN mkdir /var/log/profs
 

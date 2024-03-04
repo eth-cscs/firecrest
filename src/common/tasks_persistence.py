@@ -49,6 +49,17 @@ def create_connection(host,port,passwd="",db=0) -> Union[redis.StrictRedis,None]
         logging.error(e)
         return None
 
+def generate_task_id(task_id:int,task) -> str:
+    #Note: consider escaping the ':' symbol from user and service
+    return "task_{user}:{service}:{id}".format(user=task["user"],service=task["service"],id=task_id)
+
+def key_parts(key:str) -> str:
+    keyparts = key.split(":")
+    if(len(keyparts)!= 3):
+        return None,None,None
+    else:
+        return keyparts[0][5:],keyparts[1],keyparts[2]
+
 
 # incrementes task id by 1
 def incr_last_task_id(r) -> Union[int,None]:
@@ -72,13 +83,12 @@ def incr_last_task_id(r) -> Union[int,None]:
 # save task status in redis server
 # if success, returns True, otherwise, False
 # task is the result of AsynkTask.get_status(), that's a dictionary with all fields
-def save_task(r,id,task,exp_time=None) -> bool:
+def save_task(r,task_id:int,task,exp_time=None) -> bool:
     '''
     Save the task in backend persistence service
     
     Parameters:
     - r (StrictRedis): object with connection details to a redis database
-    - id (str): internal ID of the task
     - task (dict): task data 
     - exp_time (int) (optional, default=None): seconds to expire the task
 
@@ -87,7 +97,7 @@ def save_task(r,id,task,exp_time=None) -> bool:
 
     '''
 
-    task_id = "task_{id}".format(id=id)
+    task_id = generate_task_id(task_id,task)
     # mapping = {"status":status, "user":user, "data":data}
     logging.info(f"save_task {task_id} in REDIS")
 
@@ -106,20 +116,20 @@ def save_task(r,id,task,exp_time=None) -> bool:
 
 
 # set task expiration
-def set_expire_task(r,id,secs) -> bool:
+def set_expire_task(r,task_id:int,task,secs) -> bool:
     '''
     Set expiration time for a specific task
     
     Parameters:
     - r (StrictRedis): object with connection details to a redis database
-    - id (str): internal ID of the task
+    - task (dict): task data 
     - secs (int): seconds to expire the task
 
     Returns:
     - True if the task was correctly set as expired, otherwise False
 
     '''
-    task_id = f"task_{id}"
+    task_id = generate_task_id(task_id,task)
     try:
         # change to expire, because delete mantain deleted keys in redis
         # and iterate over them
@@ -137,13 +147,13 @@ def set_expire_task(r,id,secs) -> bool:
 
 # delete task from redis server
 # if success, returns True, otherwise, False
-def del_task(r,id) -> bool:
+def del_task(r,task_id,task) -> bool:
     '''
     Deletes a task by a given id (set expiration time for a specific task to 0)
     
     Parameters:
     - r (StrictRedis): object with connection details to a redis database
-    - id (str): internal ID of the task
+    - task (dict): task data
     
     Returns:
     - True if the task was correctly deleted, otherwise False
@@ -152,7 +162,7 @@ def del_task(r,id) -> bool:
 
     # use set_expire_task with 0 seconds
     # it's better than delete
-    return set_expire_task(r, id, 0)
+    return set_expire_task(r,task_id, task, 0)
 
 
 # return all task in dict format
@@ -176,15 +186,17 @@ def get_all_tasks(r) -> Union[dict,None]:
         # scan returns: [cursor, [list of keys]]
         # task_list = r.scan(cursor=0, match="task_*")[1]
 
-        for task_id in r.scan_iter(match="task_*"):
+        for redis_task_id in r.scan_iter(match="task_*"):
 
 
             # djson = r.hgetall(task_id)
-            task_json = r.get(task_id)
+            task_json = r.get(redis_task_id)
 
             # decode because redis stores it in Bytes not string
             task_json = task_json.decode('latin-1')
-            task_id = task_id.decode('latin-1')
+            user,service,task_id = key_parts(redis_task_id.decode('latin-1'))
+            if task_id==None:
+                continue
 
             # if d is empty, task_id was removed
             # this should be fixed with r.expire
@@ -222,20 +234,13 @@ def get_user_tasks(r,user,task_list=None, status_code=None) -> Union[dict,None]:
         # changed use of keys for hscan, since keys has bad performance in big data sets
         # task_list = r.keys("task_*")
         # scan_iter iterates between matching keys
+        for task_id in r.scan_iter(match="task_{user}:*".format(user=user)):
 
-
-        for task_id in r.scan_iter(match="task_*"):
-
-            # get service key value from task_id dict key
-            # serv = r.hget(task_id,"service")
-            # changed since now is a serialized string, after python redis==3.x
 
             json_task = r.get(task_id)
             # logging.info(json_task)
             # decode because redis stores it in Bytes not string
-            task_id = task_id.decode('latin-1')
-            
-            task = json.loads(json_task)
+            task = json.loads(json_task.decode('latin-1'))
 
             try:
                 _user = task["user"]
@@ -253,15 +258,11 @@ def get_user_tasks(r,user,task_list=None, status_code=None) -> Union[dict,None]:
                         continue
                 
                 # if task_list is not empty, and not found in the sublist of user tasks, then is skipped
-                if task_list != None and task["hash_id"] not in task_list:
+                if (task_list != None) and (task["hash_id"] not in task_list):
                     continue
 
-                d = r.get(task_id)
-                d = d.decode('latin-1')
-
-                task_dict[task["hash_id"]] = json.loads(d)
+                task_dict[task["hash_id"]] = task
                 
-
         return task_dict
 
 
@@ -281,7 +282,6 @@ def get_service_tasks(r,service,status_code=None) -> Union[dict,None]:
     
     Parameters:
     - r (StrictRedis): object with connection details to a redis database
-    - user (str): username of the owner of the task
     - service (str): service of tasks to return
     - status_code (str) (optional): status code of the tasks to return
 
@@ -304,14 +304,15 @@ def get_service_tasks(r,service,status_code=None) -> Union[dict,None]:
             # serv = r.hget(task_id,"service")
             # changed since now is a serialized string, after python redis==3.x
 
+            #skip if the service specified in the task_id is different
+            user,service,id = key_parts(task_id.decode('latin-1'))
+            if service==None or service != service:
+                continue
+
             json_task = r.get(task_id)
             # logging.info(json_task)
             # decode because redis stores it in Bytes not string
-            task_id = task_id.decode('latin-1')
-            #json_task = json_task.decode('latin-1')
-
-
-            task = json.loads(json_task)
+            task = json.loads(json_task.decode('latin-1'))
 
 
             try:
@@ -329,10 +330,7 @@ def get_service_tasks(r,service,status_code=None) -> Union[dict,None]:
                     if task["status"] not in status_code:
                         continue
 
-                d = r.get(task_id)
-                d = d.decode('latin-1')
-
-                task_dict[task_id] = d
+                task_dict[task["hash_id"]] = task
 
         return task_dict
 

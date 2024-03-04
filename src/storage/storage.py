@@ -295,7 +295,7 @@ def get_upload_unfinished_tasks():
 
         for key,task in queue_tasks.items():
 
-            task = json.loads(task)
+            #task = json.loads(task)
 
             # iterating over queue_tasls
             try:

@@ -6,7 +6,7 @@
     "configurations": [
 
         {
-            "name": "Python Debugger: Flask",
+            "name": "Python Debugger: Task",
             "type": "debugpy",
             "request": "launch",
             "module": "flask",

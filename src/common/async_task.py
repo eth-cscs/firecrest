@@ -64,7 +64,7 @@ status_codes = { QUEUED  : "Queued",
 
 
 class AsyncTask():
-    def __init__(self,task_id,user,service=None,system=None,data=None):
+    def __init__(self,task_id,user,service=None,system=None,data=None,created_at=None):
 
         self.task_id = task_id
         self.hash_id = self.get_hashid(task_id,user)
@@ -77,7 +77,10 @@ class AsyncTask():
         self.user = user
         self.service = service
         self.system  = system
-        self.created_at = time.strftime("%Y-%m-%dT%H:%M:%S")
+        if created_at==None:
+            self.created_at = time.strftime("%Y-%m-%dT%H:%M:%S")
+        else:
+            self.created_at = created_at
         self.updated_at = self.created_at
 
     # create hash_id as user-task_id MD5 encoded string

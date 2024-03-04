@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add F7T_GUNICORN_LOG for Gunicorn logs.
 - Add profiling midelware.
 
+### Changed
+
+- Improved retrieval of tasks from persistence storage.
+
 ### Fixed
 
 - Fixed demo images dependency declarations preventing docker-compose to build successfully.
