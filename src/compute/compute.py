@@ -5,6 +5,7 @@
 #  SPDX-License-Identifier: BSD-3-Clause
 #
 from flask import Flask, request, jsonify, g
+from werkzeug.middleware.profiler import ProfilerMiddleware
 import threading
 import async_task
 from cscs_api_common import check_auth_header, get_username, \
@@ -59,20 +60,11 @@ else:
     # if not set, create a list of False values, one for each SYSTEM
     USE_SPANK_PLUGIN = [False]*len(SYS_INTERNALS)
 
-
-# Filesystems where to save sbatch files
-# F7T_FILESYSTEMS = "/home,/scratch;/home"
-FILESYSTEMS     = os.environ.get("F7T_FILESYSTEMS").strip('\'"').split(";")
-# FILESYSTEMS = ["/home,/scratch", "/home"]
-
 # JOB base Filesystem: ["/scratch";"/home"]
 COMPUTE_BASE_FS     = os.environ.get("F7T_COMPUTE_BASE_FS").strip('\'"').split(";")
 
 # Detect scheduler object type
 COMPUTE_SCHEDULER = os.environ.get("F7T_COMPUTE_SCHEDULER", "Slurm")
-
-# scopes: get appropiate for jobs/storage, eg:  firecrest-tds.cscs.ch, firecrest-production.cscs.ch
-FIRECREST_SERVICE = os.environ.get("F7T_FIRECREST_SERVICE", '').strip('\'"')
 
 TAIL_BYTES = os.environ.get("F7T_TAIL_BYTES",1000)
 
@@ -83,6 +75,10 @@ TIMEOUT = int(os.environ.get("F7T_UTILITIES_TIMEOUT", "5"))
 TRACER_HEADER = "uber-trace-id"
 
 app = Flask(__name__)
+profiling_middle_ware = ProfilerMiddleware(app.wsgi_app,
+                                           restrictions=[15],
+                                           filename_format="compute.{method}.{path}.{elapsed:.0f}ms.{time:.0f}.prof",
+                                           profile_dir='/var/log/profs')
 # max content length for upload in bytes
 app.config['MAX_CONTENT_LENGTH'] = int(MAX_FILE_SIZE) * 1024 * 1024
 
@@ -1080,7 +1076,11 @@ def acct():
 def status():
     app.logger.info("Test status of service")
     # TODO: check compute reservation binary to truthfully respond this request
-    return jsonify(success="ack"), 200
+    if("X-F7T-PROFILE" in request.headers):
+        app.wsgi_app = profiling_middle_ware
+        return jsonify(success="profiling activated!"), 200
+    else:
+        return jsonify(success="ack"), 200
 
 @app.before_request
 def f_before_request():

@@ -5,7 +5,7 @@
 #  SPDX-License-Identifier: BSD-3-Clause
 #
 from flask import Flask, request, jsonify, g
-
+from werkzeug.middleware.profiler import ProfilerMiddleware
 # task states
 import async_task
 import os
@@ -46,7 +46,12 @@ DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 # task dict, key is the task_id
 tasks = {}
 
+
 app = Flask(__name__)
+profiling_middle_ware = ProfilerMiddleware(app.wsgi_app,
+                                           restrictions=[15],
+                                           filename_format="tasks.{method}.{path}.{elapsed:.0f}ms.{time:.0f}.prof",
+                                           profile_dir='/var/log/profs')
 
 logger = setup_logging(logging, 'tasks')
 
@@ -82,18 +87,17 @@ def init_queue():
     task_list = persistence.get_all_tasks(r)
 
     # key = task_id ; values = {status_code,user,data}
-    for rid, value in task_list.items():
+    for task_id, value in task_list.items():
 
-        # task_list has id with format task_id, ie: task_2
-        # therefore it must be splitted by "_" char:
-        task_id = rid.split("_")[1]
 
         status  = value["status"]
         user    = value["user"]
         data    = value["data"]
         service = value["service"]
+        system = value["system"]
+        created_at = value["created_at"]
 
-        t = async_task.AsyncTask(task_id,user,service)
+        t = async_task.AsyncTask(task_id,user,service=service,system=system,created_at=created_at)
         t.set_status(status,data)
         tasks[t.hash_id] = t
 
@@ -200,7 +204,7 @@ def create_task():
     if service == "compute":
         exp_time = COMPUTE_TASK_EXP_TIME
 
-    persistence.save_task(r,id=task_id,task=t.get_status(),exp_time=exp_time)
+    persistence.save_task(r,task_id,task=t.get_internal_status(),exp_time=exp_time)
 
     # {"id":task_id,
     #               "status":async_task.QUEUED,
@@ -315,7 +319,7 @@ def update_task(id):
         exp_time = COMPUTE_TASK_EXP_TIME
 
     #update task in persistence server
-    if not persistence.save_task(r, id=tasks[hash_id].task_id, task=tasks[hash_id].get_internal_status(), exp_time=exp_time):
+    if not persistence.save_task(r,tasks[hash_id].task_id, task=tasks[hash_id].get_internal_status(), exp_time=exp_time):
         app.logger.error("Error saving task")
         app.logger.error(tasks[hash_id].get_internal_status())
         return jsonify(description="Couldn't update task"), 400
@@ -355,7 +359,7 @@ def delete_task(id):
     try:
         global r
 
-        if not persistence.set_expire_task(r,id=tasks[hash_id].task_id,secs=300):
+        if not persistence.set_expire_task(r,tasks[hash_id].task_id,tasks[hash_id].get_internal_status(),secs=300):
             return jsonify(error=f"Failed to delete task {hash_id} on persistence server"), 400
 
         data = jsonify(success=f"Task {hash_id} deleted")
@@ -417,7 +421,7 @@ def expire_task(id):
         global r
 
         app.logger.info(f"Set expiration for task {tasks[hash_id].task_id} - {exp_time} secs")
-        if not persistence.set_expire_task(r,id=tasks[hash_id].task_id,secs=exp_time):
+        if not persistence.set_expire_task(r,tasks[hash_id].task_id,tasks[hash_id].get_internal_status(),secs=exp_time):
             app.logger.warning(f"Task couldn't be marked as expired")
             return jsonify(error="Failed to set expiration time on task in persistence server"), 400
 
@@ -433,9 +437,14 @@ def expire_task(id):
 @app.route("/status",methods=["GET"])
 @check_auth_header
 def status():
-
     app.logger.info("Test status of service")
-    return jsonify(success="ack"), 200
+    if("X-F7T-PROFILE" in request.headers):
+        app.wsgi_app = profiling_middle_ware
+        return jsonify(success="profiling activated!"), 200
+    else:
+        return jsonify(success="ack"), 200
+    
+    
 
 
 # entry point for all tasks by all users (only used by internal)

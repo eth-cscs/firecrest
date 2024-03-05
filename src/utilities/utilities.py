@@ -5,6 +5,7 @@
 #  SPDX-License-Identifier: BSD-3-Clause
 #
 from flask import Flask, request, jsonify, send_file, g
+from werkzeug.middleware.profiler import ProfilerMiddleware
 import os, logging
 from werkzeug.exceptions import BadRequestKeyError
 
@@ -45,6 +46,11 @@ SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 TRACER_HEADER = "uber-trace-id"
 
 app = Flask(__name__)
+profiling_middle_ware = ProfilerMiddleware(app.wsgi_app,
+                                           restrictions=[15],
+                                           filename_format="utilities.{method}.{path}.{elapsed:.0f}ms.{time:.0f}.prof",
+                                           profile_dir='/var/log/profs')
+
 # max content lenght for upload in bytes
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE_BYTES
 
@@ -692,7 +698,11 @@ def whoami():
 @check_auth_header
 def status():
     app.logger.info("Test status of service")
-    return jsonify(success="ack"), 200
+    if("X-F7T-PROFILE" in request.headers):
+        app.wsgi_app = profiling_middle_ware
+        return jsonify(success="profiling activated!"), 200
+    else:
+        return jsonify(success="ack"), 200
 
 @app.before_request
 def f_before_request():

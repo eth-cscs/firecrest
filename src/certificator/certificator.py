@@ -6,6 +6,7 @@
 #
 import subprocess, os, tempfile
 from flask import Flask, request, jsonify, g
+from werkzeug.middleware.profiler import ProfilerMiddleware
 import functools
 import jwt
 
@@ -80,6 +81,10 @@ if len(REALM_RSA_PUBLIC_KEYS) != 0:
 DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 app = Flask(__name__)
+profiling_middle_ware = ProfilerMiddleware(app.wsgi_app,
+                                           restrictions=[15],
+                                           filename_format="certificator.{method}.{path}.{elapsed:.0f}ms.{time:.0f}.prof",
+                                           profile_dir='/var/log/profs')
 
 JAEGER_AGENT = os.environ.get("F7T_JAEGER_AGENT", "").strip('\'"')
 if JAEGER_AGENT != "":
@@ -441,21 +446,33 @@ def receive():
             app.logger.error(f"Forbidden char on command or option: {force_command} {force_opt}")
             return jsonify(description='Invalid command'), 400
 
-        force_command = f"-O force-command=\"{force_command} {force_opt}\""
-        force_command = force_command.replace('$', '\$')
 
         # create temp dir to store certificate for this request
         td = tempfile.mkdtemp(prefix = "cert")
         os.symlink(PUB_USER_KEY_PATH, f"{td}/user-key.pub")  # link on temp dir
 
-        command = f"ssh-keygen -s {CA_KEY_PATH} -n {username} -V {ssh_expire} -I {CA_KEY_PATH} {force_command} {td}/user-key.pub "
-
+        command = ["ssh-keygen",
+                    "-s",
+                    f"{CA_KEY_PATH}",
+                    "-n",
+                    f"{username}",
+                    "-V",
+                    f"{ssh_expire}",
+                    "-I",
+                    f"{CA_KEY_PATH}",
+                    "-O",
+                    f"force-command={force_command} {force_opt}",
+                    f"{td}/user-key.pub"
+                    ]
+ 
     except Exception as e:
         logging.error(e)
         return jsonify(description=f"Error creating certificate: {e}", error=-1), 400
 
+        
     try:
-        result = subprocess.check_output([command], shell=True)
+        #To prvent shell hijacking don't run commands with shell=True
+        result = subprocess.run(command, shell=False, check=True)
         with open(td + '/user-key-cert.pub', 'r') as cert_file:
             cert = cert_file.read()
 
@@ -476,7 +493,11 @@ def receive():
 @check_auth_header
 def status():
     app.logger.info("Test status of service")
-    return jsonify(success="ack"), 200
+    if("X-F7T-PROFILE" in request.headers):
+        app.wsgi_app = profiling_middle_ware
+        return jsonify(success="profiling activated!"), 200
+    else:
+        return jsonify(success="ack"), 200
 
 @app.before_request
 def f_before_request():

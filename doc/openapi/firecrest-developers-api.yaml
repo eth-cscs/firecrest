@@ -8,7 +8,7 @@ openapi: 3.0.0
 servers:
   - url: "/"
 info:
-  version: 1.14.1
+  version: 1.15.0
   title: FirecREST Developers API
   description: >
     This API specification is intended for FirecREST developers only. There're some endpoints that are not available in the public version for client developers.
@@ -95,6 +95,58 @@ paths:
                 $ref: '#/components/schemas/System'
         '404':
           description: System does not exists
+  
+  
+  '/status/filesystems':
+    get:
+      summary: List of filesystems allowed in the API
+      description: Returns list of filesystems enabled in the API that can be configured in environment files.
+      tags:
+        - Status
+      responses:
+        '200':
+          description: List of filesystems
+          content:
+            "application/json":
+              schema:
+                properties:
+                  description: 
+                    description: Description of the output
+                    type: string
+                    default: Filesystem information
+                  output:
+                    type: object
+                    $ref: '#/components/schemas/Filesystems'
+
+
+  '/status/filesystems/{machinename}':
+    parameters:
+      - name: machinename
+        in: path
+        description: System name
+        required: true
+        schema:
+          type: string
+    get:
+      summary: List of filesystems allowed in the API
+      description: Returns list of filesystems enabled in the API that can be configured in environment files.
+      tags:
+        - Status
+      responses:
+        '200':
+          description: List of filesystems enabled on {machinename} 
+          content:
+            "application/json":
+              schema:
+                properties:
+                  description: 
+                    description: Description of the output
+                    type: string
+                    default: Filesystem information
+                  output:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Filesystem'
   '/status/parameters':
     get:
       summary: List of API parameters
@@ -108,7 +160,6 @@ paths:
             '*/*':
               schema:
                 $ref: '#/components/schemas/Parameters'
-
   '/utilities/ls':
     parameters:
       - in: header
@@ -2822,6 +2873,43 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Service'
+    
+    Filesystem:
+      properties:
+        description:
+          type: string
+          description: Description of the filesystem
+        name:
+          type: string
+          description: Internal name for the filesystem (HOME, SCRATCH, etc)
+        path:
+          type: string
+          description: Absolute path of the filesystem
+        status:
+          type: string
+          description: Description of the current status of the filesystem
+          enum:
+            - available
+            - down
+        status_code:
+          type: integer
+          description: Status code of the filesystem
+          enum:
+            - 200
+            - 400            
+    
+    Filesystems:
+      type: object
+      properties:
+        system:
+          type: array
+          description: System name
+          items:
+            type: array
+            items: 
+              $ref: '#/components/schemas/Filesystem'
+        
+        
     Job:
       type: object
       required:
