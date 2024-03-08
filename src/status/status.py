@@ -5,9 +5,11 @@
 #  SPDX-License-Identifier: BSD-3-Clause
 #
 from flask import Flask, jsonify, request, g
+from flask_caching import Cache
 import requests
 import logging
 import multiprocessing as mp
+
 
 # common modules
 from cscs_api_common import check_auth_header, get_boolean_var, get_username, setup_logging
@@ -20,6 +22,9 @@ from jaeger_client import Config
 import opentracing
 
 app = Flask(__name__)
+cache = Cache(config={'CACHE_TYPE': 'SimpleCache'})
+cache.init_app(app)
+
 logger = setup_logging(logging, 'status')
 
 AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME","Authorization")
@@ -86,6 +91,13 @@ def set_services():
 
 # create services list
 set_services()
+
+
+def no_cache():
+ return 'Cache-Control' in request.headers and 'no-cache' in request.headers['Cache-Control']
+
+CACHE_TIMEOUT_5m = 300
+CACHE_TIMEOUT_5s = 5
 
 
 def get_tracing_headers(req):
@@ -299,6 +311,7 @@ def check_filesystem(system, filesystems,headers):
 # get information about of all filesystems
 @app.route("/filesystems", methods=["GET"])
 @check_auth_header
+@cache.cached(timeout=CACHE_TIMEOUT_5m, forced_update=no_cache)
 def get_all_filesystems():
 
     [headers, ID] = get_tracing_headers(request)
@@ -341,6 +354,7 @@ def get_all_filesystems():
 # get information about a specific system
 @app.route("/filesystems/<system>", methods=["GET"])
 @check_auth_header
+@cache.cached(timeout=CACHE_TIMEOUT_5m, forced_update=no_cache)
 def get_system_filesystems(system):
 
     [headers, ID] = get_tracing_headers(request)
@@ -370,6 +384,7 @@ def get_system_filesystems(system):
 # get service information about a particular system
 @app.route("/systems/<machinename>", methods=["GET"])
 @check_auth_header
+@cache.cached(timeout=CACHE_TIMEOUT_5m, forced_update=no_cache)
 def status_system(machinename):
 
     [headers, ID] = get_tracing_headers(request)
@@ -416,6 +431,7 @@ def status_system(machinename):
 # return information of all systems configured
 @app.route("/systems",methods=["GET"])
 @check_auth_header
+@cache.cached(timeout=CACHE_TIMEOUT_5m, forced_update=no_cache)
 def status_systems():
 
     [headers, ID] = get_tracing_headers(request)
@@ -477,6 +493,7 @@ def status_systems():
 # get service information about a particular servicename
 @app.route("/services/<servicename>",methods=["GET"])
 @check_auth_header
+@cache.cached(timeout=CACHE_TIMEOUT_5s, forced_update=no_cache)
 def status_service(servicename):
     if servicename not in SERVICES_DICT.keys():
         return jsonify(description="Service does not exists", status_code=404), 404
@@ -512,6 +529,7 @@ def status_service(servicename):
 # get service information about all services
 @app.route("/services", methods=["GET"])
 @check_auth_header
+@cache.cached(timeout=CACHE_TIMEOUT_5s, forced_update=no_cache)
 def status_services():
     # resp_list list to fill with responses from each service
     resp_list=[]
@@ -569,6 +587,7 @@ def status_services():
 # get service information about all services
 @app.route("/parameters", methods=["GET"])
 @check_auth_header
+@cache.cached(timeout=CACHE_TIMEOUT_5m, forced_update=no_cache)
 def parameters():
     # { <microservice>: [ "name": <parameter>,  "value": <value>, "unit": <unit> } , ... ] }
 
