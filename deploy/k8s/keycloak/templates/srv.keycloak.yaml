@@ -6,7 +6,7 @@ items:
     name: svc-keycloak
     namespace: {{ .Values.global.namespace }}
   spec:
-    type: ClusterIP
+    type: LoadBalancer
     selector:
       app: keycloak
     ports:
