@@ -6,7 +6,7 @@ items:
     name: svc-kong
     namespace: {{ .Values.global.namespace }}
   spec:
-    # type: NodePort
+    type: LoadBalancer
     selector:
       app: kong
     ports:
