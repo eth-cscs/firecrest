@@ -1,0 +1,11 @@
+
+global:
+  environment: "dev"
+  registry: "localhost:5000"
+  tag: "latest"
+
+dns:
+  url : "localhost"
+
+
+F7T_JAEGER_AGENT : ""

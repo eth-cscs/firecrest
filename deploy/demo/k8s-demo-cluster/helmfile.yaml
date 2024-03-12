@@ -1,0 +1,51 @@
+releases:
+  - name: keycloak
+    chart: ../../k8s/keycloak/
+    values:
+      - ./values.yaml
+      - ../../k8s/values-dev.yaml
+  - name: cluster
+    chart: ../../k8s/cluster/
+    values:
+      - ./values.yaml
+      - ../../k8s/values-dev.yaml
+  - name: certificator
+    chart: ../../k8s/certificator/
+    values:
+      - ./values.yaml
+      - ../../k8s/values-dev.yaml
+  - name: congif
+    chart: ../../k8s/config/
+    values:
+      - ./values.yaml
+      - ../../k8s/values-dev.yaml
+  - name: compute
+    chart: ../../k8s/compute/
+    values:
+      - ./values.yaml
+      - ../../k8s/values-dev.yaml
+  - name: status
+    chart: ../../k8s/status/
+    values:
+      - ./values.yaml
+      - ../../k8s/values-dev.yaml
+  - name: storage
+    chart: ../../k8s/storage/
+    values:
+      - ./values.yaml
+      - ../../k8s/values-dev.yaml
+  - name: tasks
+    chart: ../../k8s/tasks/
+    values:
+      - ./values.yaml
+      - ../../k8s/values-dev.yaml
+  - name: utilities
+    chart: ../../k8s/utilities/
+    values:
+      - ./values.yaml
+      - ../../k8s/values-dev.yaml
+  - name: kong
+    chart: ../../k8s/kong/
+    values:
+      - ./values.yaml
+      - ../../k8s/values-dev.yaml
