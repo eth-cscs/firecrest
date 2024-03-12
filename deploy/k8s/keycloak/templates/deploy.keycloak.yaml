@@ -25,7 +25,7 @@ items:
             value: kcrealm
           - name: KC_REALM_NAME
             value: kcrealm
-          - name: KEYCLOAK_USER
+          - name: KEYCLOAK_ADMIN
             value: admin
           - name: KEYCLOAK_ADMIN_PASSWORD
             valueFrom:
