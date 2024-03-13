@@ -83,6 +83,22 @@ class AsyncTask():
             self.created_at = created_at
         self.updated_at = self.created_at
 
+    @classmethod
+    def deserialise(cls, value):
+        
+        status  = value["status"]
+        user    = value["user"]
+        data    = value["data"]
+        service = value["service"]
+        system = value["system"]
+        created_at = value["created_at"]
+        task_id  = value["task_id"]
+
+        task = AsyncTask(task_id,user,service=service,system=system,created_at=created_at)
+        task.set_status(status,data)
+
+        return task
+
     # create hash_id as user-task_id MD5 encoded string
     # used for public access to info in Queue
     def get_hashid(self,task_id,user):
