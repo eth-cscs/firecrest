@@ -19,6 +19,11 @@ releases:
     values:
       - ./values.yaml
       - ../../k8s/values-dev.yaml
+  - name: redis
+    chart: ../../k8s/redis/
+    values:
+      - ./values.yaml
+      - ../../k8s/values-dev.yaml
   - name: compute
     chart: ../../k8s/compute/
     values:
