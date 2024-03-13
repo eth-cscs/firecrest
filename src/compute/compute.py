@@ -800,7 +800,7 @@ def list_job(jobid):
 
         # asynchronous task creation
         aTask = threading.Thread(target=list_job_task, name=ID,
-                                 args=(headers, system_name, system_addr, action, task_id, 1, 1))
+                                 args=(headers, system_name, system_addr, action, task_id, 1, 0))
 
         aTask.start()
 
