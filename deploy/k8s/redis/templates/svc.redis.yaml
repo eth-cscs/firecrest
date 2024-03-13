@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service # this is basically a proxy configuration to route connections to pods
+metadata:
+  name: svc-redis
+  namespace: {{ .Values.global.namespace }}
+spec:
+  selector:
+    app: redis # will match pods with this label
+  ports:
+  - name: "redis"
+    port: {{ .Values.F7T_PERSIST_PORT | atoi }} # redis port
+    targetPort: {{ .Values.F7T_PERSIST_PORT | atoi}}

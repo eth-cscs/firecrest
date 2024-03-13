@@ -7,8 +7,9 @@ items:
     namespace: {{ .Values.global.namespace }}
   data:
     redis.conf: |
-      protected-mode yes
+      protected-mode no
       port {{ .Values.F7T_PERSIST_PORT }}
+      bind 0.0.0.0
       tcp-backlog 511
       timeout 0
       tcp-keepalive 300

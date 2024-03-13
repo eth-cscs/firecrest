@@ -10,6 +10,3 @@ spec:
   - name: "tasks"
     port: {{ .Values.F7T_TASKS_PORT | atoi }} # tasks port
     targetPort: {{ .Values.F7T_TASKS_PORT | atoi}}
-  - name: "redis"
-    port: {{ .Values.F7T_PERSIST_PORT | atoi }} # redis port
-    targetPort: {{ .Values.F7T_PERSIST_PORT | atoi}}

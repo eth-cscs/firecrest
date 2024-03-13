@@ -21,6 +21,10 @@ spec:
       - image: "{{ .Values.global.registry }}/compute:{{ .Values.global.tag }}"
         imagePullPolicy: Always
         name: compute
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
         ports:
         - containerPort: {{ .Values.F7T_COMPUTE_PORT | atoi }}
         envFrom:

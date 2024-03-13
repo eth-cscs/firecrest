@@ -22,6 +22,10 @@ spec:
       - image: "{{ .Values.global.registry }}/utilities:{{ .Values.global.tag }}"
         imagePullPolicy: Always
         name: utilities
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
         ports:
         - containerPort: {{ .Values.F7T_UTILITIES_PORT | atoi }}
         envFrom:

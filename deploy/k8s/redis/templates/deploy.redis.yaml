@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: deploy-tasks
+  name: deploy-redis
   namespace: {{ .Values.global.namespace }}
   {{ if ne .Values.global.environment "dev" }}
   annotations:
@@ -12,22 +12,30 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: tasks
+      app: redis
   template:
     metadata:
       labels:
-        app: tasks
+        app: redis
     spec:
       containers:
-      - name: tasks
-        image: "{{ .Values.global.registry }}/tasks:{{ .Values.global.tag }}"
-        imagePullPolicy: Always
+      - name: taskpersistence
+        image: redis:5
+        command:
+        - /usr/local/bin/redis-server 
+        - "/redis/redis.conf"
+        - --requirepass 
+        - "$(F7T_PERSIST_PWD)"
+        lifecycle:
+          postStart:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 10"]
         resources:
           limits:
             memory: "128Mi"
             cpu: "500m"
         ports:
-        - containerPort: {{ .Values.F7T_TASKS_PORT | atoi }}
+        - containerPort: {{ .Values.F7T_PERSIST_PORT | atoi }}
         env:
           - name: F7T_PERSIST_PWD
             {{ if eq .Values.global.environment "dev" }}
@@ -38,31 +46,27 @@ spec:
                 name: firecrest-common-secrets
                 key: F7T_PERSIST_PWD
             {{ end }}
-        envFrom:
-        - configMapRef:
-            name: common-env-file
-        - configMapRef:
-            name: tasks-env-file
         volumeMounts:
         - mountPath: /var/log
           name: logs-endpoint
-        - mountPath: /f7t-ssl.crt
-          name: f7t-ssl-crt
-          subPath: f7t-ssl.crt
-        - mountPath: /f7t-ssl.key
-          name: f7t-ssl-key
-          subPath: f7t-ssl.key
-        startupProbe:
-          tcpSocket:
-            port: {{ .Values.F7T_TASKS_PORT | atoi }}
-          initialDelaySeconds: 5
-          failureThreshold: 1
+        - mountPath: /data
+          name: redis-data
+        - mountPath: /redis
+          name: redis-config
       volumes:
-      - name: logs-endpoint
-        emptyDir: {}
-      - name: f7t-ssl-crt
-        configMap:
-          name: f7t-ssl-crt
-      - name: f7t-ssl-key
-        configMap:
-          name: f7t-ssl-key
+        - name: logs-endpoint
+          emptyDir: {}
+        - name: redis-data
+          {{ if ne .Values.global.environment "dev" }}
+          persistentVolumeClaim:
+            claimName: firecrest-redis-pvc
+          {{ else }}
+          emptyDir: {}
+          {{ end }}
+        - name: redis-config
+          configMap:
+            name: f7t-redis
+      
+
+
+

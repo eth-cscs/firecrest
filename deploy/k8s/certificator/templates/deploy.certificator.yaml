@@ -23,6 +23,10 @@ items:
         - name: f7t-opa
           image: openpolicyagent/opa:0.22.0
           args: ["run", "--server", "--log-level=debug", "--log-format=json-pretty", "--skip-version-check", "/opa-files/data.json", "/opa-files/policy.rego"]
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
           ports:
           - containerPort: {{ .Values.F7T_OPA_PORT | atoi }}
           volumeMounts:
@@ -36,6 +40,10 @@ items:
         - name: f7t-certificator
           image: "{{ .Values.global.registry }}/certificator:{{ .Values.global.tag }}"
           imagePullPolicy: Always
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
           ports:
           - containerPort: {{ .Values.F7T_CERTIFICATOR_PORT | atoi }}
           envFrom:
