@@ -51,3 +51,8 @@ docker push localhost:5000/utilities:latest
 ```console
 helmfile sync helmfile.yaml
 ```
+
+### Destroy Local Cluster
+```console
+helmfile delete helmfile.yaml
+```
