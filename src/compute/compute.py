@@ -397,7 +397,7 @@ def submit_job_upload():
             app.logger.error('No batch file selected')
             error = jsonify(description="Failed to submit job file", error='No batch file selected')
             return error, 400
-        
+
         # decoding content, since from read() method it returns binary encoding
         if job_file['content'].decode() == '':
             app.logger.error('Batch file is empty')
@@ -975,6 +975,29 @@ def acct_task(headers, system_name, system_addr, action, task_id, pageSize, page
     update_task(task_id, headers, async_task.SUCCESS, jobs, is_json=True)
 
 
+def nodes_task(headers, system_name, system_addr, action, task_id):
+    # exec remote command
+    resp = exec_remote_command(headers, system_name, system_addr, action)
+
+    # in case of error:
+    if resp["error"] == -2:
+        update_task(task_id, headers, async_task.ERROR, "Machine is not available")
+        return
+
+    # in case of error:
+    if resp["error"] != 0:
+        err_msg = resp["msg"]
+        if in_str(err_msg,"OPENSSH"):
+            err_msg = "User does not have permissions to access machine"
+        update_task(task_id, headers, async_task.ERROR, err_msg)
+        return
+
+    jobs = scheduler.parse_nodes_output(resp["msg"])
+    app.logger.info(f"Number of nodes: {len(jobs)}")
+
+    # as it is a json data to be stored in Tasks, the is_json=True
+    update_task(task_id, headers, async_task.SUCCESS, jobs, is_json=True)
+
 
 # Job account information
 @app.route("/acct",methods=["GET"])
@@ -1060,6 +1083,64 @@ def acct():
         # asynchronous task creation
         aTask = threading.Thread(target=acct_task, name=ID,
                                  args=(headers, system_name, system_addr, action, task_id, pageSize, pageNumber))
+
+        aTask.start()
+        task_url = f"{KONG_URL}/tasks/{task_id}"
+
+        data = jsonify(success="Task created", task_id=task_id, task_url=task_url)
+        return data, 200
+
+    except Exception as e:
+        data = jsonify(description="Failed to retrieve account information",error=e)
+        return data, 400
+
+@app.route("/nodes",methods=["GET"])
+@check_auth_header
+def get_ndoes():
+    try:
+        system_name = request.headers["X-Machine-Name"]
+    except KeyError as e:
+        app.logger.error("No machinename given")
+        return jsonify(description="No machine name given"), 400
+
+    # public endpoints from Kong to users
+    if system_name not in SYSTEMS_PUBLIC:
+        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
+        return jsonify(description="Failed to retrieve account information", error="Machine does not exists"), 400, header
+
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYS_INTERNALS[system_idx]
+
+    [headers, ID] = get_tracing_headers(request)
+    # check if machine is accessible by user:
+    resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true")
+
+    if resp["error"] != 0:
+        error_str = resp["msg"]
+        if resp["error"] == -2:
+            header = {"X-Machine-Not-Available": "Machine is not available"}
+            return jsonify(description="Failed to retrieve account information"), 400, header
+        if in_str(error_str,"Permission") or in_str(error_str,"OPENSSH"):
+            header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
+            return jsonify(description="Failed to retrieve account information"), 404, header
+
+    sched_cmd = scheduler.get_nodes([])
+    action = f"ID={ID} {sched_cmd}"
+
+    try:
+        # obtain new task from Tasks microservice
+        task_id = create_task(headers, service="compute",system=system_name)
+
+        # if error in creating task:
+        if task_id == -1:
+            return jsonify(description="Failed to retrieve account information",error='Error creating task'), 400
+
+        update_task(task_id, headers, async_task.QUEUED)
+
+        # asynchronous task creation
+        aTask = threading.Thread(target=nodes_task, name=ID,
+                                 args=(headers, system_name, system_addr, action, task_id))
 
         aTask.start()
         task_url = f"{KONG_URL}/tasks/{task_id}"

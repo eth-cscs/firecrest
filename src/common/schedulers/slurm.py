@@ -233,6 +233,34 @@ class SlurmScheduler(schedulers.JobScheduler):
 
         return None
 
+    def get_nodes(self, nodenames):
+        quotes_nodenames = [f"'{node}'" for node in nodenames]
+        return f"scontrol -a show -o nodes {','.join(quotes_nodenames)}"
+
+    def parse_nodes_output(self, output):
+        node_descriptions = output.splitlines()
+        nodes = []
+        attribute_seps = {
+            "NodeName": None,
+            "ActiveFeatures": ",",
+            "Partitions": ",",
+            "State": "+"
+        }
+        for node_descr in node_descriptions:
+            node_info = {}
+            for attr_name, sep in attribute_seps.items():
+                attr_match = re.search(rf'{attr_name}=(\S+)', node_descr)
+                if attr_match:
+                    attr = attr_match.group(1)
+                    node_info[attr_name] = attr.split(sep) if sep else attr
+                else:
+                    logger.error(f"Could not parse attribute {attr_name} in {node_descr}, will return `None`")
+                    node_info[attr_name] = None
+
+            nodes.append(node_info)
+
+        return list(nodes)
+
     def is_valid_accounting_time(self,sacctTime):
         # HH:MM[:SS] [AM|PM]
         # MMDD[YY] or MM/DD[/YY] or MM.DD[.YY]
