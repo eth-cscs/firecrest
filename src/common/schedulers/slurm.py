@@ -233,7 +233,8 @@ class SlurmScheduler(schedulers.JobScheduler):
 
         return None
 
-    def get_nodes(self, nodenames):
+    def get_nodes(self, nodenames=None):
+        nodenames = [] if nodenames is None else nodenames
         quotes_nodenames = [f"'{node}'" for node in nodenames]
         return f"scontrol -a show -o nodes {','.join(quotes_nodenames)}"
 
