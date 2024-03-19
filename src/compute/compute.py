@@ -1125,7 +1125,19 @@ def get_nodes():
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Failed to retrieve account information"), 404, header
 
-    sched_cmd = scheduler.get_nodes([])
+    nodes = request.args.get("nodes", None)
+    nodes_list = None
+    if nodes != None:
+        v = validate_input(nodes)
+        if v != "":
+            return jsonify(description="Failed to retrieve nodes information", error=f"node '{nodes}' {v}"), 400
+
+        try:
+            nodes_list = nodes.split(",")
+        except:
+            return jsonify(error="Jobs list wrong format", description="Failed to retrieve node information"), 400
+
+    sched_cmd = scheduler.get_nodes(nodes_list)
     action = f"ID={ID} {sched_cmd}"
 
     try:
