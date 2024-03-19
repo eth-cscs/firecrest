@@ -1096,7 +1096,7 @@ def acct():
 
 @app.route("/nodes",methods=["GET"])
 @check_auth_header
-def get_ndoes():
+def get_nodes():
     try:
         system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
