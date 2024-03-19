@@ -5,11 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.0]
+
+### Added
+
+- Add the endpoints `/compute/nodes` and `/compute/nodes/{nodeid}` to retrieve information about nodes in the SLURM scheduling queue.
+
 ## [1.15.0]
 
 ### Added
 
-- Added the endpoints `GET /status/filesystems` and `GET /status/filesystems/<system>`, providing enhancement in terms of filesystem availability
+- Add the endpoints `GET /status/filesystems` and `GET /status/filesystems/<system>`, providing enhancement in terms of filesystem availability
 - The endpoint `/utilities/whoami` adds the `boolean` parameter "`groups`" which set on `true` returns a dictionary with `uid`, `gid`, and `groups`
 - Added the parameter `WORKLOAD_MANAGER` in `GET /status/parameters` to provide information on the resource and workload manager used for compute
 - Add F7T_LOG_TYPE to select logging to files or stdout.
@@ -23,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed demo images dependency declarations preventing docker-compose to build successfully.
-- Fixed check when submitted an empty batch file on `POST /compute/jobs/upload` 
+- Fixed check when submitted an empty batch file on `POST /compute/jobs/upload`
 - Fixed error message when `GET /status/systems` encounters error in one filesystem
 - Fixed SSH connection error catching
 - Fixed secured "ssh-keygen" command execution
