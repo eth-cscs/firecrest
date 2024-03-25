@@ -2181,7 +2181,7 @@ paths:
         schema:
           type: string
     get:
-      summary: "[Warning: only supported until v2.0] Returns all reservations"
+      summary: "[Warning: only supported until v1.17.0] Returns all reservations"
       description: List all active reservations and their status
       deprecated: true
       tags:
@@ -2228,7 +2228,7 @@ paths:
                 type: integer
 
     post:
-      summary: "[Warning: only supported until v2.0] Creates a new reservation"
+      summary: "[Warning: only supported until v1.17.0] Creates a new reservation"
       description: Creates a new reservation with {reservation} name for a given SLURM groupname
       deprecated: true
       tags:
@@ -2344,7 +2344,7 @@ paths:
         schema:
           type: string
     put:
-      summary: "[Warning: only supported until v2.0] Updates reservation {reservation}"
+      summary: "[Warning: only supported until v1.17.0] Updates reservation {reservation}"
       description: Updates an already created reservation named {reservation}
       deprecated: true
       tags:
@@ -2440,7 +2440,7 @@ paths:
                 type: integer
 
     delete:
-      summary: "[Warning: only supported until v2.0] Deletes reservation {reservation}"
+      summary: "[Warning: only supported until v1.17.0] Deletes reservation {reservation}"
       description: Deletes an already created reservation named {reservation}
       deprecated: true
       tags:
