@@ -30,11 +30,11 @@ from schedulers import Job
 AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME","Authorization")
 
 ### SSL parameters
-USE_SSL = get_boolean_var(os.environ.get("F7T_SSL_USE", True))
+SSL_ENABLED = get_boolean_var(os.environ.get("F7T_SSL_ENABLED", True))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
-F7T_SCHEME_PROTOCOL = ("https" if USE_SSL else "http")
+F7T_SCHEME_PROTOCOL = ("https" if SSL_ENABLED else "http")
 
 # Internal microservices communication
 ## certificator
@@ -55,20 +55,20 @@ COMPUTE_PORT    = os.environ.get("F7T_COMPUTE_PORT", "5006")
 SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC_NAME","").strip('\'"').split(";")
 
 # internal machines to submit/query jobs
-SYSTEMS_INTERNAL_COMPUTE   = os.environ.get("F7T_SYSTEMS_INTERNAL_COMPUTE", os.environ.get("F7T_SYSTEMS_INTERNAL_NAME","")).strip('\'"').split(";")
+SYSTEMS_INTERNAL_COMPUTE   = os.environ.get("F7T_SYSTEMS_INTERNAL_COMPUTE_ADDR", os.environ.get("F7T_SYSTEMS_INTERNAL_ADDR","")).strip('\'"').split(";")
 
 # Does the job machine have the spank plugin
-SPANK_PLUGIN_USE = os.environ.get("F7T_SPANK_PLUGIN_USE", None)
-if SPANK_PLUGIN_USE != None:
-    SPANK_PLUGIN_USE = SPANK_PLUGIN_USE.strip('\'"').split(";")
+SPANK_PLUGIN_ENABLED = os.environ.get("F7T_SPANK_PLUGIN_ENABLED", None)
+if SPANK_PLUGIN_ENABLED != None:
+    SPANK_PLUGIN_ENABLED = SPANK_PLUGIN_ENABLED.strip('\'"').split(";")
     # cast to boolean
-    for i in range(len(SPANK_PLUGIN_USE)):
-        SPANK_PLUGIN_USE[i] = get_boolean_var(SPANK_PLUGIN_USE[i])
+    for i in range(len(SPANK_PLUGIN_ENABLED)):
+        SPANK_PLUGIN_ENABLED[i] = get_boolean_var(SPANK_PLUGIN_ENABLED[i])
     # spank plugin option value
     SPANK_PLUGIN_OPTION = os.environ.get("F7T_SPANK_PLUGIN_OPTION","--nohome")
 else:
     # if not set, create a list of False values, one for each SYSTEM
-    SPANK_PLUGIN_USE = [False]*len(SYSTEMS_INTERNAL_COMPUTE)
+    SPANK_PLUGIN_ENABLED = [False]*len(SYSTEMS_INTERNAL_COMPUTE)
 
 # JOB base Filesystem: ["/scratch";"/home"]
 COMPUTE_BASE_FS     = os.environ.get("F7T_COMPUTE_BASE_FS").strip('\'"').split(";")
@@ -441,7 +441,7 @@ def submit_job_upload():
     username = is_username_ok["username"]
 
     job_dir = f"{job_base_fs}/{username}/firecrest/{tmpdir}"
-    use_plugin  = SPANK_PLUGIN_USE[system_idx]
+    use_plugin  = SPANK_PLUGIN_ENABLED[system_idx]
     job_env = request.form.get("env", None)
     if job_env:
         #convert to text for Slurm: key=value ending with null caracter
@@ -495,7 +495,7 @@ def submit_job_path():
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
     system_addr = SYSTEMS_INTERNAL_COMPUTE[system_idx]
-    use_plugin = SPANK_PLUGIN_USE[system_idx]
+    use_plugin = SPANK_PLUGIN_ENABLED[system_idx]
 
     targetPath = request.form.get("targetPath", None)
     v = validate_input(targetPath)
@@ -1110,7 +1110,7 @@ def after_request(response):
 
 
 if __name__ == "__main__":
-    if USE_SSL:
+    if SSL_ENABLED:
         app.run(debug=DEBUG_MODE, host='0.0.0.0', port=COMPUTE_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:
         app.run(debug=DEBUG_MODE, host='0.0.0.0', port=COMPUTE_PORT)

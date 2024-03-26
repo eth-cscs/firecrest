@@ -34,11 +34,11 @@ import opentracing
 ## READING environment vars
 
 ### SSL parameters
-USE_SSL = get_boolean_var(os.environ.get("F7T_SSL_USE", True))
+SSL_ENABLED = get_boolean_var(os.environ.get("F7T_SSL_ENABLED", True))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
-F7T_SCHEME_PROTOCOL = ("https" if USE_SSL else "http")
+F7T_SCHEME_PROTOCOL = ("https" if SSL_ENABLED else "http")
 
 # Internal microservices communication
 ## certificator
@@ -63,9 +63,9 @@ AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME","Authorization")
 # remove quotes and split into array
 SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC_NAME","").strip('\'"').split(";")
 # internal machines to submit/query jobs
-SYSTEMS_INTERNAL_COMPUTE   = os.environ.get("F7T_SYSTEMS_INTERNAL_COMPUTE", os.environ.get("F7T_SYSTEMS_INTERNAL_NAME","")).strip('\'"').split(";")
+SYSTEMS_INTERNAL_COMPUTE   = os.environ.get("F7T_SYSTEMS_INTERNAL_COMPUTE_ADDR", os.environ.get("F7T_SYSTEMS_INTERNAL_ADDR","")).strip('\'"').split(";")
 # Machine with filesystems where to download or upload files:
-SYSTEMS_INTERNAL_STORAGE = os.environ.get("F7T_SYSTEMS_INTERNAL_STORAGE", os.environ.get("F7T_SYSTEMS_INTERNAL_NAME","")).strip('\'"').split(";")
+SYSTEMS_INTERNAL_STORAGE = os.environ.get("F7T_SYSTEMS_INTERNAL_STORAGE_ADDR", os.environ.get("F7T_SYSTEMS_INTERNAL_ADDR","")).strip('\'"').split(";")
 # Machine to send xfer-internal jobs, as defined in SYSTEMS_PUBLIC
 STORAGE_JOBS_MACHINE = os.environ.get("F7T_STORAGE_JOBS_MACHINE", os.environ.get("F7T_SYSTEMS_PUBLIC_NAME","")).strip('\'"').split(";")
 
@@ -292,7 +292,7 @@ def get_upload_unfinished_tasks():
 
         # only unfinished upload process
         status_code = [async_task.ST_URL_ASK, async_task.ST_URL_REC, async_task.ST_UPL_CFM, async_task.ST_DWN_BEG, async_task.ST_DWN_ERR]
-        retval=requests.get(f"{TASKS_URL}/taskslist", json={"service": "storage", "status_code":status_code}, timeout=30, verify=(SSL_CRT if USE_SSL else False))
+        retval=requests.get(f"{TASKS_URL}/taskslist", json={"service": "storage", "status_code":status_code}, timeout=30, verify=(SSL_CRT if SSL_ENABLED else False))
 
         if not retval.ok:
             app.logger.error("Error getting tasks from Tasks microservice: query failed with status {retval.status_code}, STORAGE microservice will not be fully functional. Next try will be in {STORAGE_POLLING_INTERVAL} seconds")
@@ -1105,7 +1105,7 @@ def create_xfer_job(machine, headers, fileName):
     try:
         headers["X-Machine-Name"] = machine
         req = requests.post(f"{COMPUTE_URL}/jobs/upload",
-                            files=files, headers=headers, verify=(SSL_CRT if USE_SSL else False))
+                            files=files, headers=headers, verify=(SSL_CRT if SSL_ENABLED else False))
 
         retval = json.loads(req.text)
         if not req.ok:
@@ -1150,7 +1150,7 @@ def after_request(response):
 
 
 if __name__ == "__main__":
-    if USE_SSL:
+    if SSL_ENABLED:
         app.run(debug=DEBUG_MODE, host='0.0.0.0', use_reloader=False, port=STORAGE_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:
         app.run(debug=DEBUG_MODE, host='0.0.0.0', use_reloader=False, port=STORAGE_PORT)

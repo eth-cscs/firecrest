@@ -131,10 +131,10 @@ For configuration, this service requires:
 
 FirecREST has a delegation microservice, named Certificator, that allows to perform actions on behalf of the user. It takes the username defined in the JWT and creates an SSH certificate to execute commands on behalf of the user.
 
-FirecREST microservices connect via SSH to one or more machines to execute compute, storage and utilities related commands. These machines are defined as lists on `F7T_SYSTEMS_INTERNAL_NAME`. To be able to authenticate, the SSH server must trust a SSH Certificate Authority (CA) key.
+FirecREST microservices connect via SSH to one or more machines to execute compute, storage and utilities related commands. These machines are defined as lists on `F7T_SYSTEMS_INTERNAL_ADDR`. To be able to authenticate, the SSH server must trust a SSH Certificate Authority (CA) key.
 
-If different login nodes has been setup for executing different functionalities of FirecREST, those machines can be set using the variables `F7T_SYSTEMS_INTERNAL_STATUS`
-`F7T_SYSTEMS_INTERNAL_COMPUTE`, `F7T_SYSTEMS_INTERNAL_STORAGE` and `F7T_SYSTEMS_INTERNAL_UTILITIES` respectively. 
+If different login nodes has been setup for executing different functionalities of FirecREST, those machines can be set using the variables `F7T_SYSTEMS_INTERNAL_STATUS_ADDR`
+`F7T_SYSTEMS_INTERNAL_COMPUTE_ADDR`, `F7T_SYSTEMS_INTERNAL_STORAGE_ADDR` and `F7T_SYSTEMS_INTERNAL_UTILITIES_ADDR` respectively. 
 
 
 ### Workload manager
@@ -175,19 +175,17 @@ Edit this new `$F7T_INSTALL/common/common.env` to point to your cluster or SSH s
 ```bash
 F7T_SYSTEMS_PUBLIC_NAME='mycluster'
 # define IP or hostname to execute commands, in the same order as the systems. Can be the same machine
-F7T_SYSTEMS_INTERNAL_NAME='IP:PORT'
-F7T_SYSTEMS_INTERNAL_STATUS='IP:PORT'
-F7T_SYSTEMS_INTERNAL_COMPUTE='IP:PORT'
-F7T_SYSTEMS_INTERNAL_STORAGE='IP:PORT'
-F7T_SYSTEMS_INTERNAL_UTILITIES='IP:PORT'
+F7T_SYSTEMS_INTERNAL_ADDR='IP:PORT'
+F7T_SYSTEMS_INTERNAL_STATUS_ADDR='IP:PORT'
+F7T_SYSTEMS_INTERNAL_COMPUTE_ADDR='IP:PORT'
+F7T_SYSTEMS_INTERNAL_STORAGE_ADDR='IP:PORT'
+F7T_SYSTEMS_INTERNAL_UTILITIES_ADDR='IP:PORT'
 # system to send transfer jobs
 F7T_STORAGE_JOBS_MACHINE='mycluster'
 # Slurm partition where transfer jobs run
 F7T_XFER_PARTITION='normal'
-# machine to check availability, same as previous
-F7T_SYSTEMS_INTERNAL_STATUS='IP:PORT'
 # disable OPA
-F7T_OPA_USE=False
+F7T_OPA_ENABLED=False
 ```
 
 As mentioned on the [IAM section](#iam-infrastructure), a user must exist on both the OIDC provider and the cluster. This demo setup has users `test1` and `test2` defined on Keycloak, so either create these users on your cluster, add the user(s) on Keycloak that match the one(s) on your machine, or connect to your own OIDC provider.

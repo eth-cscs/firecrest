@@ -11,7 +11,7 @@
 
 F7T_HTTP_SCHEMA="http"
 
-if [ "${F7T_SSL_USE}" == "True" ]; then
+if [ "${F7T_SSL_ENABLED}" == "True" ]; then
     F7T_HTTP_SCHEMA="https"; 
 fi
 

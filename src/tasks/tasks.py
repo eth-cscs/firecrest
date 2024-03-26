@@ -27,14 +27,14 @@ PERSIST_PORT = os.environ.get("F7T_PERSIST_PORT", "6379")
 PERSIST_PWD  = os.environ.get("F7T_PERSIST_PWD")
 
 ### SSL parameters
-USE_SSL = get_boolean_var(os.environ.get("F7T_SSL_USE", True))
+SSL_ENABLED = get_boolean_var(os.environ.get("F7T_SSL_ENABLED", True))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
 # expire time in seconds, for squeue or sacct tasks: default: 24hours = 86400 secs
 COMPUTE_TASK_EXP_TIME = os.environ.get("F7T_COMPUTE_TASK_EXP_TIME", 86400)
 
-# expire time in seconds, for download/upload: default 30 days + 24 hours = 2678400 secs
+# expire time in seconds, for download/upload the default value is 7 days = 604800 secs
 STORAGE_TASK_EXP_TIME = os.environ.get("F7T_STORAGE_TASK_EXP_TIME", os.environ.get("F7T_STORAGE_TEMPURL_EXP_TIME", 604800))
 
 TRACER_HEADER = "uber-trace-id"
@@ -494,7 +494,7 @@ def after_request(response):
 
 
 if __name__ == "__main__":
-    if USE_SSL:
+    if SSL_ENABLED:
         app.run(debug=DEBUG_MODE, host='0.0.0.0', use_reloader=False, port=TASKS_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:
         app.run(debug=DEBUG_MODE, host='0.0.0.0', use_reloader=False, port=TASKS_PORT)

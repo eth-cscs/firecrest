@@ -22,11 +22,11 @@ import shlex
 from cscs_api_common import check_auth_header, exec_remote_command, check_command_error, get_boolean_var, validate_input, setup_logging
 
 ### SSL parameters
-USE_SSL = get_boolean_var(os.environ.get("F7T_SSL_USE", True))
+SSL_ENABLED = get_boolean_var(os.environ.get("F7T_SSL_ENABLED", True))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
-F7T_SCHEME_PROTOCOL = ("https" if USE_SSL else "http")
+F7T_SCHEME_PROTOCOL = ("https" if SSL_ENABLED else "http")
 
 # Internal microservices communication
 ## certificator
@@ -44,7 +44,7 @@ UTILITIES_TIMEOUT = int(os.environ.get("F7T_UTILITIES_TIMEOUT", "5"))
 SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC_NAME","").strip('\'"').split(";")
 
 # internal machines for file operations
-SYSTEMS_INTERNAL_UTILITIES   = os.environ.get("F7T_SYSTEMS_INTERNAL_UTILITIES", os.environ.get("F7T_SYSTEMS_INTERNAL_NAME","")).strip('\'"').split(";")
+SYSTEMS_INTERNAL_UTILITIES   = os.environ.get("F7T_SYSTEMS_INTERNAL_UTILITIES_ADDR", os.environ.get("F7T_SYSTEMS_INTERNAL_ADDR","")).strip('\'"').split(";")
 
 DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
@@ -732,7 +732,7 @@ def after_request(response):
 
 
 if __name__ == "__main__":
-    if USE_SSL:
+    if SSL_ENABLED:
         app.run(debug=DEBUG_MODE, host='0.0.0.0', port=UTILITIES_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:
         app.run(debug=DEBUG_MODE, host='0.0.0.0', port=UTILITIES_PORT)

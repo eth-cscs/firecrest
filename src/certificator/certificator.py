@@ -47,12 +47,12 @@ CERTIFICATOR_PORT = os.environ.get("F7T_CERTIFICATOR_PORT", 5000)
 FORBIDDEN_COMMAND_CHARS = r'[\<\|\;\"\\\(\)\x00-\x1F\x60]'
 
 # OPA endpoint
-OPA_USE = get_boolean_var(os.environ.get("F7T_OPA_USE",False))
+OPA_ENABLED = get_boolean_var(os.environ.get("F7T_OPA_ENABLED",False))
 OPA_URL = os.environ.get("F7T_OPA_URL","http://localhost:8181").strip('\'"')
 OPA_POLICY_PATH = os.environ.get("F7T_OPA_POLICY_PATH","v1/data/f7t/authz").strip('\'"')
 
 ### SSL parameters
-USE_SSL = get_boolean_var(os.environ.get("F7T_SSL_USE", False))
+SSL_ENABLED = get_boolean_var(os.environ.get("F7T_SSL_ENABLED", False))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
@@ -142,7 +142,7 @@ def setup_logging(logging, service):
     # disable Flask internal logging to avoid full url exposure
     logging.getLogger('werkzeug').disabled = True
 
-    if OPA_USE:
+    if OPA_ENABLED:
         logging.info(f"OPA: enabled, using {OPA_URL}/{OPA_POLICY_PATH}")
     else:
         logging.info(f"OPA: disabled")
@@ -177,11 +177,11 @@ check_key_permission()
 def check_user_auth(username,system):
 
     # check if OPA is active
-    if OPA_USE:
+    if OPA_ENABLED:
         input = {"input":{"user": f"{username}", "system": f"{system}"}}
 
         try:
-            resp_opa = requests.post(f"{OPA_URL}/{OPA_POLICY_PATH}", json=input, verify= (SSL_CRT if USE_SSL else False))
+            resp_opa = requests.post(f"{OPA_URL}/{OPA_POLICY_PATH}", json=input, verify= (SSL_CRT if SSL_ENABLED else False))
             msg = f"{resp_opa.status_code} {resp_opa.text}"
             logging.info(f"resp_opa: {msg}")
 
@@ -499,7 +499,7 @@ def after_request(response):
 
 
 if __name__ == "__main__":
-    if USE_SSL:
+    if SSL_ENABLED:
         app.run(debug=DEBUG_MODE, host='0.0.0.0', port=CERTIFICATOR_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:
         app.run(debug=DEBUG_MODE, host='0.0.0.0', port=CERTIFICATOR_PORT)

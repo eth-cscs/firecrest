@@ -12,7 +12,7 @@ import time
 from markers import skipif_not_uses_gateway
 
 ### SSL parameters
-USE_SSL = (os.environ.get("F7T_SSL_USE","false").lower() == "true")
+SSL_ENABLED = (os.environ.get("F7T_SSL_ENABLED","false").lower() == "true")
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_PATH = "../../../deploy/test-build"
 
@@ -22,7 +22,7 @@ if FIRECREST_URL:
 	COMPUTE_URL = os.environ.get("FIRECREST_URL") + "/compute"
 	UTILITIES_URL = os.environ.get("FIRECREST_URL") + "/utilities"
 else:
-	F7T_SCHEME_PROTOCOL = ("https" if USE_SSL else "http")
+	F7T_SCHEME_PROTOCOL = ("https" if SSL_ENABLED else "http")
 	
 	TASKS_HOST = os.environ.get("F7T_TASKS_HOST","127.0.0.1") 
 	TASKS_PORT = os.environ.get("F7T_TASKS_PORT","5003")

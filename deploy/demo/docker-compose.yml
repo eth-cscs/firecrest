@@ -194,24 +194,6 @@ services:
       - ./ssl:/ssl
       - ./logs/profs:/var/log/profs
 
-  # web client
-  client:
-    image: f7t-client
-    container_name: client
-    build:
-      context: ../../src/tests/template_client
-      dockerfile: ./Dockerfile
-      network: host
-    networks:
-      firecrest-internal:
-        ipv4_address: 192.168.220.30
-    ports:
-      - "7000:5000"
-    volumes:
-      - ./demo_client/config.py:/app/config.py:ro
-      - ./demo_client/client_secrets.json:/app/client_secrets.json:ro
-      - ./logs/client:/var/log:delegated
-
   # dummy cluster
   cluster:
     image: f7t-cluster

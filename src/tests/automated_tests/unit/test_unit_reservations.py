@@ -13,10 +13,9 @@ from markers import skipif_not_uses_gateway
 pytestmark = pytest.mark.reservations
 
 # SSL parameters
-USE_SSL = (os.environ.get("F7T_SSL_USE","false").lower() == "true")
+SSL_ENABLED = (os.environ.get("F7T_SSL_ENABLED","false").lower() == "true")
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_PATH = "../../../deploy/test-build"
-VERIFY = False
 
 # Requests Parameters
 FIRECREST_URL = os.environ.get("FIRECREST_URL")
@@ -25,7 +24,7 @@ USE_GATEWAY  = (os.environ.get("USE_GATEWAY","false").lower() == "true")
 if FIRECREST_URL and USE_GATEWAY:
 	RESERVATIONS_URL = os.environ.get("FIRECREST_URL") + "/reservations"
 else:
-	F7T_SCHEME_PROTOCOL = ("https" if USE_SSL else "http")
+	F7T_SCHEME_PROTOCOL = ("https" if SSL_ENABLED else "http")
 	RESERVATIONS_HOST = os.environ.get("F7T_RESERVATIONS_HOST","127.0.0.1") 
 	RESERVATIONS_PORT = os.environ.get("F7T_RESERVATIONS_PORT","5005")
 	RESERVATIONS_URL = f"{F7T_SCHEME_PROTOCOL}://{RESERVATIONS_HOST}:{RESERVATIONS_PORT}"
@@ -53,7 +52,7 @@ def test_list_reservations_wrong(headers):
 	url = RESERVATIONS_URL
 	headers["X-Machine-Name"] = "notavalidsystem"
 
-	resp = requests.get(url, headers=headers, verify=VERIFY)
+	resp = requests.get(url, headers=headers, verify=False)
 	check_response(resp, 400)
 	assert resp.json()['error'] == 'Error listing reservation'
 
@@ -99,7 +98,7 @@ def test_post_reservation_wrong(status_code,reservation,account,numberOfNodes,no
 			"starttime":     starttime,
 			"endtime":       endtime}
 
-	resp = requests.post(url, headers=headers, data=data, verify=VERIFY)
+	resp = requests.post(url, headers=headers, data=data, verify=False)
 	check_response(resp, status_code, msg)
 
 @skipif_not_uses_gateway
@@ -112,7 +111,7 @@ def test_put_reservation_wrong(status_code,reservation,account,numberOfNodes,nod
 			"starttime":     starttime,
 			"endtime":       endtime}
 
-	resp = requests.put(url, headers=headers, data=data, verify=VERIFY)
+	resp = requests.put(url, headers=headers, data=data, verify=False)
 	check_response(resp, status_code, msg)
 
 @skipif_not_uses_gateway
@@ -124,7 +123,7 @@ def test_delete_reservation_wrong(status_code, reservation, msg, headers):
 	url = f"{RESERVATIONS_URL}/{reservation}"
 	headers["X-Machine-Name"] = SYSTEM
 
-	resp = requests.delete(url, headers=headers, verify=VERIFY)
+	resp = requests.delete(url, headers=headers, verify=False)
 	check_response(resp, status_code, msg)
 
 @skipif_not_uses_gateway
@@ -135,7 +134,7 @@ def test_reservation_crud_conflicts(dummy_resevation, headers):
 	rsv02 = dict(dummy_resevation)
 	rsv02['reservation'] = "testrsvok02"
 
-	resp = requests.post(url, headers=headers, data=rsv02, verify=VERIFY)
+	resp = requests.post(url, headers=headers, data=rsv02, verify=False)
 	respd = resp.json().get('description', "")
 	if "Requested nodes are busy" in respd:
 		# Slurm < 20
@@ -151,7 +150,7 @@ def test_reservation_crud_ok(dummy_resevation, headers):
 	headers["X-Machine-Name"] = SYSTEM
 
 	# read reservation
-	resp = requests.get(url, headers=headers, verify=VERIFY)
+	resp = requests.get(url, headers=headers, verify=False)
 	check_response(resp, 200)
 	obtained = resp.json().get('success', [])
 	assert [x['reservationname'] for x in obtained] == ['testrsvok01']
@@ -163,7 +162,7 @@ def test_reservation_crud_ok(dummy_resevation, headers):
 		"starttime": d5,
 		"endtime": d6
 	}
-	resp = requests.put(f"{RESERVATIONS_URL}/testrsvok01", headers=headers, data=upd, verify=VERIFY)
+	resp = requests.put(f"{RESERVATIONS_URL}/testrsvok01", headers=headers, data=upd, verify=False)
 	check_response(resp, 200)
 
 @pytest.fixture
@@ -183,13 +182,13 @@ def dummy_resevation(headers):
 	check_no_reservations(url, headers)
 
 	# create rsv1
-	resp = requests.post(url, headers=headers, data=rsv01, verify=VERIFY)
+	resp = requests.post(url, headers=headers, data=rsv01, verify=False)
 	check_response(resp, 201)
 
 	yield rsv01
 
 	# delete rsv1
-	resp = requests.delete(f"{RESERVATIONS_URL}/testrsvok01", headers=headers, verify=VERIFY)
+	resp = requests.delete(f"{RESERVATIONS_URL}/testrsvok01", headers=headers, verify=False)
 	check_response(resp, 204)
 	check_no_reservations(url, headers)
 
@@ -201,7 +200,7 @@ def check_response(response, expected_code, in_description=None):
 
 
 def check_no_reservations(url, headers):
-	resp = requests.get(url, headers=headers, verify=VERIFY)
+	resp = requests.get(url, headers=headers, verify=False)
 	check_response(resp, 200)
 	obtained = resp.json()['success']
 	assert obtained == []
