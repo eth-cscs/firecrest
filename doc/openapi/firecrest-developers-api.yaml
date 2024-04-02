@@ -1650,8 +1650,8 @@ paths:
         schema:
           type: string
     get:
-      summary: Retrieves information about all nodes
-      description: Information about nodes in the scheduling queue. This call uses the `scontrol show nodes` command.
+      summary: Retrieves information about all compute nodes
+      description: Information about nodes in the scheduling queue.
       tags:
         - Compute
       parameters:
@@ -1688,7 +1688,7 @@ paths:
               description: User does not have permissions to access machine
               schema:
                 type: integer
-  '/compute/nodes/{nodeid}':
+  '/compute/nodes/{nodeName}':
     get:
       summary: Retrieves information about a specific node
       description: Information about a specific node in the scheduling queue. This call uses the `scontrol show nodes` command.
@@ -1701,7 +1701,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: nodeid
+        - name: nodeName
           in: path
           description: The ID of the node to retrieve.
           required: true

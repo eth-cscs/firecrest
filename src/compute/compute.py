@@ -1165,9 +1165,9 @@ def get_nodes():
         return data, 400
 
 
-@app.route("/nodes/<nodeid>",methods=["GET"])
+@app.route("/nodes/<nodeName>",methods=["GET"])
 @check_auth_header
-def get_node(nodeid):
+def get_node(nodeName):
     try:
         system_name = request.headers["X-Machine-Name"]
     except KeyError as e:
@@ -1196,11 +1196,11 @@ def get_node(nodeid):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Failed to retrieve node information"), 404, header
 
-    v = validate_input(nodeid)
+    v = validate_input(nodeName)
     if v != "":
-        return jsonify(description="Failed to retrieve node", error=f"nodeid '{nodeid}' {v}"), 400
+        return jsonify(description="Failed to retrieve node", error=f"nodeName '{nodeName}' {v}"), 400
 
-    sched_cmd = scheduler.get_nodes([nodeid])
+    sched_cmd = scheduler.get_nodes([nodeName])
     action = f"ID={ID} {sched_cmd}"
 
     try:
