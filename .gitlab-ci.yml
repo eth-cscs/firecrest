@@ -19,29 +19,29 @@ build_images:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
   script:
-    - echo "Build images with tag ${CI_COMMIT_SHORT_SHA} and pipeline run ${CI_JOB_ID}"
+    - echo "Build images with tag tmp-${CI_COMMIT_SHORT_SHA}-${CI_JOB_ID}"
     - mkdir -p /kaniko/.docker
     - echo '{"auths":{"'$CI_REGISTRY'":{"username":"'$CI_REGISTRY_USER'","password":"'$CI_REGISTRY_PASSWORD'"}}}' > /kaniko/.docker/config.json
     - |
 
         # Base image for each commit
-        /kaniko/executor --context ./ --dockerfile deploy/docker/base/Dockerfile --destination ${CI_REGISTRY_PREFIX}/f7t-base:${CI_COMMIT_SHORT_SHA}-${CI_JOB_ID} --single-snapshot
+        /kaniko/executor --context ./ --dockerfile deploy/docker/base/Dockerfile --destination ${CI_REGISTRY_PREFIX}/f7t-base:tmp-${CI_COMMIT_SHORT_SHA}-${CI_JOB_ID} --single-snapshot
 
         # Core microservices
         for img in certificator compute reservations status storage tasks utilities; do
-            /kaniko/executor --build-arg BASE_IMAGE=${CI_REGISTRY_PREFIX}/f7t-base:${CI_COMMIT_SHORT_SHA}-${CI_JOB_ID} --registry-mirror ${CI_REGISTRY} \
-            --context ./ --dockerfile deploy/docker/$img/Dockerfile --destination ${CI_REGISTRY_PREFIX}/$img:${CI_COMMIT_SHORT_SHA}-${CI_JOB_ID} --cleanup
+            /kaniko/executor --build-arg BASE_IMAGE=${CI_REGISTRY_PREFIX}/f7t-base:tmp-${CI_COMMIT_SHORT_SHA}-${CI_JOB_ID} --registry-mirror ${CI_REGISTRY} \
+            --context ./ --dockerfile deploy/docker/$img/Dockerfile --destination ${CI_REGISTRY_PREFIX}/$img:tmp-${CI_COMMIT_SHORT_SHA}-${CI_JOB_ID} --cleanup
         done
 
         if [ "$CI_COMMIT_TAG" != "" ]; then exit 0; fi
 
         # build web client
         /kaniko/executor --context src/tests/template_client --dockerfile ./Dockerfile \
-        --destination ${CI_REGISTRY_PREFIX}/client:${CI_COMMIT_SHORT_SHA}-${CI_JOB_ID} --cleanup --single-snapshot
+        --destination ${CI_REGISTRY_PREFIX}/client:tmp-${CI_COMMIT_SHORT_SHA}-${CI_JOB_ID} --cleanup --single-snapshot
 
         # build tester
         /kaniko/executor --context ./ --dockerfile deploy/docker/tester/Dockerfile \
-        --destination ${CI_REGISTRY_PREFIX}/tester:${CI_COMMIT_SHORT_SHA}-${CI_JOB_ID} --cleanup --single-snapshot
+        --destination ${CI_REGISTRY_PREFIX}/tester:tmp-${CI_COMMIT_SHORT_SHA}-${CI_JOB_ID} --cleanup --single-snapshot
 
 
 deploy_dev:
@@ -80,7 +80,7 @@ deploy_dev:
 
     - |
       ## adding at the end of values-dev.yaml on global section
-      echo -e "\n  registry: ${CI_REGISTRY_PREFIX}\n  tag: '${CI_COMMIT_SHORT_SHA}-${CI_JOB_ID}' \n  namespace: ${CI_NAMESPACE_DEV}\n" >> values-dev.yaml
+      echo -e "\n  registry: ${CI_REGISTRY_PREFIX}\n  tag: 'tmp-${CI_COMMIT_SHORT_SHA}-${CI_JOB_ID}' \n  namespace: ${CI_NAMESPACE_DEV}\n" >> values-dev.yaml
 
       # link API specification inside chart
       ln -s ../../../../doc/openapi/firecrest-api.yaml openapi/files/firecrest-api.yaml
@@ -109,7 +109,7 @@ deploy_dev:
         echo -e "Test using gateway: $use_gateway";
 
         helm install --wait --timeout 120s  -n $CI_NAMESPACE_DEV  -f values-dev.yaml \
-            --set tag=$CI_COMMIT_SHORT_SHA-$CI_JOB_ID \
+            --set tag=tmp-$CI_COMMIT_SHORT_SHA-$CI_JOB_ID \
             --set workingDir="/firecrest/src/tests/automated_tests" \
             --set use_gateway="$use_gateway" \
             --set pytest_config_file="firecrest-dev.ini" --kube-token=${CI_K8S_TOKEN} \
@@ -192,7 +192,7 @@ tag_release:
     - CI_REGISTRY_GROUP="$(vault kv get -field=REGISTRY_GROUP firecrest/dev)"
 
     - |
-        is_master=$(curl -sS --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/commits/${CI_COMMIT_SHORT_SHA}-${CI_JOB_ID}/refs?type=branch" | jq '.[].name=="master"')
+        is_master=$(curl -sS --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/commits/tmp-${CI_COMMIT_SHORT_SHA}-${CI_JOB_ID}/refs?type=branch" | jq '.[].name=="master"')
 
         env_tags="$CI_COMMIT_TAG prod"
         code_tag="prod"
@@ -239,7 +239,7 @@ tag_release:
 
           echo "Trying to create tag $code_tag"
 
-          res_post=$(curl -s -w "%{http_code}" --request POST --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/tags?tag_name=${code_tag}&ref=${CI_COMMIT_SHORT_SHA}-${CI_JOB_ID}")
+          res_post=$(curl -s -w "%{http_code}" --request POST --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/tags?tag_name=${code_tag}&ref=tmp-${CI_COMMIT_SHORT_SHA}-${CI_JOB_ID}")
           status_post=$(printf "%s" "$res_post" | tail -c 3)
 
           echo "Status of creating tag $code_tag: $status_post"
@@ -266,7 +266,7 @@ tag_release:
             for img in $images; do
 
               echo "Tagging image ${CI_REGISTRY_GROUP}/$img/$tag"
-              jfrog rt copy --flat=true --url="https://${CI_REGISTRY}/artifactory" --user="${CI_REGISTRY_USER}" --password="${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY_GROUP}/$img/${CI_COMMIT_SHORT_SHA}-${CI_JOB_ID}/" "${CI_REGISTRY_GROUP}/$img/$tag/";
+              jfrog rt copy --flat=true --url="https://${CI_REGISTRY}/artifactory" --user="${CI_REGISTRY_USER}" --password="${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY_GROUP}/$img/tmp-${CI_COMMIT_SHORT_SHA}-${CI_JOB_ID}/" "${CI_REGISTRY_GROUP}/$img/$tag/";
 
               if [ "$code_tag" == "prod" ] && [ "$tag" != "prod" ] && [ "$img" != "reservations" ]; then
                 # if code_tag indicates prod and tag is 'v1...', also publish to GitHub
@@ -331,7 +331,7 @@ cleanup_dev_images:
     - >
       for image in certificator client compute reservations status storage tasks tester utilities; do
 
-        jfrog rt del --recursive --quiet --url="https://${CI_REGISTRY}/artifactory" --user="${CI_REGISTRY_USER}" --password="${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY_GROUP}/$image/${CI_COMMIT_SHORT_SHA}-${CI_JOB_ID}/"
+        jfrog rt del --recursive --quiet --url="https://${CI_REGISTRY}/artifactory" --user="${CI_REGISTRY_USER}" --password="${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY_GROUP}/$image/tmp-${CI_COMMIT_SHORT_SHA}-${CI_JOB_ID}/"
 
       done
   when: on_success
