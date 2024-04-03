@@ -107,8 +107,8 @@ paths:
                 $ref: '#/components/schemas/System'
         '404':
           description: System does not exists
-  
-  
+
+
   '/status/filesystems':
     get:
       summary: List of filesystems allowed in the API
@@ -122,7 +122,7 @@ paths:
             "application/json":
               schema:
                 properties:
-                  description: 
+                  description:
                     description: Description of the output
                     type: string
                     default: Filesystem information
@@ -146,12 +146,12 @@ paths:
         - Status
       responses:
         '200':
-          description: List of filesystems enabled on {machinename} 
+          description: List of filesystems enabled on {machinename}
           content:
             "application/json":
               schema:
                 properties:
-                  description: 
+                  description:
                     description: Description of the output
                     type: string
                     default: Filesystem information
@@ -1283,7 +1283,7 @@ paths:
         in: query
         description: returns a list of groups of the user
         required: false
-        schema: 
+        schema:
           type: boolean
           default: false
     get:
@@ -1625,6 +1625,98 @@ paths:
             MM/DD[/YY]-HH:MM[:SS]
             YYYY-MM-DD[THH:MM[:SS]]
           required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task-Creation-Success'
+        '400':
+          description: Task creation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task-Creation-Error'
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: integer
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: integer
+            X-Permission-Denied:
+              description: User does not have permissions to access machine
+              schema:
+                type: integer
+  '/compute/nodes':
+    parameters:
+      - in: header
+        name: X-Machine-Name
+        description: The system name
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Retrieves information about all compute nodes
+      description: Information about nodes in the scheduling queue.
+      tags:
+        - Compute
+      parameters:
+        - name: nodes
+          in: query
+          description: Comma-separated list of nodes to retrieve
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task-Creation-Success'
+        '400':
+          description: Task creation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task-Creation-Error'
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: integer
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: integer
+            X-Permission-Denied:
+              description: User does not have permissions to access machine
+              schema:
+                type: integer
+  '/compute/nodes/{nodeName}':
+    get:
+      summary: Retrieves information about a specific node
+      description: Information about a specific node in the scheduling queue.
+      tags:
+        - Compute
+      parameters:
+        - name: X-Machine-Name
+          in: header
+          description: The system name
+          required: true
+          schema:
+            type: string
+        - name: nodeName
+          in: path
+          description: The ID of the node to retrieve.
+          required: true
           schema:
             type: string
       responses:
@@ -2713,7 +2805,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Service'
-    
+
     Filesystem:
       properties:
         description:
@@ -2736,8 +2828,8 @@ components:
           description: Status code of the filesystem
           enum:
             - 200
-            - 400            
-    
+            - 400
+
     Filesystems:
       type: object
       properties:
@@ -2746,10 +2838,10 @@ components:
           description: System name
           items:
             type: array
-            items: 
+            items:
               $ref: '#/components/schemas/Filesystem'
-        
-        
+
+
     Job:
       type: object
       required:
@@ -2878,9 +2970,9 @@ components:
                 id:
                   description: Primary user's Unix group ID
                   type: string
-            groups: 
+            groups:
               description: List of Unix group names and IDs (primary and secondary) to which the user belongs to
-              type: array              
+              type: array
               items:
                 type: object
                 properties:
