@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add the endpoints `/compute/nodes` and `/compute/nodes/{nodeName}` to retrieve information about nodes in the SLURM scheduling queue.
+- Add the endpoints `/compute/nodes` and `/compute/nodes/{nodeName}` to retrieve information about nodes in the scheduling queue.
+- Add the endpoints `/compute/partitions` and `/compute/partitions/{partitionName}` to retrieve information about partitions in the scheduling queue.
 
 ## [1.15.0]
 

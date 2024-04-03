@@ -143,3 +143,20 @@ class JobScheduler(abc.ABC):
         * State"
         """
         pass
+
+    @abc.abstractmethod
+    def get_partitions(self, partitions):
+        """Return the partitions of the system.
+        """
+        pass
+
+    @abc.abstractmethod
+    def parse_partitions_output(self, output):
+        """Parses the partitions command. Should return records with:
+        * PartitionName
+        * State
+        * TotalCPUS
+        * TotalNodes
+        * Default
+        """
+        pass

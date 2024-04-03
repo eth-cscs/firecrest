@@ -1745,6 +1745,98 @@ paths:
               description: User does not have permissions to access machine
               schema:
                 type: integer
+  '/compute/partitions':
+    parameters:
+      - in: header
+        name: X-Machine-Name
+        description: The system name
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Retrieves information about all partitions
+      description: Information about partitions in the scheduling queue.
+      tags:
+        - Compute
+      parameters:
+        - name: partitions
+          in: query
+          description: Comma-separated list of nodes to retrieve
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task-Creation-Success'
+        '400':
+          description: Task creation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task-Creation-Error'
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: integer
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: integer
+            X-Permission-Denied:
+              description: User does not have permissions to access machine
+              schema:
+                type: integer
+  '/compute/partitions/{partitionName}':
+    get:
+      summary: Retrieves information about a specific partitions
+      description: Information about a specific partition in the scheduling queue.
+      tags:
+        - Compute
+      parameters:
+        - name: X-Machine-Name
+          in: header
+          description: The system name
+          required: true
+          schema:
+            type: string
+        - name: nodeName
+          in: path
+          description: The ID of the node to retrieve.
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task-Creation-Success'
+        '400':
+          description: Task creation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task-Creation-Error'
+          headers:
+            X-Machine-Does-Not-Exist:
+              description: Machine does not exist
+              schema:
+                type: integer
+            X-Machine-Not-Available:
+              description: Machine is not available
+              schema:
+                type: integer
+            X-Permission-Denied:
+              description: User does not have permissions to access machine
+              schema:
+                type: integer
   '/storage/xfer-internal/rsync':
     parameters:
       - in: header
