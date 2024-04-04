@@ -19,7 +19,7 @@ import opentracing
 import re
 import shlex
 
-from cscs_api_common import check_auth_header, exec_remote_command, check_command_error, get_boolean_var, validate_input, setup_logging
+from cscs_api_common import check_auth_header, exec_remote_command, check_command_error, get_boolean_var, validate_input, setup_logging, extract_command
 
 CERTIFICATOR_URL = os.environ.get("F7T_CERTIFICATOR_URL")
 UTILITIES_PORT   = os.environ.get("F7T_UTILITIES_PORT", 5000)
@@ -314,6 +314,27 @@ def rename():
 def copy():
     return common_fs_operation(request, "copy")
 
+## compress with tar
+## params:
+##  - sourcepath: Filesystem path that will be compressed (Str) *required
+##  - targetpath: Filesystem path of copied object (Str) *required
+##  - machinename: str *required
+@app.route("/compress", methods=["POST"])
+@check_auth_header
+def compress():
+    return common_fs_operation(request, "compress")
+
+## extract files
+## params:
+##  - sourcepath: Filesystem path of object to be decompressed (Str) *required
+##  - targetpath: Filesystem path of extracted files (Str) *required
+##  - machinename: str *required
+##  - type: Extension of the file (Str)
+@app.route("/extract", methods=["POST"])
+@check_auth_header
+def extract():
+    return common_fs_operation(request, "extract")
+
 
 ## common code for file operations:
 def common_fs_operation(request, command):
@@ -347,7 +368,7 @@ def common_fs_operation(request, command):
     if v != "" and command != "whoami":
         return jsonify(description=f"Error on {command} operation", error=f"'{tn}' {v}"), 400
 
-    if command in ['copy', 'rename']:
+    if command in ['copy', 'rename', 'compress', 'extract']:
         sourcePath = request.form.get("sourcePath", None)
         v = validate_input(sourcePath)
         if v != "":
@@ -380,6 +401,18 @@ def common_fs_operation(request, command):
     elif command == "copy":
         # -r is for recursivelly copy files into directories
         action = f"cp --force -dR --preserve=all -- '{sourcePath}' '{targetPath}'"
+        success_code = 201
+    elif command == "compress":
+        basedir = os.path.dirname(sourcePath)
+        file_path = os.path.basename(sourcePath)
+        action = f"tar -czvf '{targetPath}' -C '{basedir}' '{file_path}'"
+        success_code = 201
+    elif command == "extract":
+        extraction_type = request.form.get("type", "auto")
+        action = extract_command(sourcePath, targetPath, type=extraction_type)
+        if not action:
+            return jsonify(description=f"Error on {command} operation", error=f"Unsupported file format in {sourcePath}."), 400
+
         success_code = 201
     elif command == "file":
         # -b: do not prepend filenames to output lines
@@ -556,7 +589,7 @@ def common_fs_operation(request, command):
             groups = []
 
             group_list = whoami_response[whoami_response.find("=",gname_j)+1:].split(",")
-            
+
             for group in group_list:
                 gname_i = group.find("(", 0)
                 gname_j = group.find(")", 0)
