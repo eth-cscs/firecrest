@@ -701,6 +701,11 @@ paths:
           description: The output will be the whole file, without the last NUM bytes/lines of each file. NUM should be specified in the respective argument through `bytes` or `lines`.
           schema:
             type: string
+        - name: grep
+          in: query
+          description: Pipes the output trought grep and returns lines matching the provided pattern.
+          schema:
+            type: string
       responses:
         '200':
           description: File content successfully returned
@@ -920,6 +925,11 @@ paths:
           description: The output will start with byte/line NUM of each file. NUM should be specified in the respective argument through `bytes` or `lines`.
           schema:
             type: boolean
+        - name: grep
+          in: query
+          description: Pipes the output trought grep and returns lines matching the provided pattern.
+          schema:
+            type: string
       responses:
         '200':
           description: File content successfully returned
