@@ -210,8 +210,11 @@ def ls_parse(request, retval):
     # total 1
     # -rw-rw-r-- 1 username groupname 0 2023-07-24T11:45:35 "file_in_folder.txt"
     # ...
-    file_list = []
+    
+    def remove_prefix(text, prefix):
+        return text[text.startswith(prefix) and len(prefix):]
 
+    file_list = []
     #Check if ls has recursive folders
     if(re.match(r'\"(.+)\":\n',retval["msg"])):
         folders =  re.split(r'\"(.+)\":\n',retval["msg"])
@@ -219,8 +222,7 @@ def ls_parse(request, retval):
         for i in range(1,len(folders),2):
             if i==1:
                 root_folder = folders[i]+"/"
-
-            folder_name = (folders[i]+"/").replace(root_folder,"")
+            folder_name = remove_prefix(folders[i]+"/",root_folder)
             folder_content = folders[i+1]
             file_list += ls_parse_folder(folder_content,folder_name)
     else:
