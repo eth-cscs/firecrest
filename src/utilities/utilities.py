@@ -454,8 +454,13 @@ def common_fs_operation(request, command):
                     opt = f" --lines='+{lines}' "
             else:
                 opt = f" --lines='{lines}' "
+       
+        grep_exp=request.args.get("grep", None)
+        grep = ""
+        if grep_exp:
+            grep = f"| grep {grep_exp} || true"
 
-        action = f"{command} {opt} -- '{targetPath}'"
+        action = f"{command} {opt} -- '{targetPath}' {grep}"
         file_transfer = 'download'
     elif command == "ls":
         options = ""
