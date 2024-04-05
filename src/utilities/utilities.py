@@ -500,7 +500,7 @@ def common_fs_operation(request, command):
             options += "--numeric-uid-gid "
         if get_boolean_var(request.args.get("recursive", False)):
             # do not resolve UID and GID to names
-            options += "-R"
+            options += "-R "
         action = f"ls -l --quoting-style=c {options} --time-style=+%Y-%m-%dT%H:%M:%S -- '{targetPath}'"
     elif command == "mkdir":
         try:
