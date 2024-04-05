@@ -1487,13 +1487,13 @@ paths:
         schema:
           type: string
     post:
-      summary: Submit Job by uploading a local sbatch file
+      summary: Submit Job by uploading a local batch file
       description: >-
-        Non-blocking call. Submits a batch script to SLURM on the target system.
+        Non-blocking call. Submits a batch script to the workload manager and scheduler on the target system.
         The batch script is uploaded as a file to the microservice which then
         stores it in a temporal directory in preparation to be submitted to the
         workload manager. The operation returns the task id associated to the
-        Task microservice that will contain information of the SLURM job once
+        Task microservice that will contain information of the workload manager and scheduler job once
         it is created.
       tags:
         - Compute
@@ -1507,10 +1507,10 @@ paths:
                 file:
                   type: string
                   format: binary
-                  description: SBATCH script file to be submitted to SLURM
+                  description: script file to be submitted to workload manager and scheduler
                 account:
                   type: string
-                  description: Name of the account associated to the user in the scheduler. If not set, the one incuded in the sbatch file is taken.
+                  description: Name of the account associated to the user in the scheduler. If not set, the one incuded in the batch file is taken.
                 env:
                   type: string
                   description: serialized JSON dictionary (varName, value) to be loaded as environment variables for the job
@@ -1543,7 +1543,7 @@ paths:
               schema:
                 type: integer
             X-sbatch-error:
-              description: sbatch returned error
+              description: batch returned error
               schema:
                 type: integer
   '/compute/jobs/path':
@@ -1555,13 +1555,13 @@ paths:
         schema:
           type: string
     post:
-      summary: Submit Job by a given remote sbatch file
+      summary: Submit Job by a given remote batch file
       description: >-
-        Non-blocking call. Submits a batch script to SLURM on the target system.
+        Non-blocking call. Submits a batch script to workload manager and scheduler on the target system.
         The batch script is uploaded as a file to the microservice which then
         stores it in a temporal directory in preparation to be submitted to the
         workload manager. The operation returns the task id associated to the
-        Task microservice that will contain information of the SLURM job once
+        Task microservice that will contain information of the workload manager and scheduler job once
         it is created.
       tags:
         - Compute
@@ -1574,10 +1574,10 @@ paths:
               properties:
                 targetPath:
                   type: string
-                  description: path to the SBATCH script file stored in {X-Machine-Name} machine to be submitted to SLURM
+                  description: path to the script file stored in {X-Machine-Name} machine to be submitted to workload manager and scheduler
                 account:
                   type: string
-                  description: Name of the account associated to the user in the scheduler. If not set, the one incuded in the sbatch file is taken.
+                  description: Name of the account associated to the user in the scheduler. If not set, the one incuded in the batch file is taken.
                 env:
                   type: string
                   description: serialized JSON dictionary (varName, value) to be loaded as environment variables for the job
@@ -1610,7 +1610,7 @@ paths:
               schema:
                 type: integer
             X-sbatch-error:
-              description: sbatch returned error
+              description: batch returned error
               schema:
                 type: integer
   '/compute/jobs':
@@ -1623,7 +1623,7 @@ paths:
           type: string
     get:
       summary: Retrieves information from all jobs
-      description: Information about jobs on the SLURM scheduling queue. This call uses the `squeue` command.
+      description: Information about jobs on the scheduling queue.
       tags:
         - Compute
       parameters:
@@ -1678,7 +1678,7 @@ paths:
           type: string
     get:
       summary: Retrieves information from a job
-      description: Information about a job on the SLURM scheduling queue. This call uses the `squeue` command.
+      description: Information about a job on the scheduling queue.
       tags:
         - Compute
       responses:
@@ -1709,7 +1709,7 @@ paths:
                 type: integer
     delete:
       summary: Delete Job
-      description: Cancel job from SLURM, using the `scancel` command.
+      description: Cancel job from the workload manager and scheduler.
       tags:
         - Compute
       responses:
@@ -1749,8 +1749,8 @@ paths:
     get:
       summary: Job account information
       description: >-
-        Reports accounting data of job in the SLURM job accounting log, this
-        includes information from completed jobs. This call uses the `sacct` command.
+        Reports accounting data related to a workload manager and scheduler job, this
+        includes information from completed jobs.
       tags:
         - Compute
       parameters:
@@ -1774,7 +1774,7 @@ paths:
             type: string
         - name: endtime
           in: query
-          description: End time (and/or date) of sacct query. Allowed formats are
+          description: End time (and/or date). Allowed formats are
             HH:MM[:SS] [AM|PM]
             MMDD[YY] or MM/DD[/YY] or MM.DD[.YY]
             MM/DD[/YY]-HH:MM[:SS]
@@ -1940,8 +1940,7 @@ paths:
                     Limit on the total run time of the rsync. Acceptable time formats
                     \'minutes\',   \'minutes:seconds\',   \'hours:minutes:seconds\',
                     \'days-hours\', \'days-hours:minutes\' and
-                    \'days-hours:minutes:seconds\'. Note: for stage-in queue a slurm
-                    xfer job.
+                    \'days-hours:minutes:seconds\'.'
                   default: '02:00:00'
                 stageOutJobId:
                   type: string
@@ -1987,7 +1986,7 @@ paths:
         'Move files between internal CSCS file systems. Rename sourcePath to
         targetPath, or move sourcePath to targetPath /users, /project or /store
         to the /scratch file systems. Possible to stage-out jobs providing the
-        SLURM Id of a production job. Reference:
+        workload manager and scheduler Id of a production job. Reference:
         https://user.cscs.ch/storage/data_transfer/internal_transfer/'
       tags:
         - Storage
@@ -2014,8 +2013,7 @@ paths:
                     'Limit on the total run time of the rename. Acceptable time formats
                     \'minutes\',   \'minutes:seconds\',   \'hours:minutes:seconds\',
                     \'days-hours\', \'days-hours:minutes\' and
-                    \'days-hours:minutes:seconds\'. Note: for stage-in queue a slurm
-                    xfer job.'
+                    \'days-hours:minutes:seconds\'.'
                   default: '02:00:00'
                 stageOutJobId:
                   type: string
@@ -2060,7 +2058,7 @@ paths:
       description: >-
         'Copy files and directories between internal CSCS file systems. Copy
         sourcePath to targetPath /users, /project or /store to the /scratch file
-        systems. Possible to stage-out jobs providing the SLURM Id of a
+        systems. Possible to stage-out jobs providing the workload manager and scheduler Id of a
         production job. Reference:
         https://user.cscs.ch/storage/data_transfer/internal_transfer/'
       tags:
@@ -2088,8 +2086,7 @@ paths:
                     'Limit on the total run time of the copy. Acceptable time formats
                     \'minutes\',   \'minutes:seconds\',   \'hours:minutes:seconds\',
                     \'days-hours\', \'days-hours:minutes\' and
-                    \'days-hours:minutes:seconds\'. Note: for stage-in queue a slurm
-                    xfer job.'
+                    \'days-hours:minutes:seconds\'.'
                   default: '02:00:00'
                 stageOutJobId:
                   type: string
@@ -2135,7 +2132,7 @@ paths:
         'Remove files or directories in the internal CSCS file systems, with
         options rm -rf. With targetPath pointing to file system /users,
         /project, /store, or /scratch. Possible to stage-out jobs providing the
-        SLURM Id of a production job. Reference:
+        workload manager and scheduler Id of a production job. Reference:
         https://user.cscs.ch/storage/data_transfer/internal_transfer/'
       tags:
         - Storage
@@ -2159,8 +2156,7 @@ paths:
                     'Limit on the total run time of the rm. Acceptable time formats
                     \'minutes\',   \'minutes:seconds\',   \'hours:minutes:seconds\',
                     \'days-hours\', \'days-hours:minutes\' and
-                    \'days-hours:minutes:seconds\'. Note: for stage-in queue a slurm
-                    xfer job.'
+                    \'days-hours:minutes:seconds\'.'
                   default: '02:00:00'
                 stageOutJobId:
                   type: string
@@ -2630,7 +2626,7 @@ paths:
 
     post:
       summary: "[Warning: only supported until v1.17.0] Creates a new reservation"
-      description: Creates a new reservation with {reservation} name for a given SLURM groupname
+      description: Creates a new reservation with {reservation} name for a given workload manager and scheduler groupname
       deprecated: true
       tags:
         - Reservation
@@ -2646,7 +2642,7 @@ paths:
                   description: name of the reservation
                 account:
                   type: string
-                  description: name of the account in SLURM to which the reservation is made for
+                  description: name of the account in the workload manager and scheduler to which the reservation is made for
                 numberOfNodes:
                   type: string
                   description: number of nodes needed for the reservation
@@ -4025,7 +4021,7 @@ components:
               default: "Job submitted"
             jobid:
               type: string
-              description: SLURM jobid of the job submitted
+              description: workload manager and scheduler jobid of the job submitted
             job_file:
               type: string
               description: path (in the target system) of the job batch file executed
@@ -4364,7 +4360,7 @@ components:
       properties:
         jobid:
           type: string
-          description: SLURM jobid of the job submitted
+          description: Workload manager and scheduler jobid of the job submitted
         partition:
           type: string
           description: partition where the job is running
@@ -4376,22 +4372,22 @@ components:
           description: user name of the job owner
         state:
           type: string
-          description: job state as described in https://slurm.schedmd.com/squeue.html#SECTION_JOB-STATE-CODES
+          description: job state
         start_time:
           type: string
-          description: job actual or expected start time, as described in https://slurm.schedmd.com/squeue.html#OPT_StartTime
+          description: job actual or expected start time
         time:
           type: string
-          description: job consumed time, as described in https://slurm.schedmd.com/squeue.html#OPT_%M
+          description: job consumed time
         time_left:
           type: string
-          description: time left for the job to execute, as described in https://slurm.schedmd.com/squeue.html#OPT_%L
+          description: time left for the job to execute
         nodes:
           type: string
-          description: number of nodes allocated by the job, as described in https://slurm.schedmd.com/squeue.html#OPT_%D
+          description: number of nodes allocated by the job
         nodelist:
           type: string
-          description: list of nodes allocated by the job, as described in https://slurm.schedmd.com/squeue.html#OPT_%N
+          description: list of nodes allocated by the job
         job_file:
           type: string
           description: path (in the target system) of the job batch file executed
