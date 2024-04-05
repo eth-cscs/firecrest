@@ -1487,10 +1487,10 @@ paths:
         schema:
           type: string
     post:
-      summary: Submit Job by uploading a local batch file
+      summary: Submit Job by uploading a local script
       description: >-
-        Non-blocking call. Submits a batch script to the workload manager and scheduler on the target system.
-        The batch script is uploaded as a file to the microservice which then
+        Non-blocking call. Submits a script to the workload manager and scheduler on the target system.
+        The script is uploaded as a file to the microservice which then
         stores it in a temporal directory in preparation to be submitted to the
         workload manager. The operation returns the task id associated to the
         Task microservice that will contain information of the workload manager and scheduler job once
@@ -1510,7 +1510,7 @@ paths:
                   description: script file to be submitted to workload manager and scheduler
                 account:
                   type: string
-                  description: Name of the account associated to the user in the scheduler. If not set, the one incuded in the batch file is taken.
+                  description: Name of the account associated to the user in the scheduler. If not set, the one incuded in the script is taken.
                 env:
                   type: string
                   description: serialized JSON dictionary (varName, value) to be loaded as environment variables for the job
@@ -1543,7 +1543,7 @@ paths:
               schema:
                 type: integer
             X-sbatch-error:
-              description: batch returned error
+              description: script returned error
               schema:
                 type: integer
   '/compute/jobs/path':
@@ -1555,10 +1555,10 @@ paths:
         schema:
           type: string
     post:
-      summary: Submit Job by a given remote batch file
+      summary: Submit Job by a given remote script
       description: >-
-        Non-blocking call. Submits a batch script to workload manager and scheduler on the target system.
-        The batch script is uploaded as a file to the microservice which then
+        Non-blocking call. Submits a script to workload manager and scheduler on the target system.
+        The script is uploaded as a file to the microservice which then
         stores it in a temporal directory in preparation to be submitted to the
         workload manager. The operation returns the task id associated to the
         Task microservice that will contain information of the workload manager and scheduler job once
@@ -1577,7 +1577,7 @@ paths:
                   description: path to the script file stored in {X-Machine-Name} machine to be submitted to workload manager and scheduler
                 account:
                   type: string
-                  description: Name of the account associated to the user in the scheduler. If not set, the one incuded in the batch file is taken.
+                  description: Name of the account associated to the user in the scheduler. If not set, the one incuded in the script is taken.
                 env:
                   type: string
                   description: serialized JSON dictionary (varName, value) to be loaded as environment variables for the job
@@ -1610,7 +1610,7 @@ paths:
               schema:
                 type: integer
             X-sbatch-error:
-              description: batch returned error
+              description: script returned error
               schema:
                 type: integer
   '/compute/jobs':
@@ -4024,7 +4024,7 @@ components:
               description: workload manager and scheduler jobid of the job submitted
             job_file:
               type: string
-              description: path (in the target system) of the job batch file executed
+              description: path (in the target system) of the job script file executed
               default: "command-not-found"
             job_file_out:
               type: string
@@ -4390,7 +4390,7 @@ components:
           description: list of nodes allocated by the job
         job_file:
           type: string
-          description: path (in the target system) of the job batch file executed
+          description: path (in the target system) of the job script file executed
           default: "command-not-found"
         job_file_out:
           type: string
