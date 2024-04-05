@@ -158,17 +158,19 @@ def list_directory():
     return common_fs_operation(request, "ls")
 
 
+
 ## parse ls output
-def ls_parse(request, retval):
+def ls_parse_folder(folder_content:str,path:str=""):
     # Example of ls output
-    # total 8
+    # total 3
     # lrwxrwxrwx 1 username groupname 46 2023-07-25T14:18:00 "filename" -> "target link"
     # -rw-rw-r-- 1 root root           0 2023-07-24T11:45:35 "root_file.txt"
-    # ...
-    file_pattern = (r'^(?P<type>\S)(?P<permissions>\S+)\s+\d+\s+(?P<user>\S+)\s+'
-                    r'(?P<group>\S+)\s+(?P<size>\d+)\s+(?P<last_modified>(\d|-|T|:)+)\s+(?P<filename>.+)$')
-    matches = re.finditer(file_pattern, retval["msg"], re.MULTILINE)
+    # drwxrwxr-x 3 username groupname 4096 2023-07-24T11:45:35 "folder"
     file_list = []
+    file_pattern = (r'^(?P<type>\S)(?P<permissions>\S+)\s+\d+\s+(?P<user>\S+)\s+'
+                        r'(?P<group>\S+)\s+(?P<size>\d+)\s+(?P<last_modified>(\d|-|T|:)+)\s+(?P<filename>.+)$')
+    matches = re.finditer(file_pattern, folder_content, re.MULTILINE)
+    
     for m in matches:
         tokens = shlex.split(m.group("filename"))
         if len(tokens) == 1:
@@ -184,7 +186,7 @@ def ls_parse(request, retval):
             continue
 
         file_list.append({
-            "name": name,
+            "name": path + name,
             "type": m.group("type"),
             "link_target": link_target,
             "user": m.group("user"),
@@ -193,7 +195,40 @@ def ls_parse(request, retval):
             "last_modified": m.group("last_modified"),
             "size": m.group("size")
         })
+    return file_list
 
+
+## parse ls output
+def ls_parse(request, retval):
+    # Example of ls output
+    # ".":
+    # total 8
+    # lrwxrwxrwx 1 username groupname 46 2023-07-25T14:18:00 "filename" -> "target link"
+    # -rw-rw-r-- 1 root root           0 2023-07-24T11:45:35 "root_file.txt"
+    # drwxrwxr-x 3 username groupname 4096 2023-07-24T11:45:35 "folder"
+    # "./folder":
+    # total 1
+    # -rw-rw-r-- 1 username groupname 0 2023-07-24T11:45:35 "file_in_folder.txt"
+    # ...
+    
+    def remove_prefix(text, prefix):
+        return text[text.startswith(prefix) and len(prefix):]
+
+    file_list = []
+    #Check if ls has recursive folders
+    if(re.match(r'\"(.+)\":\n',retval["msg"])):
+        folders =  re.split(r'\"(.+)\":\n',retval["msg"])
+        root_folder = ""
+        for i in range(1,len(folders),2):
+            if i==1:
+                root_folder = folders[i]+"/"
+            folder_name = remove_prefix(folders[i]+"/",root_folder)
+            folder_content = folders[i+1]
+            file_list += ls_parse_folder(folder_content,folder_name)
+    else:
+        file_list += ls_parse_folder(retval["msg"])
+
+    
     totalSize = len(file_list)
     logging.info(f"Length of file list: {len(file_list)}")
 
@@ -465,6 +500,9 @@ def common_fs_operation(request, command):
         if get_boolean_var(request.args.get("numericUid", False)):
             # do not resolve UID and GID to names
             options += "--numeric-uid-gid "
+        if get_boolean_var(request.args.get("recursive", False)):
+            # do not resolve UID and GID to names
+            options += "-R "
         action = f"ls -l --quoting-style=c {options} --time-style=+%Y-%m-%dT%H:%M:%S -- '{targetPath}'"
     elif command == "mkdir":
         try:
