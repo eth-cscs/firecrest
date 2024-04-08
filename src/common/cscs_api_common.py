@@ -260,7 +260,7 @@ def in_str(stringval, substring):
         return substring in stringval
     else:
         return False
-    
+
 
 # SSH certificates creation
 # returns pub key certificate name
@@ -1059,3 +1059,23 @@ def setup_logging(logging, service):
         logging.info("DEBUG_MODE: False")
 
     return logger
+
+def extract_command(file_path, output_directory, type="auto"):
+    '''Return the appropriate command based on the file extension, or None if not supported
+    '''
+    # Map extension to command
+    command_map = {
+        ".zip": f"unzip -o '{file_path}' -d '{output_directory}'",
+        ".tar": f"tar -xf '{file_path}' -C '{output_directory}'",
+        ".bz2": f"tar -xjf '{file_path}' -C '{output_directory}'",
+        ".gz": f"tar -xzf '{file_path}' -C '{output_directory}'",
+        ".tgz": f"tar -xzf '{file_path}' -C '{output_directory}'",
+    }
+
+    if type == "auto":
+        # Extract the file extension
+        _, extension = os.path.splitext(file_path)
+    else:
+        extension = type
+
+    return command_map.get(extension, None)
