@@ -35,7 +35,7 @@ case "$command" in
     tmp2=${tmp1#* }
     command2=${tmp2%% *}   # remove options
     case "$command2" in
-      base64|cat|chmod|chown|cp|curl|file|head|id|ln|ls|mkdir|mv|rm|sacct|sbatch|scancel|scontrol|sha256sum|squeue|stat|tail|touch)
+      base64|cat|chmod|chown|cp|curl|file|head|id|ln|ls|mkdir|mv|rm|sacct|sbatch|scancel|scontrol|sha256sum|squeue|stat|tail|touch|tar|unzip)
         ;;
       rsvmgmt)
         # advance reservation command

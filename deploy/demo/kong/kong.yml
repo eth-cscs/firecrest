@@ -43,6 +43,11 @@ plugins:
     - Content-Type
     credentials: false
     max_age: 3600
+- name: response-transformer
+  route: reservations
+  config:
+    add:
+      headers: ["Deprecation:@1711111630", "Sunset:Only suppoerted until v2.0"]
 
 consumers:
 - jwt_secrets:

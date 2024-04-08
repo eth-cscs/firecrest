@@ -106,7 +106,7 @@ def test_list_jobs(machine, headers):
 
 # Test Retrieve information from an invalid jobid (jobid in the queue or running)
 @skipif_not_uses_gateway
-@pytest.mark.parametrize("machine",  [SERVER_COMPUTE])
+@pytest.mark.parametrize("machine", [SERVER_COMPUTE])
 def test_list_job(machine, headers):
 	jobid = -1
 	url = f"{JOBS_URL}/{jobid}"
@@ -188,6 +188,21 @@ def test_job_env(headers):
 	resp = requests.get(url, headers=headers, params=params, verify=False)
 	assert resp.status_code == 200
 	assert json.loads(resp.content)["output"] == JOB_ENV_OUTPUT
+
+
+# Test nodes information
+@skipif_not_uses_gateway
+@pytest.mark.parametrize("machine", [SERVER_COMPUTE])
+def test_nodes(machine, headers):
+	url = f"{COMPUTE_URL}/nodes"
+	headers.update({"X-Machine-Name": machine})
+	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	print(resp.content)
+	assert resp.status_code == 200
+
+	# check scancel status
+	task_id = resp.json()["task_id"]
+	check_task_status(task_id, headers)
 
 
 if __name__ == '__main__':

@@ -19,6 +19,7 @@ from cscs_api_common import exec_remote_command
 from cscs_api_common import create_certificate
 from cscs_api_common import in_str
 from cscs_api_common import is_valid_file, is_valid_dir, check_command_error, get_boolean_var, get_null_var, validate_input, setup_logging
+from cscs_api_common import extract_command
 
 from schedulers import JobScript
 
@@ -311,7 +312,7 @@ def get_upload_unfinished_tasks():
 
         for key,task in queue_tasks.items():
 
-            task = json.loads(task)
+            #task = json.loads(task)
 
             # iterating over queue_tasls
             try:
@@ -961,6 +962,20 @@ def internal_rm():
     return internal_operation(request, "rm")
 
 
+# Internal compression transfer via the scheduler xfer partition:
+@app.route("/xfer-internal/compress", methods=["POST"])
+@check_auth_header
+def internal_compress():
+    return internal_operation(request, "compress")
+
+
+# Internal extraction transfer via the scheduler xfer partition:
+@app.route("/xfer-internal/extract", methods=["POST"])
+@check_auth_header
+def internal_extract():
+    return internal_operation(request, "extract")
+
+
 # common code for internal cp, mv, rsync, rm
 def internal_operation(request, command):
 
@@ -989,7 +1004,7 @@ def internal_operation(request, command):
     [headers, ID] = get_tracing_headers(request)
     # using actual_command to add options to check sanity of the command to be executed
     actual_command = ""
-    if command in ['cp', 'mv', 'rsync']:
+    if command in ['cp', 'mv', 'rsync', 'compress', 'extract']:
         sourcePath = request.form.get("sourcePath", None)  # path to get file in cluster
         v = validate_input(sourcePath)
         if v != "":
@@ -1004,19 +1019,26 @@ def internal_operation(request, command):
         app.logger.info(f"_targetPath={_targetPath}")
 
         if command == "cp":
-            actual_command = "cp --force -dR --preserve=all -- "
+            actual_command = f"cp --force -dR --preserve=all -- '{sourcePath}' '{targetPath}'"
         elif command == "mv":
-            actual_command = "mv --force -- "
+            actual_command = f"mv --force -- '{sourcePath}' '{targetPath}'"
+        elif command == "rsync":
+            actual_command = f"rsync -av -- '{sourcePath}' '{targetPath}'"
+        elif command == "compress":
+            basedir = os.path.dirname(sourcePath)
+            file_path = os.path.basename(sourcePath)
+            actual_command = f"tar -czf '{targetPath}' -C '{basedir}' '{file_path}'"
         else:
-            actual_command = "rsync -av -- "
+            extraction_type = request.form.get("type", "auto")
+            actual_command = extract_command(sourcePath, targetPath, type=extraction_type)
+            if not actual_command:
+                return jsonify(description=f"Error on {command} operation", error=f"Unsupported file format in {sourcePath}."), 400
+
     elif command == "rm":
         sourcePath = ""
-        actual_command = "rm -rf -- "
+        actual_command = f"rm -rf -- '{targetPath}'"
     else:
         return jsonify(error=f"Command {command} not allowed"), 400
-
-    # don't add tracing ID, we'll be executed by srun
-    actual_command = f"{actual_command} '{sourcePath}' '{targetPath}'"
 
     jobName = request.form.get("jobName", "")
     if jobName == "":

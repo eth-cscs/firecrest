@@ -9,10 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-
-### Fixed
-
-
 ### Changed
 
 - Environment variable names
@@ -31,22 +27,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - On task response metadata, the `task_url` value is now relative to the `/tasks` endpoint
 
+- Add the endpoints `/compute/nodes` and `/compute/nodes/{nodeName}` to retrieve information about nodes in the scheduling queue.
+- Added endpoints `POST /utilities/compress`, `POST /utilities/extract`, `POST /storage/xfer-internal/compress` and `POST /storage/xfer-internal/extract` for file compression and extraction.
+- Added recurisive option to ls utilities command `&recursive=true`
+
+### Fixed
+
+- Fixed error on pipeline when releasing production version
+
 ## [1.15.0]
 
 ### Added
 
-- Added the endpoints `GET /status/filesystems` and `GET /status/filesystems/<system>`, providing enhancement in terms of filesystem availability
+- Add the endpoints `GET /status/filesystems` and `GET /status/filesystems/<system>`, providing enhancement in terms of filesystem availability
 - The endpoint `/utilities/whoami` adds the `boolean` parameter "`groups`" which set on `true` returns a dictionary with `uid`, `gid`, and `groups`
 - Added the parameter `WORKLOAD_MANAGER` in `GET /status/parameters` to provide information on the resource and workload manager used for compute
-- Add F7T_LOG_TYPE to select logging to files or stdout.
-- Add F7T_GUNICORN_LOG for Gunicorn logs.
-- Add profiling midelware.
+- Add `F7T_LOG_TYPE` to select logging to files or stdout.
+- Add `F7T_GUNICORN_LOG` for Gunicorn logs.
+- Add profiling middleware.
+
+### Changed
+
+- Improved retrieval of tasks from persistence storage.
 
 ### Fixed
 
 - Fixed demo images dependency declarations preventing docker-compose to build successfully.
-- Fixed check when submitted an empty batch file on `POST /compute/jobs/upload` 
+- Fixed check when submitted an empty batch file on `POST /compute/jobs/upload`
 - Fixed error message when `GET /status/systems` encounters error in one filesystem
+- Fixed SSH connection error catching
+- Fixed secured "ssh-keygen" command execution
 
 ### Changed
 
