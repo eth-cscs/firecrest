@@ -273,7 +273,7 @@ class SlurmScheduler(schedulers.JobScheduler):
         attributes = [
             "PartitionName",
             "State",
-            "TotalCPUs"
+            "TotalCPUs",
             "TotalNodes",
             "Default",
         ]
