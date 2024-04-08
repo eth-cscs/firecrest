@@ -157,8 +157,29 @@ def test_acct(machine, expected_response_code, headers):
 # Test get node information with scontrol command
 @skipif_not_uses_gateway
 @pytest.mark.parametrize("machine, expected_response_code", DATA)
-def test_acct(machine, expected_response_code, headers):
+def test_nodes(machine, expected_response_code, headers):
 	url = f"{COMPUTE_URL}/nodes"
+	headers.update({"X-Machine-Name": machine})
+	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	print(resp.content)
+	assert resp.status_code == expected_response_code
+
+
+# Test get partition information
+@skipif_not_uses_gateway
+@pytest.mark.parametrize("machine, expected_response_code", DATA)
+def test_partitions(machine, expected_response_code, headers):
+	url = f"{COMPUTE_URL}/partitions"
+	headers.update({"X-Machine-Name": machine})
+	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	print(resp.content)
+	assert resp.status_code == expected_response_code
+
+
+@skipif_not_uses_gateway
+@pytest.mark.parametrize("machine, expected_response_code", DATA)
+def test_partition_xfer(machine, expected_response_code, headers):
+	url = f"{COMPUTE_URL}/partitions/xfer"
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
 	print(resp.content)

@@ -194,6 +194,35 @@ def test_nodes(machine, headers):
 	check_task_status(task_id, headers)
 
 
+# Test partitions information
+@skipif_not_uses_gateway
+@pytest.mark.parametrize("machine", [SERVER_COMPUTE])
+def test_nodes(machine, headers):
+	url = f"{COMPUTE_URL}/partitions"
+	headers.update({"X-Machine-Name": machine})
+	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	print(resp.content)
+	assert resp.status_code == 200
+
+	# check scancel status
+	task_id = resp.json()["task_id"]
+	check_task_status(task_id, headers)
+
+
+@skipif_not_uses_gateway
+@pytest.mark.parametrize("machine", [SERVER_COMPUTE])
+def test_nodes(machine, headers):
+	url = f"{COMPUTE_URL}/partitions/xfer"
+	headers.update({"X-Machine-Name": machine})
+	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	print(resp.content)
+	assert resp.status_code == 200
+
+	# check scancel status
+	task_id = resp.json()["task_id"]
+	check_task_status(task_id, headers)
+
+
 if __name__ == '__main__':
 	pytest.main()
 
