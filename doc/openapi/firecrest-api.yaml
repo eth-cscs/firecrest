@@ -1940,7 +1940,7 @@ paths:
                     Limit on the total run time of the rsync. Acceptable time formats
                     \'minutes\',   \'minutes:seconds\',   \'hours:minutes:seconds\',
                     \'days-hours\', \'days-hours:minutes\' and
-                    \'days-hours:minutes:seconds\'.'
+                    \'days-hours:minutes:seconds\'.
                   default: '02:00:00'
                 stageOutJobId:
                   type: string
