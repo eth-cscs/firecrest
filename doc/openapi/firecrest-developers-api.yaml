@@ -1852,7 +1852,7 @@ paths:
   '/compute/nodes/{nodeName}':
     get:
       summary: Retrieves information about a specific node
-      description: Information about a specific node in the scheduling queue. This call uses the `scontrol show nodes` command.
+      description: Information about a specific node in the scheduling queue.
       tags:
         - Compute
       parameters:
