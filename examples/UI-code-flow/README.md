@@ -1,4 +1,4 @@
-# Use Case: Web UI with Authorization Code Flow
+# Web UI with Authorization Code Flow
 
 ## Introduction
 

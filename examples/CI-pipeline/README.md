@@ -1,8 +1,6 @@
-# Creating a CI/CD pipeline with FirecREST
+# CI/CD pipeline with FirecREST
 
-## Goal of the exercise
-
-Create a CI/CD pipeline that will run in Piz Daint through FirecREST.
+Creating a CI/CD pipeline that will run in Piz Daint through FirecREST.
 
 ## Prerequisites
 

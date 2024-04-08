@@ -1,4 +1,4 @@
-# Airflow operator with FirecREST
+# FirecREST Operators for Airflow
 
 [Apache Airflow](https://airflow.apache.org) is an open-source workflow management platform. Airflow uses directed acyclic graphs (DAGs) to manage the workflows. Tasks and dependencies are defined in Python and then Airflow takes care of the scheduling and execution. DAGs can be run either on a schedule or based on external event triggers.
 

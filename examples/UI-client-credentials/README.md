@@ -1,4 +1,4 @@
-# Use Case: Web UI with Client Credentials
+# Web UI with Client Credentials
 
 ## Introduction
 

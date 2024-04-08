@@ -12,6 +12,7 @@ Among the most prominent services that FirecREST exposes we find authentication 
 
    Overview <overview>
    Hands On <tutorial>
+   Use-case examples <usecases>
    Reference Guide <reference>
 ..   A python client setup <client>
 
