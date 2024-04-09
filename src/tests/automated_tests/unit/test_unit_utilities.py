@@ -255,7 +255,7 @@ def test_list_directory_recursive(machine, targetPath, expected_response_code, h
 	params = {"targetPath": targetPath, "recursive" : "true"}
 	url = f"{UTILITIES_URL}/ls"
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, params=params, verify=False)
 	print(json.dumps(resp.json(),indent=2))
 	print(resp.headers)
 	assert resp.status_code == expected_response_code

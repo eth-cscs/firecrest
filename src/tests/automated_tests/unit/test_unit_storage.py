@@ -96,7 +96,7 @@ def test_internal_compress(headers):
     headers["X-Machine-Name"] = machine
     data = {"sourcePath":  "/srv/f7t", "targetPath": USER_HOME + "/f7t.tar.gz", "account": "test"}
     url = f"{STORAGE_URL}/xfer-internal/compress"
-    resp = requests.post(url, headers=headers,data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+    resp = requests.post(url, headers=headers,data=data, verify=False)
     assert resp.status_code == 201
 
 @skipif_not_uses_gateway
@@ -104,7 +104,7 @@ def test_internal_compress(headers):
     headers["X-Machine-Name"] = machine
     data = {"sourcePath": "/srv/f7t/test_zip.tar.gz", "targetPath": USER_HOME, "account": "test", "extension": "tar.gz"}
     url = f"{STORAGE_URL}/xfer-internal/extract"
-    resp = requests.post(url, headers=headers,data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+    resp = requests.post(url, headers=headers,data=data, verify=False)
     assert resp.status_code == 201
 
 @skipif_not_uses_gateway

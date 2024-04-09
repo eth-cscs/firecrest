@@ -165,7 +165,7 @@ def test_acct(machine, expected_response_code, headers):
 def test_acct(machine, expected_response_code, headers):
 	url = f"{COMPUTE_URL}/nodes"
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, verify=False)
 	print(resp.content)
 	assert resp.status_code == expected_response_code
 
