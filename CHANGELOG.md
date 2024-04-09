@@ -11,13 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add the endpoints `/compute/nodes` and `/compute/nodes/{nodeName}` to retrieve information about nodes in the scheduling queue.
 - Added endpoints `POST /utilities/compress`, `POST /utilities/extract`, `POST /storage/xfer-internal/compress` and `POST /storage/xfer-internal/extract` for file compression and extraction.
-- Added recurisive option to ls utilities command `&recursive=true`
+- Added recurisive option to ls utilities command `&recursive=true`.
 
 ### Changed
 
 ### Fixed
 
-- Fixed error on pipeline when releasing production version
+- Fixed error on pipeline when releasing production version.
+- Fixed response in task after timeout in one of the commands.
 
 ## [1.15.0]
 

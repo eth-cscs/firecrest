@@ -507,6 +507,8 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
 
             elif stderr_errno == 7:
                 result = {"error": 7, "msg": "Failed to connect to staging area server"}
+            elif stderr_errno == 124:
+                result = {"error": 124, "msg": "Command has finished with timeout signal"}
             else:
                 result = {"error": stderr_errno, "msg": stderr_errda or stdout_errda}
         elif len(stderr_errda) > 0:
