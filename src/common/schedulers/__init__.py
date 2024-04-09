@@ -62,19 +62,19 @@ class JobScheduler(abc.ABC):
 
     @abc.abstractmethod
     def extract_jobid(self, output):
-        """Extracts jobid from the output of the submission command.
+        """Extract jobid from the output of the submission command.
         """
         pass
 
     @abc.abstractmethod
     def is_jobid(self, jobid_str):
-        """Checks if the string is a valid job ID for the scheduler
+        """Check if the string is a valid job ID for the scheduler
         """
         pass
 
     @abc.abstractmethod
     def job_info(self, jobid):
-        """Returns a command that will return the following information about
+        """Return a command that will return the following information about
         the job:
         * Job output filename
         * Job error filename
@@ -84,7 +84,7 @@ class JobScheduler(abc.ABC):
 
     @abc.abstractmethod
     def parse_job_info(self, output):
-        """Returns the following information about
+        """Return the following information about
         the job from the job_info command:
         * Job output filename
         * Job error filename
@@ -112,7 +112,7 @@ class JobScheduler(abc.ABC):
 
     @abc.abstractmethod
     def parse_poll_output(self):
-        """Parses the poll command output.
+        """Parse the poll command output.
         """
         pass
 
@@ -125,5 +125,21 @@ class JobScheduler(abc.ABC):
     @abc.abstractmethod
     def parse_accounting_output(self, output):
         """Parses the accounting command output.
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_nodes(self, nodenames):
+        """Return the compute nodes of the system.
+        """
+        pass
+
+    @abc.abstractmethod
+    def parse_nodes_output(self, output):
+        """Parses the nodes command. Should return records with:
+        * NodeName
+        * ActiveFeatures
+        * Partitions
+        * State"
         """
         pass
