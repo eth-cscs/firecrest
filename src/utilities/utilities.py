@@ -21,27 +21,37 @@ import shlex
 
 from cscs_api_common import check_auth_header, exec_remote_command, check_command_error, get_boolean_var, validate_input, setup_logging, extract_command
 
-CERTIFICATOR_URL = os.environ.get("F7T_CERTIFICATOR_URL")
-UTILITIES_PORT   = os.environ.get("F7T_UTILITIES_PORT", 5000)
+### SSL parameters
+SSL_ENABLED = get_boolean_var(os.environ.get("F7T_SSL_ENABLED", True))
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
+
+F7T_SCHEME_PROTOCOL = ("https" if SSL_ENABLED else "http")
+
+# Internal microservices communication
+## certificator
+CERTIFICATOR_HOST = os.environ.get("F7T_CERTIFICATOR_HOST","127.0.0.1") 
+CERTIFICATOR_PORT = os.environ.get("F7T_CERTIFICATOR_PORT","5000")
+CERTIFICATOR_URL = f"{F7T_SCHEME_PROTOCOL}://{CERTIFICATOR_HOST}:{CERTIFICATOR_PORT}"
+
+UTILITIES_PORT   = os.environ.get("F7T_UTILITIES_PORT", "5004")
 
 AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME","Authorization")
 
 UTILITIES_TIMEOUT = int(os.environ.get("F7T_UTILITIES_TIMEOUT", "5"))
 
 # SYSTEMS: list of ; separated systems allowed
-SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
+SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC_NAME","").strip('\'"').split(";")
+
 # internal machines for file operations
-SYS_INTERNALS   = os.environ.get("F7T_SYSTEMS_INTERNAL_UTILITIES").strip('\'"').split(";")
+SYSTEMS_INTERNAL_UTILITIES   = os.environ.get("F7T_SYSTEMS_INTERNAL_UTILITIES_ADDR", os.environ.get("F7T_SYSTEMS_INTERNAL_ADDR","")).strip('\'"').split(";")
 
 DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 #max file size for upload/download in MB, internally used in bytes
-MAX_FILE_SIZE_BYTES = int(os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE", "5")) * 1024 * 1024
+UTILITIES_MAX_FILE_SIZE_BYTES = int(os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE", "5")) * 1024 * 1024
 
-### SSL parameters
-USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
-SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
-SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
+
 
 TRACER_HEADER = "uber-trace-id"
 
@@ -52,7 +62,7 @@ profiling_middle_ware = ProfilerMiddleware(app.wsgi_app,
                                            profile_dir='/var/log/profs')
 
 # max content lenght for upload in bytes
-app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE_BYTES
+app.config['MAX_CONTENT_LENGTH'] = UTILITIES_MAX_FILE_SIZE_BYTES
 
 logger = setup_logging(logging, 'utilities')
 
@@ -306,7 +316,7 @@ def view():
 
     file_size = int(out["output"]) # in bytes
 
-    if file_size > MAX_FILE_SIZE_BYTES:
+    if file_size > UTILITIES_MAX_FILE_SIZE_BYTES:
         app.logger.warning("File size exceeds limit")
         # custom error raises when file size > SIZE_LIMIT env var
         header = {"X-Size-Limit": "File exceeds size limit"}
@@ -386,7 +396,7 @@ def common_fs_operation(request, command):
 
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS[system_idx]
+    system_addr = SYSTEMS_INTERNAL_UTILITIES[system_idx]
 
     # get targetPath to apply command
     tn = 'targetPath'
@@ -589,7 +599,7 @@ def common_fs_operation(request, command):
         output = retval["msg"]
     elif command == "head":
         # output first bytes (at most max value)
-        output = retval["msg"][:MAX_FILE_SIZE_BYTES]
+        output = retval["msg"][:UTILITIES_MAX_FILE_SIZE_BYTES]
     elif command == 'ls':
         description = "List of contents"
         output = ls_parse(request, retval)
@@ -601,7 +611,7 @@ def common_fs_operation(request, command):
         output = {key: int(value) for key, value in output.items()}
     elif command == "tail":
         # output last bytes (at most max value)
-        output = retval["msg"][-MAX_FILE_SIZE_BYTES:]
+        output = retval["msg"][-UTILITIES_MAX_FILE_SIZE_BYTES:]
     elif command == "upload":
         description="File upload successful"
     elif command == "whoami":
@@ -690,7 +700,7 @@ def download():
 
     try:
         file_size = int(out["output"]) # in bytes
-        if file_size > MAX_FILE_SIZE_BYTES:
+        if file_size > UTILITIES_MAX_FILE_SIZE_BYTES:
             app.logger.warning("File size exceeds limit")
             # custom error raises when file size > SIZE_LIMIT env var
             header = {"X-Size-Limit": "File exceeds size limit"}
@@ -736,7 +746,7 @@ def download():
 @app.errorhandler(413)
 def request_entity_too_large(error):
     app.logger.error(error)
-    return jsonify(description=f"Failed to upload file. The file is over {MAX_FILE_SIZE_BYTES} bytes"), 413
+    return jsonify(description=f"Failed to upload file. The file is over {UTILITIES_MAX_FILE_SIZE_BYTES} bytes"), 413
 
 
 ## Uploads file to specified path on the {machine} filesystem
@@ -793,7 +803,7 @@ def after_request(response):
 
 
 if __name__ == "__main__":
-    if USE_SSL:
+    if SSL_ENABLED:
         app.run(debug=DEBUG_MODE, host='0.0.0.0', port=UTILITIES_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:
         app.run(debug=DEBUG_MODE, host='0.0.0.0', port=UTILITIES_PORT)

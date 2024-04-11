@@ -29,7 +29,7 @@ logger = setup_logging(logging, 'status')
 
 AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME","Authorization")
 
-SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")
+SYSTEMS_PUBLIC  = os.environ.get("F7T_SYSTEMS_PUBLIC_NAME","").strip('\'"').split(";")
 
 try:
     FILESYSTEMS = ast.literal_eval(os.environ.get("F7T_FILESYSTEMS", {}).strip('\'"'))
@@ -39,26 +39,31 @@ except Exception as e:
     app.logger.error(f"Current value: F7T_FILESYSTEMS={os.environ.get('F7T_FILESYSTEMS')}")
     FILESYSTEMS = {}
 
-SERVICES = os.environ.get("F7T_STATUS_SERVICES").strip('\'"').split(";") # ; separated service names
-SYSTEMS  = os.environ.get("F7T_STATUS_SYSTEMS").strip('\'"').split(";")  # ; separated systems names
-
-STATUS_PORT = os.environ.get("F7T_STATUS_PORT", 5000)
-UTILITIES_URL = os.environ.get("F7T_UTILITIES_URL","")
-
-SERVICES_DICT = {}
+SERVICES = os.environ.get("F7T_STATUS_SERVICES","").strip('\'"').split(";") # ; separated service names
+SYSTEMS  = os.environ.get("F7T_SYSTEMS_INTERNAL_STATUS_ADDR", os.environ.get("F7T_SYSTEMS_INTERNAL_ADDR", "")).strip('\'"').split(";")  # ; separated systems names
 
 ### SSL parameters
-USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
+SSL_ENABLED = get_boolean_var(os.environ.get("F7T_SSL_ENABLED", True))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
+STATUS_PORT = os.environ.get("F7T_STATUS_PORT", "5001")
+
+F7T_SCHEME_PROTOCOL = ("https" if SSL_ENABLED else "http")
+
+UTILITIES_HOST = os.environ.get("F7T_UTILITIES_HOST","127.0.0.1") 
+UTILITIES_PORT = os.environ.get("F7T_UTILITIES_PORT","5004")
+UTILITIES_URL = f"{F7T_SCHEME_PROTOCOL}://{UTILITIES_HOST}:{UTILITIES_PORT}"
+
+SERVICES_DICT = {}
+
 
 ### parameters
-UTILITIES_MAX_FILE_SIZE = os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE", 'default')
-UTILITIES_TIMEOUT = os.environ.get("F7T_UTILITIES_TIMEOUT", 'default')
-STORAGE_TEMPURL_EXP_TIME = os.environ.get("F7T_STORAGE_TEMPURL_EXP_TIME", 'default')
-STORAGE_MAX_FILE_SIZE = os.environ.get("F7T_STORAGE_MAX_FILE_SIZE", 'default')
-OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE", '(none)')
+UTILITIES_MAX_FILE_SIZE = os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE", '5')
+UTILITIES_TIMEOUT = os.environ.get("F7T_UTILITIES_TIMEOUT", '5')
+STORAGE_TEMPURL_EXP_TIME = os.environ.get("F7T_STORAGE_TEMPURL_EXP_TIME", '604800')
+STORAGE_MAX_FILE_SIZE = os.environ.get("F7T_STORAGE_MAX_FILE_SIZE", '5120')
+OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE", 's3v4')
 COMPUTE_SCHEDULER = os.environ.get("F7T_COMPUTE_SCHEDULER", "Slurm")
 
 TRACER_HEADER = "uber-trace-id"
@@ -84,10 +89,12 @@ else:
 
 def set_services():
     for servicename in SERVICES:
-        URL_ENV_VAR = f"F7T_{servicename.upper()}_URL"
-        serviceurl = os.environ.get(URL_ENV_VAR)
-        if serviceurl:
-            SERVICES_DICT[servicename] = serviceurl
+        SERVICE_HOST_ENV_VAR_NAME = f"F7T_{servicename.upper()}_HOST"
+        SERVICE_PORT_ENV_VAR_NAME = f"F7T_{servicename.upper()}_PORT"
+        service_host = os.environ.get(SERVICE_HOST_ENV_VAR_NAME)
+        service_port = os.environ.get(SERVICE_PORT_ENV_VAR_NAME)
+        if service_host and service_port:
+            SERVICES_DICT[servicename] = f"{F7T_SCHEME_PROTOCOL}://{service_host}:{service_port}"
 
 # create services list
 set_services()
@@ -123,7 +130,7 @@ def test_service(servicename, status_list, trace_header=None):
     try:
         serviceurl = SERVICES_DICT[servicename]
         #timeout set to 5 seconds
-        req = requests.get(f"{serviceurl}/status", headers=trace_header, timeout=5, verify=(SSL_CRT if USE_SSL else False))
+        req = requests.get(f"{serviceurl}/status", headers=trace_header, timeout=5, verify=(SSL_CRT if SSL_ENABLED else False))
 
         # if status_code is 200 OK:
         if req.status_code == 200:
@@ -214,7 +221,7 @@ def test_system(machinename, headers, status_list=[]):
                 r = requests.get(f"{UTILITIES_URL}/ls",
                                 params={"targetPath": fs["path"], "numericUid": "True"},
                                 headers=headers,
-                                verify=(SSL_CRT if USE_SSL else False),
+                                verify=(SSL_CRT if SSL_ENABLED else False),
                                 timeout=(int(UTILITIES_TIMEOUT) + 1))
                 if not r.ok:
                     failfs.append(fs["path"])
@@ -267,7 +274,7 @@ def check_fs(system,filesystem, headers):
         r = requests.get(f"{UTILITIES_URL}/ls",
                         params={"targetPath": filesystem, "numericUid": "True"},
                         headers=headers,
-                        verify=(SSL_CRT if USE_SSL else False),
+                        verify=(SSL_CRT if SSL_ENABLED else False),
                         timeout=(int(UTILITIES_TIMEOUT) + 1))
         if not r.ok:
             return 400
@@ -680,7 +687,7 @@ def after_request(response):
 
 
 if __name__ == "__main__":
-    if USE_SSL:
+    if SSL_ENABLED:
         app.run(debug=DEBUG_MODE, host='0.0.0.0', port=STATUS_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:
         app.run(debug=DEBUG_MODE, host='0.0.0.0', port=STATUS_PORT)

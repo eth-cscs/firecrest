@@ -31,7 +31,7 @@ SA_TOKEN_URI  = os.environ.get("F7T_SA_TOKEN_URI")
 SA_SECRET_KEY = os.environ.get("F7T_SA_SECRET_KEY")
 SA_CLIENT_ID  = os.environ.get("F7T_SA_CLIENT_ID")
 
-machine = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")[0]
+machine = os.environ.get("F7T_SYSTEMS_PUBLIC_NAME").strip('\'"').split(";")[0]
 
 @pytest.fixture(scope='session')
 def headers():

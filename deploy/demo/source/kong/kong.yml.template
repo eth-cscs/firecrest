@@ -29,35 +29,35 @@ routes:
 
 services:
 - name: compute
-  url: F7T_KONG_COMPUTE_URL
+  url: F7T_HTTP_SCHEMA://F7T_COMPUTE_HOST:F7T_COMPUTE_PORT
   routes:
   - name: compute
     methods: [DELETE,GET,POST]
     paths:
     - /compute/
 - name: status
-  url: F7T_KONG_STATUS_URL
+  url: F7T_HTTP_SCHEMA://F7T_STATUS_HOST:F7T_STATUS_PORT
   routes:
   - name: status
     methods: [GET]
     paths:
     - /status/
 - name: storage
-  url: F7T_KONG_STORAGE_URL
+  url: F7T_HTTP_SCHEMA://F7T_STORAGE_HOST:F7T_STORAGE_PORT
   routes:
   - name: storage
     methods: [GET,POST,PUT]
     paths:
     - /storage/
 - name: tasks
-  url: F7T_KONG_TASKS_URL
+  url: F7T_HTTP_SCHEMA://F7T_TASKS_HOST:F7T_TASKS_PORT
   routes:
   - name: tasks
     methods: [GET]
     paths:
     - /tasks/
 - name: utilities
-  url: F7T_KONG_UTILITIES_URL
+  url: F7T_HTTP_SCHEMA://F7T_UTILITIES_HOST:F7T_UTILITIES_PORT
   routes:
   - name: utilities
     methods: [DELETE,GET,POST,PUT]
