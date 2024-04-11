@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add `examples` directory for practical use cases of FirecREST.
+
 ### Changed
 
 - Environment variable names
@@ -50,6 +52,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Improved retrieval of tasks from persistence storage.
+- Upgraded `kong` gateway to [v3.6.0](https://docs.konghq.com/gateway/changelog/#3600)
+- Upgraded `cryptography`package to [v42.0.4](https://cryptography.io/en/latest/changelog/#v42-0-4)
+- Upgraded `paramiko` package to [v3.4.0](https://github.com/paramiko/paramiko/tree/3.4.0)
 
 ### Fixed
 
@@ -58,12 +63,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed error message when `GET /status/systems` encounters error in one filesystem
 - Fixed SSH connection error catching
 - Fixed secured "ssh-keygen" command execution
-
-### Changed
-
-- Upgraded `kong` gateway to [v3.6.0](https://docs.konghq.com/gateway/changelog/#3600)
-- Upgraded `cryptography`package to [v42.0.4](https://cryptography.io/en/latest/changelog/#v42-0-4)
-- Upgraded `paramiko` package to [v3.4.0](https://github.com/paramiko/paramiko/tree/3.4.0)
 
 ## [1.14.0]
 
@@ -77,7 +76,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The task that is returned from a successful `GET /jobs/acct` would returns the attribute `time`, which is `cputime` from slurm. The attribute will remain and `cputime` and `elapsed` will be also returned. Similarly, `time_left` is actually the time of termination of the jobs. `time_left` will remain for compatibility reasons, but `elapsed` attribute will also be returned.
 - Added `F7T_AUTH_ISSUER` to specify the JWT token issuer to be checked by Kong GW
 - Removed `F7T_AUTH_REALM` and `F7T_AUTH_URL` which are no longer needed
-- Add `examples` directory for practical use cases of FirecREST.
 
 ### Changed
 
