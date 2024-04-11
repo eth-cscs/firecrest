@@ -1,0 +1,20 @@
+#!/bin/bash -l
+#SBATCH --job-name={{ jobName }}
+#SBATCH --account={{ account }}
+#SBATCH --time=00:05:00
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --partition={{ partition }}
+#SBATCH --constraint={{ constraint }}
+{% if reservation is not none %}
+#SBATCH --reservation={{ reservation }}
+{% endif %}
+
+export workdir={{ jobDir }}
+export final_output_dir={{ jobDir }}
+
+# download gif to later show, first waits 30s
+
+sleep 30s
+
+curl --url https://i.gifer.com/embedded/download/Goz5.gif --output ${final_output_dir}/imag.gif

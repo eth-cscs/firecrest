@@ -1,0 +1,45 @@
+name: CI
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "test_CSCS"
+  test_CSCS:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        system_name: ["daint"]
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+
+      - name: setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.7'
+
+      - name: install python packages
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r use-case-CI-pipeline/ci-requirements.txt
+
+      - name: Run testing script
+        env:
+          FIRECREST_CLIENT_ID: ${{ secrets.F7T_CLIENT_ID }}
+          FIRECREST_CLIENT_SECRET: ${{ secrets.F7T_CLIENT_SECRET }}
+          FIRECREST_URL: ${{ secrets.F7T_URL }}
+          AUTH_TOKEN_URL: ${{ secrets.F7T_TOKEN_URL }}
+        run: python use-case-CI-pipeline/ci/ci_script.py --system=${{ matrix.system_name }} --branch=${{ github.ref_name }} --repo=${{ github.server_url }}/${{ github.repository }}.git --account=your_project
