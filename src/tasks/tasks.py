@@ -19,25 +19,23 @@ import tasks_persistence as persistence
 
 AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME","Authorization")
 
-KONG_URL    = os.environ.get("F7T_KONG_URL")
-
 TASKS_PORT    = os.environ.get("F7T_TASKS_PORT", 5000)
 
 # redis info:
-PERSISTENCE_IP   = os.environ.get("F7T_PERSISTENCE_IP")
-PERSIST_PORT = os.environ.get("F7T_PERSIST_PORT")
+PERSIST_HOST   = os.environ.get("F7T_PERSIST_HOST", "127.0.0.1")
+PERSIST_PORT = os.environ.get("F7T_PERSIST_PORT", "6379")
 PERSIST_PWD  = os.environ.get("F7T_PERSIST_PWD")
 
 ### SSL parameters
-USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
+SSL_ENABLED = get_boolean_var(os.environ.get("F7T_SSL_ENABLED", True))
 SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
 SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
 # expire time in seconds, for squeue or sacct tasks: default: 24hours = 86400 secs
 COMPUTE_TASK_EXP_TIME = os.environ.get("F7T_COMPUTE_TASK_EXP_TIME", 86400)
 
-# expire time in seconds, for download/upload: default 30 days + 24 hours = 2678400 secs
-STORAGE_TASK_EXP_TIME = os.environ.get("F7T_STORAGE_TASK_EXP_TIME", 2678400)
+# expire time in seconds, for download/upload the default value is 7 days = 604800 secs
+STORAGE_TASK_EXP_TIME = os.environ.get("F7T_STORAGE_TASK_EXP_TIME", os.environ.get("F7T_STORAGE_TEMPURL_EXP_TIME", 604800))
 
 TRACER_HEADER = "uber-trace-id"
 
@@ -76,7 +74,7 @@ def init_queue():
 
     global r
 
-    r=persistence.create_connection(host=PERSISTENCE_IP, port=PERSIST_PORT, passwd=PERSIST_PWD, db=0)
+    r=persistence.create_connection(host=PERSIST_HOST, port=PERSIST_PORT, passwd=PERSIST_PWD, db=0)
 
     if r == None:
         app.logger.error("Persistence Database is not functional")
@@ -212,7 +210,7 @@ def create_task():
 
     app.logger.info(f"New task created: {t.hash_id}")
     app.logger.info(t.get_status())
-    task_url = f"{KONG_URL}/tasks/{t.hash_id}"
+    task_url = f"/tasks/{t.hash_id}"
 
     data = jsonify(hash_id=t.hash_id, task_url=task_url)
 
@@ -244,7 +242,7 @@ def get_task(id):
             return jsonify(description="Operation not permitted. Invalid task owner."), 403
 
         task_status=tasks[hash_id].get_status()
-        task_status["task_url"] = f"{KONG_URL}/tasks/{hash_id}"
+        task_status["task_url"] = f"/tasks/{hash_id}"
         data = jsonify(task=task_status)
         return data, 200
 
@@ -495,7 +493,7 @@ def after_request(response):
 
 
 if __name__ == "__main__":
-    if USE_SSL:
+    if SSL_ENABLED:
         app.run(debug=DEBUG_MODE, host='0.0.0.0', use_reloader=False, port=TASKS_PORT, ssl_context=(SSL_CRT, SSL_KEY))
     else:
         app.run(debug=DEBUG_MODE, host='0.0.0.0', use_reloader=False, port=TASKS_PORT)

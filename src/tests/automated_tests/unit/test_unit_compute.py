@@ -10,20 +10,25 @@ import os
 from markers import skipif_uses_gateway, skipif_not_uses_gateway
 from test_globals import *
 
+### SSL parameters
+SSL_ENABLED = (os.environ.get("F7T_SSL_ENABLED","false").lower() == "true")
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_PATH = "../../../deploy/test-build"
+
 FIRECREST_URL = os.environ.get("FIRECREST_URL")
 USE_GATEWAY  = (os.environ.get("USE_GATEWAY","false").lower() == "true")
 if FIRECREST_URL and USE_GATEWAY:
 	COMPUTE_URL = os.environ.get("FIRECREST_URL") + "/compute"
 else:
-    COMPUTE_URL = os.environ.get("F7T_COMPUTE_URL")
+	F7T_SCHEME_PROTOCOL = ("https" if SSL_ENABLED else "http")
+	COMPUTE_HOST = os.environ.get("F7T_COMPUTE_HOST","127.0.0.1") 
+	COMPUTE_PORT = os.environ.get("F7T_COMPUTE_PORT","5006")
+	COMPUTE_URL = f"{F7T_SCHEME_PROTOCOL}://{COMPUTE_HOST}:{COMPUTE_PORT}"
 
 JOBS_URL = COMPUTE_URL + "/jobs"
-SERVER_COMPUTE = os.environ.get("F7T_SYSTEMS_PUBLIC").strip('\'"').split(";")[0]
+SERVER_COMPUTE = os.environ.get("F7T_SYSTEMS_PUBLIC_NAME").strip('\'"').split(";")[0]
 
-### SSL parameters
-USE_SSL = os.environ.get("F7T_USE_SSL", False)
-SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
-SSL_PATH = "../../../deploy/test-build"
+print(f"COMPUTE_URL: {COMPUTE_URL}")
 
 
 # test data: (server name, expected response code)
@@ -35,7 +40,7 @@ def submit_job_upload(machine, headers):
 	print(f"COMPUTE_URL {COMPUTE_URL}")
 	files = {'file': ('upload.txt', open('testsbatch.sh', 'rb'))}
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.post(f"{JOBS_URL}/upload", headers=headers, files=files, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.post(f"{JOBS_URL}/upload", headers=headers, files=files, verify=False)
 	return resp
 
 # Helper function for job submittings with accounts
@@ -44,7 +49,7 @@ def submit_job_upload_account(machine, account, headers):
 	files = {'file': ('upload.txt', open('testsbatch.sh', 'rb'))}
 	data = {"account":account}
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.post(f"{JOBS_URL}/upload", headers=headers, data=data, files=files, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.post(f"{JOBS_URL}/upload", headers=headers, data=data, files=files, verify=False)
 	return resp
 
 
@@ -85,7 +90,7 @@ def test_submit_job_upload_account(machine, account, expected_response_code, hea
 def test_submit_job_path(machine, targetPath, expected_response_code, headers):
 	data = {"targetPath" : targetPath}
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.post(f"{JOBS_URL}/path", headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.post(f"{JOBS_URL}/path", headers=headers, data=data, verify=False)
 	print(resp.content)
 	print(resp.headers)
 	assert resp.status_code == expected_response_code
@@ -98,7 +103,7 @@ def test_submit_job_path(machine, targetPath, expected_response_code, headers):
 def test_submit_job_path_account(machine, targetPath, account, expected_response_code, headers):
 	data = {"targetPath" : targetPath, "account": account}
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.post(f"{JOBS_URL}/path", headers=headers, data=data, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.post(f"{JOBS_URL}/path", headers=headers, data=data, verify=False)
 	print(resp.content)
 	print(resp.headers)
 	assert resp.status_code == expected_response_code
@@ -110,7 +115,7 @@ def test_submit_job_path_account(machine, targetPath, account, expected_response
 def test_list_jobs(machine, expected_response_code, headers):
 	url = f"{JOBS_URL}"
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, verify=False)
 	print(resp.content)
 	assert resp.status_code == expected_response_code
 
@@ -123,7 +128,7 @@ def test_list_job(machine, expected_response_code, headers):
 	jobid = -1
 	url = f"{JOBS_URL}/{jobid}"
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, verify=False)
 	print(resp.content)
 	assert resp.status_code == expected_response_code
 
@@ -136,7 +141,7 @@ def test_cancel_job(machine, expected_response_code, headers):
 	jobid = 1
 	url = f"{JOBS_URL}/{jobid}"
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.delete(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.delete(url, headers=headers, verify=False)
 	print(resp.content)
 	assert resp.status_code == expected_response_code
 
@@ -149,7 +154,7 @@ def test_acct(machine, expected_response_code, headers):
 	url = f"{COMPUTE_URL}/acct"
 	headers.update({"X-Machine-Name": machine})
 	params = {"jobs":jobid}
-	resp = requests.get(url, headers=headers, params=params, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, params=params, verify=False)
 	print(resp.content)
 	assert resp.status_code == expected_response_code
 
@@ -160,7 +165,7 @@ def test_acct(machine, expected_response_code, headers):
 def test_acct(machine, expected_response_code, headers):
 	url = f"{COMPUTE_URL}/nodes"
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, verify=False)
 	print(resp.content)
 	assert resp.status_code == expected_response_code
 
@@ -169,7 +174,7 @@ def test_acct(machine, expected_response_code, headers):
 @skipif_uses_gateway
 def test_status(headers):
 	url = f"{COMPUTE_URL}/status"
-	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, verify=False)
 	print(resp.content)
 	assert resp.status_code == 200
 
