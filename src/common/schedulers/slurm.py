@@ -278,18 +278,49 @@ class SlurmScheduler(schedulers.JobScheduler):
             "Default",
         ]
         for part_descr in partitions_descriptions:
-            node_info = {}
+            part_info = {}
             for attr_name in attributes:
                 attr_match = re.search(rf'{attr_name}=(\S+)', part_descr)
                 if attr_match:
-                    node_info[attr_name] = attr_match.group(1)
+                    part_info[attr_name] = attr_match.group(1)
                 else:
                     logger.error(f"Could not parse attribute {attr_name} in {part_descr}, will return `None`")
-                    node_info[attr_name] = None
+                    part_info[attr_name] = None
 
-            partitions.append(node_info)
+            partitions.append(part_info)
 
-        return list(partitions)
+        return partitions
+
+    def get_reservations(self, reservations):
+        reservations = [] if reservations is None else reservations
+        quotes_reservations = [f"'{res}'" for res in reservations]
+        return f"SLURM_TIME_FORMAT=standard scontrol -a show -o reservations {','.join(quotes_reservations)}"
+
+    def parse_reservations_output(self, output):
+        reservations_descriptions = output.splitlines()
+        reservations = []
+        attributes = [
+            "ReservationName",
+            "State",
+            "Nodes",
+            "StartTime",
+            "EndTime",
+            "Features",
+            "PartitionName",
+        ]
+        for res_descr in reservations_descriptions:
+            res_info = {}
+            for attr_name in attributes:
+                attr_match = re.search(rf'{attr_name}=(\S+)', res_descr)
+                if attr_match:
+                    res_info[attr_name] = attr_match.group(1)
+                else:
+                    logger.error(f"Could not parse attribute {res_descr} in {res_descr}, will return `None`")
+                    res_info[attr_name] = None
+
+            reservations.append(res_info)
+
+        return reservations
 
     def is_valid_accounting_time(self,sacctTime):
         # HH:MM[:SS] [AM|PM]

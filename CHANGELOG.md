@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added recurisive option to ls utilities command `&recursive=true`.
 - Add the endpoints `/compute/partitions` and `/compute/partitions/{partitionName}` to retrieve information about partitions in the scheduling queue.
 - Add `examples` directory for practical use cases of FirecREST.
+- Add the endpoints `/compute/reservations` and `/compute/reservations/{reservationName}` to retrieve information about reservations in the scheduling queue.
 
 ### Changed
 

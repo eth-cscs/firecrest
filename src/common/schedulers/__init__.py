@@ -146,7 +146,7 @@ class JobScheduler(abc.ABC):
 
     @abc.abstractmethod
     def get_partitions(self, partitions):
-        """Return the partitions of the system.
+        """Return the partitions command of the system.
         """
         pass
 
@@ -158,5 +158,24 @@ class JobScheduler(abc.ABC):
         * TotalCPUS
         * TotalNodes
         * Default
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_reservations(self, reservations):
+        """Return the reservations command of the system.
+        """
+        pass
+
+    @abc.abstractmethod
+    def parse_reservations_output(self, output):
+        """Parses the reservations command. Should return records with:
+        * ReservationName
+        * State
+        * Nodes
+        * TotalCPUS
+        * TotalNodes
+        * StartTime
+        * EndTime
         """
         pass
