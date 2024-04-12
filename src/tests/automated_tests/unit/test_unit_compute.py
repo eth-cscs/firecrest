@@ -21,7 +21,7 @@ if FIRECREST_URL and USE_GATEWAY:
 	COMPUTE_URL = os.environ.get("FIRECREST_URL") + "/compute"
 else:
 	F7T_SCHEME_PROTOCOL = ("https" if SSL_ENABLED else "http")
-	COMPUTE_HOST = os.environ.get("F7T_COMPUTE_HOST","127.0.0.1") 
+	COMPUTE_HOST = os.environ.get("F7T_COMPUTE_HOST","127.0.0.1")
 	COMPUTE_PORT = os.environ.get("F7T_COMPUTE_PORT","5006")
 	COMPUTE_URL = f"{F7T_SCHEME_PROTOCOL}://{COMPUTE_HOST}:{COMPUTE_PORT}"
 
@@ -176,7 +176,7 @@ def test_nodes(machine, expected_response_code, headers):
 def test_partitions(machine, expected_response_code, headers):
 	url = f"{COMPUTE_URL}/partitions"
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, verify=False)
 	print(resp.content)
 	assert resp.status_code == expected_response_code
 
@@ -186,7 +186,7 @@ def test_partitions(machine, expected_response_code, headers):
 def test_partition_xfer(machine, expected_response_code, headers):
 	url = f"{COMPUTE_URL}/partitions/xfer"
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.get(url, headers=headers, verify= (f"{SSL_PATH}{SSL_CRT}" if USE_SSL else False))
+	resp = requests.get(url, headers=headers, verify=False)
 	print(resp.content)
 	assert resp.status_code == expected_response_code
 
