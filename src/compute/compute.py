@@ -1302,7 +1302,7 @@ def get_partitions():
 
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS[system_idx]
+    system_addr = SYSTEMS_INTERNAL_COMPUTE[system_idx]
 
     [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
@@ -1347,7 +1347,7 @@ def get_partitions():
                                  args=(headers, system_name, system_addr, action, task_id))
 
         aTask.start()
-        task_url = f"{KONG_URL}/tasks/{task_id}"
+        task_url = f"/tasks/{task_id}"
 
         data = jsonify(success="Task created", task_id=task_id, task_url=task_url)
         return data, 200
@@ -1372,7 +1372,7 @@ def get_partition(partitionName):
 
     # select index in the list corresponding with machine name
     system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYS_INTERNALS[system_idx]
+    system_addr = SYSTEMS_INTERNAL_COMPUTE[system_idx]
 
     [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
@@ -1409,7 +1409,7 @@ def get_partition(partitionName):
                                  args=(headers, system_name, system_addr, action, task_id))
 
         aTask.start()
-        task_url = f"{KONG_URL}/tasks/{task_id}"
+        task_url = f"/tasks/{task_id}"
 
         data = jsonify(success="Task created", task_id=task_id, task_url=task_url)
         return data, 200
