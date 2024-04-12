@@ -80,11 +80,11 @@ F7T_SCHEME_PROTOCOL = ("https" if SSL_ENABLED else "http")
 
 # Internal microservices communication
 ## certificator
-CERTIFICATOR_HOST = os.environ.get("F7T_CERTIFICATOR_HOST","127.0.0.1") 
+CERTIFICATOR_HOST = os.environ.get("F7T_CERTIFICATOR_HOST","127.0.0.1")
 CERTIFICATOR_PORT = os.environ.get("F7T_CERTIFICATOR_PORT","5000")
 CERTIFICATOR_URL = f"{F7T_SCHEME_PROTOCOL}://{CERTIFICATOR_HOST}:{CERTIFICATOR_PORT}"
 ## tasks
-TASKS_HOST = os.environ.get("F7T_TASKS_HOST","127.0.0.1") 
+TASKS_HOST = os.environ.get("F7T_TASKS_HOST","127.0.0.1")
 TASKS_PORT = os.environ.get("F7T_TASKS_PORT","5003")
 TASKS_URL = f"{F7T_SCHEME_PROTOCOL}://{TASKS_HOST}:{TASKS_PORT}"
 
@@ -641,7 +641,7 @@ def create_task(headers, service=None, system=None, init_data=None) -> Union[str
         headers["X-Machine-Name"] = system
         req = requests.post(f"{TASKS_URL}/", data={"init_data": init_data}, headers=headers, verify=(SSL_CRT if SSL_ENABLED else False))
 
-    except requests.exceptions.ConnectionError as e:
+    except (requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError) as e:
         logging.error(type(e), exc_info=True)
         logging.error(e)
         return -1

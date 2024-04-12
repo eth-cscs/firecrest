@@ -23,8 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `F7T_SSH_CERTIFICATE_WRAPPER` by `F7T_SSH_CERTIFICATE_WRAPPER_ENABLED`
     - `F7T_STATUS_SYSTEMS` by `F7T_SYSTEMS_INTERNAL_STATUS_ADDR`
     - `F7T_SECRET_KEY` by `F7T_SWIFT_SECRET_KEY`
-    - `F7T_USE_SPANK_PLUGIN` by `F7T_SPANK_PLUGIN_ENABLED` 
-  
+    - `F7T_USE_SPANK_PLUGIN` by `F7T_SPANK_PLUGIN_ENABLED`
+
   - Removed: `F7T_CERTIFICATOR_URL`, `F7T_COMPUTE_URL`, `F7T_RESERVATION_URL`, `F7T_STATUS_URL`, `F7T_STORAGE_URL`, `F7T_TASKS_URL`, `F7T_UTILITIES_URL`, and `F7T_SWIFT_ACCOUNT` (it's using the same value than `F7T_OS_PROJECT_ID`)
 
 - On task response metadata, the `task_url` value is now relative to the `/tasks` endpoint
@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed error on pipeline when releasing production version.
 - Fixed response in task after timeout in one of the commands.
+- Handle `ChunkedEncodingError` error in task creation to avoid crashing and returning 500 Error.
 
 ## [1.15.0]
 
