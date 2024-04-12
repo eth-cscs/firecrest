@@ -19,13 +19,13 @@ log = logging.getLogger(__name__)
 class KeystoneOIDC(Keystone):
 
     def __init__(self):
-        self.OS_AUTH_URL             = os.environ.get("F7T_OS_AUTH_URL")
-        self.OS_IDENTITY_PROVIDER    = os.environ.get("F7T_OS_IDENTITY_PROVIDER")
-        self.OS_PROTOCOL             = os.environ.get("F7T_OS_PROTOCOL")
-        self.OS_PROJECT_ID           = os.environ.get("F7T_OS_PROJECT_ID")
-        self.OS_CLIENT_ID            = os.environ.get("F7T_OS_CLIENT_ID")
-        self.OS_CLIENT_SECRET        = os.environ.get("F7T_OS_CLIENT_SECRET")
-        self.OS_DISCOVERY_ENDPOINT   = os.environ.get("F7T_OS_DISCOVERY_ENDPOINT")
+        self.OS_AUTH_URL             = os.environ.get("F7T_OS_AUTH_URL","")
+        self.OS_IDENTITY_PROVIDER    = os.environ.get("F7T_OS_IDENTITY_PROVIDER","")
+        self.OS_PROTOCOL             = os.environ.get("F7T_OS_PROTOCOL", "openid")
+        self.OS_PROJECT_ID           = os.environ.get("F7T_OS_PROJECT_ID","")
+        self.OS_CLIENT_ID            = os.environ.get("F7T_OS_CLIENT_ID","")
+        self.OS_CLIENT_SECRET        = os.environ.get("F7T_OS_CLIENT_SECRET","")
+        self.OS_DISCOVERY_ENDPOINT   = os.environ.get("F7T_OS_DISCOVERY_ENDPOINT","")
 
     # returns a valid token if username & password are valid keystone credentials
     def authenticate(self,username,password):

@@ -120,4 +120,3 @@ services:
     methods: [DELETE,GET,POST,PUT]
     paths:
     - /reservations
-

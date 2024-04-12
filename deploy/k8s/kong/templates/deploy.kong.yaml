@@ -19,7 +19,7 @@ spec:
         role: gateway
     spec:
       containers:
-      - image: kong:3.6.0
+      - image: kong:3.2
         env:
         - name: KONG_DECLARATIVE_CONFIG
           value: /kong/kong.yaml

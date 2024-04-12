@@ -11,14 +11,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add the endpoints `/compute/nodes` and `/compute/nodes/{nodeName}` to retrieve information about nodes in the scheduling queue.
 - Added endpoints `POST /utilities/compress`, `POST /utilities/extract`, `POST /storage/xfer-internal/compress` and `POST /storage/xfer-internal/extract` for file compression and extraction.
-- Added recurisive option to ls utilities command `&recursive=true`
+- Added recurisive option to ls utilities command `&recursive=true`.
 - Add the endpoints `/compute/partitions` and `/compute/partitions/{partitionName}` to retrieve information about partitions in the scheduling queue.
+- Add `examples` directory for practical use cases of FirecREST.
 
 ### Changed
 
+- Environment variable names
+  - Added: `F7T_CERTIFICATOR_HOST`, `F7T_COMPUTE_HOST`, `F7T_RESERVATION_HOST`, `F7T_STATUS_HOST`, `F7T_STORAGE_HOST`, `F7T_TASKS_HOST`, `F7T_UTILITIES_HOST`
+  - Replaced
+    - `F7T_SYSTEMS_PUBLIC` by `F7T_SYSTEMS_PUBLIC_NAME`
+    - `F7T_USE_SSL` by `F7T_SSL_ENABLED`
+    - `F7T_POLICY_PATH` by `F7T_OPA_POLICY_PATH`
+    - `F7T_PERSISTENCE_IP` by `F7T_PERSIST_HOST`
+    - `F7T_SSH_CERTIFICATE_WRAPPER` by `F7T_SSH_CERTIFICATE_WRAPPER_ENABLED`
+    - `F7T_STATUS_SYSTEMS` by `F7T_SYSTEMS_INTERNAL_STATUS_ADDR`
+    - `F7T_SECRET_KEY` by `F7T_SWIFT_SECRET_KEY`
+    - `F7T_USE_SPANK_PLUGIN` by `F7T_SPANK_PLUGIN_ENABLED`
+
+  - Removed: `F7T_CERTIFICATOR_URL`, `F7T_COMPUTE_URL`, `F7T_RESERVATION_URL`, `F7T_STATUS_URL`, `F7T_STORAGE_URL`, `F7T_TASKS_URL`, `F7T_UTILITIES_URL`, and `F7T_SWIFT_ACCOUNT` (it's using the same value than `F7T_OS_PROJECT_ID`)
+
+- On task response metadata, the `task_url` value is now relative to the `/tasks` endpoint
+
 ### Fixed
 
-- Fixed error on pipeline when releasing production version
+- Fixed error on pipeline when releasing production version.
+- Fixed response in task after timeout in one of the commands.
+- Handle `ChunkedEncodingError` error in task creation to avoid crashing and returning 500 Error.
 
 ## [1.15.0]
 
@@ -34,6 +53,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Improved retrieval of tasks from persistence storage.
+- Upgraded `kong` gateway to [v3.6.0](https://docs.konghq.com/gateway/changelog/#3600)
+- Upgraded `cryptography`package to [v42.0.4](https://cryptography.io/en/latest/changelog/#v42-0-4)
+- Upgraded `paramiko` package to [v3.4.0](https://github.com/paramiko/paramiko/tree/3.4.0)
 
 ### Fixed
 
@@ -42,12 +64,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed error message when `GET /status/systems` encounters error in one filesystem
 - Fixed SSH connection error catching
 - Fixed secured "ssh-keygen" command execution
-
-### Changed
-
-- Upgraded `kong` gateway to [v3.6.0](https://docs.konghq.com/gateway/changelog/#3600)
-- Upgraded `cryptography`package to [v42.0.4](https://cryptography.io/en/latest/changelog/#v42-0-4)
-- Upgraded `paramiko` package to [v3.4.0](https://github.com/paramiko/paramiko/tree/3.4.0)
 
 ## [1.14.0]
 

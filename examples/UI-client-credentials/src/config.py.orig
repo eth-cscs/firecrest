@@ -1,0 +1,27 @@
+class Config:
+    '''Base configuration class for the Flask app'''
+
+
+class DevConfig(Config):
+    '''Class for development configuration'''
+    DEBUG = True
+    OIDC_CLIENT_ID = "<OIDC_CLIENT_ID>"
+    OIDC_CLIENT_SECRET = "<OIDC_CLIENT_SECRET>"
+    OIDC_AUTH_REALM = "firecrest-clients"
+    OIDC_AUTH_BASE_URL = "https://auth.cscs.ch"
+    SECRET_KEY = 'A_SECRET_STRING'
+    SESSION_TYPE = "filesystem"
+    FIRECREST_URL='https://firecrest.cscs.ch'
+    SYSTEM_NAME='daint'
+    SYSTEM_PARTITIONS=['normal']
+    SYSTEM_RESERVATION='firecrest_api'
+    USER_GROUP='<my_cscs_group>'
+    SYSTEM_CONSTRAINTS=['gpu']
+    PROBLEM_SUBDIR = "f7t_demo"
+    PROBLEM_INI_FILE = ''
+    PROBLEM_MSH_FILE = ''
+    SBATCH_TEMPLATE = "demo.sh.tmpl"
+    POST_TEMPLATE = "demo_post.sh.tmpl"
+    CLIENT_PORT = 9090
+    # SSL configuration
+    USE_SSL = False
