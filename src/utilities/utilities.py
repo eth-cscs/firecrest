@@ -458,7 +458,7 @@ def common_fs_operation(request, command):
         grep_exp=request.args.get("grep", None)
         grep = ""
         if grep_exp:
-            grep = f"| grep {grep_exp} || true"
+            grep = f"| grep --fixed-strings --regexp='{grep_exp}' || true"
 
         action = f"{command} {opt} -- '{targetPath}' {grep}"
         file_transfer = 'download'
