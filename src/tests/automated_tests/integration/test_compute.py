@@ -208,7 +208,7 @@ def test_nodes(machine, headers):
 # Test partitions information
 @skipif_not_uses_gateway
 @pytest.mark.parametrize("machine", [SERVER_COMPUTE])
-def test_nodes(machine, headers):
+def test_partitions(machine, headers):
 	url = f"{COMPUTE_URL}/partitions"
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.get(url, headers=headers, verify=False)
@@ -222,8 +222,22 @@ def test_nodes(machine, headers):
 
 @skipif_not_uses_gateway
 @pytest.mark.parametrize("machine", [SERVER_COMPUTE])
-def test_nodes(machine, headers):
+def test_partition_xfer(machine, headers):
 	url = f"{COMPUTE_URL}/partitions/xfer"
+	headers.update({"X-Machine-Name": machine})
+	resp = requests.get(url, headers=headers, verify=False)
+	print(resp.content)
+	assert resp.status_code == 200
+
+	# check scancel status
+	task_id = resp.json()["task_id"]
+	check_task_status(task_id, headers)
+
+
+@skipif_not_uses_gateway
+@pytest.mark.parametrize("machine", [SERVER_COMPUTE])
+def test_reservations(machine, headers):
+	url = f"{COMPUTE_URL}/reservations"
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.get(url, headers=headers, verify=False)
 	print(resp.content)
