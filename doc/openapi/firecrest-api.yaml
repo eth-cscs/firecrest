@@ -715,7 +715,7 @@ paths:
             type: string
         - name: grep
           in: query
-          description: Pipes the output trought grep and returns lines matching the provided pattern.
+          description: Pipes the output trought grep and returns lines matching the provided pattern. Supports fixed strings matching patterns only.
           schema:
             type: string
       responses:
@@ -939,7 +939,7 @@ paths:
             type: boolean
         - name: grep
           in: query
-          description: Pipes the output trought grep and returns lines matching the provided pattern.
+          description: Pipes the output trought grep and returns lines matching the provided pattern.  Supports fixed strings matching patterns only.
           schema:
             type: string
       responses:
