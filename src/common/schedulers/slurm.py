@@ -297,6 +297,9 @@ class SlurmScheduler(schedulers.JobScheduler):
         return f"SLURM_TIME_FORMAT=standard scontrol -a show -o reservations {','.join(quotes_reservations)}"
 
     def parse_reservations_output(self, output):
+        if output == "No reservations in the system":
+            return []
+
         reservations_descriptions = output.splitlines()
         reservations = []
         attributes = [
@@ -315,7 +318,7 @@ class SlurmScheduler(schedulers.JobScheduler):
                 if attr_match:
                     res_info[attr_name] = attr_match.group(1)
                 else:
-                    logger.error(f"Could not parse attribute {res_descr} in {res_descr}, will return `None`")
+                    logger.error(f"Could not parse attribute {attr_name} in {res_descr}, will return `None`")
                     res_info[attr_name] = None
 
             reservations.append(res_info)

@@ -23,6 +23,11 @@ if [ "${SSH_EXECUTE:0:3}" == "ID=" -o "${SSH_EXECUTE:0:6}" == "F7TID=" ]; then
   actual="${SSH_EXECUTE}"
 fi
 
+# Remove the SLURM_TIME_FORMAT=standard prefix if present
+if [[ "${actual:0:26}" == "SLURM_TIME_FORMAT=standard" ]]; then
+  actual="${actual#* }"    # remove everything before the first space, including the space
+fi
+
 command="${actual%% *}"    # remove all after first space
 
 case "$command" in
