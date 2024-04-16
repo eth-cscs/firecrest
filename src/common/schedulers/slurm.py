@@ -262,68 +262,67 @@ class SlurmScheduler(schedulers.JobScheduler):
 
         return list(nodes)
 
-    def is_valid_accounting_time(self,sacctTime):
+    def is_valid_accounting_time(self, sacct_time):
         # HH:MM[:SS] [AM|PM]
         # MMDD[YY] or MM/DD[/YY] or MM.DD[.YY]
         # MM/DD[/YY]-HH:MM[:SS]
         # YYYY-MM-DD[THH:MM[:SS]]
 
-        if "/" in sacctTime:
+        if "/" in sacct_time:
 
             try:
                 # try: MM/DD
-                datetime.datetime.strptime(sacctTime, "%m/%d")
+                datetime.datetime.strptime(sacct_time, "%m/%d")
                 # try: MM/DD/YY
-                datetime.datetime.strptime(sacctTime, "%m/%d/%y")
+                datetime.datetime.strptime(sacct_time, "%m/%d/%y")
                 # try: MM/DD-HH:MM
-                datetime.datetime.strptime(sacctTime, "%m/%d-%H:%M")
+                datetime.datetime.strptime(sacct_time, "%m/%d-%H:%M")
                 # try: MM/DD-HH:MM:SS
-                datetime.datetime.strptime(sacctTime, "%m/%d-%H:%M:%S")
+                datetime.datetime.strptime(sacct_time, "%m/%d-%H:%M:%S")
                 # try: MM/DD/YY-HH:MM
-                datetime.datetime.strptime(sacctTime, "%m/%d/%y-%H:%M")
+                datetime.datetime.strptime(sacct_time, "%m/%d/%y-%H:%M")
                 # try: MM/DD/YY-HH:MM:SS
-                datetime.datetime.strptime(sacctTime, "%m/%d/%y-%H:%M:%S")
-
+                datetime.datetime.strptime(sacct_time, "%m/%d/%y-%H:%M:%S")
                 return True
             except ValueError as e:
                 logger.error(e, exc_info=True)
                 return False
 
-        if ":" in sacctTime:
+        if ":" in sacct_time:
 
             try:
                 # try: HH:MM
-                datetime.datetime.strptime(sacctTime, "%H:%M")
+                datetime.datetime.strptime(sacct_time, "%H:%M")
                 # try: HH:MM:SS
-                datetime.datetime.strptime(sacctTime, "%H:%M:%S")
+                datetime.datetime.strptime(sacct_time, "%H:%M:%S")
                 # try: HH:MM:SS AM|PM
-                datetime.datetime.strptime(sacctTime, "%H:%M:%S %p")
+                datetime.datetime.strptime(sacct_time, "%H:%M:%S %p")
                 # try: YYYY-MM-DDTHH:MM
-                datetime.datetime.strptime(sacctTime, "%Y-%m-%dT%H:%M")
+                datetime.datetime.strptime(sacct_time, "%Y-%m-%dT%H:%M")
                 # try: YYYY-MM-DDTHH:MM:SS
-                datetime.datetime.strptime(sacctTime, "%Y-%m-%dT%H:%M:%S")
+                datetime.datetime.strptime(sacct_time, "%Y-%m-%dT%H:%M:%S")
                 return True
             except ValueError as e:
                 logger.error(e, exc_info=True)
                 return False
 
-        if "." in sacctTime:
+        if "." in sacct_time:
             try:
                 # try: MM.DD
-                datetime.datetime.strptime(sacctTime, "%m.%d")
+                datetime.datetime.strptime(sacct_time, "%m.%d")
                 # try: MM.DD.YY
-                datetime.datetime.strptime(sacctTime, "%m.%d.%y")
+                datetime.datetime.strptime(sacct_time, "%m.%d.%y")
                 return True
             except ValueError as e:
                 logger.error(e, exc_info=True)
                 return False
 
-        if "-" not in sacctTime:
+        if "-" not in sacct_time:
             try:
                 # try: MMDD
-                datetime.datetime.strptime(sacctTime, "%m%d")
+                datetime.datetime.strptime(sacct_time, "%m%d")
                 # try: MMDDYY
-                datetime.datetime.strptime(sacctTime, "%m%d%y")
+                datetime.datetime.strptime(sacct_time, "%m%d%y")
                 return True
             except ValueError as e:
                 logger.error(e, exc_info=True)
@@ -331,21 +330,22 @@ class SlurmScheduler(schedulers.JobScheduler):
 
         try:
             # try: YYYY-MM-DD
-            datetime.datetime.strptime(sacctTime, "%Y-%m-%d")
+            datetime.datetime.strptime(sacct_time, "%Y-%m-%d")
             return True
         except ValueError as e:
             logger.error(e, exc_info=True)
             return False
 
-    def check_job_time(jobTime):
+
+    def check_job_time(self, job_time):
         # try to parse correctly the HH:MM:SS time format
         # acceptable formats are: MM MM:SS HH:MM:SS DD-HH DD-HH:MM DD-HH:MM:SS
         # time.strptime("15:02","%H:%M")
 
-        if ":" not in jobTime and "-" not in jobTime:
-            # asumes is just minutes:
+        if ":" not in job_time and "-" not in job_time:
+            # assumes is just minutes:
             try:
-                mm = int(jobTime)  # exception stands for ValueError int convertion
+                mm = int(job_time)  # exception stands for ValueError int conversion
 
                 if mm < 1:  # if minutes smaller than 1
                     return False
@@ -356,12 +356,12 @@ class SlurmScheduler(schedulers.JobScheduler):
 
             return True
 
-        if ":" not in jobTime and "-" in jobTime:
-            # asumes is DD-HH
+        if ":" not in job_time and "-" in job_time:
+            # assumes is DD-HH
             try:
-                [dd, hh] = jobTime.split("-")
+                [dd, hh] = job_time.split("-")
 
-                dd = int(dd)  # exception stands for ValueError int convertion
+                dd = int(dd)  # exception stands for ValueError int conversion
                 hh = int(hh)
 
                 if (
@@ -378,10 +378,10 @@ class SlurmScheduler(schedulers.JobScheduler):
 
             return True
 
-        if ":" in jobTime and "-" not in jobTime:
-            # asumes is HH:MM:SS or MM:SS
+        if ":" in job_time and "-" not in job_time:
+            # assumes is HH:MM:SS or MM:SS
 
-            splittedJobTime = jobTime.split(":")
+            splittedJobTime = job_time.split(":")
 
             if len(splittedJobTime) == 2:
                 # MM:SS
@@ -429,7 +429,7 @@ class SlurmScheduler(schedulers.JobScheduler):
         # last assumed option is jobTime with - and : --> DD-HH:MM or DD-HH:MM:SS
 
         try:
-            [dd, rest] = jobTime.split("-")
+            [dd, rest] = job_time.split("-")
 
             dd = int(dd)
             if dd < 0:

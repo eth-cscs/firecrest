@@ -25,7 +25,7 @@ from flask_opentracing import FlaskTracing
 from jaeger_client import Config
 import opentracing
 
-from schedulers import Job
+from schedulers import Job, factory_scheduler
 
 AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME","Authorization")
 
@@ -110,18 +110,17 @@ else:
     jaeger_tracer = None
     tracing = None
 
+
 def init_compute():
     global scheduler
-
-    scheduler = None
-    if COMPUTE_SCHEDULER == "Slurm":
-        app.logger.info("Scheduler selected: Slurm")
-
-        from schedulers.slurm import SlurmScheduler
-        scheduler = SlurmScheduler()
-    else:
+    # create the scheduler object
+    try:
+        scheduler = factory_scheduler(COMPUTE_SCHEDULER)
+        app.logger.info("Scheduler selected: {}".format(COMPUTE_SCHEDULER))
+    except Exception as ex:
+        scheduler = None
+        app.logger.exception(ex)
         app.logger.error("No scheduler was set.")
-
 
 # checks QueuePersistence and retakes all tasks
 init_compute()
