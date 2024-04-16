@@ -21,7 +21,7 @@ from cscs_api_common import in_str
 from cscs_api_common import is_valid_file, is_valid_dir, check_command_error, get_boolean_var, get_null_var, validate_input, setup_logging
 from cscs_api_common import extract_command
 
-from schedulers import JobScript
+from schedulers import JobScript, factory_scheduler
 
 import requests
 
@@ -353,14 +353,13 @@ def get_upload_unfinished_tasks():
 
 def init_storage():
     global scheduler
-
-    scheduler = None
-    if STORAGE_SCHEDULER == "Slurm":
-        app.logger.info("Scheduler selected: Slurm")
-
-        from schedulers.slurm import SlurmScheduler
-        scheduler = SlurmScheduler()
-    else:
+    # create the scheduler object
+    try:
+        scheduler = factory_scheduler(STORAGE_SCHEDULER)
+        app.logger.info("Scheduler selected: {}".format(STORAGE_SCHEDULER))
+    except Exception as ex:
+        scheduler = None
+        app.logger.exception(ex)
         app.logger.error("No scheduler was set.")
 
     # should check Tasks tasks than belongs to storage
@@ -1051,7 +1050,7 @@ def internal_operation(request, command):
 
     try:
         jobTime = request.form["time"]  # job time, default is 2:00:00 H:M:s
-        if not scheduler.check_jobTime(jobTime):
+        if not scheduler.check_job_time(jobTime):
             return jsonify(error="Not supported time format"), 400
     except:
         jobTime = "02:00:00"
