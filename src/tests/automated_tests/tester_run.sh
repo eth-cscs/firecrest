@@ -9,8 +9,8 @@
 exit_code=0
 
 # We start with the reservation tests because other tests still need a proper cleanup step.
-# echo "running reservation tests..."
-echo "Starting tests: USE_GATEWAY=$USE_GATEWAY"
+echo "Starting tests"
+echo "  - USE_GATEWAY=$USE_GATEWAY"
 
 pytest -m "reservations" -c $PYTEST_CONFIG_FILE unit
 exit_code=$(( $? | exit_code ))

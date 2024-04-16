@@ -1,0 +1,46 @@
+#!/bin/bash -l
+#SBATCH --job-name={{ jobName }}
+#SBATCH --time=00:10:00
+#SBATCH --nodes={{ ntasks }}
+#SBATCH --partition={{ partition }}
+#SBATCH --constraint={{ constraint }}
+#SBATCH --account={{ account }}
+#SBATCH --error=slurm-{{ jobName }}-%j.err
+#SBATCH --output=slurm-{{ jobName }}-%j.out
+{% if reservation is not none %}
+#SBATCH --reservation={{ reservation }}
+{% endif %}
+
+
+{% if step != 1 %}
+{# if step is 1, then no dependency should be added #}
+#SBATCH --dependency=afterok:{{ lastJobId }}
+{% endif %}
+module load daint-gpu
+module load sarus
+
+sarus pull ethcscs/pyfr:1.12.0-cuda11.3-mpich3.1.4-ubuntu20.04
+
+step={{ step }}
+cd {{ jobDir }}
+
+ini=inc-cylinder_${step}.ini
+
+let p=step-1
+# sed -e 's#TSTART#tstart = '${p}.0'#' -e 's#TEND#tend = '${step}.1'#' < {{ problem_ini_file }} > $ini
+sed -e 's/tstart = .*/tstart = '${p}.0'/' -e 's/tend = .*/tend = '${step}.1'/' < {{ problem_ini_file }} > $ini
+
+if [ $step -eq 1 ]; then
+  # if first step: import the mesh
+  sarus run --mount=type=bind,src=$(pwd),dst=/pyfr ethcscs/pyfr:1.12.0-cuda11.3-mpich3.1.4-ubuntu20.04 pyfr import -tgmsh /pyfr/{{ problem_msh_file }} /pyfr/inc-cylinder.pyfrm
+  command="run"
+  prev=""
+ else
+  # there's a previous solution
+  command="restart"
+  prev=" solution.pyfrs "
+fi
+
+
+sarus run --mount=type=bind,src=$(pwd),dst=/pyfr --workdir=/pyfr ethcscs/pyfr:1.12.0-cuda11.3-mpich3.1.4-ubuntu20.04 pyfr $command -b cuda -p inc-cylinder.pyfrm ${prev} $ini
+cp --force inc_cylinder_2d_0.00.pyfrs solution.pyfrs

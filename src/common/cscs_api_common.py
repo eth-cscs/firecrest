@@ -71,25 +71,35 @@ AUTH_REQUIRED_SCOPE = os.environ.get("F7T_AUTH_REQUIRED_SCOPE", '').strip('\'"')
 
 AUTH_ROLE = os.environ.get("F7T_AUTH_ROLE", '').strip('\'"')
 
+### SSL parameters
+SSL_ENABLED = get_boolean_var(os.environ.get("F7T_SSL_ENABLED", True))
+SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
+SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
 
-CERTIFICATOR_URL = os.environ.get("F7T_CERTIFICATOR_URL")
-TASKS_URL = os.environ.get("F7T_TASKS_URL")
+F7T_SCHEME_PROTOCOL = ("https" if SSL_ENABLED else "http")
 
-F7T_SSH_CERTIFICATE_WRAPPER = get_boolean_var(os.environ.get("F7T_SSH_CERTIFICATE_WRAPPER", False))
+# Internal microservices communication
+## certificator
+CERTIFICATOR_HOST = os.environ.get("F7T_CERTIFICATOR_HOST","127.0.0.1")
+CERTIFICATOR_PORT = os.environ.get("F7T_CERTIFICATOR_PORT","5000")
+CERTIFICATOR_URL = f"{F7T_SCHEME_PROTOCOL}://{CERTIFICATOR_HOST}:{CERTIFICATOR_PORT}"
+## tasks
+TASKS_HOST = os.environ.get("F7T_TASKS_HOST","127.0.0.1")
+TASKS_PORT = os.environ.get("F7T_TASKS_PORT","5003")
+TASKS_URL = f"{F7T_SCHEME_PROTOCOL}://{TASKS_HOST}:{TASKS_PORT}"
+
+SSH_CERTIFICATE_WRAPPER_ENABLED = get_boolean_var(os.environ.get("F7T_SSH_CERTIFICATE_WRAPPER_ENABLED", False))
 
 # Fobidden chars on user path/parameters: wihtout scapes: < > | ; " ' & \ ( ) x00-x1F \x60
 #   r'...' specifies it's a regular expression with special treatment for \
 FORBIDDEN_INPUT_CHARS = r'[\<\>\|\;\"\'\&\\\(\)\x00-\x1F\x60]'
 
 # OPA endpoint
-OPA_USE = get_boolean_var(os.environ.get("F7T_OPA_USE",False))
+OPA_ENABLED = get_boolean_var(os.environ.get("F7T_OPA_ENABLED",False))
 OPA_URL = os.environ.get("F7T_OPA_URL","http://localhost:8181").strip('\'"')
-POLICY_PATH = os.environ.get("F7T_POLICY_PATH","v1/data/f7t/authz").strip('\'"')
+OPA_POLICY_PATH = os.environ.get("F7T_OPA_POLICY_PATH","v1/data/f7t/authz").strip('\'"')
 
-### SSL parameters
-USE_SSL = get_boolean_var(os.environ.get("F7T_USE_SSL", False))
-SSL_CRT = os.environ.get("F7T_SSL_CRT", "")
-SSL_KEY = os.environ.get("F7T_SSL_KEY", "")
+
 
 ### SSH key paths
 PUB_USER_KEY_PATH = os.environ.get("F7T_PUB_USER_KEY_PATH", "/user-key.pub")
@@ -300,7 +310,7 @@ def create_certificate(headers, cluster_name, cluster_addr, command=None, option
         logging.debug(f"Request URL: {reqURL}")
 
     try:
-        resp = requests.get(reqURL, headers=headers, verify= (SSL_CRT if USE_SSL else False) )
+        resp = requests.get(reqURL, headers=headers, verify= (SSL_CRT if SSL_ENABLED else False) )
 
         if resp.status_code != 200:
             return [None, resp.status_code, resp.json()["description"]]
@@ -388,9 +398,9 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
                        timeout=10,
                        disabled_algorithms={'keys': ['rsa-sha2-256', 'rsa-sha2-512']})
 
-        if F7T_SSH_CERTIFICATE_WRAPPER:
+        if SSH_CERTIFICATE_WRAPPER_ENABLED:
             if DEBUG_MODE:
-                logging.debug(f"Using F7T_SSH_CERTIFICATE_WRAPPER.")
+                logging.debug(f"Using F7T_SSH_CERTIFICATE_WRAPPER_ENABLED option")
 
             # read cert to send it as a command to the server
             with open(pub_cert, 'r') as cert_file:
@@ -494,7 +504,7 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
             else:
                 result = {"error": 0, "msg": outlines}
         elif stderr_errno > 0:
-            # Solving when stderr_errno = 1 and no_home plugin used (F7T_USE_SPANK_PLUGIN)
+            # Solving when stderr_errno = 1 and no_home plugin used (F7T_SPANK_PLUGIN_ENABLED)
             # stderr_errno = 1
             # stderr_errda = "Could not chdir to home directory /users/eirinik: No such file or directory
             # ERROR: you must specify a project account (-A <account>)sbatch: error: cli_filter plugin terminated with error"
@@ -507,6 +517,8 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
 
             elif stderr_errno == 7:
                 result = {"error": 7, "msg": "Failed to connect to staging area server"}
+            elif stderr_errno == 124:
+                result = {"error": 124, "msg": "Command has finished with timeout signal"}
             else:
                 result = {"error": stderr_errno, "msg": stderr_errda or stdout_errda}
         elif len(stderr_errda) > 0:
@@ -627,9 +639,9 @@ def create_task(headers, service=None, system=None, init_data=None) -> Union[str
         # X-Firecrest-Service: service that created the task
         headers["X-Firecrest-Service"] = service
         headers["X-Machine-Name"] = system
-        req = requests.post(f"{TASKS_URL}/", data={"init_data": init_data}, headers=headers, verify=(SSL_CRT if USE_SSL else False))
+        req = requests.post(f"{TASKS_URL}/", data={"init_data": init_data}, headers=headers, verify=(SSL_CRT if SSL_ENABLED else False))
 
-    except requests.exceptions.ConnectionError as e:
+    except (requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError) as e:
         logging.error(type(e), exc_info=True)
         logging.error(e)
         return -1
@@ -666,10 +678,10 @@ def update_task(task_id: str, headers: dict, status: str, msg:Union[str,dict,Non
     data = {"status": status, "msg": msg}
     if is_json:
         req = requests.put(f"{TASKS_URL}/{task_id}",
-                            json=data, headers=headers, verify=(SSL_CRT if USE_SSL else False))
+                            json=data, headers=headers, verify=(SSL_CRT if SSL_ENABLED else False))
     else:
         req = requests.put(f"{TASKS_URL}/{task_id}",
-                            data=data, headers=headers, verify=(SSL_CRT if USE_SSL else False))
+                            data=data, headers=headers, verify=(SSL_CRT if SSL_ENABLED else False))
 
     resp = json.loads(req.content)
     return resp
@@ -692,7 +704,7 @@ def expire_task(task_id, headers, service) -> bool:
     try:
         headers["X-Firecrest-Service"] = service
         req = requests.post(f"{TASKS_URL}/expire/{task_id}",
-                            headers=headers, verify=(SSL_CRT if USE_SSL else False))
+                            headers=headers, verify=(SSL_CRT if SSL_ENABLED else False))
     except Exception as e:
         logging.error(type(e))
         logging.error(e.args)
@@ -719,7 +731,7 @@ def delete_task(task_id, headers) -> bool:
     logging.info(f"DELETE {TASKS_URL}/{task_id}")
     try:
         req = requests.delete(f"{TASKS_URL}/{task_id}",
-                            headers=headers, verify=(SSL_CRT if USE_SSL else False))
+                            headers=headers, verify=(SSL_CRT if SSL_ENABLED else False))
     except Exception as e:
         logging.error(type(e))
         logging.error(e.args)
@@ -748,7 +760,7 @@ def get_task_status(task_id, headers) -> Union[dict,int]:
     logging.info(f"{TASKS_URL}/{task_id}")
     try:
         retval = requests.get(f"{TASKS_URL}/{task_id}",
-                           headers=headers, verify=(SSL_CRT if USE_SSL else False))
+                           headers=headers, verify=(SSL_CRT if SSL_ENABLED else False))
         if retval.status_code != 200:
             return -1
 
@@ -883,13 +895,13 @@ def check_auth_header(func):
 def check_user_auth(username,system):
 
     # check if OPA is active
-    if OPA_USE:
+    if OPA_ENABLED:
         try:
             input = {"input":{"user": f"{username}", "system": f"{system}"}}
             if DEBUG_MODE:
-                logging.debug(f"OPA: enabled, using {OPA_URL}/{POLICY_PATH}")
+                logging.debug(f"OPA: enabled, using {OPA_URL}/{OPA_POLICY_PATH}")
 
-            resp_opa = requests.post(f"{OPA_URL}/{POLICY_PATH}", json=input)
+            resp_opa = requests.post(f"{OPA_URL}/{OPA_POLICY_PATH}", json=input)
 
             logging.info(resp_opa.content)
 

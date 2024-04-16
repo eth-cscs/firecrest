@@ -17,7 +17,7 @@
                 "FLASK_DEBUG": "1",
                 "F7T_REALM_RSA_TYPE":"RS256",
                 "F7T_LOG_PATH":"${workspaceFolder}/logs/",
-                "F7T_PERSISTENCE_IP":"localhost",
+                "F7T_PERSIST_HOST":"localhost",
                 "F7T_PERSIST_PORT":"6379",
                 "F7T_PERSIST_PWD":"rediS2200",
                 "F7T_TASKS_PORT":"5003",
