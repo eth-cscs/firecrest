@@ -48,7 +48,7 @@ CERTIFICATOR_PORT = os.environ.get("F7T_CERTIFICATOR_PORT", 5000)
 FORBIDDEN_COMMAND_CHARS = r'[\|\<\;\"\\\(\)\x00-\x1F\x60]'
 
 # The pipe "|" chars is only allowed if emmediatelly followed by "grep "
-FORBIDDEN_COMMAND_CHARS_EXCEPTION = [r'\| grep',r'\|\| true']
+FORBIDDEN_COMMAND_CHARS_EXCEPTION = [r'\| grep']
 
 
 # OPA endpoint
