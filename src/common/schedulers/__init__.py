@@ -7,6 +7,21 @@
 import abc
 
 
+def factory_scheduler(scheduler_name):
+    """
+    Factory builder of a scheduler's instance.
+    Args:
+        scheduler_name: the scheduler name to select the class to be instantiated.
+    Returns:
+        None if the scheduler was not found.
+        The instance of the selected scheduler's class, it the scheduler was found.
+    """
+    if scheduler_name == "Slurm":
+        from schedulers.slurm import SlurmScheduler
+        return SlurmScheduler()
+    raise Exception("Scheduler {} not supported".format(scheduler_name))
+
+
 class Job:
     """Class with submission specifications
     """
@@ -55,7 +70,7 @@ class JobScheduler(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def script_template(self, filename, id, script_spec):
+    def script_template(self, id, script_spec, filename=None):
         """Return job script based on the script_spec.
         """
         pass
@@ -111,7 +126,7 @@ class JobScheduler(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def parse_poll_output(self):
+    def parse_poll_output(self, output):
         """Parse the poll command output.
         """
         pass
@@ -179,3 +194,12 @@ class JobScheduler(abc.ABC):
         * EndTime
         """
         pass
+
+    @abc.abstractmethod
+    def check_job_time(self, job_time):
+        """Try to parse correctly the HH:MM:SS time format for the passed job_time argument. Accepted formats:
+        * MM MM:SS
+        * HH:MM:SS
+        * DD-HH DD-HH:MM
+        * DD-HH:MM:SS
+        """
