@@ -606,7 +606,7 @@ def parse_io_error(retval, operation, path):
     elif retval["error"] == 2:
         # IOError 2: no such file
         header = {"X-Invalid-Path": f"{path} is invalid."}
-    elif retval["error"] == -2:
+    elif retval["error"] == -2 or retval["error"] == 113:
         # IOError -2: name or service not known
         header = {"X-Machine-Not-Available": "Machine is not available"}
     elif retval["error"] == 118:
