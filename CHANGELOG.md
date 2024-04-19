@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed error on pipeline when releasing production version.
 - Fixed response in task after timeout in one of the commands.
 - Handle `ChunkedEncodingError` error in task creation to avoid crashing and returning 500 Error.
+- Fixed compute task error message on system not available
 
 ## [1.15.0]
 
