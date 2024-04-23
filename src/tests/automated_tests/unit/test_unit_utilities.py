@@ -93,8 +93,8 @@ DATA_HEAD_TAIL = [ ("head", SERVER_UTILITIES, "/srv/f7t/test_sbatch.sh", "12", N
 ("tail", SERVER_UTILITIES, "/srv/f7t/test_sbatch.sh", "10", None, None,200, "sleep 60s\n"),
 ("tail", SERVER_UTILITIES, "/bin/ls", "10", "20",None, 400, ""),
 ("tail", "someservernotavailable", USER_HOME, None, None,None, 400, ""),
-("head", SERVER_UTILITIES, "/srv/f7t/test_sbatch.sh", "12", None,"job-name", 200, "#SBATCH --job-name=testsbatch\n"),
-("tail", SERVER_UTILITIES, "/srv/f7t/test_sbatch.sh", "12", None,"job-name", 200, "#SBATCH --job-name=testsbatch\n")
+("head", SERVER_UTILITIES, "/srv/f7t/test_sbatch.sh", None, None,"job", 200, "#SBATCH --job-name=testsbatch\n"),
+("tail", SERVER_UTILITIES, "/srv/f7t/test_sbatch.sh", None, None,"job", 200, "#SBATCH --job-name=testsbatch\n")
 ]
 
 # test data for checksum API
