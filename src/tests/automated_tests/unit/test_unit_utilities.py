@@ -87,12 +87,15 @@ DATA_CK = [ (SERVER_UTILITIES, "/srv/f7t/test_sbatch.sh", 200),
 ("someservernotavailable", USER_HOME + "/" ,400)]
 
 # test data for head and tail: needs to match content from /srv/f7t/test_sbatch.sh
-DATA_HEAD_TAIL = [ ("head", SERVER_UTILITIES, "/srv/f7t/test_sbatch.sh", "12", None, 200, "#!/bin/bash\n"),
-("head", SERVER_UTILITIES, "/etc/hosts", "10", "20", 400, ""),
-("head", "someservernotavailable", USER_HOME, None, None, 400, ""),
-("tail", SERVER_UTILITIES, "/srv/f7t/test_sbatch.sh", "10", None, 200, "sleep 60s\n"),
-("tail", SERVER_UTILITIES, "/bin/ls", "10", "20", 400, ""),
-("tail", "someservernotavailable", USER_HOME, None, None, 400, "")]
+DATA_HEAD_TAIL = [ ("head", SERVER_UTILITIES, "/srv/f7t/test_sbatch.sh", "12", None,None, 200, "#!/bin/bash\n"),
+("head", SERVER_UTILITIES, "/etc/hosts", "10", "20",None, 400, ""),
+("head", "someservernotavailable", USER_HOME, None, None, None,400, ""),
+("tail", SERVER_UTILITIES, "/srv/f7t/test_sbatch.sh", "10", None, None,200, "sleep 60s\n"),
+("tail", SERVER_UTILITIES, "/bin/ls", "10", "20",None, 400, ""),
+("tail", "someservernotavailable", USER_HOME, None, None,None, 400, ""),
+("head", SERVER_UTILITIES, "/srv/f7t/test_sbatch.sh", "12", None,"job-name", 200, "#SBATCH --job-name=testsbatch\n"),
+("tail", SERVER_UTILITIES, "/srv/f7t/test_sbatch.sh", "12", None,"job-name", 200, "#SBATCH --job-name=testsbatch\n")
+]
 
 # test data for checksum API
 DATA_VIEW = [ (SERVER_UTILITIES, "/srv/f7t/test_sbatch.sh", 200),
@@ -222,13 +225,15 @@ def test_chown(machine, expected_response_code, headers):
 	assert resp.status_code == expected_response_code
 
 @skipif_not_uses_gateway
-@pytest.mark.parametrize("command, machine, filename, bytes, lines, expected_response_code, output", DATA_HEAD_TAIL)
-def test_head_tail(command, machine, filename, bytes, lines, expected_response_code, output, headers):
+@pytest.mark.parametrize("command, machine, filename, bytes, lines,grep, expected_response_code, output", DATA_HEAD_TAIL)
+def test_head_tail(command, machine, filename, bytes, lines,grep, expected_response_code, output, headers):
 	params = {"targetPath": filename}
 	if bytes:
 		params.update({"bytes": bytes})
 	if lines:
 		params.update({"lines": lines})
+	if grep:
+		params.update({"grep": grep})
 
 	url = f"{UTILITIES_URL}/{command}"
 	headers.update({"X-Machine-Name": machine})
