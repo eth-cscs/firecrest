@@ -398,6 +398,9 @@ def common_fs_operation(request, command):
     system_idx = SYSTEMS_PUBLIC.index(system_name)
     system_addr = SYSTEMS_INTERNAL_UTILITIES[system_idx]
 
+    # tail and head command might have grep processed output
+    grep = ""
+
     # get targetPath to apply command
     tn = 'targetPath'
     if request.method == 'GET':
@@ -499,8 +502,12 @@ def common_fs_operation(request, command):
                     opt = f" --lines='+{lines}' "
             else:
                 opt = f" --lines='{lines}' "
+       
+        grep_exp=request.args.get("grep", None)
+        if grep_exp:
+            grep = f"| grep --fixed-strings --regexp='{grep_exp}'"
 
-        action = f"{command} {opt} -- '{targetPath}'"
+        action = f"{command} {opt} -- '{targetPath}' {grep}"
         file_transfer = 'download'
     elif command == "ls":
         options = ""
@@ -578,6 +585,9 @@ def common_fs_operation(request, command):
         error_str   = retval["msg"]
         error_code  = retval["error"]
         service_msg = f"Error on {command} operation"
+
+        if grep != "":
+            service_msg += " with grep"
 
         ret_data = check_command_error(error_str, error_code, service_msg)
 
