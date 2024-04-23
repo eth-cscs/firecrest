@@ -12,8 +12,8 @@ LABEL org.opencontainers.image.source=https://github.com/eth-cscs/firecrest
 ADD deploy/docker/utilities/requirements.txt deps/requirements.txt
 RUN pip3 install -r deps/requirements.txt
 
-ADD src/utilities/utilities.py utilities.py
-ADD src/common/cscs_api_common.py cscs_api_common.py
+ADD src/utilities/utilities.py ./utilities.py
+ADD src/common/cscs_api_common.py ./cscs_api_common.py
 
 RUN mkdir /var/log/profs
 
@@ -26,4 +26,5 @@ ENV F7T_GUNICORN_SSL --ciphers TLS_AES_256_GCM_SHA384,TLS_CHACHA20_POLY1305_SHA2
                      --ssl-version TLSv1_2 --keyfile $F7T_SSL_KEY --certfile $F7T_SSL_CRT
 ENV F7T_GUNICORN_WORKER --workers=1 --threads=1
 
-ENTRYPOINT /usr/local/bin/gunicorn ${F7T_GUNICORN_SSL} ${F7T_GUNICORN_WORKER} --bind :${F7T_UTILITIES_PORT} ${F7T_GUNICORN_LOG} utilities:app
+CMD ["sh", "-c", "/usr/local/bin/gunicorn --bind :$F7T_UTILITIES_PORT $F7T_GUNICORN_LOG $F7T_GUNICORN_SSL $F7T_GUNICORN_WORKER utilities:app"]
+

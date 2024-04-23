@@ -28,13 +28,11 @@
             },
             "args": [
                 "run",
-                "--no-debugger",
-                "--no-reload",
                 "--port",
                 "5003"
             ],
             "jinja": true
-        }
+        },
         {
             "name": "Python Debugger: Status",
             "type": "debugpy",
@@ -61,12 +59,31 @@
             },
             "args": [
                 "run",
-                "--no-debugger",
-                "--no-reload",
                 "--port",
                 "5001"
             ],
             "jinja": true
+        },
+        {
+            "name": "Utilities [Docker Compose]",
+            "type": "debugpy",
+            "request": "attach",
+            "logToFile": true,
+            "connect": {
+                "host": "localhost",
+                "port": 5678
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}/src/utilities/utilities.py",
+                    "remoteRoot": "/utilities.py"
+                },
+                {
+                    "localRoot": "${workspaceFolder}/src/common/cscs_api_common.py",
+                    "remoteRoot": "/cscs_api_common.py"
+                }
+
+            ]
         }
     ]
 }
