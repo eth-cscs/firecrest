@@ -94,6 +94,10 @@ SSH_CERTIFICATE_WRAPPER_ENABLED = get_boolean_var(os.environ.get("F7T_SSH_CERTIF
 #   r'...' specifies it's a regular expression with special treatment for \
 FORBIDDEN_INPUT_CHARS = r'[\<\>\|\;\"\'\&\\\(\)\x00-\x1F\x60]'
 
+
+#max file size for upload/download in MB, internally used in bytes
+UTILITIES_MAX_FILE_SIZE_BYTES = int(os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE", "5")) * 1024 * 1024
+
 # OPA endpoint
 OPA_ENABLED = get_boolean_var(os.environ.get("F7T_OPA_ENABLED",False))
 OPA_URL = os.environ.get("F7T_OPA_URL","http://localhost:8181").strip('\'"')
@@ -398,6 +402,9 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
                        timeout=10,
                        disabled_algorithms={'keys': ['rsa-sha2-256', 'rsa-sha2-512']})
 
+        tr = client.get_transport()
+        tr.default_window_size= UTILITIES_MAX_FILE_SIZE_BYTES
+
         if SSH_CERTIFICATE_WRAPPER_ENABLED:
             if DEBUG_MODE:
                 logging.debug(f"Using F7T_SSH_CERTIFICATE_WRAPPER_ENABLED option")
@@ -435,6 +442,8 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
                 eof_received = True
                 while not stderr.channel.eof_received:
                     # time.sleep(0.5)
+                    if len(stderr.channel.in_buffer) >= stderr.channel.in_window_size:
+                        return {"error": 1, "msg": f"Command output exceeded buffer limit ({tr.default_window_size})"} 
                     if time.time() > endtime:
                         stderr.channel.close()
                         eof_received = False
@@ -457,6 +466,8 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
                 eof_received = True
                 while not stdout.channel.eof_received:
                     # time.sleep(0.5)
+                    if len(stdout.channel.in_buffer) >= stdout.channel.in_window_size:
+                        return {"error": 1, "msg": f"Command output exceeded buffer limit ({tr.default_window_size})"}
                     if time.time() > endtime:
                         stdout.channel.close()
                         eof_received = False
