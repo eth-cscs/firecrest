@@ -1010,6 +1010,10 @@ def check_command_error(error_str, error_code, service_msg):
     if in_str(error_str, "read permission"):
         header = {"X-Permission-Denied": "User does not have permissions to access path"}
         return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
+    
+    if service_msg in ["Error on head operation with grep", "Error on tail operation with grep"] and error_code==1 and error_str=="":
+        header = {"X-Not-Found":"pattern not found"}
+        return {"description": service_msg, "error": "pattern not found", "status_code": 404, "header": header}
 
     header = {"X-Error": error_str}
     return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}

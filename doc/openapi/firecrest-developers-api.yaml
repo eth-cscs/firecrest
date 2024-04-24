@@ -707,6 +707,11 @@ paths:
           description: The output will be the whole file, without the last NUM bytes/lines of each file. NUM should be specified in the respective argument through `bytes` or `lines`.
           schema:
             type: string
+        - name: grep
+          in: query
+          description: Pipes the output trought grep and returns lines matching the provided pattern.  Supports fixed strings matching patterns only.
+          schema:
+            type: string
       responses:
         '200':
           description: File content successfully returned
@@ -926,6 +931,11 @@ paths:
           description: The output will start with byte/line NUM of each file. NUM should be specified in the respective argument through `bytes` or `lines`.
           schema:
             type: boolean
+        - name: grep
+          in: query
+          description: Pipes the output trought grep and returns lines matching the provided pattern.  Supports fixed strings matching patterns only.
+          schema:
+            type: string
       responses:
         '200':
           description: File content successfully returned
@@ -1908,9 +1918,9 @@ paths:
       tags:
         - Compute
       parameters:
-        - name: nodes
+        - name: partitions
           in: query
-          description: Comma-separated list of nodes to retrieve
+          description: Comma-separated list of partitions to retrieve
           schema:
             type: array
             items:
@@ -1943,7 +1953,7 @@ paths:
                 type: integer
   '/compute/partitions/{partitionName}':
     get:
-      summary: Retrieves information about a specific partitions
+      summary: Retrieves information about a specific partition
       description: Information about a specific partition in the scheduling queue.
       tags:
         - Compute
@@ -1954,9 +1964,9 @@ paths:
           required: true
           schema:
             type: string
-        - name: nodeName
+        - name: partitionName
           in: path
-          description: The ID of the node to retrieve.
+          description: The name of the partition to retrieve.
           required: true
           schema:
             type: string
