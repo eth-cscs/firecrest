@@ -166,7 +166,7 @@ class JobScheduler(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def parse_partitions_output(self, output):
+    def parse_partitions_output(self, output, partitions_list=None):
         """Parses the partitions command. Should return records with:
         * PartitionName
         * State
