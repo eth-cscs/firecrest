@@ -9,11 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add the endpoints `/compute/nodes` and `/compute/nodes/{nodeName}` to retrieve information about nodes in the scheduling queue.
+- Addded the endpoints `/compute/nodes` and `/compute/nodes/{nodeName}` to retrieve information about nodes in the scheduling queue.
 - Added endpoints `POST /utilities/compress`, `POST /utilities/extract`, `POST /storage/xfer-internal/compress` and `POST /storage/xfer-internal/extract` for file compression and extraction.
 - Added recurisive option to ls utilities command `&recursive=true`.
-- Add the endpoints `/compute/partitions` and `/compute/partitions/{partitionName}` to retrieve information about partitions in the scheduling queue.
-- Add `examples` directory for practical use cases of FirecREST.
+- Added the endpoints `/compute/partitions` and `/compute/partitions/{partitionName}` to retrieve information about partitions in the scheduling queue.
+- Added grep support for tail and head command. `&grep=pattern`
+- Added `examples` directory for practical use cases of FirecREST.
 
 ### Changed
 

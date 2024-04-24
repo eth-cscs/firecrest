@@ -161,11 +161,18 @@ services:
       network: host
     env_file:
       - ./common/common.env
+    command:
+      [
+        "sh",
+        "-c",
+        "pip install debugpy && python3 -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 -m gunicorn --bind :$${F7T_UTILITIES_PORT} $${F7T_GUNICORN_LOG} $${F7T_GUNICORN_SSL} $${F7T_GUNICORN_WORKER} utilities:app",
+      ]
     networks:
       firecrest-internal:
         ipv4_address: 192.168.220.7
     ports:
       - 5004:5004
+      - 5678:5678
     volumes:
       - ./logs/firecrest:/var/log:delegated
       - ../test-build/environment/keys/user-key:/user-key:ro

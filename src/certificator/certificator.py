@@ -44,7 +44,11 @@ CERTIFICATOR_PORT = os.environ.get("F7T_CERTIFICATOR_PORT", 5000)
 #   Difference to other microservices: allow '>' for 'cat' and 'head', '&' for Storage URLs, single quotes (') for arguments
 #   Commands must only use single quotes
 #   r'...' specifies it's a regular expression with special treatment for \
-FORBIDDEN_COMMAND_CHARS = r'[\<\|\;\"\\\(\)\x00-\x1F\x60]'
+FORBIDDEN_COMMAND_CHARS = r'[\|\<\;\"\\\(\)\x00-\x1F\x60]'
+
+# The pipe "|" chars is only allowed if emmediatelly followed by "grep "
+FORBIDDEN_COMMAND_CHARS_EXCEPTION = [r'\| grep']
+
 
 # OPA endpoint
 OPA_ENABLED = get_boolean_var(os.environ.get("F7T_OPA_ENABLED",False))
@@ -441,7 +445,10 @@ def receive():
         else:
             return jsonify(description='No command specified'), 400
 
-        if re.search(FORBIDDEN_COMMAND_CHARS, force_command + force_opt) != None:
+        command_chars = force_command + force_opt
+        for exc in FORBIDDEN_COMMAND_CHARS_EXCEPTION:
+            command_chars = re.sub(exc,'',command_chars,1)
+        if re.search(FORBIDDEN_COMMAND_CHARS, command_chars) != None:
             app.logger.error(f"Forbidden char on command or option: {force_command} {force_opt}")
             return jsonify(description='Invalid command'), 400
 
