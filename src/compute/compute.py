@@ -1008,7 +1008,7 @@ def nodes_task(headers, system_name, system_addr, action, task_id):
     update_task(task_id, headers, async_task.SUCCESS, jobs, is_json=True)
 
 
-def partitions_task(headers, system_name, system_addr, action, task_id):
+def partitions_task(headers, system_name, system_addr, action, task_id, partitions_list=None):
     # exec remote command
     resp = exec_remote_command(headers, system_name, system_addr, action)
 
@@ -1025,7 +1025,7 @@ def partitions_task(headers, system_name, system_addr, action, task_id):
         update_task(task_id, headers, async_task.ERROR, err_msg)
         return
 
-    jobs = scheduler.parse_partitions_output(resp["msg"])
+    jobs = scheduler.parse_partitions_output(resp["msg"], partitions_list)
     app.logger.info(f"Number of partitions: {len(jobs)}")
 
     # as it is a json data to be stored in Tasks, the is_json=True
@@ -1261,12 +1261,12 @@ def get_node(nodeName):
         return data, 400
 
 
-@app.route("/partitions",methods=["GET"])
+@app.route("/partitions", methods=["GET"])
 @check_auth_header
 def get_partitions():
     try:
         system_name = request.headers["X-Machine-Name"]
-    except KeyError as e:
+    except KeyError:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
@@ -1288,28 +1288,28 @@ def get_partitions():
         if resp["error"] == -2:
             header = {"X-Machine-Not-Available": "Machine is not available"}
             return jsonify(description="Failed to retrieve account information"), 400, header
-        if in_str(error_str,"Permission") or in_str(error_str,"OPENSSH"):
+        if in_str(error_str, "Permission") or in_str(error_str, "OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Failed to retrieve account information"), 404, header
 
     partitions = request.args.get("partitions", None)
     partitions_list = None
-    if partitions != None:
+    if partitions is not None:
         v = validate_input(partitions)
         if v != "":
-            return jsonify(description="Failed to retrieve partitions information", error=f"node '{partitions}' {v}"), 400
+            return jsonify(description="Failed to retrieve partitions information", error=f"partition '{partitions}' {v}"), 400
 
         try:
             partitions_list = partitions.split(",")
         except:
             return jsonify(error="Partitions list wrong format", description="Failed to retrieve partitions information"), 400
 
-    sched_cmd = scheduler.get_partitions(partitions_list)
+    sched_cmd = scheduler.get_partitions()
     action = f"ID={ID} {sched_cmd}"
 
     try:
         # obtain new task from Tasks microservice
-        task_id = create_task(headers, service="compute",system=system_name)
+        task_id = create_task(headers, service="compute", system=system_name)
 
         # if error in creating task:
         if task_id == -1:
@@ -1319,7 +1319,7 @@ def get_partitions():
 
         # asynchronous task creation
         aTask = threading.Thread(target=partitions_task, name=ID,
-                                 args=(headers, system_name, system_addr, action, task_id))
+                                 args=(headers, system_name, system_addr, action, task_id, partitions_list))
 
         aTask.start()
         task_url = f"/tasks/{task_id}"
