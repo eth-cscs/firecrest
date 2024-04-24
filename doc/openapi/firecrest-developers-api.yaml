@@ -1918,9 +1918,9 @@ paths:
       tags:
         - Compute
       parameters:
-        - name: nodes
+        - name: partitions
           in: query
-          description: Comma-separated list of nodes to retrieve
+          description: Comma-separated list of partitions to retrieve
           schema:
             type: array
             items:
@@ -1953,7 +1953,7 @@ paths:
                 type: integer
   '/compute/partitions/{partitionName}':
     get:
-      summary: Retrieves information about a specific partitions
+      summary: Retrieves information about a specific partition
       description: Information about a specific partition in the scheduling queue.
       tags:
         - Compute
@@ -1964,9 +1964,9 @@ paths:
           required: true
           schema:
             type: string
-        - name: nodeName
+        - name: partitionName
           in: path
-          description: The ID of the node to retrieve.
+          description: The name of the partition to retrieve.
           required: true
           schema:
             type: string

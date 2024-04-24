@@ -208,7 +208,7 @@ def test_nodes(machine, headers):
 # Test partitions information
 @skipif_not_uses_gateway
 @pytest.mark.parametrize("machine", [SERVER_COMPUTE])
-def test_nodes(machine, headers):
+def test_partitions(machine, headers):
 	url = f"{COMPUTE_URL}/partitions"
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.get(url, headers=headers, verify=False)
@@ -222,7 +222,7 @@ def test_nodes(machine, headers):
 
 @skipif_not_uses_gateway
 @pytest.mark.parametrize("machine", [SERVER_COMPUTE])
-def test_nodes(machine, headers):
+def test_partitions_xfer(machine, headers):
 	url = f"{COMPUTE_URL}/partitions/xfer"
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.get(url, headers=headers, verify=False)
