@@ -183,15 +183,14 @@ class JobScheduler(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def parse_reservations_output(self, output):
+    def parse_reservations_output(self, output, reservations_list=None):
         """Parses the reservations command. Should return records with:
         * ReservationName
         * State
         * Nodes
-        * TotalCPUS
-        * TotalNodes
         * StartTime
         * EndTime
+        * Features
         """
         pass
 
