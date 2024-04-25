@@ -2331,6 +2331,19 @@ paths:
                 stageOutJobId: "123456"
                 time: "2-03:00:00"
                 extension: ".tar.gz"
+      responses:
+        '201':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task-Creation-Success'
+        '400':
+          description: Task creation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task-Creation-Error'
   '/storage/xfer-external/upload':
     parameters:
       - in: header
