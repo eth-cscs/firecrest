@@ -184,9 +184,10 @@ def test_partitions(machine, expected_response_code, headers):
 @skipif_not_uses_gateway
 @pytest.mark.parametrize("machine, expected_response_code", DATA)
 def test_partition_xfer(machine, expected_response_code, headers):
-	url = f"{COMPUTE_URL}/partitions/xfer"
+	url = f"{COMPUTE_URL}/partitions"
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.get(url, headers=headers, verify=False)
+	params = {"partition": "xfer"}
+	resp = requests.get(url, headers=headers, params=params, verify=False)
 	print(resp.content)
 	assert resp.status_code == expected_response_code
 

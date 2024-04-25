@@ -223,9 +223,10 @@ def test_partitions(machine, headers):
 @skipif_not_uses_gateway
 @pytest.mark.parametrize("machine", [SERVER_COMPUTE])
 def test_partitions_xfer(machine, headers):
-	url = f"{COMPUTE_URL}/partitions/xfer"
+	url = f"{COMPUTE_URL}/partitions"
 	headers.update({"X-Machine-Name": machine})
-	resp = requests.get(url, headers=headers, verify=False)
+	params = {"partitions": "xfer"}
+	resp = requests.get(url, headers=headers, params=params, verify=False)
 	print(resp.content)
 	assert resp.status_code == 200
 
