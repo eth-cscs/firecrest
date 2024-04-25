@@ -1032,7 +1032,7 @@ def partitions_task(headers, system_name, system_addr, action, task_id, partitio
     update_task(task_id, headers, async_task.SUCCESS, jobs, is_json=True)
 
 
-def reservations_task(headers, system_name, system_addr, action, task_id):
+def reservations_task(headers, system_name, system_addr, action, task_id, reservations_list=None):
     # exec remote command
     resp = exec_remote_command(headers, system_name, system_addr, action)
 
@@ -1049,7 +1049,7 @@ def reservations_task(headers, system_name, system_addr, action, task_id):
         update_task(task_id, headers, async_task.ERROR, err_msg)
         return
 
-    reservations = scheduler.parse_reservations_output(resp["msg"])
+    reservations = scheduler.parse_reservations_output(resp["msg"], reservations_list)
     app.logger.info(f"Number of reservations: {len(reservations)}")
 
     # as it is a json data to be stored in Tasks, the is_json=True
@@ -1422,7 +1422,7 @@ def get_partition(partitionName):
 def get_reservations():
     try:
         system_name = request.headers["X-Machine-Name"]
-    except KeyError as e:
+    except KeyError:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
@@ -1444,7 +1444,7 @@ def get_reservations():
         if resp["error"] == -2:
             header = {"X-Machine-Not-Available": "Machine is not available"}
             return jsonify(description="Failed to retrieve account information"), 400, header
-        if in_str(error_str,"Permission") or in_str(error_str,"OPENSSH"):
+        if in_str(error_str, "Permission") or in_str(error_str, "OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Failed to retrieve account information"), 404, header
 
@@ -1460,12 +1460,12 @@ def get_reservations():
         except:
             return jsonify(error="Jobs list wrong format", description="Failed to retrieve reservations information"), 400
 
-    sched_cmd = scheduler.get_reservations(reservations_list)
+    sched_cmd = scheduler.get_reservations()
     action = f"ID={ID} {sched_cmd}"
 
     try:
         # obtain new task from Tasks microservice
-        task_id = create_task(headers, service="compute",system=system_name)
+        task_id = create_task(headers, service="compute", system=system_name)
 
         # if error in creating task:
         if task_id == -1:
@@ -1475,7 +1475,7 @@ def get_reservations():
 
         # asynchronous task creation
         aTask = threading.Thread(target=reservations_task, name=ID,
-                                 args=(headers, system_name, system_addr, action, task_id))
+                                 args=(headers, system_name, system_addr, action, task_id, reservations_list))
 
         aTask.start()
         task_url = f"/tasks/{task_id}"
@@ -1488,12 +1488,12 @@ def get_reservations():
         return data, 400
 
 
-@app.route("/reservations/<reservationName>",methods=["GET"])
+@app.route("/reservations/<reservationName>", methods=["GET"])
 @check_auth_header
 def get_reservation(reservationName):
     try:
         system_name = request.headers["X-Machine-Name"]
-    except KeyError as e:
+    except KeyError:
         app.logger.error("No machinename given")
         return jsonify(description="No machine name given"), 400
 
@@ -1515,7 +1515,7 @@ def get_reservation(reservationName):
         if resp["error"] == -2:
             header = {"X-Machine-Not-Available": "Machine is not available"}
             return jsonify(description="Failed to retrieve reservation information"), 400, header
-        if in_str(error_str,"Permission") or in_str(error_str,"OPENSSH"):
+        if in_str(error_str, "Permission") or in_str(error_str, "OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Failed to retrieve reservation information"), 404, header
 

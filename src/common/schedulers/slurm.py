@@ -300,13 +300,19 @@ class SlurmScheduler(schedulers.JobScheduler):
 
     def get_reservations(self, reservations):
         reservations = [] if reservations is None else reservations
-        quotes_reservations = [f"'{res}'" for res in reservations]
-        return f"SLURM_TIME_FORMAT=standard scontrol -a show -o reservations {','.join(quotes_reservations)}"
+        cmd = "SLURM_TIME_FORMAT=standard scontrol -a show -o reservations"
+        # scontrol show reservations=<partition> is supported only
+        # for one partition. Otherwise we filter the output.
+        if len(reservations) == 1:
+            cmd += f"={reservations[0]}"
 
-    def parse_reservations_output(self, output):
+        return cmd
+
+    def parse_reservations_output(self, output, reservations_list=None):
         if output == "No reservations in the system":
             return []
 
+        reservations_set = set(reservations_list) if reservations_list else None
         reservations_descriptions = output.splitlines()
         reservations = []
         attributes = [
@@ -316,7 +322,6 @@ class SlurmScheduler(schedulers.JobScheduler):
             "StartTime",
             "EndTime",
             "Features",
-            "PartitionName",
         ]
         for res_descr in reservations_descriptions:
             res_info = {}
@@ -328,7 +333,8 @@ class SlurmScheduler(schedulers.JobScheduler):
                     logger.error(f"Could not parse attribute {attr_name} in {res_descr}, will return `None`")
                     res_info[attr_name] = None
 
-            reservations.append(res_info)
+            if reservations_set is None or res_info["ReservationName"] in reservations_set:
+                reservations.append(res_info)
 
         return reservations
 
