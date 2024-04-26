@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2019-2023, ETH Zurich. All rights reserved.
+#  Copyright (c) 2019-2024, ETH Zurich. All rights reserved.
 #
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
@@ -606,7 +606,7 @@ def parse_io_error(retval, operation, path):
     elif retval["error"] == 2:
         # IOError 2: no such file
         header = {"X-Invalid-Path": f"{path} is invalid."}
-    elif retval["error"] == -2:
+    elif retval["error"] == -2 or retval["error"] == 113:
         # IOError -2: name or service not known
         header = {"X-Machine-Not-Available": "Machine is not available"}
     elif retval["error"] == 118:

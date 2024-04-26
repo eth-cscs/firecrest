@@ -1,4 +1,9 @@
-
+#
+#  Copyright (c) 2019-2024, ETH Zurich. All rights reserved.
+#
+#  Please, refer to the LICENSE file in the root directory.
+#  SPDX-License-Identifier: BSD-3-Clause
+#
 
 def create_batch_script(repo, constraint, num_nodes=1, account=None, custom_modules=None, branch="main"):
     script =f"""#!/bin/bash -l

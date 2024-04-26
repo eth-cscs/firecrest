@@ -1,3 +1,10 @@
+#!/bin/bash
+#
+#  Copyright (c) 2019-2024, ETH Zurich. All rights reserved.
+#
+#  Please, refer to the LICENSE file in the root directory.
+#  SPDX-License-Identifier: BSD-3-Clause
+#
 # script provided by Jean M. Favre
 # to be run with pvbatch, which is the batch-mode executable for ParaView:
 # execute the next two lines:
