@@ -262,18 +262,11 @@ class SlurmScheduler(schedulers.JobScheduler):
 
         return list(nodes)
 
-    def get_partitions(self, partitions=None):
-        partitions = [] if partitions is None else partitions
-        cmd = "scontrol -a show -o partitions"
-        # scontrol show partitions=<partition> is supported only
-        # for one partition. Otherwise we filter the output.
-        if len(partitions) == 1:
-            cmd += f"={partitions[0]}"
+    def get_partitions(self, partition_names=None):
+        return "scontrol -a show -o partitions"
 
-        return cmd
-
-    def parse_partitions_output(self, output, partitions_list=None):
-        partitions_set = set(partitions_list) if partitions_list else None
+    def parse_partitions_output(self, output, partition_names=None):
+        partitions_set = set(partition_names) if partition_names else None
         partitions_descriptions = output.splitlines()
         partitions = []
         attributes = [
@@ -290,10 +283,15 @@ class SlurmScheduler(schedulers.JobScheduler):
                 if attr_match:
                     part_info[attr_name] = attr_match.group(1)
                 else:
-                    logger.error(f"Could not parse attribute {attr_name} in {part_descr}, will return `None`")
-                    part_info[attr_name] = None
+                    raise ValueError(
+                        f"Could not parse attribute '{attr_name}' in "
+                        f"'{part_descr}'"
+                    )
 
-            if partitions_set is None or part_info["PartitionName"] in partitions_set:
+            if (
+                partitions_set is None or
+                part_info["PartitionName"] in partitions_set
+            ):
                 partitions.append(part_info)
 
         return partitions

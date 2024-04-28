@@ -1963,51 +1963,6 @@ paths:
               description: User does not have permissions to access machine
               schema:
                 type: integer
-  '/compute/partitions/{partitionName}':
-    get:
-      summary: Retrieves information about a specific partitions
-      description: Information about a specific partition in the scheduling queue.
-      tags:
-        - Compute
-      parameters:
-        - name: X-Machine-Name
-          in: header
-          description: The system name
-          required: true
-          schema:
-            type: string
-        - name: partitionName
-          in: path
-          description: The name of the partition to retrieve.
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Task created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Task-Creation-Success'
-        '400':
-          description: Task creation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Task-Creation-Error'
-          headers:
-            X-Machine-Does-Not-Exist:
-              description: Machine does not exist
-              schema:
-                type: integer
-            X-Machine-Not-Available:
-              description: Machine is not available
-              schema:
-                type: integer
-            X-Permission-Denied:
-              description: User does not have permissions to access machine
-              schema:
-                type: integer
   '/compute/reservations':
     parameters:
       - in: header
