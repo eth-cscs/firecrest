@@ -1,5 +1,5 @@
 jinja2==3.0.0
-Sphinx==1.8.2
-sphinx-rtd-theme==0.4.3
-sphinxcontrib-openapi==0.6.0
-https://github.com/djungelorm/sphinx-tabs/releases/download/v1.1.13/sphinx-tabs-1.1.13.tar.gz
+Sphinx==7.0.0
+sphinx-rtd-theme==2.0.0
+sphinxcontrib-openapi==0.8.4
+sphinx-tabs==3.4.5

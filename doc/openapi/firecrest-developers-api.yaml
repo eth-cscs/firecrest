@@ -1,5 +1,5 @@
 ##
-##  Copyright (c) 2019-2023, ETH Zurich. All rights reserved.
+##  Copyright (c) 2019-2024, ETH Zurich. All rights reserved.
 ##
 ##  Please, refer to the LICENSE file in the root directory.
 ##  SPDX-License-Identifier: BSD-3-Clause
@@ -2470,6 +2470,19 @@ paths:
                 stageOutJobId: "123456"
                 time: "2-03:00:00"
                 extension: ".tar.gz"
+      responses:
+        '201':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task-Creation-Success'
+        '400':
+          description: Task creation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task-Creation-Error'
   '/storage/xfer-external/upload':
     parameters:
       - in: header

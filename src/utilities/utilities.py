@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2019-2023, ETH Zurich. All rights reserved.
+#  Copyright (c) 2019-2024, ETH Zurich. All rights reserved.
 #
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
@@ -609,7 +609,7 @@ def common_fs_operation(request, command):
         output = retval["msg"]
     elif command == "head":
         # output first bytes (at most max value)
-        output = retval["msg"][:UTILITIES_MAX_FILE_SIZE_BYTES]
+        output = retval["msg"]
     elif command == 'ls':
         description = "List of contents"
         output = ls_parse(request, retval)
@@ -621,7 +621,7 @@ def common_fs_operation(request, command):
         output = {key: int(value) for key, value in output.items()}
     elif command == "tail":
         # output last bytes (at most max value)
-        output = retval["msg"][-UTILITIES_MAX_FILE_SIZE_BYTES:]
+        output = retval["msg"]
     elif command == "upload":
         description="File upload successful"
     elif command == "whoami":

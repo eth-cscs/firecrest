@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2019-2023, ETH Zurich. All rights reserved.
+#  Copyright (c) 2019-2024, ETH Zurich. All rights reserved.
 #
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
@@ -382,12 +382,14 @@ def submit_job_upload():
 
     if resp["error"] != 0:
         error_str = resp["msg"]
-        if resp["error"] == -2:
+        header = {}
+        if resp["error"] == -2 or resp["error"] == 113:
             header = {"X-Machine-Not-Available": "Machine is not available"}
-            return jsonify(description="Failed to submit job file"), 400, header
+            return jsonify(description="Failed to retrieve jobs information"), 400, header
         if in_str(error_str,"Permission") or in_str(error_str,"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
-            return jsonify(description="Failed to submit job file"), 404, header
+            return jsonify(description="Failed to retrieve jobs information"), 404, header
+        return jsonify(description="Failed to retrieve jobs information"), 400, header
 
     job_base_fs = COMPUTE_BASE_FS[system_idx]
 
@@ -514,12 +516,14 @@ def submit_job_path():
 
     if resp["error"] != 0:
         error_str = resp["msg"]
-        if resp["error"] == -2:
+        header = {}
+        if resp["error"] == -2 or resp["error"] == 113:
             header = {"X-Machine-Not-Available": "Machine is not available"}
-            return jsonify(description="Failed to submit job"), 400, header
+            return jsonify(description="Failed to retrieve jobs information"), 400, header
         if in_str(error_str,"Permission") or in_str(error_str,"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
-            return jsonify(description="Failed to submit job"), 404, header
+            return jsonify(description="Failed to retrieve jobs information"), 404, header
+        return jsonify(description="Failed to retrieve jobs information"), 400, header
 
     # checks if targetPath is a valid path for this user in this machine
     check = is_valid_file(targetPath, headers, system_name, system_addr)
@@ -589,12 +593,14 @@ def list_jobs():
 
     if resp["error"] != 0:
         error_str = resp["msg"]
-        if resp["error"] == -2:
+        header = {}
+        if resp["error"] == -2 or resp["error"] == 113:
             header = {"X-Machine-Not-Available": "Machine is not available"}
             return jsonify(description="Failed to retrieve jobs information"), 400, header
         if in_str(error_str,"Permission") or in_str(error_str,"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
             return jsonify(description="Failed to retrieve jobs information"), 404, header
+        return jsonify(description="Failed to retrieve jobs information"), 400, header
 
     is_username_ok = get_username(headers[AUTH_HEADER_NAME])
 
@@ -684,12 +690,7 @@ def list_job_task(headers,system_name, system_addr,action,task_id,pageSize,pageN
 
     app.logger.info(resp)
 
-    # in case of error:
-    if resp["error"] == -2:
-        update_task(task_id, headers, async_task.ERROR, "Machine is not available")
-        return
-
-    if resp["error"] == 1:
+    if resp["error"] != 0:
         err_msg = resp["msg"]
         if in_str(err_msg,"OPENSSH"):
             err_msg = "User does not have permissions to access machine"
@@ -781,12 +782,14 @@ def list_job(jobid):
 
     if resp["error"] != 0:
         error_str = resp["msg"]
-        if resp["error"] == -2:
+        header = {}
+        if resp["error"] == -2 or resp["error"] == 113:
             header = {"X-Machine-Not-Available": "Machine is not available"}
-            return jsonify(description="Failed to retrieve job information"), 400, header
+            return jsonify(description="Failed to retrieve jobs information"), 400, header
         if in_str(error_str,"Permission") or in_str(error_str,"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
-            return jsonify(description="Failed to retrieve job information"), 404, header
+            return jsonify(description="Failed to retrieve jobs information"), 404, header
+        return jsonify(description="Failed to retrieve jobs information"), 400, header
 
     is_username_ok = get_username(headers[AUTH_HEADER_NAME])
 
@@ -888,12 +891,14 @@ def cancel_job(jobid):
 
     if resp["error"] != 0:
         error_str = resp["msg"]
-        if resp["error"] == -2:
+        header = {}
+        if resp["error"] == -2 or resp["error"] == 113:
             header = {"X-Machine-Not-Available": "Machine is not available"}
-            return jsonify(description="Failed to delete job"), 400, header
+            return jsonify(description="Failed to retrieve jobs information"), 400, header
         if in_str(error_str,"Permission") or in_str(error_str,"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
-            return jsonify(description="Failed to delete job"), 404, header
+            return jsonify(description="Failed to retrieve jobs information"), 404, header
+        return jsonify(description="Failed to retrieve jobs information"), 400, header
 
     app.logger.info(f"Cancel scheduler job={jobid} from {system_name} ({system_addr})")
     action = f"ID={ID} {scheduler.cancel([jobid])}"
@@ -1089,12 +1094,14 @@ def acct():
 
     if resp["error"] != 0:
         error_str = resp["msg"]
-        if resp["error"] == -2:
+        header = {}
+        if resp["error"] == -2 or resp["error"] == 113:
             header = {"X-Machine-Not-Available": "Machine is not available"}
-            return jsonify(description="Failed to retrieve account information"), 400, header
+            return jsonify(description="Failed to retrieve jobs information"), 400, header
         if in_str(error_str,"Permission") or in_str(error_str,"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
-            return jsonify(description="Failed to retrieve account information"), 404, header
+            return jsonify(description="Failed to retrieve jobs information"), 404, header
+        return jsonify(description="Failed to retrieve jobs information"), 400, header
 
     starttime = request.args.get("starttime","")
     endtime   = request.args.get("endtime","")
@@ -1183,12 +1190,14 @@ def get_nodes():
 
     if resp["error"] != 0:
         error_str = resp["msg"]
-        if resp["error"] == -2:
+        header = {}
+        if resp["error"] == -2 or resp["error"] == 113:
             header = {"X-Machine-Not-Available": "Machine is not available"}
-            return jsonify(description="Failed to retrieve account information"), 400, header
+            return jsonify(description="Failed to retrieve jobs information"), 400, header
         if in_str(error_str,"Permission") or in_str(error_str,"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
-            return jsonify(description="Failed to retrieve account information"), 404, header
+            return jsonify(description="Failed to retrieve jobs information"), 404, header
+        return jsonify(description="Failed to retrieve jobs information"), 400, header
 
     nodes = request.args.get("nodes", None)
     nodes_list = None
@@ -1254,12 +1263,14 @@ def get_node(nodeName):
 
     if resp["error"] != 0:
         error_str = resp["msg"]
-        if resp["error"] == -2:
+        header = {}
+        if resp["error"] == -2 or resp["error"] == 113:
             header = {"X-Machine-Not-Available": "Machine is not available"}
-            return jsonify(description="Failed to retrieve node information"), 400, header
+            return jsonify(description="Failed to retrieve jobs information"), 400, header
         if in_str(error_str,"Permission") or in_str(error_str,"OPENSSH"):
             header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
-            return jsonify(description="Failed to retrieve node information"), 404, header
+            return jsonify(description="Failed to retrieve jobs information"), 404, header
+        return jsonify(description="Failed to retrieve jobs information"), 400, header
 
     v = validate_input(nodeName)
     if v != "":

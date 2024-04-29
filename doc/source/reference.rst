@@ -6,5 +6,3 @@ You can find the full API `here <https://firecrest-api.cscs.ch/>`__ but some end
 
 .. openapi:: ../openapi/firecrest-developers-api.yaml
    :group:
-   :exclude:
-        /storage/xfer-external/upload-finished/{task_id}

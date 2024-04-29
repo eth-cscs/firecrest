@@ -18,7 +18,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'FirecREST'
-copyright = '2018-2023, ETH Zurich'
+copyright = '2018-2024, ETH Zurich'
 author = 'CSCS'
 
 # The master toctree document.
