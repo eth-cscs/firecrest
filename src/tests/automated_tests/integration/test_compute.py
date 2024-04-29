@@ -23,16 +23,16 @@ if FIRECREST_URL:
 	UTILITIES_URL = os.environ.get("FIRECREST_URL") + "/utilities"
 else:
 	F7T_SCHEME_PROTOCOL = ("https" if SSL_ENABLED else "http")
-	
-	TASKS_HOST = os.environ.get("F7T_TASKS_HOST","127.0.0.1") 
+
+	TASKS_HOST = os.environ.get("F7T_TASKS_HOST","127.0.0.1")
 	TASKS_PORT = os.environ.get("F7T_TASKS_PORT","5003")
 	TASKS_URL = f"{F7T_SCHEME_PROTOCOL}://{TASKS_HOST}:{TASKS_PORT}"
-	
-	COMPUTE_HOST = os.environ.get("F7T_COMPUTE_HOST","127.0.0.1") 
+
+	COMPUTE_HOST = os.environ.get("F7T_COMPUTE_HOST","127.0.0.1")
 	COMPUTE_PORT = os.environ.get("F7T_COMPUTE_PORT","5006")
 	COMPUTE_URL = f"{F7T_SCHEME_PROTOCOL}://{COMPUTE_HOST}:{COMPUTE_PORT}"
 
-	UTILITIES_HOST = os.environ.get("F7T_UTILITIES_HOST","127.0.0.1") 
+	UTILITIES_HOST = os.environ.get("F7T_UTILITIES_HOST","127.0.0.1")
 	UTILITIES_PORT = os.environ.get("F7T_UTILITIES_PORT","5004")
 	UTILITIES_URL = f"{F7T_SCHEME_PROTOCOL}://{UTILITIES_HOST}:{UTILITIES_PORT}"
 
@@ -197,6 +197,36 @@ def test_nodes(machine, headers):
 	url = f"{COMPUTE_URL}/nodes"
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.get(url, headers=headers, verify=False)
+	print(resp.content)
+	assert resp.status_code == 200
+
+	# check scancel status
+	task_id = resp.json()["task_id"]
+	check_task_status(task_id, headers)
+
+
+# Test partitions information
+@skipif_not_uses_gateway
+@pytest.mark.parametrize("machine", [SERVER_COMPUTE])
+def test_partitions(machine, headers):
+	url = f"{COMPUTE_URL}/partitions"
+	headers.update({"X-Machine-Name": machine})
+	resp = requests.get(url, headers=headers, verify=False)
+	print(resp.content)
+	assert resp.status_code == 200
+
+	# check scancel status
+	task_id = resp.json()["task_id"]
+	check_task_status(task_id, headers)
+
+
+@skipif_not_uses_gateway
+@pytest.mark.parametrize("machine", [SERVER_COMPUTE])
+def test_partitions_xfer(machine, headers):
+	url = f"{COMPUTE_URL}/partitions"
+	headers.update({"X-Machine-Name": machine})
+	params = {"partitions": "xfer"}
+	resp = requests.get(url, headers=headers, params=params, verify=False)
 	print(resp.content)
 	assert resp.status_code == 200
 

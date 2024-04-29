@@ -160,6 +160,23 @@ class JobScheduler(abc.ABC):
         pass
 
     @abc.abstractmethod
+    def get_partitions(self, partition_names=None):
+        """Return the partitions of the system.
+        """
+        pass
+
+    @abc.abstractmethod
+    def parse_partitions_output(self, output, partition_names=None):
+        """Parses the partitions command. Should return records with:
+        * PartitionName
+        * State
+        * TotalCPUS
+        * TotalNodes
+        * Default
+        """
+        pass
+
+    @abc.abstractmethod
     def check_job_time(self, job_time):
         """ Try to parse correctly the HH:MM:SS time format for the passed job_time argument. Accepted formats:
         * MM MM:SS

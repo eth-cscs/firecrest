@@ -9,10 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add the endpoints `/compute/nodes` and `/compute/nodes/{nodeName}` to retrieve information about nodes in the scheduling queue.
+- Added the endpoints `/compute/nodes` and `/compute/nodes/{nodeName}` to retrieve information about nodes in the scheduling queue.
 - Added endpoints `POST /utilities/compress`, `POST /utilities/extract`, `POST /storage/xfer-internal/compress` and `POST /storage/xfer-internal/extract` for file compression and extraction.
+- Added recurisive option to ls utilities command `&recursive=true`.
+- Added the endpoint `/compute/partitions` to retrieve information about partitions in the scheduling queue.
 - Added grep support for tail and head command. `&grep=pattern`
-- Add `examples` directory for practical use cases of FirecREST.
+- Added `examples` directory for practical use cases of FirecREST.
 
 ### Changed
 
@@ -31,10 +33,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Removed: `F7T_CERTIFICATOR_URL`, `F7T_COMPUTE_URL`, `F7T_RESERVATION_URL`, `F7T_STATUS_URL`, `F7T_STORAGE_URL`, `F7T_TASKS_URL`, `F7T_UTILITIES_URL`, and `F7T_SWIFT_ACCOUNT` (it's using the same value than `F7T_OS_PROJECT_ID`)
 
 - On task response metadata, the `task_url` value is now relative to the `/tasks` endpoint
-
-- Add the endpoints `/compute/nodes` and `/compute/nodes/{nodeName}` to retrieve information about nodes in the scheduling queue.
-- Added endpoints `POST /utilities/compress`, `POST /utilities/extract`, `POST /storage/xfer-internal/compress` and `POST /storage/xfer-internal/extract` for file compression and extraction.
-- Added recurisive option to ls utilities command `&recursive=true`.
 
 ### Fixed
 

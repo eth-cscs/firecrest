@@ -38,11 +38,11 @@ F7T_SCHEME_PROTOCOL = ("https" if SSL_ENABLED else "http")
 
 # Internal microservices communication
 ## certificator
-CERTIFICATOR_HOST = os.environ.get("F7T_CERTIFICATOR_HOST","127.0.0.1") 
+CERTIFICATOR_HOST = os.environ.get("F7T_CERTIFICATOR_HOST","127.0.0.1")
 CERTIFICATOR_PORT = os.environ.get("F7T_CERTIFICATOR_PORT","5000")
 CERTIFICATOR_URL = f"{F7T_SCHEME_PROTOCOL}://{CERTIFICATOR_HOST}:{CERTIFICATOR_PORT}"
 ## tasks
-TASKS_HOST = os.environ.get("F7T_TASKS_HOST","127.0.0.1") 
+TASKS_HOST = os.environ.get("F7T_TASKS_HOST","127.0.0.1")
 TASKS_PORT = os.environ.get("F7T_TASKS_PORT","5003")
 TASKS_URL = f"{F7T_SCHEME_PROTOCOL}://{TASKS_HOST}:{TASKS_PORT}"
 
@@ -1013,6 +1013,34 @@ def nodes_task(headers, system_name, system_addr, action, task_id):
     update_task(task_id, headers, async_task.SUCCESS, jobs, is_json=True)
 
 
+def partitions_task(headers, system_name, system_addr, action, task_id, partitions_list):
+    # exec remote command
+    resp = exec_remote_command(headers, system_name, system_addr, action)
+
+    # in case of error:
+    if resp["error"] == -2:
+        update_task(task_id, headers, async_task.ERROR, "Machine is not available")
+        return
+
+    # in case of error:
+    if resp["error"] != 0:
+        err_msg = resp["msg"]
+        if in_str(err_msg,"OPENSSH"):
+            err_msg = "User does not have permissions to access machine"
+        update_task(task_id, headers, async_task.ERROR, err_msg)
+        return
+
+    try:
+        jobs = scheduler.parse_partitions_output(resp["msg"], partitions_list)
+        app.logger.info(f"Number of partitions: {len(jobs)}")
+    except ValueError as e:
+        update_task(task_id, headers, async_task.ERROR, str(e))
+        return
+
+    # as it is a json data to be stored in Tasks, the is_json=True
+    update_task(task_id, headers, async_task.SUCCESS, jobs, is_json=True)
+
+
 # Job account information
 @app.route("/acct",methods=["GET"])
 @check_auth_header
@@ -1245,6 +1273,88 @@ def get_node(nodeName):
 
     except Exception as e:
         data = jsonify(description="Failed to retrieve node information",error=e)
+        return data, 400
+
+
+@app.route("/partitions", methods=["GET"])
+@check_auth_header
+def get_partitions():
+    try:
+        system_name = request.headers["X-Machine-Name"]
+    except KeyError:
+        app.logger.error("No machinename given")
+        return jsonify(description="No machine name given"), 400
+
+    # public endpoints from Kong to users
+    if system_name not in SYSTEMS_PUBLIC:
+        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
+        return jsonify(description="Failed to retrieve account information", error="Machine does not exists"), 400, header
+
+    # select index in the list corresponding with machine name
+    system_idx = SYSTEMS_PUBLIC.index(system_name)
+    system_addr = SYSTEMS_INTERNAL_COMPUTE[system_idx]
+
+    [headers, ID] = get_tracing_headers(request)
+    # check if machine is accessible by user:
+    resp = exec_remote_command(
+        headers,
+        system_name,
+        system_addr,
+        f"ID={ID} true"
+    )
+
+    if resp["error"] != 0:
+        error_str = resp["msg"]
+        if resp["error"] == -2:
+            header = {"X-Machine-Not-Available": "Machine is not available"}
+            return jsonify(description="Failed to retrieve account information"), 400, header
+        if in_str(error_str, "Permission") or in_str(error_str, "OPENSSH"):
+            header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
+            return jsonify(description="Failed to retrieve account information"), 404, header
+
+    partitions = request.args.get("partitions", None)
+    partitions_list = None
+    if partitions is not None:
+        v = validate_input(partitions)
+        if v != "":
+            return jsonify(description="Failed to retrieve partitions information", error=f"partition '{partitions}' {v}"), 400
+
+        try:
+            partitions_list = partitions.split(",")
+        except:
+            return jsonify(description="Failed to retrieve partitions information", error="Partitions list wrong format"), 400
+
+    # In Slurm we are not actually using the partition_names argument
+    # for the command but it can be used for other schedulers
+    sched_cmd = scheduler.get_partitions(partitions_list)
+    action = f"ID={ID} {sched_cmd}"
+
+    try:
+        # obtain new task from Tasks microservice
+        task_id = create_task(headers, service="compute", system=system_name)
+
+        # if error in creating task:
+        if task_id == -1:
+            return jsonify(description="Failed to retrieve partitions information", error='Error creating task'), 400
+
+        update_task(task_id, headers, async_task.QUEUED)
+
+        # asynchronous task creation
+        aTask = threading.Thread(target=partitions_task, name=ID,
+                                 args=(headers, system_name, system_addr, action, task_id, partitions_list))
+
+        aTask.start()
+        task_url = f"/tasks/{task_id}"
+
+        data = jsonify(
+            success="Task created", task_id=task_id, task_url=task_url
+        )
+        return data, 200
+
+    except Exception as e:
+        data = jsonify(
+            description="Failed to retrieve partitions information", error=e
+        )
         return data, 400
 
 @app.route("/status",methods=["GET"])

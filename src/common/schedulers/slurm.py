@@ -262,6 +262,40 @@ class SlurmScheduler(schedulers.JobScheduler):
 
         return list(nodes)
 
+    def get_partitions(self, partition_names=None):
+        return "scontrol -a show -o partitions"
+
+    def parse_partitions_output(self, output, partition_names=None):
+        partitions_set = set(partition_names) if partition_names else None
+        partitions_descriptions = output.splitlines()
+        partitions = []
+        attributes = [
+            "PartitionName",
+            "State",
+            "TotalCPUs",
+            "TotalNodes",
+            "Default",
+        ]
+        for part_descr in partitions_descriptions:
+            node_info = {}
+            for attr_name in attributes:
+                attr_match = re.search(rf'{attr_name}=(\S+)', part_descr)
+                if attr_match:
+                    node_info[attr_name] = attr_match.group(1)
+                else:
+                    raise ValueError(
+                        f"Could not parse attribute '{attr_name}' in "
+                        f"'{part_descr}'"
+                    )
+
+            if (
+                partitions_set is None or
+                node_info["PartitionName"] in partitions_set
+            ):
+                partitions.append(node_info)
+
+        return list(partitions)
+
     def is_valid_accounting_time(self, sacct_time):
         # HH:MM[:SS] [AM|PM]
         # MMDD[YY] or MM/DD[/YY] or MM.DD[.YY]
