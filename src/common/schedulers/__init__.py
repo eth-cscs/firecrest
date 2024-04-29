@@ -177,13 +177,13 @@ class JobScheduler(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_reservations(self, reservations):
+    def get_reservations(self, reservation_names=None):
         """Return the reservations command of the system.
         """
         pass
 
     @abc.abstractmethod
-    def parse_reservations_output(self, output, reservations_list=None):
+    def parse_reservations_output(self, output, reservation_names=None):
         """Parses the reservations command. Should return records with:
         * ReservationName
         * State

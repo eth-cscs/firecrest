@@ -1053,8 +1053,12 @@ def reservations_task(headers, system_name, system_addr, action, task_id, reserv
         update_task(task_id, headers, async_task.ERROR, err_msg)
         return
 
-    reservations = scheduler.parse_reservations_output(resp["msg"], reservations_list)
-    app.logger.info(f"Number of reservations: {len(reservations)}")
+    try:
+        reservations = scheduler.parse_reservations_output(resp["msg"], reservations_list)
+        app.logger.info(f"Number of reservations: {len(reservations)}")
+    except ValueError as e:
+        update_task(task_id, headers, async_task.ERROR, str(e))
+        return
 
     # as it is a json data to be stored in Tasks, the is_json=True
     update_task(task_id, headers, async_task.SUCCESS, reservations, is_json=True)
@@ -1370,7 +1374,7 @@ def get_partitions():
         )
         return data, 400
 
-@app.route("/reservations",methods=["GET"])
+@app.route("/reservations", methods=["GET"])
 @check_auth_header
 def get_reservations():
     try:
@@ -1390,7 +1394,12 @@ def get_reservations():
 
     [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
-    resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true")
+    resp = exec_remote_command(
+        headers,
+        system_name,
+        system_addr,
+        f"ID={ID} true"
+    )
 
     if resp["error"] != 0:
         error_str = resp["msg"]
@@ -1403,7 +1412,7 @@ def get_reservations():
 
     reservations = request.args.get("reservations", None)
     reservations_list = None
-    if reservations != None:
+    if reservations is not None:
         v = validate_input(reservations)
         if v != "":
             return jsonify(description="Failed to retrieve reservations information", error=f"reservations '{reservations}' {v}"), 400
@@ -1411,9 +1420,11 @@ def get_reservations():
         try:
             reservations_list = reservations.split(",")
         except:
-            return jsonify(error="Jobs list wrong format", description="Failed to retrieve reservations information"), 400
+            return jsonify(description="Failed to retrieve reservations information", error="Reservations list wrong format"), 400
 
-    sched_cmd = scheduler.get_reservations()
+    # In Slurm we are not actually using the reservations_names argument
+    # for the command but it can be used for other schedulers
+    sched_cmd = scheduler.get_reservations(reservations_list)
     action = f"ID={ID} {sched_cmd}"
 
     try:
@@ -1433,75 +1444,17 @@ def get_reservations():
         aTask.start()
         task_url = f"/tasks/{task_id}"
 
-        data = jsonify(success="Task created", task_id=task_id, task_url=task_url)
+        data = jsonify(
+            success="Task created", task_id=task_id, task_url=task_url
+        )
         return data, 200
 
     except Exception as e:
-        data = jsonify(description="Failed to retrieve reservations information",error=e)
+        data = jsonify(
+            description="Failed to retrieve reservations information", error=e
+        )
         return data, 400
 
-
-@app.route("/reservations/<reservationName>", methods=["GET"])
-@check_auth_header
-def get_reservation(reservationName):
-    try:
-        system_name = request.headers["X-Machine-Name"]
-    except KeyError:
-        app.logger.error("No machinename given")
-        return jsonify(description="No machine name given"), 400
-
-    # public endpoints from Kong to users
-    if system_name not in SYSTEMS_PUBLIC:
-        header = {"X-Machine-Does-Not-Exists": "Machine does not exists"}
-        return jsonify(description="Failed to retrieve account information", error="Machine does not exists"), 400, header
-
-    # select index in the list corresponding with machine name
-    system_idx = SYSTEMS_PUBLIC.index(system_name)
-    system_addr = SYSTEMS_INTERNAL_COMPUTE[system_idx]
-
-    [headers, ID] = get_tracing_headers(request)
-    # check if machine is accessible by user:
-    resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true")
-
-    if resp["error"] != 0:
-        error_str = resp["msg"]
-        if resp["error"] == -2:
-            header = {"X-Machine-Not-Available": "Machine is not available"}
-            return jsonify(description="Failed to retrieve reservation information"), 400, header
-        if in_str(error_str, "Permission") or in_str(error_str, "OPENSSH"):
-            header = {"X-Permission-Denied": "User does not have permissions to access machine or path"}
-            return jsonify(description="Failed to retrieve reservation information"), 404, header
-
-    v = validate_input(reservationName)
-    if v != "":
-        return jsonify(description="Failed to retrieve reservation", error=f"reservationName '{reservationName}' {v}"), 400
-
-    sched_cmd = scheduler.get_reservations([reservationName])
-    action = f"ID={ID} {sched_cmd}"
-
-    try:
-        # obtain new task from Tasks microservice
-        task_id = create_task(headers, service="compute", system=system_name)
-
-        # if error in creating task:
-        if task_id == -1:
-            return jsonify(description="Failed to retrieve reservation information", error="Error creating task"), 400
-
-        update_task(task_id, headers, async_task.QUEUED)
-
-        # asynchronous task creation
-        aTask = threading.Thread(target=reservations_task, name=ID,
-                                 args=(headers, system_name, system_addr, action, task_id))
-
-        aTask.start()
-        task_url = f"/tasks/{task_id}"
-
-        data = jsonify(success="Task created", task_id=task_id, task_url=task_url)
-        return data, 200
-
-    except Exception as e:
-        data = jsonify(description="Failed to retrieve reservation information",error=e)
-        return data, 400
 
 @app.route("/status",methods=["GET"])
 @check_auth_header

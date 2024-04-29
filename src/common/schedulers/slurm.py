@@ -296,40 +296,36 @@ class SlurmScheduler(schedulers.JobScheduler):
 
         return partitions
 
-    def get_reservations(self, reservations):
-        reservations = [] if reservations is None else reservations
-        cmd = "SLURM_TIME_FORMAT=standard scontrol -a show -o reservations"
-        # scontrol show reservations=<partition> is supported only
-        # for one partition. Otherwise we filter the output.
-        if len(reservations) == 1:
-            cmd += f"={reservations[0]}"
+    def get_reservations(self, reservation_names=None):
+        return "SLURM_TIME_FORMAT=standard scontrol -a show -o reservations"
 
-        return cmd
-
-    def parse_reservations_output(self, output, reservations_list=None):
+    def parse_reservations_output(self, output, reservation_names=None):
         if output == "No reservations in the system":
             return []
 
-        reservations_set = set(reservations_list) if reservations_list else None
+        reservations_set = set(reservation_names) if reservation_names else None
         reservations_descriptions = output.splitlines()
         reservations = []
-        attributes = [
-            "ReservationName",
-            "State",
-            "Nodes",
-            "StartTime",
-            "EndTime",
-            "Features",
-        ]
+        attribute_seps = {
+            "ReservationName": None,
+            "State": None,
+            "Nodes": None,
+            "StartTime": None,
+            "EndTime": None,
+            "Features": "&",
+        }
         for res_descr in reservations_descriptions:
             res_info = {}
-            for attr_name in attributes:
+            for attr_name, sep in attribute_seps.items():
                 attr_match = re.search(rf'{attr_name}=(\S+)', res_descr)
                 if attr_match:
-                    res_info[attr_name] = attr_match.group(1)
+                    attr = attr_match.group(1)
+                    res_info[attr_name] = attr.split(sep) if sep else attr
                 else:
-                    logger.error(f"Could not parse attribute {attr_name} in {res_descr}, will return `None`")
-                    res_info[attr_name] = None
+                    raise ValueError(
+                        f"Could not parse attribute '{attr_name}' in "
+                        f"'{res_descr}'"
+                    )
 
             if reservations_set is None or res_info["ReservationName"] in reservations_set:
                 reservations.append(res_info)
