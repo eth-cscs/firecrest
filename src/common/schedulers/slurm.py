@@ -277,11 +277,11 @@ class SlurmScheduler(schedulers.JobScheduler):
             "Default",
         ]
         for part_descr in partitions_descriptions:
-            node_info = {}
+            part_info = {}
             for attr_name in attributes:
                 attr_match = re.search(rf'{attr_name}=(\S+)', part_descr)
                 if attr_match:
-                    node_info[attr_name] = attr_match.group(1)
+                    part_info[attr_name] = attr_match.group(1)
                 else:
                     raise ValueError(
                         f"Could not parse attribute '{attr_name}' in "
@@ -290,11 +290,47 @@ class SlurmScheduler(schedulers.JobScheduler):
 
             if (
                 partitions_set is None or
-                node_info["PartitionName"] in partitions_set
+                part_info["PartitionName"] in partitions_set
             ):
-                partitions.append(node_info)
+                partitions.append(part_info)
 
-        return list(partitions)
+        return partitions
+
+    def get_reservations(self, reservation_names=None):
+        return "SLURM_TIME_FORMAT=standard scontrol -a show -o reservations"
+
+    def parse_reservations_output(self, output, reservation_names=None):
+        if output == "No reservations in the system":
+            return []
+
+        reservations_set = set(reservation_names) if reservation_names else None
+        reservations_descriptions = output.splitlines()
+        reservations = []
+        attribute_seps = {
+            "ReservationName": None,
+            "State": None,
+            "Nodes": None,
+            "StartTime": None,
+            "EndTime": None,
+            "Features": "&",
+        }
+        for res_descr in reservations_descriptions:
+            res_info = {}
+            for attr_name, sep in attribute_seps.items():
+                attr_match = re.search(rf'{attr_name}=(\S+)', res_descr)
+                if attr_match:
+                    attr = attr_match.group(1)
+                    res_info[attr_name] = attr.split(sep) if sep else attr
+                else:
+                    raise ValueError(
+                        f"Could not parse attribute '{attr_name}' in "
+                        f"'{res_descr}'"
+                    )
+
+            if reservations_set is None or res_info["ReservationName"] in reservations_set:
+                reservations.append(res_info)
+
+        return reservations
 
     def is_valid_accounting_time(self, sacct_time):
         # HH:MM[:SS] [AM|PM]

@@ -192,6 +192,17 @@ def test_partition_xfer(machine, expected_response_code, headers):
 	assert resp.status_code == expected_response_code
 
 
+# Test get reservations information
+@skipif_not_uses_gateway
+@pytest.mark.parametrize("machine, expected_response_code", DATA)
+def test_reservations(machine, expected_response_code, headers):
+	url = f"{COMPUTE_URL}/reservations"
+	headers.update({"X-Machine-Name": machine})
+	resp = requests.get(url, headers=headers, verify=False)
+	print(resp.content)
+	assert resp.status_code == expected_response_code
+
+
 # Test get status of Jobs microservice
 @skipif_uses_gateway
 def test_status(headers):

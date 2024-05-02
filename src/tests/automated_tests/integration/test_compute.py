@@ -235,6 +235,20 @@ def test_partitions_xfer(machine, headers):
 	check_task_status(task_id, headers)
 
 
+@skipif_not_uses_gateway
+@pytest.mark.parametrize("machine", [SERVER_COMPUTE])
+def test_reservations(machine, headers):
+	url = f"{COMPUTE_URL}/reservations"
+	headers.update({"X-Machine-Name": machine})
+	resp = requests.get(url, headers=headers, verify=False)
+	print(resp.content)
+	assert resp.status_code == 200
+
+	# check scancel status
+	task_id = resp.json()["task_id"]
+	check_task_status(task_id, headers)
+
+
 if __name__ == '__main__':
 	pytest.main()
 

@@ -177,11 +177,28 @@ class JobScheduler(abc.ABC):
         pass
 
     @abc.abstractmethod
+    def get_reservations(self, reservation_names=None):
+        """Return the reservations command of the system.
+        """
+        pass
+
+    @abc.abstractmethod
+    def parse_reservations_output(self, output, reservation_names=None):
+        """Parses the reservations command. Should return records with:
+        * ReservationName
+        * State
+        * Nodes
+        * StartTime
+        * EndTime
+        * Features
+        """
+        pass
+
+    @abc.abstractmethod
     def check_job_time(self, job_time):
-        """ Try to parse correctly the HH:MM:SS time format for the passed job_time argument. Accepted formats:
+        """Try to parse correctly the HH:MM:SS time format for the passed job_time argument. Accepted formats:
         * MM MM:SS
         * HH:MM:SS
         * DD-HH DD-HH:MM
         * DD-HH:MM:SS
         """
-        pass
