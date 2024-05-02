@@ -297,7 +297,8 @@ class SlurmScheduler(schedulers.JobScheduler):
         return partitions
 
     def get_reservations(self, reservation_names=None):
-        return "SLURM_TIME_FORMAT=standard scontrol -a show -o reservations"
+        return "scontrol -a show -o reservations"
+        # return "SLURM_TIME_FORMAT=standard scontrol -a show -o reservations"
 
     def parse_reservations_output(self, output, reservation_names=None):
         if output == "No reservations in the system":
