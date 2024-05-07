@@ -118,10 +118,10 @@ TRACER_HEADER = "uber-trace-id"
 def check_header(header):
 
     # header = remove the "Bearer " string
-    token = header.replace("Bearer ","")
+    token = header.replace("Bearer ", "")
     decoding_result = False
     decoding_reason = ""
-    logging.debug(f"realm_rsa_pubkeys: {realm_rsa_pubkeys}")
+
     if not is_public_key_set:
         if not DEBUG_MODE:
             logging.debug("WARNING: REALM_RSA_PUBLIC_KEY is empty, JWT tokens are NOT verified, setup is not set to debug.")
@@ -141,9 +141,7 @@ def check_header(header):
         # iterates over the list of public keys
         for i in range(len(realm_rsa_pubkeys)):
             if DEBUG_MODE:
-                logging.debug(f"Trying decoding with Public Key ({i}) "
-                              f"[...{realm_rsa_pubkeys[i][71:81]}...] "
-                              "public key...")
+                logging.debug(f"Trying decoding with Public Key ({i}) [...{realm_rsa_pubkeys[i][71:81]}...] public key...")
             try:
                 if AUTH_AUDIENCE == '':
                     decoded = jwt.decode(token, realm_rsa_pubkeys[i],
@@ -226,8 +224,8 @@ def get_username(header):
         # iterates over the list of public keys
         for i in range(len(realm_rsa_pubkeys)):
             if DEBUG_MODE:
-                logging.debug(f"Trying decoding with Public Key {i} "
-                              f"[...{realm_rsa_pubkeys[i][71:81]}...] "
+                logging.debug(f"Trying decoding with Public Key {i} " +
+                              f"[...{realm_rsa_pubkeys[i][71:81]}...] " +
                               "public key...")
             try:
                 if AUTH_AUDIENCE == '':
@@ -417,7 +415,7 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
 
         if SSH_CERTIFICATE_WRAPPER_ENABLED:
             if DEBUG_MODE:
-                logging.debug(f"Using F7T_SSH_CERTIFICATE_WRAPPER_ENABLED option")
+                logging.debug("Using F7T_SSH_CERTIFICATE_WRAPPER_ENABLED option")
 
             # read cert to send it as a command to the server
             with open(pub_cert, 'r') as cert_file:

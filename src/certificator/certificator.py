@@ -264,9 +264,7 @@ def check_header(header):
         # iterates over the list of public keys
         for i in range(len(realm_rsa_pubkeys)):
             if DEBUG_MODE:
-                logging.debug(f"Trying decoding with Public Key {i} "
-                              f"[...{realm_rsa_pubkeys[i][71:81]}...] "
-                              "public key...")
+                logging.debug(f"Trying decoding with Public Key {i} [...{realm_rsa_pubkeys[i][71:81]}...] public key...")
             try:
                 if AUTH_AUDIENCE == '':
                     decoded = jwt.decode(token, realm_rsa_pubkeys[i],
@@ -350,9 +348,7 @@ def get_username(header):
         # iterates over the list of public keys
         for i in range(len(realm_rsa_pubkeys)):
             if DEBUG_MODE:
-                logging.debug(f"Trying decoding with Public Key {i} "
-                              f"[...{realm_rsa_pubkeys[i][71:81]}...] "
-                              "public key...")
+                logging.debug(f"Trying decoding with Public Key {i} [...{realm_rsa_pubkeys[i][71:81]}...] public key...")
             try:
                 if AUTH_AUDIENCE == '':
                     decoded = jwt.decode(token, realm_rsa_pubkeys[i],
