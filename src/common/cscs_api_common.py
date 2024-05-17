@@ -124,13 +124,14 @@ def check_header(header):
 
     if not is_public_key_set:
         if not DEBUG_MODE:
-            logging.debug("WARNING: REALM_RSA_PUBLIC_KEY is empty, JWT tokens are NOT verified, setup is not set to debug.")
+            logging.warning("REALM_RSA_PUBLIC_KEY is empty, JWT tokens " +
+                            " are NOT verified, setup is not set to debug.")
 
         try:
             decoded = jwt.decode(token, options={"verify_signature": False})
             decoding_result = True
 
-            # only check for expired signature or general exception for this case
+            # only check for expired signature or exceptions for this case
         except jwt.exceptions.ExpiredSignatureError:
             decoding_reason = "JWT token has expired"
             logging.error(decoding_reason, exc_info=True)
@@ -141,7 +142,8 @@ def check_header(header):
         # iterates over the list of public keys
         for i in range(len(realm_rsa_pubkeys)):
             if DEBUG_MODE:
-                logging.debug(f"Trying decoding with Public Key ({i}) [...{realm_rsa_pubkeys[i][71:81]}...] public key...")
+                logging.debug(f"Trying decoding with Public Key ({i})" +
+                              "[...{realm_rsa_pubkeys[i][71:81]}...] ...")
             try:
                 if AUTH_AUDIENCE == '':
                     decoded = jwt.decode(token, realm_rsa_pubkeys[i],
@@ -182,7 +184,7 @@ def check_header(header):
     if DEBUG_MODE:
         logging.debug(f"Result: {decoding_result}. Reason: {decoding_reason}")
 
-    # if token was successfully decoded, then check if required scope is present
+    # if token was decoded, then check if required scope is present
     if AUTH_REQUIRED_SCOPE != "" and decoding_result:
         if AUTH_REQUIRED_SCOPE not in decoded["scope"].split():
             decoding_result = False
@@ -192,33 +194,35 @@ def check_header(header):
     return {"result": decoding_result, "reason": decoding_reason}
 
 
-
-
-# receive the header, and extract the username from the token
-# returns username
 def get_username(header):
-
+    # receive the header, and extract the username from the token
+    # returns username
     # header = remove the "Bearer " string
-    token = header.replace("Bearer ","")
+    token = header.replace("Bearer ", "")
     decoding_result = False
     decoding_reason = ""
 
     # does FirecREST check the signature of the token?
     if not is_public_key_set:
         if not DEBUG_MODE:
-            logging.warning("WARNING: REALM_RSA_PUBLIC_KEY is empty, JWT tokens are NOT verified, setup is not set to debug.")
+            logging.warning("REALM_RSA_PUBLIC_KEY is empty, JWT tokens are " +
+                            "NOT verified, setup is not set to debug.")
 
         try:
             decoded = jwt.decode(token, options={"verify_signature": False})
             decoding_result = True
 
-            # only check for expired signature or general exception for this case
+            # only check for expired signature or exception for this case
         except jwt.exceptions.ExpiredSignatureError:
             logging.error("JWT token has expired", exc_info=True)
-            return {"result": False, "reason":"JWT token has expired", "username": None}
+            return {"result": False, "reason": "JWT token has expired",
+                    "username": None}
         except Exception:
-            logging.error("Bad header or JWT, general exception raised", exc_info=True)
-            return {"result": False, "reason":"Bad header or JWT, general exception raised", "username": None}
+            logging.error("Bad header or JWT, general exception raised",
+                          exc_info=True)
+            return {"result": False,
+                    "reason": "Bad header or JWT, general exception raised",
+                    "username": None}
 
     else:
         # iterates over the list of public keys
