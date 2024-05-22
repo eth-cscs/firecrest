@@ -51,22 +51,22 @@ DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
 AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME", "Authorization")
 
-REALM_RSA_PUBLIC_KEYS = os.environ.get("F7T_REALM_RSA_PUBLIC_KEY",
+AUTH_PUBLIC_KEYS = os.environ.get("F7T_AUTH_PUBLIC_KEYS",
                                        "").strip('\'"').split(";")
-REALM_RSA_TYPE = os.environ.get("F7T_REALM_RSA_TYPE",
-                                "").strip('\'"').split(";")
+AUTH_ALGORITHMS = os.environ.get("F7T_AUTH_ALGORITHMS",
+                                "RS256").strip('\'"').split(";")
 
 is_public_key_set = False
 
-if len(REALM_RSA_PUBLIC_KEYS) != 0:
+if len(AUTH_PUBLIC_KEYS) != 0:
     realm_rsa_pubkeys = []
     realm_rsa_types = []
     is_public_key_set = True
     # headers are inserted here, must not be present
-    for i in range(len(REALM_RSA_PUBLIC_KEYS)):
-        realm_pubkey = f"-----BEGIN PUBLIC KEY-----\n{REALM_RSA_PUBLIC_KEYS[i]}\n-----END PUBLIC KEY-----"
+    for i in range(len(AUTH_PUBLIC_KEYS)):
+        realm_pubkey = f"-----BEGIN PUBLIC KEY-----\n{AUTH_PUBLIC_KEYS[i]}\n-----END PUBLIC KEY-----"
         realm_rsa_pubkeys.append(realm_pubkey)
-        realm_rsa_types.append(REALM_RSA_TYPE[i])
+        realm_rsa_types.append(AUTH_ALGORITHMS[i])
 
 AUTH_AUDIENCE = os.environ.get("F7T_AUTH_TOKEN_AUD", '').strip('\'"')
 AUTH_REQUIRED_SCOPE = os.environ.get("F7T_AUTH_REQUIRED_SCOPE", '').strip('\'"')

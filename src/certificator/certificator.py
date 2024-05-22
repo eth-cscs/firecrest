@@ -70,27 +70,27 @@ PUB_USER_KEY_PATH = os.environ.get("F7T_PUB_USER_KEY_PATH", "/user-key.pub")
 
 TRACER_HEADER = "uber-trace-id"
 
-REALM_RSA_PUBLIC_KEYS = os.environ.get("F7T_REALM_RSA_PUBLIC_KEY",
+AUTH_PUBLIC_KEYS = os.environ.get("F7T_AUTH_PUBLIC_KEYS",
                                        "").strip('\'"').split(";")
-REALM_RSA_TYPE = os.environ.get("F7T_REALM_RSA_TYPE",
+AUTH_ALGORITHMS = os.environ.get("F7T_AUTH_ALGORITHMS",
                                 "").strip('\'"').split(";")
 
-if len(REALM_RSA_PUBLIC_KEYS) != len(REALM_RSA_TYPE):
-    logging.warning("F7T_REALM_RSA_PUBLIC_KEYS and F7T_REALM_RSA_TYPE" +
+if len(AUTH_PUBLIC_KEYS) != len(AUTH_ALGORITHMS):
+    logging.warning("F7T_REALM_RSA_PUBLIC_KEYS and F7T_AUTH_ALGORITHMS" +
                     " don't have the same size")
 
 is_public_key_set = False
 
-if len(REALM_RSA_PUBLIC_KEYS) != 0:
+if len(AUTH_PUBLIC_KEYS) != 0:
     realm_rsa_pubkeys = []
     realm_rsa_types = []
     is_public_key_set = True
     # headers are inserted here, must not be present
 
-    for i in range(len(REALM_RSA_PUBLIC_KEYS)):
-        realm_pubkey = f"-----BEGIN PUBLIC KEY-----\n{REALM_RSA_PUBLIC_KEYS[i]}\n-----END PUBLIC KEY-----"
+    for i in range(len(AUTH_PUBLIC_KEYS)):
+        realm_pubkey = f"-----BEGIN PUBLIC KEY-----\n{AUTH_PUBLIC_KEYS[i]}\n-----END PUBLIC KEY-----"
         realm_rsa_pubkeys.append(realm_pubkey)
-        realm_rsa_types.append(REALM_RSA_TYPE[i])
+        realm_rsa_types.append(AUTH_ALGORITHMS[i])
 
 
 DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))

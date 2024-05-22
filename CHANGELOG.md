@@ -9,9 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Support for variable `F7T_REALM_RSA_TYPE` to support multiple algorithm types.
+- Support for multiple JWT signature algorithms
 
 ### Changed
+
+- Variable `F7T_REALM_RSA_PUBLIC_KEYS` changed to `F7T_AUTH_PUBLIC_KEYS` 
+- Variable `F7T_REALM_RSA_TYPE_` changed to `F7T_AUTH_ALGORITHMS` 
+
 
 ### Fixed
 

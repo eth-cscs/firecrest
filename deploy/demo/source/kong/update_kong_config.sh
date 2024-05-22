@@ -19,7 +19,7 @@ echo "F7T_HTTP_SCHEMA: $F7T_HTTP_SCHEMA"
 
 # use '#' to separate string because '/' and ':' are valid on URLs
 sed -e 's#F7T_AUTH_TOKEN_ISSUER#'${F7T_AUTH_TOKEN_ISSUER}'#' \
-    -e 's#F7T_REALM_RSA_PUBLIC_KEY#'${F7T_REALM_RSA_PUBLIC_KEY}'#' \
+    -e 's#F7T_AUTH_PUBLIC_KEYS#'${F7T_AUTH_PUBLIC_KEYS}'#' \
     -e 's#F7T_COMPUTE_HOST#'${F7T_COMPUTE_HOST}'#' \
     -e 's#F7T_COMPUTE_PORT#'${F7T_COMPUTE_PORT}'#' \
     -e 's#F7T_STATUS_HOST#'${F7T_STATUS_HOST}'#' \

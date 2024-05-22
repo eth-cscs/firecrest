@@ -15,7 +15,7 @@
                 "PYTHONPATH": "${workspaceFolder}/src/common",
                 "FLASK_APP": "tasks:app",
                 "FLASK_DEBUG": "1",
-                "F7T_REALM_RSA_TYPE":"RS256",
+                "F7T_AUTH_ALGORITHMS":"RS256",
                 "F7T_LOG_PATH":"${workspaceFolder}/logs/",
                 "F7T_PERSIST_HOST":"localhost",
                 "F7T_PERSIST_PORT":"6379",
@@ -23,7 +23,7 @@
                 "F7T_TASKS_PORT":"5003",
                 "F7T_COMPUTE_TASK_EXP_TIME":"86400",
                 "F7T_STORAGE_TASK_EXP_TIME":"2678400",
-                "F7T_REALM_RSA_PUBLIC_KEY":"MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqB44q32bQp8LbyW6dQvgsjseXESkLT1g5LQKGb+P79AC+nOAtxhn8i/kmgc6zsQH8NlUtNJruLxlzdo2/OGmlDGYZH1x6VmAwvJPJ4er0xPUrvZ8YclxYQC16PY5LFiQRNBMRyQwP5Kne1O46FpmADFVWMfoabdnaqoXexxB56b25o8tE2ulRBgfpnrRgZAvf7kWjugRCNO06FV074FVMYHA1aBk0ICyaFCDM/Tb5oaDyGr5c/ZvdrRUrw8vaiYyMgaAnnJPL75cebGoHeMJaEyZalsHA+iuhRAfeAwpSClsmhVqnfH7a7hqrqumVRo27dydqmfVgpFjU5gbFcBZ5wIDAQAB"
+                "F7T_AUTH_PUBLIC_KEYS":"MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqB44q32bQp8LbyW6dQvgsjseXESkLT1g5LQKGb+P79AC+nOAtxhn8i/kmgc6zsQH8NlUtNJruLxlzdo2/OGmlDGYZH1x6VmAwvJPJ4er0xPUrvZ8YclxYQC16PY5LFiQRNBMRyQwP5Kne1O46FpmADFVWMfoabdnaqoXexxB56b25o8tE2ulRBgfpnrRgZAvf7kWjugRCNO06FV074FVMYHA1aBk0ICyaFCDM/Tb5oaDyGr5c/ZvdrRUrw8vaiYyMgaAnnJPL75cebGoHeMJaEyZalsHA+iuhRAfeAwpSClsmhVqnfH7a7hqrqumVRo27dydqmfVgpFjU5gbFcBZ5wIDAQAB"
 
             },
             "args": [
@@ -46,7 +46,7 @@
                 "F7T_SYSTEMS_PUBLIC":"cluster;cluster",
                 "F7T_STATUS_SERVICES":"certificator;utilities;compute;tasks;storage;reservations",
                 "F7T_STATUS_SYSTEMS":"192.168.220.12:22;192.168.220.12:22",
-                "F7T_REALM_RSA_TYPE":"RS256",
+                "F7T_AUTH_ALGORITHMS":"RS256",
                 "F7T_LOG_PATH":"${workspaceFolder}/logs/",
                 "F7T_PERSISTENCE_IP":"localhost",
                 "F7T_PERSIST_PORT":"6379",
@@ -54,7 +54,7 @@
                 "F7T_TASKS_PORT":"5003",
                 "F7T_COMPUTE_TASK_EXP_TIME":"86400",
                 "F7T_STORAGE_TASK_EXP_TIME":"2678400",
-                "F7T_REALM_RSA_PUBLIC_KEY":"MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqB44q32bQp8LbyW6dQvgsjseXESkLT1g5LQKGb+P79AC+nOAtxhn8i/kmgc6zsQH8NlUtNJruLxlzdo2/OGmlDGYZH1x6VmAwvJPJ4er0xPUrvZ8YclxYQC16PY5LFiQRNBMRyQwP5Kne1O46FpmADFVWMfoabdnaqoXexxB56b25o8tE2ulRBgfpnrRgZAvf7kWjugRCNO06FV074FVMYHA1aBk0ICyaFCDM/Tb5oaDyGr5c/ZvdrRUrw8vaiYyMgaAnnJPL75cebGoHeMJaEyZalsHA+iuhRAfeAwpSClsmhVqnfH7a7hqrqumVRo27dydqmfVgpFjU5gbFcBZ5wIDAQAB"
+                "F7T_AUTH_PUBLIC_KEYS":"MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqB44q32bQp8LbyW6dQvgsjseXESkLT1g5LQKGb+P79AC+nOAtxhn8i/kmgc6zsQH8NlUtNJruLxlzdo2/OGmlDGYZH1x6VmAwvJPJ4er0xPUrvZ8YclxYQC16PY5LFiQRNBMRyQwP5Kne1O46FpmADFVWMfoabdnaqoXexxB56b25o8tE2ulRBgfpnrRgZAvf7kWjugRCNO06FV074FVMYHA1aBk0ICyaFCDM/Tb5oaDyGr5c/ZvdrRUrw8vaiYyMgaAnnJPL75cebGoHeMJaEyZalsHA+iuhRAfeAwpSClsmhVqnfH7a7hqrqumVRo27dydqmfVgpFjU5gbFcBZ5wIDAQAB"
 
             },
             "args": [
