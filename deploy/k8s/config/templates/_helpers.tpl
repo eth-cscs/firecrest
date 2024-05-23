@@ -1,7 +1,7 @@
 {{- define "list.listPubKeys" -}}
 {{- $map := dict }}
 {{- range .Values.global.auth }}
-{{- $_ := set $map .F7T_AUTH_PUBLIC_KEYS ""}}
+{{- $_ := set $map .F7T_AUTH_PUBLIC_KEY ""}}
 {{- end }}
 {{- keys $map | join ";" }}
 {{- end }}
@@ -9,7 +9,7 @@
 {{- define "list.listPubKeyTypes" -}}
 {{- $map := dict }}
 {{- range .Values.global.auth }}
-{{- $_ := set $map .F7T_AUTH_ALGORITHMS ""}}
+{{- $_ := set $map .F7T_AUTH_ALGORITHM ""}}
 {{- end }}
 {{- keys $map | join ";" }}
 {{- end }}
