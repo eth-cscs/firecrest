@@ -146,7 +146,7 @@ def check_header(header):
         for auth_pubkey in auth_pubkeys:
             if DEBUG_MODE:
                 logging.debug(f"Trying decoding with Public Key ({i})" +
-                              f"[...{auth_pubkey["pubkey"][71:81]}...] ...")
+                              f"[...{auth_pubkey['pubkey'][71:81]}...] ...")
             try:
                 if AUTH_AUDIENCE == '':
                     decoded = jwt.decode(token, auth_pubkey["pubkey"],
@@ -232,7 +232,7 @@ def get_username(header):
         for auth_pubkey in auth_pubkeys:
             if DEBUG_MODE:
                 logging.debug(f"Trying decoding with Public Key ({i})" +
-                              f"[...{auth_pubkey["pubkey"][71:81]}...] ...")
+                              f"[...{auth_pubkey['pubkey'][71:81]}...] ...")
             try:
                 if AUTH_AUDIENCE == '':
                     decoded = jwt.decode(token, auth_pubkey["pubkey"],
