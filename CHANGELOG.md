@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.1]
+
+### Added
+
+- Support for multiple JWT signature algorithms
+
+### Changed
+
+- Variable `F7T_REALM_RSA_PUBLIC_KEYS` changed to `F7T_AUTH_PUBLIC_KEYS` 
+- Variable `F7T_REALM_RSA_TYPE_` changed to `F7T_AUTH_ALGORITHMS` 
+
+
+### Fixed
+
 ## [1.16.0]
 
 ### Added

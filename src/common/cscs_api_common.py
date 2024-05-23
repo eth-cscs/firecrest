@@ -49,22 +49,27 @@ def get_null_var(var):
 
 DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
-AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME","Authorization")
+AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME", "Authorization")
 
-REALM_RSA_PUBLIC_KEYS=os.environ.get("F7T_REALM_RSA_PUBLIC_KEY", '').strip('\'"').split(";")
+AUTH_PUBLIC_KEYS = os.environ.get("F7T_AUTH_PUBLIC_KEYS",
+                                       "").strip('\'"').split(";")
+AUTH_ALGORITHMS = os.environ.get("F7T_AUTH_ALGORITHMS",
+                                "RS256").strip('\'"').split(";")
 
 is_public_key_set = False
 
-if len(REALM_RSA_PUBLIC_KEYS) != 0:
-    realm_pubkey_list = []
+if len(AUTH_PUBLIC_KEYS) != 0:
+    auth_pubkeys = []
     is_public_key_set = True
     # headers are inserted here, must not be present
+    for i in range(len(AUTH_PUBLIC_KEYS)):
 
-    for pubkey in REALM_RSA_PUBLIC_KEYS:
-        realm_pubkey = f"-----BEGIN PUBLIC KEY-----\n{pubkey}\n-----END PUBLIC KEY-----"
-        realm_pubkey_list.append(realm_pubkey)
+        auth_pubkey = {}
 
-    realm_pubkey_type = os.environ.get("F7T_REALM_RSA_TYPE").strip('\'"')
+        auth_pubkey["pubkey"] = f"-----BEGIN PUBLIC KEY-----\n{AUTH_PUBLIC_KEYS[i]}\n-----END PUBLIC KEY-----"
+        auth_pubkey["alg"] = AUTH_ALGORITHMS[i]
+
+        auth_pubkeys.append(auth_pubkey)
 
 AUTH_AUDIENCE = os.environ.get("F7T_AUTH_TOKEN_AUD", '').strip('\'"')
 AUTH_REQUIRED_SCOPE = os.environ.get("F7T_AUTH_REQUIRED_SCOPE", '').strip('\'"')
@@ -116,19 +121,20 @@ TRACER_HEADER = "uber-trace-id"
 def check_header(header):
 
     # header = remove the "Bearer " string
-    token = header.replace("Bearer ","")
+    token = header.replace("Bearer ", "")
     decoding_result = False
     decoding_reason = ""
 
     if not is_public_key_set:
         if not DEBUG_MODE:
-            logging.debug("WARNING: REALM_RSA_PUBLIC_KEY is empty, JWT tokens are NOT verified, setup is not set to debug.")
+            logging.warning("REALM_RSA_PUBLIC_KEY is empty, JWT tokens " +
+                            " are NOT verified, setup is not set to debug.")
 
         try:
             decoded = jwt.decode(token, options={"verify_signature": False})
             decoding_result = True
 
-            # only check for expired signature or general exception for this case
+            # only check for expired signature or exceptions for this case
         except jwt.exceptions.ExpiredSignatureError:
             decoding_reason = "JWT token has expired"
             logging.error(decoding_reason, exc_info=True)
@@ -137,18 +143,21 @@ def check_header(header):
             logging.error(decoding_reason, exc_info=True)
     else:
         # iterates over the list of public keys
-        for realm_pubkey in realm_pubkey_list:
+        for auth_pubkey in auth_pubkeys:
             if DEBUG_MODE:
-                logging.debug(f"Trying decoding with [...{realm_pubkey[71:81]}...] public key...")
-                logging.debug(f"Getting JWT from header {AUTH_HEADER_NAME}")
-                logging.debug(f"Value: {token}")
+                logging.debug(f"Trying decoding with Public Key ({i})" +
+                              f"[...{auth_pubkey['pubkey'][71:81]}...] ...")
             try:
                 if AUTH_AUDIENCE == '':
-                    decoded = jwt.decode(token, realm_pubkey, algorithms=[realm_pubkey_type], options={'verify_aud': False})
+                    decoded = jwt.decode(token, auth_pubkey["pubkey"],
+                                         algorithms=[auth_pubkey["alg"]],
+                                         options={'verify_aud': False})
                 else:
-                    decoded = jwt.decode(token, realm_pubkey, algorithms=[realm_pubkey_type], audience=AUTH_AUDIENCE)
+                    decoded = jwt.decode(token, auth_pubkey["pubkey"],
+                                         algorithms=[auth_pubkey["alg"]],
+                                         audience=AUTH_AUDIENCE)
                 if DEBUG_MODE:
-                    logging.debug(f"Token correctly decoded")
+                    logging.info("Correctly decoded")
 
                 # if all passes, it means the signature is valid
                 decoding_result = True
@@ -178,7 +187,7 @@ def check_header(header):
     if DEBUG_MODE:
         logging.debug(f"Result: {decoding_result}. Reason: {decoding_reason}")
 
-    # if token was successfully decoded, then check if required scope is present
+    # if token was decoded, then check if required scope is present
     if AUTH_REQUIRED_SCOPE != "" and decoding_result:
         if AUTH_REQUIRED_SCOPE not in decoded["scope"].split():
             decoding_result = False
@@ -188,48 +197,53 @@ def check_header(header):
     return {"result": decoding_result, "reason": decoding_reason}
 
 
-
-
-# receive the header, and extract the username from the token
-# returns username
 def get_username(header):
-
+    # receive the header, and extract the username from the token
+    # returns username
     # header = remove the "Bearer " string
-    token = header.replace("Bearer ","")
+    token = header.replace("Bearer ", "")
     decoding_result = False
     decoding_reason = ""
 
     # does FirecREST check the signature of the token?
     if not is_public_key_set:
         if not DEBUG_MODE:
-            logging.warning("WARNING: REALM_RSA_PUBLIC_KEY is empty, JWT tokens are NOT verified, setup is not set to debug.")
+            logging.warning("REALM_RSA_PUBLIC_KEY is empty, JWT tokens are " +
+                            "NOT verified, setup is not set to debug.")
 
         try:
             decoded = jwt.decode(token, options={"verify_signature": False})
             decoding_result = True
 
-            # only check for expired signature or general exception for this case
+            # only check for expired signature or exception for this case
         except jwt.exceptions.ExpiredSignatureError:
             logging.error("JWT token has expired", exc_info=True)
-            return {"result": False, "reason":"JWT token has expired", "username": None}
+            return {"result": False, "reason": "JWT token has expired",
+                    "username": None}
         except Exception:
-            logging.error("Bad header or JWT, general exception raised", exc_info=True)
-            return {"result": False, "reason":"Bad header or JWT, general exception raised", "username": None}
+            logging.error("Bad header or JWT, general exception raised",
+                          exc_info=True)
+            return {"result": False,
+                    "reason": "Bad header or JWT, general exception raised",
+                    "username": None}
 
     else:
         # iterates over the list of public keys
-        for realm_pubkey in realm_pubkey_list:
+        for auth_pubkey in auth_pubkeys:
             if DEBUG_MODE:
-                logging.debug(f"Trying decoding with [...{realm_pubkey[71:81]}...] public key...")
-                logging.debug(f"Getting JWT from header {AUTH_HEADER_NAME}")
-                logging.debug(f"Value: {token}")
+                logging.debug(f"Trying decoding with Public Key ({i})" +
+                              f"[...{auth_pubkey['pubkey'][71:81]}...] ...")
             try:
                 if AUTH_AUDIENCE == '':
-                    decoded = jwt.decode(token, realm_pubkey, algorithms=[realm_pubkey_type], options={'verify_aud': False})
+                    decoded = jwt.decode(token, auth_pubkey["pubkey"],
+                                         algorithms=[auth_pubkey["alg"]],
+                                         options={'verify_aud': False})
                 else:
-                    decoded = jwt.decode(token, realm_pubkey, algorithms=[realm_pubkey_type], audience=AUTH_AUDIENCE)
+                    decoded = jwt.decode(token, auth_pubkey["pubkey"],
+                                         algorithms=[auth_pubkey["alg"]],
+                                         audience=AUTH_AUDIENCE)
                 if DEBUG_MODE:
-                    logging.debug(f"Correctly decoded")
+                    logging.info("Correctly decoded")
 
                 # if token is correctly decoded, exit the loop
                 decoding_result = True
@@ -407,7 +421,7 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
 
         if SSH_CERTIFICATE_WRAPPER_ENABLED:
             if DEBUG_MODE:
-                logging.debug(f"Using F7T_SSH_CERTIFICATE_WRAPPER_ENABLED option")
+                logging.debug("Using F7T_SSH_CERTIFICATE_WRAPPER_ENABLED option")
 
             # read cert to send it as a command to the server
             with open(pub_cert, 'r') as cert_file:

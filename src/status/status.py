@@ -91,7 +91,7 @@ def set_services():
     for servicename in SERVICES:
         SERVICE_HOST_ENV_VAR_NAME = f"F7T_{servicename.upper()}_HOST"
         SERVICE_PORT_ENV_VAR_NAME = f"F7T_{servicename.upper()}_PORT"
-        service_host = os.environ.get(SERVICE_HOST_ENV_VAR_NAME)
+        service_host = os.environ.get(SERVICE_HOST_ENV_VAR_NAME, "127.0.0.1")
         service_port = os.environ.get(SERVICE_PORT_ENV_VAR_NAME)
         if service_host and service_port:
             SERVICES_DICT[servicename] = f"{F7T_SCHEME_PROTOCOL}://{service_host}:{service_port}"

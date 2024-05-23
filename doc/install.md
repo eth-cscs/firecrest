@@ -75,7 +75,7 @@ This will have to match FirecREST's environment variables: `F7T_AUTH_ROLE` and `
 
 If the variable `F7T_AUTH_REQUIRED_SCOPE` is set, FirecREST checks the field is present on the JWT and that it matches. If empty or undefined, no check is performed.
 
-The environment variable `F7T_REALM_RSA_PUBLIC_KEY` holds the RSA public key from the OIDC provider.
+The environment variable `F7T_AUTH_PUBLIC_KEYS` holds the RSA public key from the OIDC provider.
 It is used to validate JWT tokens included on requests (via 'Authorization' header). If empty, no verification is made on the token, which is only useful for debugging. Additionally, if not running in debug mode (`F7T_DEBUG_MODE`) microservices will log a warning. As some systems are tricky with variables containing multiple lines, define the variable using only one line without headers (`-----BEGIN PUBLIC KEY-----`, `-----END PUBLIC KEY-----`), they will be added by F7T.
 
 For Keycloak, the signing public key and the endpoints can be retrieved from https://KEYCLOAK_URL/auth/realms/REALM_NAME/
@@ -256,7 +256,7 @@ The public key (`user-key.pub`) is only required by Certificator and must be in 
 
 The following variables are not required by every microservice, but for simplicity they can be put together in the same file:
 - `F7T_CERTIFICATOR_HOST`, `F7T_COMPUTE_HOST`, `F7T_RESERVATIONS_HOST`, `F7T_STORAGE_HOST`, `F7T_TASKS_HOST`, `F7T_UTILITIES_HOST`: internal HostName, DNS, IP (not exposed to users) used by microservices to communicate between them.
-- `F7T_REALM_RSA_PUBLIC_KEY`, if defined also requires: `F7T_REALM_RSA_TYPE`
+- `F7T_AUTH_PUBLIC_KEYS`, if defined also requires: `F7T_AUTH_ALGORITHMS`
 - `F7T_SYSTEMS_PUBLIC_NAME`: list of systems names, as seen by users.
 
 There are additional options at `doc/configuration.md`

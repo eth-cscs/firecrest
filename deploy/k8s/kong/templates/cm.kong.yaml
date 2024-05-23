@@ -51,8 +51,8 @@ items:
       {{- range .Values.global.auth }}
       - jwt_secrets:
         - key: "{{ .F7T_AUTH_ISSUER }}"
-          algorithm: "{{ .F7T_AUTH_REALM_TYPE }}"
-          rsa_public_key: "-----BEGIN PUBLIC KEY-----\n{{ .F7T_AUTH_REALM_PUBKEY }}\n-----END PUBLIC KEY-----"
+          algorithm: "{{ .F7T_AUTH_ALGORITHM }}"
+          rsa_public_key: "-----BEGIN PUBLIC KEY-----\n{{ .F7T_AUTH_PUBKEY }}\n-----END PUBLIC KEY-----"
         username: "{{ .username }}"
       {{- end }}
       

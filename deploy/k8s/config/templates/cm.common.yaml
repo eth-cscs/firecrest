@@ -26,8 +26,8 @@ data:
   F7T_LOG_TYPE: "stdout"
   F7T_GUNICORN_LOG: ""
   F7T_OBJECT_STORAGE: "{{ .Values.F7T_OBJECT_STORAGE }}"
-  F7T_REALM_RSA_PUBLIC_KEY: '{{ include "list.listPubKeys" . }}'
-  F7T_REALM_RSA_TYPE: '{{ include "list.listPubKeyTypes" . }}'
+  F7T_AUTH_PUBLIC_KEYS: '{{ include "list.listPubKeys" . }}'
+  F7T_AUTH_ALGORITHMS: '{{ include "list.listPubKeyTypes" . }}'
   F7T_SSH_CERTIFICATE_WRAPPER_ENABLED: "{{ .Values.F7T_SSH_CERTIFICATE_WRAPPER_ENABLED }}"
   F7T_SSL_ENABLED: "{{ .Values.F7T_SSL_ENABLED }}"
   F7T_SSL_CRT: "{{ .Values.F7T_SSL_CRT }}"
