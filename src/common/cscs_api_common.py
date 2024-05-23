@@ -59,14 +59,17 @@ AUTH_ALGORITHMS = os.environ.get("F7T_AUTH_ALGORITHMS",
 is_public_key_set = False
 
 if len(AUTH_PUBLIC_KEYS) != 0:
-    realm_rsa_pubkeys = []
-    realm_rsa_types = []
+    auth_pubkeys = []
     is_public_key_set = True
     # headers are inserted here, must not be present
     for i in range(len(AUTH_PUBLIC_KEYS)):
-        realm_pubkey = f"-----BEGIN PUBLIC KEY-----\n{AUTH_PUBLIC_KEYS[i]}\n-----END PUBLIC KEY-----"
-        realm_rsa_pubkeys.append(realm_pubkey)
-        realm_rsa_types.append(AUTH_ALGORITHMS[i])
+
+        auth_pubkey = {}
+
+        auth_pubkey["pubkey"] = f"-----BEGIN PUBLIC KEY-----\n{AUTH_PUBLIC_KEYS[i]}\n-----END PUBLIC KEY-----"
+        auth_pubkey["alg"] = AUTH_ALGORITHMS[i]
+
+        auth_pubkeys.append(auth_pubkey)
 
 AUTH_AUDIENCE = os.environ.get("F7T_AUTH_TOKEN_AUD", '').strip('\'"')
 AUTH_REQUIRED_SCOPE = os.environ.get("F7T_AUTH_REQUIRED_SCOPE", '').strip('\'"')
@@ -140,18 +143,18 @@ def check_header(header):
             logging.error(decoding_reason, exc_info=True)
     else:
         # iterates over the list of public keys
-        for i in range(len(realm_rsa_pubkeys)):
+        for auth_pubkey in auth_pubkeys:
             if DEBUG_MODE:
                 logging.debug(f"Trying decoding with Public Key ({i})" +
-                              "[...{realm_rsa_pubkeys[i][71:81]}...] ...")
+                              f"[...{auth_pubkey["pubkey"][71:81]}...] ...")
             try:
                 if AUTH_AUDIENCE == '':
-                    decoded = jwt.decode(token, realm_rsa_pubkeys[i],
-                                         algorithms=[realm_rsa_types[i]],
+                    decoded = jwt.decode(token, auth_pubkey["pubkey"],
+                                         algorithms=[auth_pubkey["alg"]],
                                          options={'verify_aud': False})
                 else:
-                    decoded = jwt.decode(token, realm_rsa_pubkeys[i],
-                                         algorithms=[realm_rsa_types[i]],
+                    decoded = jwt.decode(token, auth_pubkey["pubkey"],
+                                         algorithms=[auth_pubkey["alg"]],
                                          audience=AUTH_AUDIENCE)
                 if DEBUG_MODE:
                     logging.info("Correctly decoded")
@@ -226,19 +229,18 @@ def get_username(header):
 
     else:
         # iterates over the list of public keys
-        for i in range(len(realm_rsa_pubkeys)):
+        for auth_pubkey in auth_pubkeys:
             if DEBUG_MODE:
-                logging.debug(f"Trying decoding with Public Key {i} " +
-                              f"[...{realm_rsa_pubkeys[i][71:81]}...] " +
-                              "public key...")
+                logging.debug(f"Trying decoding with Public Key ({i})" +
+                              f"[...{auth_pubkey["pubkey"][71:81]}...] ...")
             try:
                 if AUTH_AUDIENCE == '':
-                    decoded = jwt.decode(token, realm_rsa_pubkeys[i],
-                                         algorithms=[realm_rsa_types[i]],
+                    decoded = jwt.decode(token, auth_pubkey["pubkey"],
+                                         algorithms=[auth_pubkey["alg"]],
                                          options={'verify_aud': False})
                 else:
-                    decoded = jwt.decode(token, realm_rsa_pubkeys[i],
-                                         algorithms=[realm_rsa_types[i]],
+                    decoded = jwt.decode(token, auth_pubkey["pubkey"],
+                                         algorithms=[auth_pubkey["alg"]],
                                          audience=AUTH_AUDIENCE)
                 if DEBUG_MODE:
                     logging.info("Correctly decoded")
