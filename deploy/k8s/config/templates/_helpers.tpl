@@ -6,7 +6,7 @@
 {{- join ";" $pubKeys -}}
 {{- end -}}
 
-{{- define "list.listPubKeysTypes" -}}
+{{- define "list.listPubKeyTypes" -}}
 {{- $pubKeyTypes := list -}}
 {{- range .Values.global.auth -}}
 {{- $pubKeyTypes = append $pubKeyTypes .F7T_AUTH_ALGORITHM -}}
