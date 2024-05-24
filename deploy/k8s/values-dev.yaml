@@ -101,3 +101,7 @@ global:
       F7T_AUTH_ISSUER: "http://svc-keycloak:8080/auth/realms/kcrealm"
       F7T_AUTH_PUBKEY: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqB44q32bQp8LbyW6dQvgsjseXESkLT1g5LQKGb+P79AC+nOAtxhn8i/kmgc6zsQH8NlUtNJruLxlzdo2/OGmlDGYZH1x6VmAwvJPJ4er0xPUrvZ8YclxYQC16PY5LFiQRNBMRyQwP5Kne1O46FpmADFVWMfoabdnaqoXexxB56b25o8tE2ulRBgfpnrRgZAvf7kWjugRCNO06FV074FVMYHA1aBk0ICyaFCDM/Tb5oaDyGr5c/ZvdrRUrw8vaiYyMgaAnnJPL75cebGoHeMJaEyZalsHA+iuhRAfeAwpSClsmhVqnfH7a7hqrqumVRo27dydqmfVgpFjU5gbFcBZ5wIDAQAB'
       F7T_AUTH_ALGORITHM: "RS256"
+    - username: kc-test
+      F7T_AUTH_ISSUER: "http://svc-keycloak:8080/auth/realms/testrealm"
+      F7T_AUTH_PUBKEY: 'TESTPUBLICKEY'
+      F7T_AUTH_ALGORITHM: "RS256"
