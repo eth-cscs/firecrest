@@ -29,7 +29,7 @@ data:
   F7T_AUTH_PUBLIC_KEYS: '{{ include "list.listPubKeys" . }}'
   F7T_AUTH_ALGORITHMS: '{{ include "list.listPubKeyTypes" . }}'
   F7T_SSH_CERTIFICATE_WRAPPER_ENABLED: "{{ .Values.F7T_SSH_CERTIFICATE_WRAPPER_ENABLED }}"
-  F7T_SSL_ENABLED: {{ .Values.F7T_SSL_ENABLED | default true }}
+  F7T_SSL_ENABLED: {{ .Values.F7T_SSL_ENABLED | default "true" | quote }}
   F7T_SSL_CRT: "{{ .Values.F7T_SSL_CRT }}"
   F7T_SSL_KEY: "{{ .Values.F7T_SSL_KEY }}"
   F7T_SYSTEMS_INTERNAL_ADDR: "{{ .Values.F7T_SYSTEMS_INTERNAL_ADDR }}"
