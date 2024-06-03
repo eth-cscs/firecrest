@@ -10,10 +10,10 @@ items:
     selector:
       app: keycloak
     ports:
-    - name: kc_api
+    - name: kc-api
       port: 8080
       targetPort: 8080
-    - name: kc_admin
+    - name: kc-admin
       port: 9990
       targetPort: 9990
   status:
