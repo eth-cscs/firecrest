@@ -8,13 +8,13 @@ items:
   data:
     redis.conf: |
       protected-mode yes
-      port {{ .Values.F7T_PERSIST_PORT }}
+      port {{ .Values.F7T_PERSIST_PORT | default 6379 }}
       tcp-backlog 511
       timeout 0
       tcp-keepalive 300
       daemonize no
       supervised no
-      pidfile /var/run/redis_{{ .Values.F7T_PERSIST_PORT }}.pid
+      pidfile /var/run/redis_{{ .Values.F7T_PERSIST_PORT | default 6379 }}.pid
       loglevel debug
       logfile /data/redis.log
       databases 16

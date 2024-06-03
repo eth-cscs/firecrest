@@ -22,7 +22,7 @@ spec:
         imagePullPolicy: Always
         name: compute
         ports:
-        - containerPort: {{ .Values.F7T_COMPUTE_PORT | atoi }}
+        - containerPort: {{ .Values.F7T_COMPUTE_PORT | default 5006 | atoi }}
         envFrom:
         - configMapRef:
             name: common-env-file
@@ -42,7 +42,7 @@ spec:
           subPath: f7t-ssl.key
         startupProbe:
           tcpSocket:
-            port: {{ .Values.F7T_COMPUTE_PORT | atoi }}
+            port: {{ .Values.F7T_COMPUTE_PORT | default 5006 | atoi }}
           initialDelaySeconds: 5
           failureThreshold: 1
       restartPolicy: Always

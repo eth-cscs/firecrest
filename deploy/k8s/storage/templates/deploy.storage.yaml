@@ -23,11 +23,11 @@ spec:
         imagePullPolicy: Always
         name: storage
         ports:
-        - containerPort: {{ .Values.F7T_STORAGE_PORT | atoi }}
+        - containerPort: {{ .Values.F7T_STORAGE_PORT | default 5002 | atoi }}
         env:
           - name: F7T_CERT_CIPHER_KEY
             {{ if eq .Values.global.environment "dev" }}
-            value: {{ .Values.F7T_CERT_CIPHER_KEY }}
+            value: {{ .Values.F7T_CERT_CIPHER_KEY | default "" | quote }}
             {{ else }}
             valueFrom:
               secretKeyRef:
@@ -36,7 +36,7 @@ spec:
             {{ end }}
           - name: F7T_S3_SECRET_KEY
             {{ if eq .Values.global.environment "dev" }}
-            value: {{ .Values.F7T_S3_SECRET_KEY }}
+            value: {{ .Values.F7T_S3_SECRET_KEY | default "" | quote }}
             {{ else }}
             valueFrom:
               secretKeyRef:
@@ -45,7 +45,7 @@ spec:
             {{ end }}
           - name: F7T_S3_ACCESS_KEY
             {{ if eq .Values.global.environment "dev" }}
-            value: {{ .Values.F7T_S3_ACCESS_KEY }}
+            value: {{ .Values.F7T_S3_ACCESS_KEY | default "" | quote }}
             {{ else }}
             valueFrom:
               secretKeyRef:
@@ -71,7 +71,7 @@ spec:
           subPath: f7t-ssl.key
         startupProbe:
           tcpSocket:
-            port: {{ .Values.F7T_STORAGE_PORT | atoi }}
+            port: {{ .Values.F7T_STORAGE_PORT | default 5002 | atoi }}
           initialDelaySeconds: 5
           failureThreshold: 1
       volumes:

@@ -22,8 +22,8 @@ F7T_JAEGER_AGENT: svc-jaeger
 F7T_BASE_URL: http://svc-kong:8000
 F7T_OBJECT_STORAGE: s3v4
 F7T_RESERVATIONS_HOST: svc-reservations
-F7T_SSH_CERTIFICATE_WRAPPER_ENABLED: True
-F7T_SSL_ENABLED: "True"
+F7T_SSH_CERTIFICATE_WRAPPER_ENABLED: true
+F7T_SSL_ENABLED: true
 F7T_SSL_CRT: /f7t-ssl.crt
 F7T_SSL_KEY: /f7t-ssl.key
 F7T_STATUS_HOST: svc-status
@@ -76,12 +76,14 @@ F7T_UTILITIES_PORT: "5004"
 # global
 global:
   environment: "dev"
-  include_reservations: True
-  F7T_DEBUG_MODE: True
+  include_reservations: true
+  F7T_DEBUG_MODE: true
+  F7T_LOG_TYPE: "stdout"
   F7T_GATEWAY_HOST: "svc-kong"
   F7T_GATEWAY_PORT: "8000"
   F7T_SWAGGER_HOST: "http://svc-openapi"
   F7T_SWAGGER_PORT: "8080"
+  F7T_SSL_ENABLED: true
   F7T_CERTIFICATOR_PORT: "5010"
   F7T_CERTIFICATOR_HOST: "svc-certificator"
   F7T_COMPUTE_PORT: "5006"

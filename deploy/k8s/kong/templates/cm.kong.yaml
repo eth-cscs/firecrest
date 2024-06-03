@@ -67,7 +67,7 @@ items:
         - /tasks/tasklist
       services:
       - name: compute
-        url: "{{if .Values.F7T_SSL_ENABLED}}https{{else}}http{{end}}://{{ .Values.global.F7T_COMPUTE_HOST }}:{{ .Values.global.F7T_COMPUTE_PORT }}"
+        url: "{{if .Values.global.F7T_SSL_ENABLED}}https{{else}}http{{end}}://{{ .Values.global.F7T_COMPUTE_HOST }}:{{ .Values.global.F7T_COMPUTE_PORT }}"
         routes:
         - name: compute
           methods: [DELETE,GET,POST]
@@ -86,28 +86,28 @@ items:
             config:
               anonymous: docs
       - name: status
-        url: "{{if .Values.F7T_SSL_ENABLED}}https{{else}}http{{end}}://{{ .Values.global.F7T_STATUS_HOST }}:{{ .Values.global.F7T_STATUS_PORT }}"
+        url: "{{if .Values.global.F7T_SSL_ENABLED}}https{{else}}http{{end}}://{{ .Values.global.F7T_STATUS_HOST }}:{{ .Values.global.F7T_STATUS_PORT }}"
         routes:
         - name: status
           methods: [GET]
           paths:
           - /status/
       - name: storage
-        url: "{{if .Values.F7T_SSL_ENABLED}}https{{else}}http{{end}}://{{ .Values.global.F7T_STORAGE_HOST }}:{{ .Values.global.F7T_STORAGE_PORT }}"
+        url: "{{if .Values.global.F7T_SSL_ENABLED}}https{{else}}http{{end}}://{{ .Values.global.F7T_STORAGE_HOST }}:{{ .Values.global.F7T_STORAGE_PORT }}"
         routes:
         - name: storage
           methods: [GET,POST]
           paths:
           - /storage/
       - name: tasks
-        url: "{{if .Values.F7T_SSL_ENABLED}}https{{else}}http{{end}}://{{ .Values.global.F7T_TASKS_HOST }}:{{ .Values.global.F7T_TASKS_PORT }}"
+        url: "{{if .Values.global.F7T_SSL_ENABLED}}https{{else}}http{{end}}://{{ .Values.global.F7T_TASKS_HOST }}:{{ .Values.global.F7T_TASKS_PORT }}"
         routes:
         - name: tasks
           methods: [GET]
           paths:
           - /tasks
       - name: utilities
-        url: "{{if .Values.F7T_SSL_ENABLED}}https{{else}}http{{end}}://{{ .Values.global.F7T_UTILITIES_HOST }}:{{ .Values.global.F7T_UTILITIES_PORT }}"
+        url: "{{if .Values.global.F7T_SSL_ENABLED}}https{{else}}http{{end}}://{{ .Values.global.F7T_UTILITIES_HOST }}:{{ .Values.global.F7T_UTILITIES_PORT }}"
         routes:
         - name: utilities
           methods: [DELETE,GET,POST,PUT]
@@ -115,7 +115,7 @@ items:
           - /utilities/
       {{ if .Values.global.include_reservations }}
       - name: reservations
-        url: "{{if .Values.F7T_SSL_ENABLED}}https{{else}}http{{end}}://{{ .Values.global.F7T_RESERVATIONS_HOST }}:{{ .Values.global.F7T_RESERVATIONS_PORT }}"
+        url: "{{if .Values.global.F7T_SSL_ENABLED}}https{{else}}http{{end}}://{{ .Values.global.F7T_RESERVATIONS_HOST }}:{{ .Values.global.F7T_RESERVATIONS_PORT }}"
         routes:
         - name: reservations
           methods: [DELETE,GET,POST,PUT]

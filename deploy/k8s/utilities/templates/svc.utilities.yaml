@@ -7,5 +7,6 @@ spec:
   selector:
     app: utilities # will match pods with this label
   ports:
-  - port: {{ .Values.F7T_UTILITIES_PORT | atoi }} # the service listen on
-    targetPort: {{ .Values.F7T_UTILITIES_PORT | atoi }} # the pods listen on
+  - name: utilities
+    port: {{ .Values.F7T_UTILITIES_PORT | default 5004 | atoi }} # the service listen on
+    targetPort: {{ .Values.F7T_UTILITIES_PORT | default 5004 | atoi }} # the pods listen on

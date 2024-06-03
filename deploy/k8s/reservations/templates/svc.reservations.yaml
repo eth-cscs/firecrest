@@ -7,5 +7,6 @@ spec:
   selector:
     app: reservations # will match pods with this label
   ports:
-  - port: {{ .Values.F7T_RESERVATIONS_PORT | atoi }} # the service listen on
-    targetPort: {{ .Values.F7T_RESERVATIONS_PORT | atoi }} # the pods listen on
+  - name: reservations
+    port: {{ .Values.F7T_RESERVATIONS_PORT | default 5005 | atoi }} # the service listen on
+    targetPort: {{ .Values.F7T_RESERVATIONS_PORT | default 5005 | atoi }} # the pods listen on

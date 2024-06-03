@@ -7,9 +7,9 @@ spec:
   selector:
     app: tasks # will match pods with this label
   ports:
-  - name: "tasks"
-    port: {{ .Values.F7T_TASKS_PORT | atoi }} # tasks port
-    targetPort: {{ .Values.F7T_TASKS_PORT | atoi}}
-  - name: "redis"
-    port: {{ .Values.F7T_PERSIST_PORT | atoi }} # redis port
-    targetPort: {{ .Values.F7T_PERSIST_PORT | atoi}}
+  - name: tasks
+    port: {{ .Values.F7T_TASKS_PORT | default 5003 | atoi }} # tasks port
+    targetPort: {{ .Values.F7T_TASKS_PORT | default 5003 | atoi}}
+  - name: redis
+    port: {{ .Values.F7T_PERSIST_PORT | default 6379 | atoi }} # redis port
+    targetPort: {{ .Values.F7T_PERSIST_PORT | default 6379 | atoi }}

@@ -7,7 +7,7 @@ items:
     namespace: {{ .Values.namespace }}
   spec:
     ports:
-    - name: "9000"
+    - name: minio
       port: 9000
       targetPort: 9000
     selector:
