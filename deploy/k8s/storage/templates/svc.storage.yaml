@@ -7,5 +7,5 @@ spec:
   selector:
     app: storage # will match pods with this label
   ports:
-  - port: {{ .Values.F7T_STORAGE_PORT | atoi }} # the service listen on
-    targetPort: {{ .Values.F7T_STORAGE_PORT | atoi }} # the pods listen on
+  - port: {{ .Values.F7T_STORAGE_PORT | default 5002 | atoi }} # the service listen on
+    targetPort: {{ .Values.F7T_STORAGE_PORT | default 5002 | atoi }} # the pods listen on

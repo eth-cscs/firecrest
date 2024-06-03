@@ -7,9 +7,9 @@ items:
     namespace: {{ .Values.global.namespace }}
   spec:
     ports:
-    - name: "{{ .Values.global.F7T_SWAGGER_PORT }}"
-      port: {{ .Values.global.F7T_SWAGGER_PORT | atoi }}
-      targetPort: {{ .Values.global.F7T_SWAGGER_PORT | atoi }}
+    - name: {{ .Values.global.F7T_SWAGGER_PORT | default "8080" | quote }}
+      port: {{ .Values.global.F7T_SWAGGER_PORT | default 8080 | atoi }}
+      targetPort: {{ .Values.global.F7T_SWAGGER_PORT | default 8080 | atoi }}
     selector:
       app: openapi
   status:

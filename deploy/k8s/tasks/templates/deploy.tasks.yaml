@@ -31,7 +31,7 @@ spec:
             exec:
               command: ["/bin/sh", "-c", "sleep 10"]
         ports:
-        - containerPort: {{ .Values.F7T_PERSIST_PORT | atoi }}
+        - containerPort: {{ .Values.F7T_PERSIST_PORT | default 6379 | atoi }}
         env:
           - name: F7T_PERSIST_PWD
             {{ if eq .Values.global.environment "dev" }}
@@ -54,7 +54,7 @@ spec:
         image: "{{ .Values.global.registry }}/tasks:{{ .Values.global.tag }}"
         imagePullPolicy: Always
         ports:
-        - containerPort: {{ .Values.F7T_TASKS_PORT | atoi }}
+        - containerPort: {{ .Values.F7T_TASKS_PORT | default 5003 | atoi }}
         env:
           - name: F7T_PERSIST_PWD
             {{ if eq .Values.global.environment "dev" }}
@@ -81,7 +81,7 @@ spec:
           subPath: f7t-ssl.key
         startupProbe:
           tcpSocket:
-            port: {{ .Values.F7T_TASKS_PORT | atoi }}
+            port: {{ .Values.F7T_TASKS_PORT | default 5003 | atoi }}
           initialDelaySeconds: 5
           failureThreshold: 1
       volumes:

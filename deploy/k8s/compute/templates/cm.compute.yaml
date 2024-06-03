@@ -1,9 +1,9 @@
 apiVersion: v1
 data:
-  F7T_COMPUTE_BASE_FS: "{{ .Values.F7T_COMPUTE_BASE_FS }}"
-  F7T_COMPUTE_PORT: "{{ .Values.F7T_COMPUTE_PORT }}"
-  F7T_SPANK_PLUGIN_OPTION: "{{ .Values.F7T_SPANK_PLUGIN_OPTION }}"
-  F7T_SPANK_PLUGIN_ENABLED: "{{ .Values.F7T_SPANK_PLUGIN_ENABLED }}"
+  F7T_COMPUTE_BASE_FS: {{ .Values.F7T_COMPUTE_BASE_FS | default "/home" | quote }}
+  F7T_COMPUTE_PORT: {{ .Values.F7T_COMPUTE_PORT | default "5006" | quote }}
+  F7T_SPANK_PLUGIN_OPTION: {{ .Values.F7T_SPANK_PLUGIN_OPTION | default "--nohome" | quote }}
+  F7T_SPANK_PLUGIN_ENABLED: {{ .Values.F7T_SPANK_PLUGIN_ENABLED | default "False" | quote }}
 kind: ConfigMap
 metadata:
   name: compute-env-file
