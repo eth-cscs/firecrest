@@ -38,7 +38,7 @@ spec:
           subPath: f7t-ssl.key
         startupProbe:
           tcpSocket:
-            port: {{ .Values.F7T_RESERVATIONS_PORT | default 5005 | atoi }}
+            port: {{ .Values.F7T_RESERVATIONS_PORT | default 5005 | atoi }}
           initialDelaySeconds: 5
           failureThreshold: 1
       volumes:

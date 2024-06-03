@@ -31,7 +31,7 @@ spec:
             exec:
               command: ["/bin/sh", "-c", "sleep 10"]
         ports:
-        - containerPort: {{ .Values.F7T_PERSIST_PORT | default 6379 | atoi }}
+        - containerPort: {{ .Values.F7T_PERSIST_PORT | default 6379 | atoi }}
         env:
           - name: F7T_PERSIST_PWD
             {{ if eq .Values.global.environment "dev" }}
