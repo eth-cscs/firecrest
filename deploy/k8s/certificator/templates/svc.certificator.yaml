@@ -10,12 +10,12 @@ items:
     selector:
       app: certificator
     ports:
-    - name: "{{ .Values.F7T_OPA_PORT }}"
+    - name: {{ .Values.F7T_OPA_PORT | default "8181" | quote }}
       protocol: TCP
-      port: {{ .Values.F7T_OPA_PORT | atoi }}
-      targetPort: {{ .Values.F7T_OPA_PORT | atoi }}
-    - name: "{{ .Values.F7T_CERTIFICATOR_PORT }}"
+      port: {{ .Values.F7T_OPA_PORT | default 8181 | atoi }}
+      targetPort: {{ .Values.F7T_OPA_PORT | default 8181 | atoi }}
+    - name: {{ .Values.F7T_CERTIFICATOR_PORT | default "5000" | quote }}
       protocol: TCP
-      port: {{ .Values.F7T_CERTIFICATOR_PORT | atoi }}
-      targetPort: {{ .Values.F7T_CERTIFICATOR_PORT | atoi }}
+      port: {{ .Values.F7T_CERTIFICATOR_PORT | default 5000 | atoi }}
+      targetPort: {{ .Values.F7T_CERTIFICATOR_PORT | default 5000 | atoi }}
 kind: List

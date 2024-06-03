@@ -1,11 +1,11 @@
 apiVersion: v1
 data:
-  F7T_CERTIFICATOR_PORT: "{{ .Values.F7T_CERTIFICATOR_PORT }}"
-  F7T_OPA_URL: "{{ .Values.F7T_OPA_URL }}"
-  F7T_OPA_ENABLED: "{{ .Values.F7T_OPA_ENABLED }}"
-  F7T_OPA_POLICY_PATH: "{{ .Values.F7T_OPA_POLICY_PATH }}"
-  F7T_CA_KEY_PATH: "{{ .Values.F7T_CA_KEY_PATH }}"
-  F7T_PUB_USER_KEY_PATH: "{{ .Values.F7T_PUB_USER_KEY_PATH }}"
+  F7T_CERTIFICATOR_PORT: {{ .Values.F7T_CERTIFICATOR_PORT | default "5000" | quote }}
+  F7T_OPA_URL: {{ .Values.F7T_OPA_URL | default "http://localhost:8181" | quote }}
+  F7T_OPA_ENABLED: {{ .Values.F7T_OPA_ENABLED | default "False" | quote }}
+  F7T_OPA_POLICY_PATH: {{ .Values.F7T_OPA_POLICY_PATH | default "v1/data/f7t/authz" | quote }}
+  F7T_CA_KEY_PATH: {{ .Values.F7T_CA_KEY_PATH | default "/ca-key" | quote }}
+  F7T_PUB_USER_KEY_PATH: {{ .Values.F7T_PUB_USER_KEY_PATH | default "/user-key" | quote }}
 kind: ConfigMap
 metadata:
   name: certificator-env-file
