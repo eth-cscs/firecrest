@@ -7,7 +7,7 @@ items:
     namespace: {{ .Values.global.namespace }}
   spec:
     ports:
-    - name: {{ .Values.global.F7T_SWAGGER_PORT | default "8080" | quote }}
+    - name: swagger
       port: {{ .Values.global.F7T_SWAGGER_PORT | default 8080 | atoi }}
       targetPort: {{ .Values.global.F7T_SWAGGER_PORT | default 8080 | atoi }}
     selector:

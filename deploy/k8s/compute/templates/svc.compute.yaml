@@ -7,5 +7,6 @@ spec:
   selector:
     app: compute # will match pods with this label
   ports:
-  - port: {{ .Values.F7T_COMPUTE_PORT | default 5006 | atoi }} # the service listen on
+  - name: compute
+    port: {{ .Values.F7T_COMPUTE_PORT | default 5006 | atoi }} # the service listen on
     targetPort: {{ .Values.F7T_COMPUTE_PORT | default 5006 | atoi }} # the pods listen on

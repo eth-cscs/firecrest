@@ -7,5 +7,6 @@ spec:
   selector:
     app: status # will match pods with this label
   ports:
-  - port: {{ .Values.F7T_STATUS_PORT | default 5001 | atoi }} # the service listen on
+  - name: status
+    port: {{ .Values.F7T_STATUS_PORT | default 5001 | atoi }} # the service listen on
     targetPort: {{ .Values.F7T_STATUS_PORT | default 5001 | atoi }} # the pods listen on

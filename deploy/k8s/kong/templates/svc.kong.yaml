@@ -10,7 +10,7 @@ items:
     selector:
       app: kong
     ports:
-    - name: "{{ .Values.global.F7T_GATEWAY_PORT }}"
+    - name: "kong"
       port: {{ .Values.global.F7T_GATEWAY_PORT | atoi }}
       targetPort: {{ .Values.global.F7T_GATEWAY_PORT | atoi }}
   status:
