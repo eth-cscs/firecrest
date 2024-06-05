@@ -24,7 +24,7 @@ data:
   F7T_GUNICORN_SSL: {{ .Values.F7T_GUNICORN_SSL | default "--ciphers TLS_AES_256_GCM_SHA384,TLS_CHACHA20_POLY1305_SHA256,TLS_AES_128_GCM_SHA256,DHE-RSA-AES256-GCM-SHA384,ECDHE-RSA-AES256-GCM-SHA384,ECDHE-RSA-AES128-GCM-SHA256 --ssl-version TLSv1_2 --keyfile $F7T_SSL_KEY --certfile $F7T_SSL_CRT" | quote }}
   F7T_JAEGER_AGENT: {{ .Values.F7T_JAEGER_AGENT | default "" | quote }}
   F7T_LOG_TYPE: {{ .Values.global.F7T_LOG_TYPE | default "file" | quote }}
-  F7T_GUNICORN_LOG: {{ .Values.global.F7T_GUNICORN_LOG | default "--error-logfile ${F7T_LOG_PATH}/<service>.gunicorn.log" | quote }}
+  F7T_LOG_PATH: {{ .Values.global.F7T_LOG_PATH | default "/var/log" | quote }}
   F7T_OBJECT_STORAGE: {{ .Values.F7T_OBJECT_STORAGE | default "s3v4" | quote }}
   F7T_AUTH_PUBLIC_KEYS: {{ include "list.listPubKeys" . | default "" | quote }}
   F7T_AUTH_ALGORITHMS: {{ include "list.listPubKeyTypes" . | default "RS256" | quote }}

@@ -24,6 +24,7 @@ data:
   F7T_SWIFT_PASS: {{ .Values.F7T_SWIFT_PASS | default "" | quote }}
   F7T_XFER_CONSTRAINT: {{ .Values.F7T_XFER_CONSTRAINT | default "" | quote }}
   F7T_XFER_PARTITION: {{ .Values.F7T_XFER_PARTITION | default "" | quote }}
+  F7T_GUNICORN_LOG: {{ .Values.global.F7T_GUNICORN_LOG | default "--error-logfile /var/log/storage.gunicorn.log" | quote }}
 kind: ConfigMap
 metadata:
   name: storage-env-file
