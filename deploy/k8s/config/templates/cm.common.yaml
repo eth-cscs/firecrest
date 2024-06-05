@@ -2,10 +2,10 @@ apiVersion: v1
 data:
   F7T_DEBUG_MODE: {{ .Values.global.F7T_DEBUG_MODE | default "False" | quote }}
   F7T_AUTH_HEADER_NAME: {{ .Values.F7T_AUTH_HEADER_NAME | default "Authorization" | quote }}
-  F7T_AUTH_REQUIRED_SCOPE: {{ .Values.F7T_AUTH_REQUIRED_SCOPE | quote }}
-  F7T_AUTH_ROLE: {{ .Values.F7T_AUTH_ROLE | quote }}
-  F7T_AUTH_TOKEN_AUD: {{ .Values.F7T_AUTH_TOKEN_AUD | quote }}
-  F7T_GATEWAY_URL: "{{ .Values.global.F7T_GATEWAY_HOST }}:{{ .Values.global.F7T_GATEWAY_PORT }}"
+  F7T_AUTH_REQUIRED_SCOPE: {{ .Values.F7T_AUTH_REQUIRED_SCOPE | default "" | quote }}
+  F7T_AUTH_ROLE: {{ .Values.F7T_AUTH_ROLE | default "" | quote }}
+  F7T_AUTH_TOKEN_AUD: {{ .Values.F7T_AUTH_TOKEN_AUD | default "" | quote }}
+  F7T_GATEWAY_URL: {{ .Values.global.F7T_GATEWAY_HOST | default "http://localhost" | quote }}:{{ .Values.global.F7T_GATEWAY_PORT | default "8000" | quote }}
   F7T_CERTIFICATOR_HOST: {{ .Values.global.F7T_CERTIFICATOR_HOST | default "127.0.0.1" | quote }}
   F7T_CERTIFICATOR_PORT: {{ .Values.global.F7T_CERTIFICATOR_PORT | default "5000" | quote }}
   F7T_COMPUTE_HOST: {{ .Values.global.F7T_COMPUTE_HOST | default "127.0.0.1" | quote }}
@@ -21,22 +21,22 @@ data:
   F7T_UTILITIES_HOST: {{ .Values.global.F7T_UTILITIES_HOST | default "127.0.0.1" | quote }}
   F7T_UTILITIES_PORT: {{ .Values.global.F7T_UTILITIES_PORT | default "5004" | quote }}
   F7T_FILESYSTEMS: {{ .Values.F7T_FILESYSTEMS | default dict | quote }}
-  F7T_GUNICORN_SSL: {{ .Values.F7T_GUNICORN_SSL | quote }}
-  F7T_JAEGER_AGENT: {{ .Values.F7T_JAEGER_AGENT | quote }}
+  F7T_GUNICORN_SSL: {{ .Values.F7T_GUNICORN_SSL | default "--ciphers TLS_AES_256_GCM_SHA384,TLS_CHACHA20_POLY1305_SHA256,TLS_AES_128_GCM_SHA256,DHE-RSA-AES256-GCM-SHA384,ECDHE-RSA-AES256-GCM-SHA384,ECDHE-RSA-AES128-GCM-SHA256 --ssl-version TLSv1_2 --keyfile $F7T_SSL_KEY --certfile $F7T_SSL_CRT" | quote }}
+  F7T_JAEGER_AGENT: {{ .Values.F7T_JAEGER_AGENT | default "" | quote }}
   F7T_LOG_TYPE: {{ .Values.global.F7T_LOG_TYPE | default "file" | quote }}
-  F7T_GUNICORN_LOG: ""
+  F7T_GUNICORN_LOG: {{ .Values.global.F7T_GUNICORN_LOG | default "--error-logfile ${F7T_LOG_PATH}/<service>.gunicorn.log" | default }}
   F7T_OBJECT_STORAGE: {{ .Values.F7T_OBJECT_STORAGE | default "s3v4" | quote }}
   F7T_AUTH_PUBLIC_KEYS: {{ include "list.listPubKeys" . | default "" | quote }}
   F7T_AUTH_ALGORITHMS: {{ include "list.listPubKeyTypes" . | default "RS256" | quote }}
   F7T_SSH_CERTIFICATE_WRAPPER_ENABLED: {{ .Values.F7T_SSH_CERTIFICATE_WRAPPER_ENABLED | default "false" | quote }}
   F7T_SSL_ENABLED: {{ .Values.F7T_SSL_ENABLED | default "true" | quote }}
-  F7T_SSL_CRT: {{ .Values.F7T_SSL_CRT | quote }}
-  F7T_SSL_KEY: {{ .Values.F7T_SSL_KEY | quote }}
-  F7T_SYSTEMS_INTERNAL_ADDR: {{ .Values.F7T_SYSTEMS_INTERNAL_ADDR | default null | quote }}
+  F7T_SSL_CRT: {{ .Values.F7T_SSL_CRT | default "" | quote }}
+  F7T_SSL_KEY: {{ .Values.F7T_SSL_KEY | default "" | quote }}
+  F7T_SYSTEMS_INTERNAL_ADDR: {{ if .Values.F7T_SYSTEMS_INTERNAL_ADDR }}{{ .Values.F7T_SYSTEMS_INTERNAL_ADDR | quote }}{{ else }} null {{ end }}
   F7T_SYSTEMS_INTERNAL_STATUS_ADDR: {{ .Values.F7T_SYSTEMS_INTERNAL_STATUS_ADDR | default .Values.F7T_SYSTEMS_INTERNAL_ADDR | quote  }}
   F7T_SYSTEMS_INTERNAL_COMPUTE_ADDR: {{ .Values.F7T_SYSTEMS_INTERNAL_COMPUTE_ADDR | default .Values.F7T_SYSTEMS_INTERNAL_ADDR | quote }}
   F7T_SYSTEMS_INTERNAL_UTILITIES_ADDR: {{ .Values.F7T_SYSTEMS_INTERNAL_UTILITIES_ADDR | default .Values.F7T_SYSTEMS_INTERNAL_ADDR | quote }}
-  F7T_SYSTEMS_PUBLIC_NAME: "{{ .Values.F7T_SYSTEMS_PUBLIC_NAME }}"
+  F7T_SYSTEMS_PUBLIC_NAME: {{ if .Values.F7T_SYSTEMS_PUBLIC_NAME }}{{ .Values.F7T_SYSTEMS_PUBLIC_NAME | quote }}{{ else }} null {{ end }}
   F7T_UTILITIES_MAX_FILE_SIZE: {{ .Values.F7T_UTILITIES_MAX_FILE_SIZE | default "5" | quote }}
   F7T_UTILITIES_TIMEOUT: {{ .Values.F7T_UTILITIES_TIMEOUT | default "5" | quote }}
 kind: ConfigMap
