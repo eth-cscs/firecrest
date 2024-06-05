@@ -12,13 +12,13 @@ data:
   F7T_STORAGE_POLLING_INTERVAL: {{ .Values.F7T_STORAGE_POLLING_INTERVAL | default "60" | quote }}
   F7T_STORAGE_PORT: {{ .Values.F7T_STORAGE_PORT | default "5002" | quote }}
   F7T_STORAGE_TEMPURL_EXP_TIME: {{ .Values.F7T_STORAGE_TEMPURL_EXP_TIME | default "604800" | quote }}
-  F7T_S3_PRIVATE_URL: {{ if .Values.F7T_S3_PRIVATE_URL }}{{ .Values.F7T_S3_PRIVATE_URL | quote }}{{ else }} null {{ end }}
-  F7T_S3_PUBLIC_URL: {{ if .Values.F7T_S3_PRIVATE_URL }}{{ .Values.F7T_S3_PRIVATE_URL | quote }}{{ else }} null {{ end }}
+  F7T_S3_PRIVATE_URL: {{ .Values.F7T_S3_PRIVATE_URL | quote }}
+  F7T_S3_PUBLIC_URL: {{ .Values.F7T_S3_PRIVATE_URL | quote }}
   F7T_S3_REGION: {{ .Values.F7T_S3_REGION | default "us-east-1" | quote }}
-  F7T_S3_TENANT: {{ if .Values.F7T_S3_TENANT }}{{ .Values.F7T_S3_TENANT | quote }}{{ else }} null {{ end }}
-  F7T_SWIFT_SECRET_KEY: {{ if .Values.F7T_SWIFT_SECRET_KEY }}{{ .Values.F7T_SWIFT_SECRET_KEY | quote }}{{ else }} null {{ end }}
-  F7T_SWIFT_PRIVATE_URL: {{ if .Values.F7T_SWIFT_PRIVATE_URL }}{{ .Values.F7T_SWIFT_PRIVATE_URL | quote }}{{ else }} null {{ end }}
-  F7T_SWIFT_PUBLIC_URL: {{ if .Values.F7T_SWIFT_PUBLIC_URL }}{{ .Values.F7T_SWIFT_PUBLIC_URL | quote }}{{ else }} null {{ end }}
+  F7T_S3_TENANT: {{ .Values.F7T_S3_TENANT | quote }}
+  F7T_SWIFT_SECRET_KEY: {{ .Values.F7T_SWIFT_SECRET_KEY | quote }}
+  F7T_SWIFT_PRIVATE_URL: {{ .Values.F7T_SWIFT_PRIVATE_URL | quote }}
+  F7T_SWIFT_PUBLIC_URL: {{ .Values.F7T_SWIFT_PUBLIC_URL | quote }}
   F7T_SWIFT_API_VERSION: {{ .Values.F7T_SWIFT_API_VERSION | default "v1" | quote }}
   F7T_SWIFT_USER: {{ .Values.F7T_SWIFT_USER | default "" | quote }}
   F7T_SWIFT_PASS: {{ .Values.F7T_SWIFT_PASS | default "" | quote }}
