@@ -15,13 +15,13 @@ data:
   F7T_S3_PRIVATE_URL: {{ .Values.F7T_S3_PRIVATE_URL | quote }}
   F7T_S3_PUBLIC_URL: {{ .Values.F7T_S3_PRIVATE_URL | quote }}
   F7T_S3_REGION: {{ .Values.F7T_S3_REGION | default "us-east-1" | quote }}
-  F7T_S3_TENANT: {{ .Values.F7T_S3_TENANT | quote }}
-  F7T_SWIFT_SECRET_KEY: {{ .Values.F7T_SWIFT_SECRET_KEY | quote }}
-  F7T_SWIFT_PRIVATE_URL: {{ .Values.F7T_SWIFT_PRIVATE_URL | quote }}
-  F7T_SWIFT_PUBLIC_URL: {{ .Values.F7T_SWIFT_PUBLIC_URL | quote }}
+  F7T_S3_TENANT: {{ .Values.F7T_S3_TENANT | default "null" | quote }}
+  F7T_SWIFT_SECRET_KEY: {{ .Values.F7T_SWIFT_SECRET_KEY | default "null" | quote }}
+  F7T_SWIFT_PRIVATE_URL: {{ .Values.F7T_SWIFT_PRIVATE_URL | default "null" | quote }}
+  F7T_SWIFT_PUBLIC_URL: {{ .Values.F7T_SWIFT_PUBLIC_URL | default "null" | quote }}
   F7T_SWIFT_API_VERSION: {{ .Values.F7T_SWIFT_API_VERSION | default "v1" | quote }}
-  F7T_SWIFT_USER: {{ .Values.F7T_SWIFT_USER | default "" | quote }}
-  F7T_SWIFT_PASS: {{ .Values.F7T_SWIFT_PASS | default "" | quote }}
+  F7T_SWIFT_USER: {{ .Values.F7T_SWIFT_USER | default "null" | quote }}
+  F7T_SWIFT_PASS: {{ .Values.F7T_SWIFT_PASS | default "null" | quote }}
   F7T_XFER_CONSTRAINT: {{ .Values.F7T_XFER_CONSTRAINT | default "" | quote }}
   F7T_XFER_PARTITION: {{ .Values.F7T_XFER_PARTITION | default "" | quote }}
   F7T_GUNICORN_LOG: {{ .Values.global.F7T_GUNICORN_LOG | default "--error-logfile /var/log/storage.gunicorn.log" | quote }}
