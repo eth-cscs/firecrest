@@ -4,6 +4,7 @@ data:
   F7T_COMPUTE_PORT: {{ .Values.F7T_COMPUTE_PORT | default "5006" | quote }}
   F7T_SPANK_PLUGIN_OPTION: {{ .Values.F7T_SPANK_PLUGIN_OPTION | default "--nohome" | quote }}
   F7T_SPANK_PLUGIN_ENABLED: {{ .Values.F7T_SPANK_PLUGIN_ENABLED | default "False" | quote }}
+  F7T_GUNICORN_LOG: {{ .Values.global.F7T_GUNICORN_LOG | default "--error-logfile /var/log/compute.gunicorn.log" | quote }}
 kind: ConfigMap
 metadata:
   name: compute-env-file

@@ -1,6 +1,7 @@
 apiVersion: v1
 data:
   F7T_UTILITIES_PORT: {{ .Values.F7T_UTILITIES_PORT | default "5004" | quote }}
+  F7T_GUNICORN_LOG: {{ .Values.global.F7T_GUNICORN_LOG | default "--error-logfile /var/log/utilities.gunicorn.log" | quote }}
 kind: ConfigMap
 metadata:
   name: utilities-env-file

@@ -6,6 +6,7 @@ data:
   F7T_OPA_POLICY_PATH: {{ .Values.F7T_OPA_POLICY_PATH | default "v1/data/f7t/authz" | quote }}
   F7T_CA_KEY_PATH: {{ .Values.F7T_CA_KEY_PATH | default "/ca-key" | quote }}
   F7T_PUB_USER_KEY_PATH: {{ .Values.F7T_PUB_USER_KEY_PATH | default "/user-key" | quote }}
+  F7T_GUNICORN_LOG: {{ .Values.global.F7T_GUNICORN_LOG | default "--error-logfile /var/log/certificator.gunicorn.log" | quote }}
 kind: ConfigMap
 metadata:
   name: certificator-env-file

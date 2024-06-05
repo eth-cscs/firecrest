@@ -5,6 +5,7 @@ data:
   F7T_PERSIST_PORT: {{ .Values.F7T_PERSIST_PORT | default "6379" | quote }}
   F7T_COMPUTE_TASK_EXP_TIME: {{ .Values.F7T_COMPUTE_TASK_EXP_TIME | toString | default "86400" | quote }}
   F7T_STORAGE_TASK_EXP_TIME: {{ .Values.F7T_STORAGE_TASK_EXP_TIME | toString | default "604800" | quote }}
+  F7T_GUNICORN_LOG: {{ .Values.global.F7T_GUNICORN_LOG | default "--error-logfile /var/log/tasks.gunicorn.log" | quote }}
 kind: ConfigMap
 metadata:
   name: tasks-env-file
