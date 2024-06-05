@@ -1,8 +1,7 @@
 apiVersion: v1
 data:
   F7T_STATUS_PORT: {{ .Values.F7T_STATUS_PORT | default "5001" | quote }}
-  F7T_STATUS_SERVICES: {{ .Values.F7T_STATUS_SERVICES | default "" | quote }}
-  F7T_SYSTEMS_INTERNAL_STATUS_ADDR: "{{ .Values.F7T_SYSTEMS_INTERNAL_STATUS_ADDR }}"
+  F7T_STATUS_SERVICES: {{ .Values.F7T_STATUS_SERVICES | default "" | quote }}  
 kind: ConfigMap
 metadata:
   name: status-env-file
