@@ -43,15 +43,15 @@ F7T_SCHEME_PROTOCOL = ("https" if SSL_ENABLED else "http")
 
 # Internal microservices communication
 ## certificator
-CERTIFICATOR_HOST = os.environ.get("F7T_CERTIFICATOR_HOST","127.0.0.1") 
+CERTIFICATOR_HOST = os.environ.get("F7T_CERTIFICATOR_HOST","127.0.0.1")
 CERTIFICATOR_PORT = os.environ.get("F7T_CERTIFICATOR_PORT","5000")
 CERTIFICATOR_URL = f"{F7T_SCHEME_PROTOCOL}://{CERTIFICATOR_HOST}:{CERTIFICATOR_PORT}"
 ## tasks
-TASKS_HOST = os.environ.get("F7T_TASKS_HOST","127.0.0.1") 
+TASKS_HOST = os.environ.get("F7T_TASKS_HOST","127.0.0.1")
 TASKS_PORT = os.environ.get("F7T_TASKS_PORT","5003")
 TASKS_URL = f"{F7T_SCHEME_PROTOCOL}://{TASKS_HOST}:{TASKS_PORT}"
 ## compute
-COMPUTE_HOST = os.environ.get("F7T_COMPUTE_HOST","127.0.0.1") 
+COMPUTE_HOST = os.environ.get("F7T_COMPUTE_HOST","127.0.0.1")
 COMPUTE_PORT = os.environ.get("F7T_COMPUTE_PORT","5006")
 COMPUTE_URL = f"{F7T_SCHEME_PROTOCOL}://{COMPUTE_HOST}:{COMPUTE_PORT}"
 
@@ -266,7 +266,7 @@ def create_staging():
         # For S3:
         # For S3:
         S3_PRIVATE_URL = os.environ.get("F7T_S3_PRIVATE_URL")
-        # For S3:        
+        # For S3:
         S3_PRIVATE_URL = os.environ.get("F7T_S3_PRIVATE_URL")
         S3_PUBLIC_URL  = os.environ.get("F7T_S3_PUBLIC_URL")
         S3_PRIVATE_URL = os.environ.get("F7T_S3_PRIVATE_URL", S3_PUBLIC_URL)
@@ -1026,7 +1026,11 @@ def internal_operation(request, command):
         elif command == "compress":
             basedir = os.path.dirname(sourcePath)
             file_path = os.path.basename(sourcePath)
-            actual_command = f"tar -czf '{targetPath}' -C '{basedir}' '{file_path}'"
+            deref = ""
+            if get_boolean_var(request.form.get("dereference", False)):
+                deref = "--dereference"
+
+            actual_command = f"tar {deref} -czf '{targetPath}' -C '{basedir}' '{file_path}'"
         else:
             extraction_type = request.form.get("type", "auto")
             actual_command = extract_command(sourcePath, targetPath, type=extraction_type)
