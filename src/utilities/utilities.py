@@ -30,7 +30,7 @@ F7T_SCHEME_PROTOCOL = ("https" if SSL_ENABLED else "http")
 
 # Internal microservices communication
 ## certificator
-CERTIFICATOR_HOST = os.environ.get("F7T_CERTIFICATOR_HOST","127.0.0.1") 
+CERTIFICATOR_HOST = os.environ.get("F7T_CERTIFICATOR_HOST","127.0.0.1")
 CERTIFICATOR_PORT = os.environ.get("F7T_CERTIFICATOR_PORT","5000")
 CERTIFICATOR_URL = f"{F7T_SCHEME_PROTOCOL}://{CERTIFICATOR_HOST}:{CERTIFICATOR_PORT}"
 
@@ -180,7 +180,7 @@ def ls_parse_folder(folder_content:str,path:str=""):
     file_pattern = (r'^(?P<type>\S)(?P<permissions>\S+)\s+\d+\s+(?P<user>\S+)\s+'
                         r'(?P<group>\S+)\s+(?P<size>\d+)\s+(?P<last_modified>(\d|-|T|:)+)\s+(?P<filename>.+)$')
     matches = re.finditer(file_pattern, folder_content, re.MULTILINE)
-    
+
     for m in matches:
         tokens = shlex.split(m.group("filename"))
         if len(tokens) == 1:
@@ -220,7 +220,7 @@ def ls_parse(request, retval):
     # total 1
     # -rw-rw-r-- 1 username groupname 0 2023-07-24T11:45:35 "file_in_folder.txt"
     # ...
-    
+
     def remove_prefix(text, prefix):
         return text[text.startswith(prefix) and len(prefix):]
 
@@ -238,7 +238,7 @@ def ls_parse(request, retval):
     else:
         file_list += ls_parse_folder(retval["msg"])
 
-    
+
     totalSize = len(file_list)
     logging.info(f"Length of file list: {len(file_list)}")
 
@@ -453,7 +453,11 @@ def common_fs_operation(request, command):
     elif command == "compress":
         basedir = os.path.dirname(sourcePath)
         file_path = os.path.basename(sourcePath)
-        action = f"tar -czvf '{targetPath}' -C '{basedir}' '{file_path}'"
+        deref = ""
+        if get_boolean_var(request.form.get("dereference", False)):
+            deref = "--dereference"
+
+        action = f"tar {deref} -czvf '{targetPath}' -C '{basedir}' '{file_path}'"
         success_code = 201
     elif command == "extract":
         extraction_type = request.form.get("type", "auto")
@@ -469,7 +473,7 @@ def common_fs_operation(request, command):
         opt = ""
         bytes = request.args.get("bytes", None)
         lines = request.args.get("lines", None)
-        if command ==  "head":
+        if command == "head":
             reverse_mode = get_boolean_var(request.args.get("skip_ending", None))
         else:
             reverse_mode = get_boolean_var(request.args.get("skip_beginning", None))
@@ -502,7 +506,7 @@ def common_fs_operation(request, command):
                     opt = f" --lines='+{lines}' "
             else:
                 opt = f" --lines='{lines}' "
-       
+
         grep_exp=request.args.get("grep", None)
         if grep_exp:
             grep = f"| grep --fixed-strings --regexp='{grep_exp}'"

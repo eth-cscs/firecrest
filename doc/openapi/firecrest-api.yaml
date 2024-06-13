@@ -1366,6 +1366,10 @@ paths:
                 targetPath:
                   type: string
                   description: Absolute filesystem path of the compressed file
+                dereference:
+                  type: boolean
+                  description: Follow symbolic links
+                  default: false
               required:
                 - sourcePath
                 - targetPath
@@ -2327,6 +2331,10 @@ paths:
                 targetPath:
                   type: string
                   description: Absolute path to destination
+                dereference:
+                  type: boolean
+                  description: Follow symbolic links
+                  default: false
                 jobName:
                   type: string
                   description: job name the copy operation
