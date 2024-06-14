@@ -10,11 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Support for multiple JWT signature algorithms
+- Add option to follow symbolic links in the `POST /utilities/compress` and `POST /storage/xfer-internal/compress` endpoints
 
 ### Changed
 
-- Variable `F7T_REALM_RSA_PUBLIC_KEYS` changed to `F7T_AUTH_PUBLIC_KEYS` 
-- Variable `F7T_REALM_RSA_TYPE_` changed to `F7T_AUTH_ALGORITHMS` 
+- Variable `F7T_REALM_RSA_PUBLIC_KEYS` changed to `F7T_AUTH_PUBLIC_KEYS`
+- Variable `F7T_REALM_RSA_TYPE_` changed to `F7T_AUTH_ALGORITHMS`
 - Added default values on helm charts
 
 
