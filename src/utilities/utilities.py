@@ -178,33 +178,36 @@ def ls_parse_folder(folder_content:str,path:str=""):
     # drwxrwxr-x 3 username groupname 4096 2023-07-24T11:45:35 "folder"
     file_list = []
     file_pattern = (r'^(?P<type>\S)(?P<permissions>\S+)\s+\d+\s+(?P<user>\S+)\s+'
-                        r'(?P<group>\S+)\s+(?P<size>\d+)\s+(?P<last_modified>(\d|-|T|:)+)\s+(?P<filename>.+)$')
-    matches = re.finditer(file_pattern, folder_content, re.MULTILINE)
+                    r'(?P<group>\S+)\s+(?P<size>\d+)\s+(?P<last_modified>(\d|-|T|:)+)\s+(?P<filename>.+)$')
 
-    for m in matches:
-        tokens = shlex.split(m.group("filename"))
-        if len(tokens) == 1:
-            name = tokens[0]
-            link_target = ""
-        elif len(tokens) == 3:
-            # We could add an assertion that m.group("type") == 'l' if
-            # we want to be sure that this is a link
-            name = tokens[0]
-            link_target = tokens[2]
-        else:
-            app.logger.error(f"Cannot get the filename from this line from ls: {m.group()}")
-            continue
+    lines = folder_content.splitlines()
+    file_list = []
+    for entry in lines:
+        matches = re.finditer(file_pattern, entry)
+        for m in matches:
+            tokens = shlex.split(m.group("filename"))
+            if len(tokens) == 1:
+                name = tokens[0]
+                link_target = ""
+            elif len(tokens) == 3:
+                # We could add an assertion that m.group("type") == 'l' if
+                # we want to be sure that this is a link
+                name = tokens[0]
+                link_target = tokens[2]
+            else:
+                app.logger.error(f"Cannot get the filename from this line from ls: {m.group()}")
+                continue
 
-        file_list.append({
-            "name": path + name,
-            "type": m.group("type"),
-            "link_target": link_target,
-            "user": m.group("user"),
-            "group": m.group("group"),
-            "permissions": m.group("permissions"),
-            "last_modified": m.group("last_modified"),
-            "size": m.group("size")
-        })
+            file_list.append({
+                "name": path + name,
+                "type": m.group("type"),
+                "link_target": link_target,
+                "user": m.group("user"),
+                "group": m.group("group"),
+                "permissions": m.group("permissions"),
+                "last_modified": m.group("last_modified"),
+                "size": m.group("size")
+            })
     return file_list
 
 

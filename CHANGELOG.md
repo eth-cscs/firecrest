@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fix parsing in `GET /utilities/ls` endpoint.
+
 ## [1.16.0]
 
 ### Added
