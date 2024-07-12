@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fix parsing in `GET /utilities/ls` endpoint.
+- The job fields `job_data_out` and `job_file_err` from `GET /compute/jobs` will be empty for jobs that are still pending (so that there is no confusion with older output/error files).
 
 ## [1.16.0]
 

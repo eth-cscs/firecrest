@@ -554,3 +554,15 @@ class SlurmScheduler(schedulers.JobScheduler):
             logger.error(e, exc_info=True)
 
             return False
+
+    def job_is_pending(self, state):
+        # Complete list in Slurm's documentation:
+        # https://slurm.schedmd.com/squeue.html#SECTION_JOB-STATE-CODES
+        pending_states = {
+            'CONFIGURING',
+            'PENDING'
+        }
+        if state:
+            return any(s in pending_states for s in state.split(','))
+
+        return False

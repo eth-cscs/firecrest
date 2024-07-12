@@ -94,6 +94,7 @@ class JobScheduler(abc.ABC):
         * Job output filename
         * Job error filename
         * Job script filename
+        * Job state
         """
         pass
 
@@ -104,6 +105,7 @@ class JobScheduler(abc.ABC):
         * Job output filename
         * Job error filename
         * Job script filename
+        * Job state
         """
         pass
 
@@ -202,3 +204,9 @@ class JobScheduler(abc.ABC):
         * DD-HH DD-HH:MM
         * DD-HH:MM:SS
         """
+
+    @abc.abstractmethod
+    def job_is_pending(self, state):
+        """Check if the job is pending based on the state.
+        """
+        pass
