@@ -131,11 +131,11 @@ deploy_dev:
             pdstatus=$(kubectl get pods -n ${CI_NAMESPACE_DEV} $tester_pod -o jsonpath="{.status.phase}");
 
             if [ "$pdstatus" = "Running" ] || [ "$pdstatus" = "Pending" ]; then
-                cont_exitcode=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --selector=app=tester -o jsonpath="{.items[*].status.containerStatuses[1].state.terminated.exitCode}")
+                cont_exitcode=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --selector=app=tester -o jsonpath="{.items[*].status.containerStatuses[0].state.terminated.exitCode}")
 
                 if [ "$cont_exitcode" = "" ]; then echo "$tester_pod is still $pdstatus"; continue; fi
 
-                cont_reason=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --selector=app=tester -o jsonpath="{.items[*].status.containerStatuses[1].state.terminated.reason}")
+                cont_reason=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --selector=app=tester -o jsonpath="{.items[*].status.containerStatuses[0].state.terminated.reason}")
                 echo "Container tester exit code $cont_exitcode (reason: $cont_reason)";
             fi
 
