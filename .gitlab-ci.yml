@@ -42,7 +42,7 @@ build_images:
 
 deploy_dev:
   variables:
-    CI_NAMESPACE_DEV: firecrest-dev
+    CI_NAMESPACE_DEV: firecrest-cicd
     DOCKER_AUTH_CONFIG: '{"auths":{"${CI_REGISTRY}":{"username":"${CI_REGISTRY_USER}","password":"${CI_REGISTRY_PASSWORD}"}}}'
   stage: deploy_dev
   id_tokens:
@@ -81,6 +81,7 @@ deploy_dev:
       kubectl config use-context firecrest/firecrest:firecrest-ci-agent
 
       helm list -n ${CI_NAMESPACE_DEV}
+      
 
       cd deploy/k8s
 
@@ -156,7 +157,7 @@ deploy_dev:
 
 cleanup_dev_deployment:
   variables:
-    CI_NAMESPACE_DEV: firecrest-dev
+    CI_NAMESPACE_DEV: firecrest-cicd
     DOCKER_AUTH_CONFIG: '{"auths":{"${CI_REGISTRY}":{"username":"${CI_REGISTRY_USER}","password":"${CI_REGISTRY_PASSWORD}"}}}'
   needs:
     - job: deploy_dev
