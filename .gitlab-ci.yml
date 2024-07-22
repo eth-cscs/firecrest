@@ -45,6 +45,9 @@ deploy_dev:
     CI_NAMESPACE_DEV: firecrest-dev
     DOCKER_AUTH_CONFIG: '{"auths":{"${CI_REGISTRY}":{"username":"${CI_REGISTRY_USER}","password":"${CI_REGISTRY_PASSWORD}"}}}'
   stage: deploy_dev
+  id_tokens:
+    VAULT_ID_TOKEN:
+      aud: https://git.cscs.ch
   needs:
     - job: build_images
   image:
@@ -52,7 +55,7 @@ deploy_dev:
   script:
     - echo "Deploy development environment"
     - export VAULT_ADDR="$CI_VAULT_ADDR"
-    - export VAULT_TOKEN="$(vault write -field=token auth/jwt/login role=firecrest jwt=$CI_JOB_JWT)"
+    - export VAULT_TOKEN="$(vault write -field=token auth/jwt_idtoken/login role=firecrest2 jwt=$VAULT_ID_TOKEN)"
     - if [[ ${#VAULT_TOKEN} -lt 3 ]]; then echo "Error - Vault token empty"; exit 1; fi
     - CI_K8S_TOKEN="$(vault kv get -field=firecrest-cicd-secret firecrest/dev)"
     - CI_REGISTRY_GROUP="$(vault kv get -field=REGISTRY_GROUP firecrest/dev)"
@@ -158,11 +161,14 @@ cleanup_dev_deployment:
   needs:
     - job: deploy_dev
   stage: cleanup_dev_deployment
+  id_tokens:
+    VAULT_ID_TOKEN:
+      aud: https://git.cscs.ch
   image:
     name: ${CI_REGISTRY_PREFIX}/ci-util:latest
   script:
     - export VAULT_ADDR="$CI_VAULT_ADDR"
-    - export VAULT_TOKEN="$(vault write -field=token auth/jwt/login role=firecrest jwt=$CI_JOB_JWT)"
+    - export VAULT_TOKEN="$(vault write -field=token auth/jwt_idtoken/login role=firecrest2 jwt=$VAULT_ID_TOKEN)"
     - if [[ ${#VAULT_TOKEN} -lt 3 ]]; then echo "Error - Vault token empty"; exit 1; fi
     - CI_K8S_TOKEN="$(vault kv get -field=firecrest-cicd-secret firecrest/dev)"
     - CI_REGISTRY_GROUP="$(vault kv get -field=REGISTRY_GROUP firecrest/dev)"
@@ -186,13 +192,16 @@ tag_release:
   needs:
     - job: build_images
   stage: tag_release
+  id_tokens:
+    VAULT_ID_TOKEN:
+      aud: https://git.cscs.ch
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v1+[.][0-9]+([.][0-9]+)?$/ || $CI_COMMIT_TAG =~ /^v1+[.][0-9]+([.][0-9]+)-dev+([.][0-9]+)?$/'
   image:
     name: ${CI_REGISTRY_PREFIX}/ci-util:latest
   script:
     - export VAULT_ADDR="$CI_VAULT_ADDR"
-    - export VAULT_TOKEN="$(vault write -field=token auth/jwt/login role=firecrest jwt=$CI_JOB_JWT)"
+    - export VAULT_TOKEN="$(vault write -field=token auth/jwt_idtoken/login role=firecrest2 jwt=$VAULT_ID_TOKEN)"
     - if [[ ${#VAULT_TOKEN} -lt 3 ]]; then echo "Error - Vault token empty"; exit 1; fi
     - GITLAB_ACCESS_TOKEN="$(vault kv get -field=GITLAB_ACCESS_TOKEN firecrest/dev)"
     - CI_REGISTRY_GROUP="$(vault kv get -field=REGISTRY_GROUP firecrest/dev)"
@@ -318,6 +327,9 @@ deploy_tds:
   needs:
     - job: tag_release
   stage: deploy_tds
+  id_tokens:
+    VAULT_ID_TOKEN:
+      aud: https://git.cscs.ch
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v1+[.][0-9]+([.][0-9]+)-dev+([.][0-9]+)?$/'
   trigger: ArgoCD/apps/firecrest
@@ -333,7 +345,7 @@ cleanup_dev_images:
     name: ${CI_REGISTRY_PREFIX}/ci-util:latest
   script:
     - export VAULT_ADDR="$CI_VAULT_ADDR"
-    - export VAULT_TOKEN="$(vault write -field=token auth/jwt/login role=firecrest jwt=$CI_JOB_JWT)"
+    - export VAULT_TOKEN="$(vault write -field=token auth/jwt_idtoken/login role=firecrest2 jwt=$VAULT_ID_TOKEN)"
     - if [[ ${#VAULT_TOKEN} -lt 3 ]]; then echo "Error - Vault token empty"; exit 1; fi
     - CI_REGISTRY_GROUP="$(vault kv get -field=REGISTRY_GROUP firecrest/dev)"
     - CI_REGISTRY_PREFIX="$(vault kv get -field=REPO_PREFIX firecrest/dev)"
