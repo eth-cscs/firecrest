@@ -327,9 +327,6 @@ deploy_tds:
   needs:
     - job: tag_release
   stage: deploy_tds
-  id_tokens:
-    VAULT_ID_TOKEN:
-      aud: https://git.cscs.ch
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v1+[.][0-9]+([.][0-9]+)-dev+([.][0-9]+)?$/'
   trigger: ArgoCD/apps/firecrest
@@ -339,6 +336,9 @@ cleanup_dev_images:
   variables:
     DOCKER_AUTH_CONFIG: '{"auths":{"${CI_REGISTRY}":{"username":"${CI_REGISTRY_USER}","password":"${CI_REGISTRY_PASSWORD}"}}}'
   stage: cleanup_dev_images
+  id_tokens:
+    VAULT_ID_TOKEN:
+      aud: https://git.cscs.ch
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v1+[.][0-9]+([.][0-9]+)?$/ || $CI_COMMIT_TAG =~ /^v1+[.][0-9]+([.][0-9]+)-dev+([.][0-9]+)?$/ || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH =~ /^RESTAPI-.{10,}$/'
   image:
