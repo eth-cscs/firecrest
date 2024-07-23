@@ -37,9 +37,9 @@ items:
             initialDelaySeconds: 5
             failureThreshold: 1
         restartPolicy: Always
-      volumes:
-      - emptyDir: {}
-        name: data
+        volumes:
+        - emptyDir: {}
+          name: data
   status: {}
 kind: List
 metadata: {}
