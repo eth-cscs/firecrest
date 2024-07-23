@@ -27,6 +27,9 @@ items:
           name: minio-k8-ci
           ports:
           - containerPort: 9000
+          volumeMounts:
+          - mountPath: /data
+            name: data
           resources: {}
           startupProbe:
             tcpSocket:
@@ -34,6 +37,9 @@ items:
             initialDelaySeconds: 5
             failureThreshold: 1
         restartPolicy: Always
+      volumes:
+      - emptyDir: {}
+        name: data
   status: {}
 kind: List
 metadata: {}
