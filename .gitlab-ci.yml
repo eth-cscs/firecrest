@@ -137,14 +137,14 @@ deploy_dev:
 
                 cont_reason=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --selector=app=tester -o jsonpath="{.items[*].status.containerStatuses[*].state.terminated.reason}")
                 echo "Container tester exit code $cont_exitcode (reason: $cont_reason)";
-            fi
-
-            kubectl logs $tester_pod -n ${CI_NAMESPACE_DEV};
-
-            if [ "$cont_exitcode" = "0" ]; then
-                echo -e "$tester_pod succeded."; break;
-              else
-                echo -e "$tester_pod failed: (exit code: $cont_exitcode). Reason: $cont_reason"; exit 1;
+            elif [ "$pdstatus" = "Succeeded" ]; then
+              echo -e "$tester_pod succeeded."; 
+              kubectl logs $tester_pod -n ${CI_NAMESPACE_DEV};
+              break;
+            elif [ "$pdstatus" = "Failed" ]; then
+              echo -e "$tester_pod failed."; 
+              kubectl logs $tester_pod -n ${CI_NAMESPACE_DEV};
+              exit 1;
             fi
 
           done
