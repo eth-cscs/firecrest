@@ -53,8 +53,8 @@ F7T_STORAGE_PORT: "5002"
 F7T_STORAGE_TEMPURL_EXP_TIME: "604800"
 F7T_S3_SECRET_KEY: storage_secret_key
 F7T_S3_ACCESS_KEY: storage_access_key
-F7T_S3_PRIVATE_URL: "http://svc-minio.firecrest-dev:9000"
-F7T_S3_PUBLIC_URL: "http://svc-minio.firecrest-dev:9000"
+F7T_S3_PRIVATE_URL: "http://svc-minio:9000"
+F7T_S3_PUBLIC_URL: "http://svc-minio:9000"
 F7T_S3_REGION: "us-east-1"
 F7T_STORAGE_POLLING_INTERVAL: 60
 F7T_XFER_PARTITION: "xfer"

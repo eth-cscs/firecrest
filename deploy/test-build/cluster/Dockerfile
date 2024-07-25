@@ -11,6 +11,10 @@ FROM --platform=linux/amd64 centos:7
 
 ARG SLURM_VERSION=22.05.5
 
+RUN sed -i s/mirror.centos.org/vault.centos.org/g /etc/yum.repos.d/*.repo
+RUN sed -i s/^#.*baseurl=http/baseurl=http/g /etc/yum.repos.d/*.repo
+RUN sed -i s/^mirrorlist=http/#mirrorlist=http/g /etc/yum.repos.d/*.repo
+
 RUN set -ex \
     && yum makecache fast \
     && yum -y install epel-release \

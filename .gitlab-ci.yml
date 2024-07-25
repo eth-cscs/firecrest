@@ -1,6 +1,6 @@
 default:
   tags:
-    - Fulen
+    - rancher-shared
 
 stages:          # List of stages for jobs, and their order of execution
   - build_images
@@ -42,9 +42,12 @@ build_images:
 
 deploy_dev:
   variables:
-    CI_NAMESPACE_DEV: firecrest-dev
+    CI_NAMESPACE_DEV: firecrest-cicd
     DOCKER_AUTH_CONFIG: '{"auths":{"${CI_REGISTRY}":{"username":"${CI_REGISTRY_USER}","password":"${CI_REGISTRY_PASSWORD}"}}}'
   stage: deploy_dev
+  id_tokens:
+    VAULT_ID_TOKEN:
+      aud: https://git.cscs.ch
   needs:
     - job: build_images
   image:
@@ -52,7 +55,7 @@ deploy_dev:
   script:
     - echo "Deploy development environment"
     - export VAULT_ADDR="$CI_VAULT_ADDR"
-    - export VAULT_TOKEN="$(vault write -field=token auth/jwt/login role=firecrest jwt=$CI_JOB_JWT)"
+    - export VAULT_TOKEN="$(vault write -field=token auth/jwt_idtoken/login role=firecrest2 jwt=$VAULT_ID_TOKEN)"
     - if [[ ${#VAULT_TOKEN} -lt 3 ]]; then echo "Error - Vault token empty"; exit 1; fi
     - CI_K8S_TOKEN="$(vault kv get -field=firecrest-cicd-secret firecrest/dev)"
     - CI_REGISTRY_GROUP="$(vault kv get -field=REGISTRY_GROUP firecrest/dev)"
@@ -70,11 +73,18 @@ deploy_dev:
             sleep 10
           fi
         done
-    - helm list -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN}
-
-    - cd deploy/k8s
+    
 
     - |
+      ## configuring pipeline to access gitlab agent context
+      kubectl config get-contexts
+      kubectl config use-context firecrest/firecrest:firecrest-ci-agent
+
+      helm list -n ${CI_NAMESPACE_DEV}
+      
+
+      cd deploy/k8s
+
       ## adding at the end of values-dev.yaml on global section
       echo -e "\n  registry: ${CI_REGISTRY_PREFIX}\n  tag: 'tmp-${CI_COMMIT_SHORT_SHA}-${CI_PIPELINE_ID}' \n  namespace: ${CI_NAMESPACE_DEV}\n" >> values-dev.yaml
 
@@ -82,25 +92,25 @@ deploy_dev:
       ln -s ../../../../doc/openapi/firecrest-api.yaml openapi/files/firecrest-api.yaml
 
       for app in config certificator compute jaeger keycloak kong minio openapi reservations status storage tasks utilities; do
-        helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} "$app" || true
-        helm install --wait --wait-for-jobs --timeout 240s -n ${CI_NAMESPACE_DEV} -f values-dev.yaml --kube-token=${CI_K8S_TOKEN} "$app" $app;
+        helm uninstall -n ${CI_NAMESPACE_DEV} "$app" || true
+        helm install --wait --wait-for-jobs --timeout 240s -n ${CI_NAMESPACE_DEV} -f values-dev.yaml "$app" $app;
       done
     # Cluster is deployed separatelly ALWAYS with tag = latest
     - |
       echo -e "global:\n  registry: ${CI_REGISTRY_PREFIX}\n  tag: latest\n  namespace: ${CI_NAMESPACE_DEV}\n" > values-cluster-dev.yaml;
 
-      helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} cluster || true;
-      helm install --wait --wait-for-jobs --timeout 180s -n ${CI_NAMESPACE_DEV} -f values-cluster-dev.yaml --kube-token=${CI_K8S_TOKEN} cluster cluster;
+      helm uninstall -n ${CI_NAMESPACE_DEV} cluster || true;
+      helm install --wait --wait-for-jobs --timeout 180s -n ${CI_NAMESPACE_DEV} -f values-cluster-dev.yaml cluster cluster;
 
-      helm list -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN};
+      helm list -n ${CI_NAMESPACE_DEV};
 
-      kubectl get pods -n ${CI_NAMESPACE_DEV} --token=${CI_K8S_TOKEN};
+      kubectl get pods -n ${CI_NAMESPACE_DEV};
 
     # Testing
     - >
       for use_gateway in False True; do
 
-        helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} tester && sleep 15s || true;
+        helm uninstall -n ${CI_NAMESPACE_DEV} tester && sleep 15s || true;
 
         echo -e "Test using gateway: $use_gateway";
 
@@ -108,7 +118,7 @@ deploy_dev:
             --set tag=tmp-$CI_COMMIT_SHORT_SHA-$CI_PIPELINE_ID \
             --set workingDir="/firecrest/src/tests/automated_tests" \
             --set use_gateway="$use_gateway" \
-            --set pytest_config_file="firecrest-dev.ini" --kube-token=${CI_K8S_TOKEN} \
+            --set pytest_config_file="firecrest-dev.ini" \
             tester tester;
 
         cont_exitcode=0;
@@ -116,25 +126,25 @@ deploy_dev:
         while :
         do
             sleep 20s;
-            tester_pod=$(kubectl get pods --selector=job-name=job-tester -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" --output=jsonpath='{.items[*].metadata.name}');
+            tester_pod=$(kubectl get pods --selector=job-name=job-tester -n ${CI_NAMESPACE_DEV} --output=jsonpath='{.items[*].metadata.name}');
             echo "Tester pod is: $tester_pod";
-            pdstatus=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" $tester_pod -o jsonpath="{.status.phase}");
+            pdstatus=$(kubectl get pods -n ${CI_NAMESPACE_DEV} $tester_pod -o jsonpath="{.status.phase}");
 
             if [ "$pdstatus" = "Running" ] || [ "$pdstatus" = "Pending" ]; then
-                cont_exitcode=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" --selector=app=tester -o jsonpath="{.items[*].status.containerStatuses[1].state.terminated.exitCode}")
+                cont_exitcode=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --selector=app=tester -o jsonpath="{.items[*].status.containerStatuses[*].state.terminated.exitCode}")
 
                 if [ "$cont_exitcode" = "" ]; then echo "$tester_pod is still $pdstatus"; continue; fi
 
-                cont_reason=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}" --selector=app=tester -o jsonpath="{.items[*].status.containerStatuses[1].state.terminated.reason}")
+                cont_reason=$(kubectl get pods -n ${CI_NAMESPACE_DEV} --selector=app=tester -o jsonpath="{.items[*].status.containerStatuses[*].state.terminated.reason}")
                 echo "Container tester exit code $cont_exitcode (reason: $cont_reason)";
-            fi
-
-            kubectl logs $tester_pod -n ${CI_NAMESPACE_DEV} --token="${CI_K8S_TOKEN}";
-
-            if [ "$cont_exitcode" = "0" ]; then
-                echo -e "$tester_pod success."; break;
-              else
-                echo -e "$tester_pod failed: $cont_exitcode"; exit 1;
+            elif [ "$pdstatus" = "Succeeded" ]; then
+              echo -e "$tester_pod succeeded."; 
+              kubectl logs $tester_pod -n ${CI_NAMESPACE_DEV};
+              break;
+            elif [ "$pdstatus" = "Failed" ]; then
+              echo -e "$tester_pod failed."; 
+              kubectl logs $tester_pod -n ${CI_NAMESPACE_DEV};
+              exit 1;
             fi
 
           done
@@ -147,23 +157,30 @@ deploy_dev:
 
 cleanup_dev_deployment:
   variables:
-    CI_NAMESPACE_DEV: firecrest-dev
+    CI_NAMESPACE_DEV: firecrest-cicd
     DOCKER_AUTH_CONFIG: '{"auths":{"${CI_REGISTRY}":{"username":"${CI_REGISTRY_USER}","password":"${CI_REGISTRY_PASSWORD}"}}}'
   needs:
     - job: deploy_dev
   stage: cleanup_dev_deployment
+  id_tokens:
+    VAULT_ID_TOKEN:
+      aud: https://git.cscs.ch
   image:
     name: ${CI_REGISTRY_PREFIX}/ci-util:latest
   script:
     - export VAULT_ADDR="$CI_VAULT_ADDR"
-    - export VAULT_TOKEN="$(vault write -field=token auth/jwt/login role=firecrest jwt=$CI_JOB_JWT)"
+    - export VAULT_TOKEN="$(vault write -field=token auth/jwt_idtoken/login role=firecrest2 jwt=$VAULT_ID_TOKEN)"
     - if [[ ${#VAULT_TOKEN} -lt 3 ]]; then echo "Error - Vault token empty"; exit 1; fi
     - CI_K8S_TOKEN="$(vault kv get -field=firecrest-cicd-secret firecrest/dev)"
     - CI_REGISTRY_GROUP="$(vault kv get -field=REGISTRY_GROUP firecrest/dev)"
     - CI_REGISTRY_PREFIX="$(vault kv get -field=REPO_PREFIX firecrest/dev)"
+    - |
+      ## configuring pipeline to access gitlab agent context
+      kubectl config get-contexts
+      kubectl config use-context firecrest/firecrest:firecrest-ci-agent
     - >
       for app in config certificator compute jaeger keycloak kong minio openapi reservations status storage tasks utilities cluster tester; do
-        helm uninstall -n ${CI_NAMESPACE_DEV} --kube-token=${CI_K8S_TOKEN} "$app" || true
+        helm uninstall -n ${CI_NAMESPACE_DEV} "$app" || true
       done
   only:
     - master
@@ -176,13 +193,16 @@ tag_release:
   needs:
     - job: build_images
   stage: tag_release
+  id_tokens:
+    VAULT_ID_TOKEN:
+      aud: https://git.cscs.ch
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v1+[.][0-9]+([.][0-9]+)?$/ || $CI_COMMIT_TAG =~ /^v1+[.][0-9]+([.][0-9]+)-dev+([.][0-9]+)?$/'
   image:
     name: ${CI_REGISTRY_PREFIX}/ci-util:latest
   script:
     - export VAULT_ADDR="$CI_VAULT_ADDR"
-    - export VAULT_TOKEN="$(vault write -field=token auth/jwt/login role=firecrest jwt=$CI_JOB_JWT)"
+    - export VAULT_TOKEN="$(vault write -field=token auth/jwt_idtoken/login role=firecrest2 jwt=$VAULT_ID_TOKEN)"
     - if [[ ${#VAULT_TOKEN} -lt 3 ]]; then echo "Error - Vault token empty"; exit 1; fi
     - GITLAB_ACCESS_TOKEN="$(vault kv get -field=GITLAB_ACCESS_TOKEN firecrest/dev)"
     - CI_REGISTRY_GROUP="$(vault kv get -field=REGISTRY_GROUP firecrest/dev)"
@@ -317,13 +337,16 @@ cleanup_dev_images:
   variables:
     DOCKER_AUTH_CONFIG: '{"auths":{"${CI_REGISTRY}":{"username":"${CI_REGISTRY_USER}","password":"${CI_REGISTRY_PASSWORD}"}}}'
   stage: cleanup_dev_images
+  id_tokens:
+    VAULT_ID_TOKEN:
+      aud: https://git.cscs.ch
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v1+[.][0-9]+([.][0-9]+)?$/ || $CI_COMMIT_TAG =~ /^v1+[.][0-9]+([.][0-9]+)-dev+([.][0-9]+)?$/ || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH =~ /^RESTAPI-.{10,}$/'
   image:
     name: ${CI_REGISTRY_PREFIX}/ci-util:latest
   script:
     - export VAULT_ADDR="$CI_VAULT_ADDR"
-    - export VAULT_TOKEN="$(vault write -field=token auth/jwt/login role=firecrest jwt=$CI_JOB_JWT)"
+    - export VAULT_TOKEN="$(vault write -field=token auth/jwt_idtoken/login role=firecrest2 jwt=$VAULT_ID_TOKEN)"
     - if [[ ${#VAULT_TOKEN} -lt 3 ]]; then echo "Error - Vault token empty"; exit 1; fi
     - CI_REGISTRY_GROUP="$(vault kv get -field=REGISTRY_GROUP firecrest/dev)"
     - CI_REGISTRY_PREFIX="$(vault kv get -field=REPO_PREFIX firecrest/dev)"
