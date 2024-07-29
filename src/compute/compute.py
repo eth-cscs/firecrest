@@ -269,8 +269,11 @@ def get_job_files(headers, system_name, system_addr, job_info, output=False, use
     control_info["job_file"] = control_dict.get("Command", "command-not-found")
     control_info["job_data_out"] = ""
     control_info["job_data_err"] = ""
+    state = control_dict.get("JobState", "UNKNOWN")
 
-    if output:
+    # Return empty output if the job is pending, since the files may belong
+    # to an older job
+    if output and not scheduler.job_is_pending(state):
         # to add data from StdOut and StdErr files in Task
         # this is done when GET compute/jobs is triggered.
         #
@@ -741,7 +744,7 @@ def list_job_task(headers,system_name, system_addr,action,task_id,pageSize,pageN
     jobs = {}
     for job_index, jobinfo in enumerate(jobList):
         # now looking for log and err files location
-        jobinfo = get_job_files(headers, system_name, system_addr, jobinfo, True)
+        jobinfo = get_job_files(headers, system_name, system_addr, jobinfo, output=True)
 
         # add jobinfo to the array
         jobs[str(job_index)]=jobinfo
