@@ -234,7 +234,9 @@ def ls_parse(request, retval):
         root_folder = ""
         for i in range(1,len(folders),2):
             if i==1:
-                root_folder = folders[i]+"/"
+                root_folder = (
+                    folders[i] + ("/" if not folders[i].endswith("/") else "")
+                )
             folder_name = remove_prefix(folders[i]+"/",root_folder)
             folder_content = folders[i+1]
             file_list += ls_parse_folder(folder_content,folder_name)
@@ -527,6 +529,9 @@ def common_fs_operation(request, command):
         if get_boolean_var(request.args.get("recursive", False)):
             # do not resolve UID and GID to names
             options += "-R "
+        if get_boolean_var(request.args.get("followLinks", False)):
+            # follow symbolic links
+            options += "-L "
         action = f"ls -l --quoting-style=c {options} --time-style=+%Y-%m-%dT%H:%M:%S -- '{targetPath}'"
     elif command == "mkdir":
         try:
