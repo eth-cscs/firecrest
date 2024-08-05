@@ -260,7 +260,18 @@ def test_list_directory(machine, targetPath, expected_response_code, headers):
 @skipif_not_uses_gateway
 @pytest.mark.parametrize("machine, targetPath, expected_response_code", DATA_LS)
 def test_list_directory_recursive(machine, targetPath, expected_response_code, headers):
-	params = {"targetPath": targetPath, "recursive" : "true"}
+	params = {"targetPath": targetPath, "recursive": "true"}
+	url = f"{UTILITIES_URL}/ls"
+	headers.update({"X-Machine-Name": machine})
+	resp = requests.get(url, headers=headers, params=params, verify=False)
+	print(json.dumps(resp.json(),indent=2))
+	print(resp.headers)
+	assert resp.status_code == expected_response_code
+
+@skipif_not_uses_gateway
+@pytest.mark.parametrize("machine, targetPath, expected_response_code", DATA_LS)
+def test_list_directory_follow_links(machine, targetPath, expected_response_code, headers):
+	params = {"targetPath": targetPath, "followLinks": "true"}
 	url = f"{UTILITIES_URL}/ls"
 	headers.update({"X-Machine-Name": machine})
 	resp = requests.get(url, headers=headers, params=params, verify=False)
