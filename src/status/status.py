@@ -4,6 +4,8 @@
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
 #
+from json import JSONDecodeError
+
 from flask import Flask, jsonify, request, g
 from flask_caching import Cache
 import requests
@@ -65,6 +67,7 @@ STORAGE_TEMPURL_EXP_TIME = os.environ.get("F7T_STORAGE_TEMPURL_EXP_TIME", '60480
 STORAGE_MAX_FILE_SIZE = os.environ.get("F7T_STORAGE_MAX_FILE_SIZE", '5120')
 OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE", 's3v4')
 COMPUTE_SCHEDULER = os.environ.get("F7T_COMPUTE_SCHEDULER", "Slurm")
+GENERAL_INFORMATION = os.environ.get("F7T_GENERAL_INFORMATION", '{"FIRECREST_VERSION": "1.9.9", "FIRECREST_BUILD": "2024-09-09"}')
 
 TRACER_HEADER = "uber-trace-id"
 
@@ -610,16 +613,35 @@ def parameters():
 
         fs_list.append({"system": system_fs, "mounted": mounted_fs})
 
-
+    try:
+        logging.debug(GENERAL_INFORMATION)
+        general_information = json.loads(GENERAL_INFORMATION)
+    except JSONDecodeError:
+        logging.error("FirecREST general information not found")
+        general_information = json.loads("{}")
 
     parameters_list = {
+         "general": [
+            {
+                 "name": "FIRECREST_VERSION",
+                 "value": general_information["FIRECREST_VERSION"] if "FIRECREST_VERSION" in general_information else "",
+                 "unit": "",
+                 "description": "FirecREST version."
+            },
+            {
+                "name": "FIRECREST_BUILD",
+                "value": general_information["FIRECREST_BUILD"] if "FIRECREST_BUILD" in general_information else "",
+                "unit": "",
+                "description": "FirecREST build timestamp."
+            }
+        ],
         "compute": [
             { 
-                "name" : "WORKLOAD_MANAGER",
+                "name": "WORKLOAD_MANAGER",
                 "value": COMPUTE_SCHEDULER,
                 "unit": "",
                 "description": "Type of resource and workload manager used in "
-                               "compute microservice"  
+                               "compute microservice"
             }
         ],
         "utilities": [
@@ -628,7 +650,7 @@ def parameters():
                 "value": UTILITIES_MAX_FILE_SIZE,
                 "unit": "MB",
                 "description": "The maximum allowable file size for various operations "
-                               "of the utilities microservice"
+                               "of the utilities microservice."
             },
             {
                 "name": "UTILITIES_TIMEOUT",
@@ -637,7 +659,7 @@ def parameters():
                 "description": "Maximum time duration for executing the commands in "
                                "the cluster for the utilities microservice."
             }
-        ] ,
+        ],
         "storage": [
             {
                 "name": "OBJECT_STORAGE",
