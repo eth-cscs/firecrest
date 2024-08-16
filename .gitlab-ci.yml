@@ -79,8 +79,8 @@ deploy_dev:
       ## configuring pipeline to access gitlab agent context
       kubectl config get-contexts
       kubectl config use-context firecrest/firecrest:firecrest-ci-agent
-      pwd
-      ls -a
+      echo "KUBECONFIG: $$KUBECONFIG"
+      ls -l $KUBECONFIG
       helm list -n ${CI_NAMESPACE_DEV}
       
       cd deploy/k8s
