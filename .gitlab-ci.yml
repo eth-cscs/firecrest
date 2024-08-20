@@ -23,14 +23,15 @@ build_images:
     - mkdir -p /kaniko/.docker
     - echo '{"auths":{"'$CI_REGISTRY'":{"username":"'$CI_REGISTRY_USER'","password":"'$CI_REGISTRY_PASSWORD'"}}}' > /kaniko/.docker/config.json
     - |
-
         # Base image for each commit
         /kaniko/executor --context ./ --dockerfile deploy/docker/base/Dockerfile --destination ${CI_REGISTRY_PREFIX}/f7t-base:tmp-${CI_COMMIT_SHORT_SHA}-${CI_PIPELINE_ID} --single-snapshot
 
         # Core microservices
         for img in certificator compute reservations status storage tasks utilities; do
-            /kaniko/executor --build-arg BASE_IMAGE=${CI_REGISTRY_PREFIX}/f7t-base:tmp-${CI_COMMIT_SHORT_SHA}-${CI_PIPELINE_ID} --registry-mirror ${CI_REGISTRY} \
-            --context ./ --dockerfile deploy/docker/$img/Dockerfile --destination ${CI_REGISTRY_PREFIX}/$img:tmp-${CI_COMMIT_SHORT_SHA}-${CI_PIPELINE_ID} --cleanup
+            /kaniko/executor --build-arg BASE_IMAGE=${CI_REGISTRY_PREFIX}/f7t-base:tmp-${CI_COMMIT_SHORT_SHA}-${CI_PIPELINE_ID} \
+                             --build-arg GENERAL_INFORMATION="{\"FIRECREST_VERSION\":\"$CI_COMMIT_TAG\", \"FIRECREST_BUILD\":\"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\"}" \
+                             --registry-mirror ${CI_REGISTRY} \
+                             --context ./ --dockerfile deploy/docker/$img/Dockerfile --destination ${CI_REGISTRY_PREFIX}/$img:tmp-${CI_COMMIT_SHORT_SHA}-${CI_PIPELINE_ID} --cleanup
         done
 
         if [ "$CI_COMMIT_TAG" != "" ]; then exit 0; fi
@@ -73,16 +74,16 @@ deploy_dev:
             sleep 10
           fi
         done
-    
 
     - |
       ## configuring pipeline to access gitlab agent context
       kubectl config get-contexts
       kubectl config use-context firecrest/firecrest:firecrest-ci-agent
-
+      # Fixing Kubeconfig permissions to avoid warnings
+      chmod 600 $KUBECONFIG
+      
       helm list -n ${CI_NAMESPACE_DEV}
       
-
       cd deploy/k8s
 
       ## adding at the end of values-dev.yaml on global section
@@ -206,117 +207,97 @@ tag_release:
     - if [[ ${#VAULT_TOKEN} -lt 3 ]]; then echo "Error - Vault token empty"; exit 1; fi
     - GITLAB_ACCESS_TOKEN="$(vault kv get -field=GITLAB_ACCESS_TOKEN firecrest/dev)"
     - CI_REGISTRY_GROUP="$(vault kv get -field=REGISTRY_GROUP firecrest/dev)"
-
     - |
-        is_master=$(curl -sS --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/commits/${CI_COMMIT_SHORT_SHA}/refs?type=branch" | jq '.[].name=="master"' | grep true)
-
-        env_tags="$CI_COMMIT_TAG prod"
-        code_tag="prod"
-
-        if [[ "$is_master" == "true" ]] || [[ $CI_COMMIT_TAG =~ "dev" ]]; then
-
-          if [[ $CI_COMMIT_TAG =~ "dev" ]]; then
-            env_tags="$CI_COMMIT_TAG tds"
-            code_tag="tds"
-            echo "This is a TDS release"
-          else
-            echo "This is a Prod release"
-          fi
-
-          # check if tag $code_tag exists
-
-          res_get=$(curl -s -w "%{http_code}" --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/tags/${code_tag}")
-          status=$(printf "%s" "$res_get" | tail -c 3)
-
-          echo "Status of getting the tag $code_tag: $status"
-
-          if [ "$status" == "200" ]; then
-
-            # if exists, then delete the tag $code_tag (since it can't be updated)
-
-            echo "Tag $code_tag exists. Has to be deleted in order to update"
-
-            res_del=$(curl -s -w "%{http_code}" --request DELETE --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/tags/${code_tag}")
-            status_del=$(printf "%s" "$res_del" | tail -c 3)
-
-            echo "Status of deleting the tag $code_tag: $status_del"
-
-            if [ "$status_del" != "204" ]; then
-
-              # if it is deleted, then a new one with the same tag name has to be created
-              echo "Tag $code_tag couldn't been deleted. Exiting"
-              echo "Result: $res_del"
-              exit 1
-            fi
-
-            echo "Tag $code_tag successfully deleted"
-
-          fi
-
-          echo "Trying to create tag $code_tag"
-
-          res_post=$(curl -s -w "%{http_code}" --request POST --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/tags?tag_name=${code_tag}&ref=${CI_COMMIT_SHORT_SHA}")
-          status_post=$(printf "%s" "$res_post" | tail -c 3)
-
-          echo "Status of creating tag $code_tag: $status_post"
-
-          if [ "$status_post" == "201" ]; then
-            echo "Tag $code_tag created successfully"
-
-          else
-            echo "Tag $code_tag couldn't be created"
-            echo "Result: $res_post"
+      env_tags="$CI_COMMIT_TAG prod"
+      code_tag="prod"
+      # Check if this branch is master or a the commit tag contains "dev" 
+      if $(curl -sS --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/commits/${CI_COMMIT_SHORT_SHA}/refs?type=branch" | jq '.[].name=="master"' | grep true) || [[ $CI_COMMIT_TAG =~ "dev" ]];
+        then
+        # Distinguish between TDS and PROD
+        if [[ $CI_COMMIT_TAG =~ "dev" ]]; then
+          env_tags="$CI_COMMIT_TAG tds"
+          code_tag="tds"
+          echo "This is a TDS release"
+        else
+          echo "This is a Prod release"
+        fi
+      
+        # Check if tag $code_tag exists
+        res_get=$(curl -s -w "%{http_code}" --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/tags/${code_tag}")
+        status=$(printf "%s" "$res_get" | tail -c 3)
+        echo "Status of getting the tag $code_tag: $status"
+      
+        if [ "$status" == "200" ]; then
+          # if exists, then delete the tag $code_tag (since it can't be updated)
+          echo "Tag $code_tag exists. Has to be deleted in order to update"
+          res_del=$(curl -s -w "%{http_code}" --request DELETE --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/tags/${code_tag}")
+          status_del=$(printf "%s" "$res_del" | tail -c 3)
+          echo "Status of deleting the tag $code_tag: $status_del"
+          if [ "$status_del" != "204" ]; then
+            # if it is deleted, then a new one with the same tag name has to be created
+            echo "Tag $code_tag couldn't been deleted. Exiting"
+            echo "Result: $res_del"
             exit 1
           fi
+          echo "Tag $code_tag successfully deleted"
+        fi
 
-          echo "Tagging images and helm charts for '$code_tag' deployment"
+        echo "Trying to create tag $code_tag"
+        res_post=$(curl -s -w "%{http_code}" --request POST --header "PRIVATE-TOKEN: ${GITLAB_ACCESS_TOKEN}" "${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/repository/tags?tag_name=${code_tag}&ref=${CI_COMMIT_SHORT_SHA}")
+        status_post=$(printf "%s" "$res_post" | tail -c 3)
 
-          for tag in $env_tags; do
-            if [ "$code_tag" == "prod" ] && [ "$tag" != "prod" ]; then
-              #  if code_tag indicates prod and tag is 'v1...'
-              GH_USER = $(vault kv get -field=ghcr_pat_user firecrest/prod/)"
-              GH_PAT = $(vault kv get -field=ghcr_pat_token firecrest/prod/)"
-              crane auth login ghcr.io --username $GH_USER --password $GH_PAT
-              # publish 'f7t-base'
-              crane copy ${CI_REGISTRY_PREFIX}/f7t-base:$CI_COMMIT_TAG ghcr.io/eth-cscs/firecrest/f7t-base:${tag}
-              crane tag ghcr.io/eth-cscs/firecrest/f7t-base:${tag} latest
-            fi
-            images="certificator compute reservations status storage tasks utilities";
-            for img in $images; do
-              echo "Tagging image ${CI_REGISTRY_GROUP}/$img/$tag"
-              jfrog rt copy --flat=true --url="https://${CI_REGISTRY}/artifactory" --user="${CI_REGISTRY_USER}" --password="${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY_GROUP}/$img/tmp-${CI_COMMIT_SHORT_SHA}-${CI_PIPELINE_ID}/" "${CI_REGISTRY_GROUP}/$img/$tag/";
-
-              if [ "$code_tag" == "prod" ] && [ "$tag" != "prod" ] && [ "$img" != "reservations" ]; then
-                # if code_tag indicates prod and tag is 'v1...', also publish to GitHub
-                crane copy ${CI_REGISTRY_PREFIX}/${img}:${tag} ghcr.io/eth-cscs/firecrest/f7t-${img}:${tag}
-                crane tag ghcr.io/eth-cscs/firecrest/f7t-${img}:${tag} latest
-              fi
-
-            done
-          done
-
-          echo "Pushing helm charts to $CI_REGISTRY_HELM_URL"
-          # include API specification inside chart folder
-          cp doc/openapi/firecrest-api.yaml deploy/k8s/openapi/files/firecrest-api.yaml
-
-          images="config certificator compute reservations status storage tasks utilities openapi kong";
-          for img in $images; do
-              helm package --version=$CI_COMMIT_TAG --app-version=$CI_COMMIT_TAG deploy/k8s/$img
-
-              file=$(find . -iname "$img-*.tgz" -print -maxdepth 1)
-
-              sha1=`sha1sum $file | awk '{print $1}'`
-              sha256=`sha256sum $file | awk '{print $1}'`
-              md5=`md5sum $file | awk '{print $1}'`
-
-              echo "Pushing helm chart ${CI_REGISTRY_HELM_URL}/${file}"
-              curl -H "X-JFrog-Art-Api:${CI_REGISTRY_PASSWORD}" -H "X-Checksum-md5:${md5}" -H "X-Checksum-sha1:${sha1}" -H "X-Checksum-sha256:${sha256}" -T $file ${CI_REGISTRY_HELM_URL}
-          done
-
+        echo "Status of creating tag $code_tag: $status_post"
+        if [ "$status_post" == "201" ]; then
+          echo "Tag $code_tag created successfully"
         else
-          echo "The prod tag does not belong to master the branch";
+          echo "Tag $code_tag couldn't be created"
+          echo "Result: $res_post"
           exit 1
         fi
+
+        echo "Tagging images and helm charts for '$code_tag' deployment"
+        for tag in $env_tags; do
+          if [ "$code_tag" == "prod" ] && [ "$tag" != "prod" ]; then
+            #  if code_tag indicates prod and tag is 'v1...'
+            GH_USER = $(vault kv get -field=ghcr_pat_user firecrest/prod/)"
+            GH_PAT = $(vault kv get -field=ghcr_pat_token firecrest/prod/)"
+            crane auth login ghcr.io --username $GH_USER --password $GH_PAT
+            # publish 'f7t-base'
+            crane copy ${CI_REGISTRY_PREFIX}/f7t-base:$CI_COMMIT_TAG ghcr.io/eth-cscs/firecrest/f7t-base:${tag}
+            crane tag ghcr.io/eth-cscs/firecrest/f7t-base:${tag} latest
+          fi
+          images="certificator compute reservations status storage tasks utilities";
+          for img in $images; do
+            echo "Tagging image ${CI_REGISTRY_GROUP}/$img/$tag"
+            jfrog rt copy --flat=true --url="https://${CI_REGISTRY}/artifactory" --user="${CI_REGISTRY_USER}" --password="${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY_GROUP}/$img/tmp-${CI_COMMIT_SHORT_SHA}-${CI_PIPELINE_ID}/" "${CI_REGISTRY_GROUP}/$img/$tag/";
+            if [ "$code_tag" == "prod" ] && [ "$tag" != "prod" ] && [ "$img" != "reservations" ]; then
+              # if code_tag indicates prod and tag is 'v1...', also publish to GitHub
+              crane copy ${CI_REGISTRY_PREFIX}/${img}:${tag} ghcr.io/eth-cscs/firecrest/f7t-${img}:${tag}
+               crane tag ghcr.io/eth-cscs/firecrest/f7t-${img}:${tag} latest
+            fi
+          done
+        done
+
+        echo "Pushing helm charts to $CI_REGISTRY_HELM_URL"
+        # include API specification inside chart folder
+        cp doc/openapi/firecrest-api.yaml deploy/k8s/openapi/files/firecrest-api.yaml
+
+        images="config certificator compute reservations status storage tasks utilities openapi kong";
+        for img in $images; do
+          helm package --version=$CI_COMMIT_TAG --app-version=$CI_COMMIT_TAG deploy/k8s/$img
+          file=$(find . -iname "$img-*.tgz" -print -maxdepth 1)
+
+          sha1=`sha1sum $file | awk '{print $1}'`
+          sha256=`sha256sum $file | awk '{print $1}'`
+          md5=`md5sum $file | awk '{print $1}'`
+
+          echo "Pushing helm chart ${CI_REGISTRY_HELM_URL}/${file}"
+          curl -H "X-JFrog-Art-Api:${CI_REGISTRY_PASSWORD}" -H "X-Checksum-md5:${md5}" -H "X-Checksum-sha1:${sha1}" -H "X-Checksum-sha256:${sha256}" -T $file ${CI_REGISTRY_HELM_URL}
+        done
+      else
+        echo "The prod tag does not belong to master the branch";
+        exit 1
+      fi
 
   when: on_success
 

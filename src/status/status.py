@@ -4,6 +4,8 @@
 #  Please, refer to the LICENSE file in the root directory.
 #  SPDX-License-Identifier: BSD-3-Clause
 #
+from json import JSONDecodeError
+
 from flask import Flask, jsonify, request, g
 from flask_caching import Cache
 import requests
@@ -57,7 +59,6 @@ UTILITIES_URL = f"{F7T_SCHEME_PROTOCOL}://{UTILITIES_HOST}:{UTILITIES_PORT}"
 
 SERVICES_DICT = {}
 
-
 ### parameters
 UTILITIES_MAX_FILE_SIZE = os.environ.get("F7T_UTILITIES_MAX_FILE_SIZE", '5')
 UTILITIES_TIMEOUT = os.environ.get("F7T_UTILITIES_TIMEOUT", '5')
@@ -65,13 +66,12 @@ STORAGE_TEMPURL_EXP_TIME = os.environ.get("F7T_STORAGE_TEMPURL_EXP_TIME", '60480
 STORAGE_MAX_FILE_SIZE = os.environ.get("F7T_STORAGE_MAX_FILE_SIZE", '5120')
 OBJECT_STORAGE = os.environ.get("F7T_OBJECT_STORAGE", 's3v4')
 COMPUTE_SCHEDULER = os.environ.get("F7T_COMPUTE_SCHEDULER", "Slurm")
+GENERAL_INFORMATION = os.environ.get("F7T_GENERAL_INFORMATION", '{}')
 
 TRACER_HEADER = "uber-trace-id"
 
 # debug on console
 DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
-
-
 
 JAEGER_AGENT = os.environ.get("F7T_JAEGER_AGENT", "").strip('\'"')
 if JAEGER_AGENT != "":
@@ -610,16 +610,35 @@ def parameters():
 
         fs_list.append({"system": system_fs, "mounted": mounted_fs})
 
-
+    try:
+        logging.debug(GENERAL_INFORMATION)
+        general_information = json.loads(GENERAL_INFORMATION)
+    except JSONDecodeError:
+        logging.error("FirecREST general information not found")
+        general_information = json.loads("{}")
 
     parameters_list = {
+         "general": [
+            {
+                 "name": "FIRECREST_VERSION",
+                 "value": general_information["FIRECREST_VERSION"] if "FIRECREST_VERSION" in general_information else "",
+                 "unit": "",
+                 "description": "FirecREST version."
+            },
+            {
+                "name": "FIRECREST_BUILD",
+                "value": general_information["FIRECREST_BUILD"] if "FIRECREST_BUILD" in general_information else "",
+                "unit": "",
+                "description": "FirecREST build timestamp."
+            }
+        ],
         "compute": [
             { 
-                "name" : "WORKLOAD_MANAGER",
+                "name": "WORKLOAD_MANAGER",
                 "value": COMPUTE_SCHEDULER,
                 "unit": "",
                 "description": "Type of resource and workload manager used in "
-                               "compute microservice"  
+                               "compute microservice."
             }
         ],
         "utilities": [
@@ -628,7 +647,7 @@ def parameters():
                 "value": UTILITIES_MAX_FILE_SIZE,
                 "unit": "MB",
                 "description": "The maximum allowable file size for various operations "
-                               "of the utilities microservice"
+                               "of the utilities microservice."
             },
             {
                 "name": "UTILITIES_TIMEOUT",
@@ -637,7 +656,7 @@ def parameters():
                 "description": "Maximum time duration for executing the commands in "
                                "the cluster for the utilities microservice."
             }
-        ] ,
+        ],
         "storage": [
             {
                 "name": "OBJECT_STORAGE",
