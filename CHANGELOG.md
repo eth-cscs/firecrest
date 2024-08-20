@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Support for multiple JWT signature algorithms
-- Add option to follow symbolic links in the `POST /utilities/compress` and `POST /storage/xfer-internal/compress` endpoints
+- Added option to follow symbolic links in the `POST /utilities/compress` and `POST /storage/xfer-internal/compress` endpoints
+- Added new "general" section to status/parameters describing `FIRECREST_VERSION` and `FIRECREST_BUILD` timestamp
 
 ### Changed
 
