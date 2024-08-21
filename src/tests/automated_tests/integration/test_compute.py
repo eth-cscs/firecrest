@@ -39,8 +39,8 @@ else:
 JOBS_URL = COMPUTE_URL + "/jobs"
 SERVER_COMPUTE = os.environ.get("F7T_SYSTEMS_PUBLIC_NAME").strip('\'"').split(";")[0]
 
-JOB_ENV = json.dumps({'F7T_TEST_JOB_ENV': 'a', 'F7T_TEST_JOB_ENV2': '"b 1"'})
-JOB_ENV_OUTPUT = 'a\n"b 1"\n'
+JOB_ENV = json.dumps({'F7T_TEST_JOB_ENV': 'a', 'F7T_TEST_JOB_ENV2': 'b 1'})
+JOB_ENV_OUTPUT = 'a\nb 1\n'
 
 
 

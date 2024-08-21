@@ -8,6 +8,7 @@ import datetime
 import logging
 import re
 import schedulers
+import json
 
 
 logger = logging.getLogger("compute")
@@ -25,8 +26,25 @@ class SlurmScheduler(schedulers.JobScheduler):
         if submission_spec.account:
             cmd.append(f"--account='{submission_spec.account}'")
 
-        if submission_spec.env_file:
-            cmd.append(f"--export-file='{submission_spec.env_file}'")
+        if submission_spec.job_env:
+            # convert to "key=value,key=value,.." for Slurm
+            try:
+                j = json.loads(submission_spec.job_env)
+                text = ""
+                for k, v in j.items():
+                    text += f"{k}={v},"
+                text = text[:-1]
+                job_env = text
+                cmd.append(f"--export='{job_env}'")
+            except TypeError as te:
+                logger.warning(f"Invalid JSON provided ({te}) in job_env "
+                               f"({submission_spec.job_env})")
+            except json.decoder.JSONDecodeError as jde:
+                logger.warning(f"Invalid JSON provided ({jde}) in job_env "
+                               f"({submission_spec.job_env})")
+            except Exception as e:
+                logger.warning(f"Invalid JSON provided ({e}) in job_env "
+                               f"({submission_spec.job_env})")
 
         cmd += [f"--chdir='{submission_spec.job_dir}'"]
         cmd += self._opts

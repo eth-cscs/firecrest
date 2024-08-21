@@ -178,7 +178,7 @@ spec = Job(
     job_dir, 
     account, 
     additional_options=plugin_options, 
-    env_file=env_file
+    job_env=job_env
 )
 ```
 
@@ -189,7 +189,7 @@ def __init__(
     dict job_script, 
     string job_dir, 
     string account=None, 
-    string env_file=None, 
+    dict job_env=None, 
     string [] additional_options=None
 ):
 ```
@@ -203,14 +203,14 @@ def __init__(
 ```
 * *job_dir*: string with the path of the job to launch.
 * *account*: string with the username that own the job.
-* *env_file*: string with the environment variable source (typically a file or a file descriptor)
+* *job_env*: dictionary with the environment variable list (example: {"var1": "value1", "var2": "value2"})
 * *additional_options*: list of strings to provide more parameters to the scheduler.
 
 #### attributes
 * job_dir = job_dir
 * job_script = job_script
 * account = account
-* env_file = env_file
+* job_env = job_env
 * opts = additional_options if additional_options else []
 
 **********
@@ -227,7 +227,7 @@ def __init__(
     string dependency_id=None,
     string account=None,
     string constraint=None,
-    string env_file=None
+    dict job_env=None
 ):
 ```
 ##### parameters
@@ -238,7 +238,7 @@ def __init__(
 * *dependency_id*: string to specify the dependency rule for another job. A common implementation require that the job pointed by this ID should be successfully completed, before start the current one. Default None, meaning: no dependency.
 * *account*: string to specify account used to access resourced within the running job. Default None.
 * *constraint*: string type defining node features to assign the job. Default None.
-* *env_file*: string type indicating the file containing the environment setup to be included in the Job default None.
+* *job_env*: dictionary with a list of variables to include in the environment of the job. Example: {"var1": "value1", "var2": "value2"}. Default None.
 
 **********
 ## Implementation Class SlurmScheduler
@@ -271,7 +271,7 @@ An example composing the sbatch command is the following, the attributes of Job 
 ```python
     cmd = ["sbatch"]
     cmd.append(f"--account='{submission_spec.account}'")
-    cmd.append(f"--export-file='{submission_spec.env_file}'")
+    cmd.append(f"--export='{submission_spec.job_env}'")
     cmd += [f"--chdir='{submission_spec.job_dir}'"]
     cmd += self._opts
     cmd += submission_spec.opts

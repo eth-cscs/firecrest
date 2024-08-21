@@ -155,6 +155,7 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
             update_task(task_id, headers, async_task.ERROR, retval["msg"])
             return
 
+        # save the sbatch file in the target cluster FS
         if job_file['content']:
             action = f"ID={ID} cat > '{job_dir}/{job_file['filename']}'"
             retval = exec_remote_command(headers, system_name, system_addr, action, file_transfer="upload", file_content=job_file['content'], no_home=use_plugin)
@@ -165,29 +166,12 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
 
         plugin_options = [SPANK_PLUGIN_OPTION] if use_plugin else None
 
-        env_file = None
-        if job_env:
-            env_file = f"/dev/shm/firecret.{task_id}.env"
-            action = f"ID={ID} cat > '{env_file}'"
-            retval = exec_remote_command(headers, system_name, system_addr, action, file_transfer="upload", file_content=job_env, no_home=use_plugin)
-            if retval["error"] != 0:
-                app.logger.error(f"(Error uploading environment file: {retval['msg']}")
-                update_task(task_id, headers, async_task.ERROR, "Failed to upload enviroment file")
-                return
-
-        spec = Job(job_file['filename'], job_dir, account, additional_options=plugin_options, env_file=env_file)
+        spec = Job(job_file['filename'], job_dir, account, additional_options=plugin_options, job_env=job_env)
         scheduler_command = scheduler.submit(spec)
-        action=f"ID={ID} {scheduler_command}"
+        action = f"ID={ID} {scheduler_command}"
         app.logger.info(action)
 
         retval = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
-
-        if job_env:
-            # delete env file, it was read when submitted
-            action = f"ID={ID} timeout {UTILITIES_TIMEOUT} rm -f -- '{env_file}'"
-            retval2 = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
-            if retval2["error"] != 0:
-                app.logger.error(f"(Error deleting environment file: {retval2['msg']}")
 
         if retval["error"] != 0:
             app.logger.error(f"(Error: {retval['msg']}")
@@ -201,10 +185,10 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
 
         jobid = scheduler.extract_jobid(outlines)
 
-        msg = {"result" : "Job submitted", "jobid" : jobid}
+        msg = {"result": "Job submitted", "jobid": jobid}
 
         # now look for log and err files location
-        job_extra_info = get_job_files(headers, system_name, system_addr, msg,use_plugin=use_plugin)
+        job_extra_info = get_job_files(headers, system_name, system_addr, msg, use_plugin=use_plugin)
 
         update_task(task_id, headers, async_task.SUCCESS, job_extra_info, True)
 
@@ -296,29 +280,14 @@ def submit_job_path_task(headers, system_name, system_addr, fileName, job_dir, a
 
     ID = headers.get(TRACER_HEADER, '')
     plugin_options = [SPANK_PLUGIN_OPTION] if use_plugin else None
-    env_file = None
-    if job_env:
-        env_file = f"/dev/shm/firecret.{task_id}.env"
-        action = f"ID={ID} cat > '{env_file}'"
-        retval = exec_remote_command(headers, system_name, system_addr, action, file_transfer="upload", file_content=job_env, no_home=use_plugin)
-        if retval["error"] != 0:
-            app.logger.error(f"(Error uploading environment file: {retval['msg']}")
-            update_task(task_id, headers, async_task.ERROR, "Failed to upload enviroment file")
-            return
-
-    spec = Job(fileName, job_dir, account, additional_options=plugin_options, env_file=env_file)
+    
+    spec = Job(fileName, job_dir, account, additional_options=plugin_options,
+               job_env=job_env)
     scheduler_command = scheduler.submit(spec)
     action=f"ID={ID} {scheduler_command}"
     app.logger.info(action)
 
     resp = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
-
-    if job_env:
-        # delete env file, it was read when submitted
-        action = f"ID={ID} timeout {UTILITIES_TIMEOUT} rm -f -- '{env_file}'"
-        retval2 = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
-        if retval2["error"] != 0:
-            app.logger.error(f"(Error deleting environment file: {retval2['msg']}")
 
     # in case of error:
     if resp["error"] != 0:
@@ -448,15 +417,12 @@ def submit_job_upload():
     use_plugin  = SPANK_PLUGIN_ENABLED[system_idx]
     job_env = request.form.get("env", None)
     if job_env:
-        #convert to text for Slurm: key=value ending with null caracter
+        # check that the env variable can be decoded as JSON
         try:
-            j = json.loads(job_env)
-            text = ""
-            for k,v in j.items():
-                text += f"{k}={v}\0"
-            job_env = text
+            json.loads(job_env)
         except Exception as e:
-            app.logger.warning("Invalid JSON provided")
+            logger.warning(f"Invalid JSON provided ({e}) in job_env " +
+                           f"({job_env})")
             return jsonify(description="Failed to submit job", error='Invalid JSON environment provided'), 404
 
     app.logger.info(f"Job dir: {job_dir}")
@@ -464,7 +430,9 @@ def submit_job_upload():
     try:
         # asynchronous task creation
         aTask = threading.Thread(target=submit_job_task, name=ID,
-                             args=(headers, system_name, system_addr, job_file, job_dir, account, use_plugin, job_env, task_id))
+                                 args=(headers, system_name, system_addr,
+                                       job_file, job_dir, account, use_plugin,
+                                       job_env, task_id))
 
         aTask.start()
         retval = update_task(task_id, headers, async_task.QUEUED)
@@ -543,15 +511,12 @@ def submit_job_path():
     job_dir = os.path.dirname(targetPath)
     job_env = request.form.get("env", None)
     if job_env:
-        #convert to text for Slurm: key=value ending with null caracter
+        # check that the env variable can be decoded as JSON
         try:
-            j = json.loads(job_env)
-            text = ""
-            for k,v in j.items():
-                text += f"{k}={v}\0"
-            job_env = text
+            json.loads(job_env)
         except Exception as e:
-            app.logger.warning("Invalid JSON provided")
+            logger.warning(f"Invalid JSON provided ({e}) in job_env " +
+                           f"({job_env})")
             return jsonify(description="Failed to submit job", error='Invalid JSON environment provided'), 404
 
     try:
