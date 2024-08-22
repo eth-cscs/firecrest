@@ -421,9 +421,10 @@ def submit_job_upload():
         try:
             json.loads(job_env)
         except Exception as e:
-            logger.warning(f"Invalid JSON provided ({e}) in job_env " +
-                           f"({job_env})")
-            return jsonify(description="Failed to submit job", error='Invalid JSON environment provided'), 404
+            logger.error(f"Invalid JSON provided ({e}) in job_env " +
+                         f"({job_env})")
+            return jsonify(description="Failed to submit job",
+                           error=f"Invalid JSON in 'env' variable ({job_env})"), 404
 
     app.logger.info(f"Job dir: {job_dir}")
 

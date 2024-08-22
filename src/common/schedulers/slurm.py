@@ -37,14 +37,14 @@ class SlurmScheduler(schedulers.JobScheduler):
                 job_env = text
                 cmd.append(f"--export='{job_env}'")
             except TypeError as te:
-                logger.warning(f"Invalid JSON provided ({te}) in job_env "
-                               f"({submission_spec.job_env})")
+                logger.error(f"Invalid JSON provided ({te}) in job_env "
+                             f"({submission_spec.job_env})")
             except json.decoder.JSONDecodeError as jde:
-                logger.warning(f"Invalid JSON provided ({jde}) in job_env "
-                               f"({submission_spec.job_env})")
+                logger.error(f"Invalid JSON provided ({jde}) in job_env "
+                             f"({submission_spec.job_env})")
             except Exception as e:
-                logger.warning(f"Invalid JSON provided ({e}) in job_env "
-                               f"({submission_spec.job_env})")
+                logger.error(f"Invalid JSON provided ({e}) in job_env "
+                             f"({submission_spec.job_env})")
 
         cmd += [f"--chdir='{submission_spec.job_dir}'"]
         cmd += self._opts
