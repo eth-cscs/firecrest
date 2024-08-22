@@ -21,6 +21,7 @@ import re
 import time
 import threading
 import sys
+from time import sleep
 
 from typing import Union
 
@@ -659,17 +660,50 @@ def create_task(headers, service=None, system=None, init_data=None) -> Union[str
     '''
 
     # returns {"task_id":task_id}
-    # first try to get up task microservice:
-    try:
-        # X-Firecrest-Service: service that created the task
-        headers["X-Firecrest-Service"] = service
-        headers["X-Machine-Name"] = system
-        req = requests.post(f"{TASKS_URL}/", data={"init_data": init_data}, headers=headers, verify=(SSL_CRT if SSL_ENABLED else False))
+    # first try to create a task:
+    # this might fail due to server error, 
+    # here we're setting a retry policy before sending an error
+    # due to ChunkedEncodingError exception
+    retries = 5
+    delay = 3
+    for n in range(retries):
+        try:
+            # X-Firecrest-Service: service that created the task
+            headers["X-Firecrest-Service"] = service
+            headers["X-Machine-Name"] = system
+            req = requests.post(f"{TASKS_URL}/", data={"init_data": init_data},
+                                headers=headers,
+                                verify=(SSL_CRT if SSL_ENABLED else False))
+            break
+        except requests.exceptions.ChunkedEncodingError as cee:
+            if retries < n:
+                logging.warning(f"Task creation warning: '{service}' is not "
+                                "able to reach 'tasks'")
+                logging.warning(type(cee), exc_info=True)
+                logging.warning(f"We'll try {retries-n} more times.")
+                logging.warning(f"Attempting in {delay} seconds...")
+                sleep(delay)
+                continue
+            else:
+                logging.error(f"Task creation error: '{service}' was not able "
+                              "to reach 'tasks'")
+                logging.error("All attempts have been exhausted. "
+                              "Sending error message to user")
+                logging.error(type(cee), exc_info=True)
+                return -1
 
-    except (requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError) as e:
-        logging.error(type(e), exc_info=True)
-        logging.error(e)
-        return -1
+        except requests.exceptions.ConnectionError as ce:
+            logging.error(f"Task creation error: '{service}' was not able "
+                          "to reach 'tasks'")
+            logging.error(type(ce), exc_info=True)
+            logging.error(ce)
+            return -1
+
+        except Exception as e:
+            logging.error(f"Task creation error")
+            logging.error(type(e), exc_info=True)
+            logging.error(e)
+            return -1
 
     if req.status_code != 201:
         return -1

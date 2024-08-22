@@ -18,12 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Variable `F7T_REALM_RSA_PUBLIC_KEYS` changed to `F7T_AUTH_PUBLIC_KEYS`
 - Variable `F7T_REALM_RSA_TYPE_` changed to `F7T_AUTH_ALGORITHMS`
 - Added default values on helm charts
+- Upgrade `requests` library to version `2.32.0`
 
 
 ### Fixed
 
 - Fix parsing in `GET /utilities/ls` endpoint.
 - The job fields `job_data_out` and `job_file_err` from `GET /compute/jobs` will be empty for jobs that are still pending (so that there is no confusion with older output/error files).
+- Added retry on task creation workflow
 
 ## [1.16.0]
 

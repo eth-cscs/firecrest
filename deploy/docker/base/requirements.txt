@@ -2,7 +2,7 @@ cryptography==42.0.4
 markupsafe==2.1.2
 Flask==2.3.2
 PyJWT==2.4.0
-requests==2.22.0
+requests==2.32.0
 jaeger_client==4.5.0
 Flask-Opentracing==1.1.0
 gunicorn==22.0.0
