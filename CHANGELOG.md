@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- SLURM scheduler now uses `--export` option for passing environment variables to a job
 - Variable `F7T_REALM_RSA_PUBLIC_KEYS` changed to `F7T_AUTH_PUBLIC_KEYS`
 - Variable `F7T_REALM_RSA_TYPE_` changed to `F7T_AUTH_ALGORITHMS`
 - Added default values on helm charts
