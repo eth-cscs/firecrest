@@ -34,7 +34,8 @@ class SlurmScheduler(schedulers.JobScheduler):
                 text += f"{k}={v},"
             text = text[:-1]
             job_env = text
-            cmd.append(f"--export='{job_env}'")
+            # if --export option is used, the ALL value has to be set as well
+            cmd.append(f"--export='ALL,{job_env}'")
 
         cmd += [f"--chdir='{submission_spec.job_dir}'"]
         cmd += self._opts
