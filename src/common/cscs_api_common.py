@@ -666,7 +666,7 @@ def create_task(headers, service=None, system=None, init_data=None) -> Union[str
     # due to ChunkedEncodingError exception
     retries = 5
     delay = 3
-    for n in range(retries):
+    for n in range(1, retries+1):
         try:
             # X-Firecrest-Service: service that created the task
             headers["X-Firecrest-Service"] = service
@@ -676,7 +676,7 @@ def create_task(headers, service=None, system=None, init_data=None) -> Union[str
                                 verify=(SSL_CRT if SSL_ENABLED else False))
             break
         except requests.exceptions.ChunkedEncodingError as cee:
-            if retries < n:
+            if retries > n:
                 logging.warning(f"Task creation warning: '{service}' is not "
                                 "able to reach 'tasks'")
                 logging.warning(type(cee), exc_info=True)
