@@ -32,6 +32,7 @@ data:
   F7T_SSL_ENABLED: {{ .Values.F7T_SSL_ENABLED | default "true" | quote }}
   F7T_SSL_CRT: {{ .Values.F7T_SSL_CRT | default "" | quote }}
   F7T_SSL_KEY: {{ .Values.F7T_SSL_KEY | default "" | quote }}
+  F7T_HOME_ENABLED: {{ .Values.F7T_HOME_ENABLED | default "True" | quote }}
   F7T_SYSTEMS_INTERNAL_ADDR: {{ .Values.F7T_SYSTEMS_INTERNAL_ADDR | quote }}
   F7T_SYSTEMS_INTERNAL_STATUS_ADDR: {{ .Values.F7T_SYSTEMS_INTERNAL_STATUS_ADDR | default .Values.F7T_SYSTEMS_INTERNAL_ADDR | quote  }}
   F7T_SYSTEMS_INTERNAL_COMPUTE_ADDR: {{ .Values.F7T_SYSTEMS_INTERNAL_COMPUTE_ADDR | default .Values.F7T_SYSTEMS_INTERNAL_ADDR | quote }}

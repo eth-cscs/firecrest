@@ -109,7 +109,8 @@ OPA_ENABLED = get_boolean_var(os.environ.get("F7T_OPA_ENABLED",False))
 OPA_URL = os.environ.get("F7T_OPA_URL","http://localhost:8181").strip('\'"')
 OPA_POLICY_PATH = os.environ.get("F7T_OPA_POLICY_PATH","v1/data/f7t/authz").strip('\'"')
 
-
+HOME_ENABLED = get_boolean_var(
+    os.environ.get("F7T_HOME_ENABLED", True))
 
 ### SSH key paths
 PUB_USER_KEY_PATH = os.environ.get("F7T_PUB_USER_KEY_PATH", "/user-key.pub")
@@ -363,7 +364,7 @@ def create_certificate(headers, cluster_name, cluster_addr, command=None, option
 
 
 # execute remote commands with Paramiko:
-def exec_remote_command(headers, system_name, system_addr, action, file_transfer=None, file_content=None, no_home=False):
+def exec_remote_command(headers, system_name, system_addr, action, file_transfer=None, file_content=None):
 
     import paramiko, socket
 
@@ -530,14 +531,16 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
             else:
                 result = {"error": 0, "msg": outlines}
         elif stderr_errno > 0:
-            # Solving when stderr_errno = 1 and no_home plugin used (F7T_SPANK_PLUGIN_ENABLED)
+            # Solving when stderr_errno = 1 and $HOME is not mounted: 
             # stderr_errno = 1
             # stderr_errda = "Could not chdir to home directory /users/eirinik: No such file or directory
             # ERROR: you must specify a project account (-A <account>)sbatch: error: cli_filter plugin terminated with error"
-            if no_home and in_str(stderr_errda,"Could not chdir to home directory"):
+            if not HOME_ENABLED and in_str(stderr_errda, "Could not chdir to home directory"):
                 # checking for 2nd 'directory' string (first is at index 33)
                 # 2nd comes after username
-                idx = stderr_errda.index("directory",33)
+                logging.info(f"$HOME directory is not enabled"
+                             f"(F7T_HOME_ENABLED={HOME_ENABLED})")
+                idx = stderr_errda.index("directory", 33)
                 # len(directory) = 9
                 result = {"error": stderr_errno, "msg": stderr_errda[idx+9:]}
 

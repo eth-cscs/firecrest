@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for multiple JWT signature algorithms
 - Added option to follow symbolic links in the `POST /utilities/compress` and `POST /storage/xfer-internal/compress` endpoints
 - Added new "general" section to status/parameters describing `FIRECREST_VERSION` and `FIRECREST_BUILD` timestamp
+- Environment variable `F7T_HOME_ENABLED` to set `False` if `$HOME` is not mounted on systems executing FirecREST commands
 
 ### Changed
 
@@ -27,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix parsing in `GET /utilities/ls` endpoint.
 - The job fields `job_data_out` and `job_file_err` from `GET /compute/jobs` will be empty for jobs that are still pending (so that there is no confusion with older output/error files).
 - Added retry on task creation workflow
+- Error message when `$HOME` is not mounted
 
 ## [1.16.0]
 
