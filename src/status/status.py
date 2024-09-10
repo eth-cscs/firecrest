@@ -219,7 +219,7 @@ def test_system(machinename, headers, status_list=[]):
         for fs in mounted_fs:
             try:
                 r = requests.get(f"{UTILITIES_URL}/ls",
-                                params={"targetPath": fs["path"], "numericUid": "True"},
+                                params={"targetPath": fs["path"], "numericUid": "True", "unsorted": "True", "notListing": "True"},
                                 headers=headers,
                                 verify=(SSL_CRT if SSL_ENABLED else False),
                                 timeout=(int(UTILITIES_TIMEOUT) + 1))
