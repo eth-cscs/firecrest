@@ -614,28 +614,22 @@ def common_fs_operation(request, command):
     action = f"ID={ID} timeout {UTILITIES_TIMEOUT} {action}"
     retval = exec_remote_command(headers, system_name ,system_addr, action, file_transfer, file_content)
 
-    logging.debug("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY 1 "+json.dumps(retval))
     if retval["error"] != 0:
         error_str   = retval["msg"]
         error_code  = retval["error"]
         service_msg = f"Error on {command} operation"
-        logging.debug("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY 2")
 
         if grep != "":
             service_msg += " with grep"
 
         ret_data = check_command_error(error_str, error_code, service_msg)
-        logging.debug("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY 3")
 
         # if generic "error" not in the dict
         try:
-            logging.debug("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY 4")
             return jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
         except:
-            logging.debug("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY 5")
             return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
 
-    logging.debug("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY 6")
     description = f"Success to {command} file."
     output = ''
     if command == 'checksum':
@@ -649,11 +643,8 @@ def common_fs_operation(request, command):
         # output first bytes (at most max value)
         output = retval["msg"]
     elif command == 'ls':
-        logging.debug("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY 7")
         description = "List of contents"
-        logging.debug("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY 7.1")
         output = ls_parse(request, retval)
-        logging.debug("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY 7.2 "+str(output))
     elif command == 'stat':
         # follows: https://docs.python.org/3/library/os.html#os.stat_result
         output = dict(zip(['mode', 'ino', 'dev', 'nlink', 'uid', 'gid', 'size', 'atime', 'mtime', 'ctime'], retval["msg"].split()))
@@ -700,7 +691,6 @@ def common_fs_operation(request, command):
 
             output = {"user": user_json, "group": group_json, "groups": groups}
 
-    logging.debug("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY 8 " + str(output) + " " + str(success_code) )
     return jsonify(description=description, output=output), success_code
 
 
