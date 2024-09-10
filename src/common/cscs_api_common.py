@@ -539,7 +539,7 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
                 # checking for 2nd 'directory' string (first is at index 33)
                 # 2nd comes after username
                 logging.info(f"$HOME directory is not enabled"
-                             f"(F7T_HOME_ENABLED={HOME_ENABLED})")
+                             f" (F7T_HOME_ENABLED={HOME_ENABLED})")
                 idx = stderr_errda.index("directory", 33)
                 # len(directory) = 9
                 result = {"error": stderr_errno, "msg": stderr_errda[idx+9:]}

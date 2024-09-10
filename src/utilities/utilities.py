@@ -591,7 +591,7 @@ def common_fs_operation(request, command):
 
     [headers, ID] = get_tracing_headers(request)
     action = f"ID={ID} timeout {UTILITIES_TIMEOUT} {action}"
-    retval = exec_remote_command(headers, system_name ,system_addr, action, file_transfer, file_content, )
+    retval = exec_remote_command(headers, system_name ,system_addr, action, file_transfer, file_content)
 
     if retval["error"] != 0:
         error_str   = retval["msg"]
