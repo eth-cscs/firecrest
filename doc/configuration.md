@@ -91,6 +91,7 @@ The most complete way of installing is to setup 3 hosts:
 |`F7T_UTILITIES_TIMEOUT`       | NO | `5` | Value in **seconds** for timing out a login node command using `/utilities` | `Backend` |
 |`F7T_PERSIST_HOST`            | NO | `'127.0.0.1'` | Hostname or IP of the redis database used in `taskpersistence` container |  `Backend` | Replaces `F7T_PERSISTENCE_IP` |
 |`F7T_PERSIST_PORT`            | NO | `'6379'` | Port number of the redis database used in `taskpersistence` container |  `Backend` |
+|`F7T_HOME_ENABLED`            | NO | `True` | Set to `True` if the `$HOME` directory is mounted on the systems interfacing FirecREST |  `Backend` |
 |`F7T_SPANK_PLUGIN_ENABLED`        | NO | `False`   | Set to `True` if the system scheduler uses a [spank](https://slurm.schedmd.com/spank.html) when submitting jobs. If there is more than one system configured, there should be a semicolon separated list in relative order to `F7T_SYSTEMS_PUBLIC_NAME` values |  `Backend`| Replaces `F7T_USE_SPANK_PLUGIN` |
 |`F7T_SPANK_PLUGIN_OPTION` | only if `F7T_SPANK_PLUGIN_ENABLED=True` | `--nohome`| Name of the option to use in the workload manager command. If there is more than one system configured, there should be a semicolon separated list in relative order to `F7T_SYSTEMS_PUBLIC_NAME` values |  `Backend`|
 |`F7T_COMPUTE_SCHEDULER`  | NO | `'Slurm'`| Set to the name of the of the Workload Manager scheduler adapter class. By default it can be found in `/src/common/schedulers` | `Backend`|

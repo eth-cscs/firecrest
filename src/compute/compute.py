@@ -148,7 +148,7 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
         ID = headers.get(TRACER_HEADER, '')
         # create tmpdir for sbatch file
         action = f"ID={ID} timeout {UTILITIES_TIMEOUT} mkdir -p -- '{job_dir}'"
-        retval = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
+        retval = exec_remote_command(headers, system_name, system_addr, action)
 
         if retval["error"] != 0:
             app.logger.error(f"(Error creating directory: {retval['msg']}")
@@ -158,7 +158,7 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
         # save the sbatch file in the target cluster FS
         if job_file['content']:
             action = f"ID={ID} cat > '{job_dir}/{job_file['filename']}'"
-            retval = exec_remote_command(headers, system_name, system_addr, action, file_transfer="upload", file_content=job_file['content'], no_home=use_plugin)
+            retval = exec_remote_command(headers, system_name, system_addr, action, file_transfer="upload", file_content=job_file['content'])
             if retval["error"] != 0:
                 app.logger.error(f"(Error uploading file: {retval['msg']}")
                 update_task(task_id, headers, async_task.ERROR, "Failed to upload file")
@@ -171,7 +171,7 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
         action = f"ID={ID} {scheduler_command}"
         app.logger.info(action)
 
-        retval = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
+        retval = exec_remote_command(headers, system_name, system_addr, action)
 
         if retval["error"] != 0:
             app.logger.error(f"(Error: {retval['msg']}")
@@ -231,7 +231,7 @@ def get_job_files(headers, system_name, system_addr, job_info, output=False, use
 
     for n_try in range(n_tries):
 
-        resp = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
+        resp = exec_remote_command(headers, system_name, system_addr, action)
 
         # if there was an error, the result will be SUCESS but not available outputs
         if resp["error"] == 0:
@@ -265,12 +265,12 @@ def get_job_files(headers, system_name, system_addr, job_info, output=False, use
         # tail -c {number_of_bytes} --> 1000B = 1KB
 
         action = f"ID={ID} timeout {UTILITIES_TIMEOUT} tail -c {TAIL_BYTES} -- '{control_info['job_file_out']}'"
-        resp = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
+        resp = exec_remote_command(headers, system_name, system_addr, action)
         if resp["error"] == 0:
             control_info["job_data_out"] = resp["msg"]
 
         action = f"ID={ID} timeout {UTILITIES_TIMEOUT} tail -c {TAIL_BYTES} -- '{control_info['job_file_err']}'"
-        resp = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
+        resp = exec_remote_command(headers, system_name, system_addr, action)
         if resp["error"] == 0:
             control_info["job_data_err"] = resp["msg"]
 
@@ -287,7 +287,7 @@ def submit_job_path_task(headers, system_name, system_addr, fileName, job_dir, a
     action=f"ID={ID} {scheduler_command}"
     app.logger.info(action)
 
-    resp = exec_remote_command(headers, system_name, system_addr, action, no_home=use_plugin)
+    resp = exec_remote_command(headers, system_name, system_addr, action)
 
     # in case of error:
     if resp["error"] != 0:
