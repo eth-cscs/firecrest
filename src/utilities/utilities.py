@@ -170,7 +170,7 @@ def list_directory():
 
 
 ## parse ls output
-def ls_parse_folder(folder_content:str,path:str=""):
+def ls_parse_folder(folder_content:str, path:str=""):
     # Example of ls output
     # total 3
     # lrwxrwxrwx 1 username groupname 46 2023-07-25T14:18:00 "filename" -> "target link"
@@ -179,12 +179,21 @@ def ls_parse_folder(folder_content:str,path:str=""):
     file_list = []
     file_pattern = (r'^(?P<type>\S)(?P<permissions>\S+)\s+\d+\s+(?P<user>\S+)\s+'
                     r'(?P<group>\S+)\s+(?P<size>\d+)\s+(?P<last_modified>(\d|-|T|:)+)\s+(?P<filename>.+)$')
+    escape_pattern = r'^[a-zA-Z]+\s+[0-9]+' # ignore "total 3" line
 
     lines = folder_content.splitlines()
+
     file_list = []
+    filename_list = []
+    matching_list = False
+    # If the ls -l groups are matching, matching_list value is True and file_list is being populated.
+    # Otherwise, filename_list is used to store entries since a ls -1f is considered to have been requested
     for entry in lines:
         matches = re.finditer(file_pattern, entry)
         for m in matches:
+            # Matching ls -l patterns: set matching_list flat to True and clear filename_list.
+            matching_list = True
+            filename_list.clear()
             tokens = shlex.split(m.group("filename"))
             if len(tokens) == 1:
                 name = tokens[0]
@@ -208,7 +217,12 @@ def ls_parse_folder(folder_content:str,path:str=""):
                 "last_modified": m.group("last_modified"),
                 "size": m.group("size")
             })
-    return file_list
+        if not matching_list:
+            if not re.match(escape_pattern, entry):
+                filename_list.append(entry)
+
+    # Return the file_list when matching the pattern, otherwise return the filename_list
+    return file_list if matching_list else filename_list
 
 
 ## parse ls output
@@ -229,7 +243,7 @@ def ls_parse(request, retval):
 
     file_list = []
     #Check if ls has recursive folders
-    if(re.match(r'\"(.+)\":\n',retval["msg"])):
+    if re.match(r'\"(.+)\":\n', retval["msg"]):
         folders =  re.split(r'\"(.+)\":\n',retval["msg"])
         root_folder = ""
         for i in range(1,len(folders),2):
@@ -242,7 +256,6 @@ def ls_parse(request, retval):
             file_list += ls_parse_folder(folder_content,folder_name)
     else:
         file_list += ls_parse_folder(retval["msg"])
-
 
     totalSize = len(file_list)
     logging.info(f"Length of file list: {len(file_list)}")
@@ -520,9 +533,11 @@ def common_fs_operation(request, command):
         file_transfer = 'download'
     elif command == "ls":
         options = ""
+        # long listing format enabled by default
+        l = "-l"
         if get_boolean_var(request.args.get("showhidden", False)):
             # if set shows entrys starting with . (not including . and/or .. dirs)
-            options = "-A "
+            options += "-A "
         if get_boolean_var(request.args.get("numericUid", False)):
             # do not resolve UID and GID to names
             options += "--numeric-uid-gid "
@@ -532,7 +547,13 @@ def common_fs_operation(request, command):
         if get_boolean_var(request.args.get("followLinks", False)):
             # follow symbolic links
             options += "-L "
-        action = f"ls -l --quoting-style=c {options} --time-style=+%Y-%m-%dT%H:%M:%S -- '{targetPath}'"
+        if get_boolean_var(request.args.get("unsorted", False)):
+            # do not sort lines
+            options += "-1f "
+        if get_boolean_var(request.args.get("notListing", False)):
+            # do not use long listing format
+            l = ""
+        action = f"ls {l} --quoting-style=c {options} --time-style=+%Y-%m-%dT%H:%M:%S -- '{targetPath}'"
     elif command == "mkdir":
         try:
             p = request.form["p"]
@@ -608,7 +629,6 @@ def common_fs_operation(request, command):
             return jsonify(description=ret_data["description"], error=ret_data["error"]), ret_data["status_code"], ret_data["header"]
         except:
             return jsonify(description=ret_data["description"]), ret_data["status_code"], ret_data["header"]
-
 
     description = f"Success to {command} file."
     output = ''

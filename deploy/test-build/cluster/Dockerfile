@@ -63,7 +63,6 @@ RUN set -x \
     && chown -R slurm:slurm /var/log/slurm   \
     && chown -R slurm:slurm /var/spool/slurm*
 
-
 COPY cluster/slurm/*.conf /etc/slurm/
 COPY cluster/slurm/*.sh /
 # slurmdbd requires slurmdbd.conf with 600
@@ -94,6 +93,11 @@ RUN useradd -m -s /bin/bash test1 && useradd -m -s /bin/bash test2
 RUN echo 'test1:test11' | chpasswd  && echo 'test2:test22' | chpasswd
 RUN useradd -m -s /bin/bash testuser && echo 'testuser:testuser' | chpasswd
 RUN useradd -m -s /bin/bash service-account-firecrest-sample && echo 'service-account-firecrest-sample:service-account-firecrest-sample' | chpasswd
+
+RUN mkdir -p /scratch/test1 ; chown test1 /scratch/test1
+RUN mkdir -p /scratch/test2 ; chown test2 /scratch/test2
+RUN mkdir -p /scratch/testuser ; chown testuser /scratch/testuser
+RUN mkdir -p /scratch/service-account-firecrest-sample ; chown service-account-firecrest-sample /scratch/service-account-firecrest-sample
 
 ADD cluster/ssh/* /etc/ssh/
 ADD environment/keys/ca-key.pub  /etc/ssh/
