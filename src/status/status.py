@@ -165,25 +165,24 @@ def test_service(servicename, status_list, trace_header=None):
 
 
 # test individual system function
-def test_system(machinename, headers, status_list=[]):
+def test_system(machinename, headers, status_list=[], test_filesystem=False):
 
     app.logger.info(f"Testing {machinename} system status")
 
     if machinename not in SYSTEMS_PUBLIC:
+        # System does not exist
         status_list.append( {"status": -3, "system": machinename} )
         return
 
     if machinename not in FILESYSTEMS:
+        # System does not exist
         status_list.append( {"status": -3, "system": machinename} )
         return
-    
+
     for i in range(len(SYSTEMS_PUBLIC)):
         if SYSTEMS_PUBLIC[i] == machinename:
             machine = SYSTEMS[i]
             break
-
-    mounted_fs = FILESYSTEMS[machinename]
-                
 
     # try to connect (unsuccesfully) with dummy user and pwd, catching SSH exception
     try:
@@ -212,32 +211,51 @@ def test_system(machinename, headers, status_list=[]):
         is_username_ok = get_username(headers[AUTH_HEADER_NAME])
         if not is_username_ok["result"]:
             app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
-            status_list.append({"status": -5, "system": machinename, "filesystem": fs, "reason": is_username_ok['reason']})
+            # Report system does not accept connections
+            status_list.append({"status": -1, "system": machinename, "reason": is_username_ok['reason']})
             return
 
-        failfs = []
-        for fs in mounted_fs:
-            try:
-                r = requests.get(f"{UTILITIES_URL}/ls",
-                                params={"targetPath": fs["path"], "numericUid": "True"},
-                                headers=headers,
-                                verify=(SSL_CRT if SSL_ENABLED else False),
-                                timeout=(int(UTILITIES_TIMEOUT) + 1))
-                if not r.ok:
-                    failfs.append(fs["path"])
-                else:
-                    j = json.loads(r.content)
-                    if len(j['output']) == 0:
+        # Test command submission with "whoami"
+        try:
+            r = requests.get(f"{UTILITIES_URL}/whoami",
+                            params={},
+                            headers=headers,
+                            verify=(SSL_CRT if SSL_ENABLED else False),
+                            timeout=(int(UTILITIES_TIMEOUT) + 1))
+            if not r.ok:
+                # Report system does not accept connections
+                status_list.append({"status": -1, "system": machinename, "reason": is_username_ok['reason']})
+            else:
+                # Report system Ok
+                status_list.append({"status": 0, "system": machinename})
+        except:
+            # Report system down
+            status_list.append({"status": -2, "system": machinename, "reason": is_username_ok['reason']})
+
+        # Test filesystems on request
+        if test_filesystem:
+            failfs = []
+            for fs in FILESYSTEMS[machinename]:
+                try:
+                    r = requests.get(f"{UTILITIES_URL}/ls",
+                                     params={"targetPath": fs["path"], "numericUid": "True", "unsorted": "True",
+                                             "notListing": "True"},
+                                     headers=headers,
+                                     verify=(SSL_CRT if SSL_ENABLED else False),
+                                     timeout=(int(UTILITIES_TIMEOUT) + 1))
+                    if not r.ok:
                         failfs.append(fs["path"])
-            except:
-                failfs.append(fs["path"])
+                    else:
+                        j = json.loads(r.content)
+                        if len(j['output']) == 0:
+                            failfs.append(fs["path"])
+                except:
+                    failfs.append(fs["path"])
 
-        if len(failfs) > 0:
-            app.logger.error("Status: -4")
-            status_list.append({"status": -4, "system": machinename, "filesystem": ",".join(failfs)})
-            return
-
-        status_list.append({"status": 0, "system": machinename})
+            if len(failfs) > 0:
+                app.logger.error("Status: -4")
+                # Report filesystem error
+                status_list.append({"status": -4, "system": machinename, "filesystem": ",".join(failfs)})
 
     except paramiko.ssh_exception.NoValidConnectionsError as e:
         # host up but SSH not working
@@ -263,16 +281,13 @@ def test_system(machinename, headers, status_list=[]):
 
     finally:
         client.close()
-
     return
 
 def check_fs(system,filesystem, headers):
-
     headers["X-Machine-Name"] = system
-    
     try:
         r = requests.get(f"{UTILITIES_URL}/ls",
-                        params={"targetPath": filesystem, "numericUid": "True"},
+                        params={"targetPath": filesystem, "numericUid": "True", "unsorted": "True", "notListing": "True"},
                         headers=headers,
                         verify=(SSL_CRT if SSL_ENABLED else False),
                         timeout=(int(UTILITIES_TIMEOUT) + 1))
@@ -284,22 +299,18 @@ def check_fs(system,filesystem, headers):
                 return 400
     except:
         return 400
-    
     return 200
 
 
 def check_filesystem(system, filesystems,headers):
-    
     resp_json = []
     try:
-        
         for fs in filesystems:
             resp_fs = {}
 
             resp_fs["name"] = fs["name"]
             resp_fs["path"] = fs["path"]
             resp_fs["description"] = fs["description"]
-        
 
             status_code = check_fs(system, fs["path"], headers)
             resp_fs["status_code"] = status_code
@@ -321,42 +332,28 @@ def check_filesystem(system, filesystems,headers):
 @check_auth_header
 @cache.cached(timeout=CACHE_TIMEOUT_15m, forced_update=no_cache)
 def get_all_filesystems():
-
     [headers, ID] = get_tracing_headers(request)
 
     # resp_json json to fill with responses from each system
     resp_json = {}
-
     
     for system in FILESYSTEMS:
-
         if system not in SYSTEMS_PUBLIC:
             return jsonify(description="Filesystem information", out=f"System '{system}' doesn't exist"), 404
-
         if DEBUG_MODE:
             app.logger.debug(f"Checking filesystems in {system}")
-        
         resp_json[system] = []
         try:
-            
             filesystems = FILESYSTEMS[system]
-
             if DEBUG_MODE:
                 app.logger.debug(f"Checking filesystems in {system}")
-
             resp_system = check_filesystem(system,filesystems,headers)
-
             resp_json[system] = resp_system["out"]
-
         except KeyError as ke:
             app.logger.error(ke.args)
             return jsonify(description="Filesystem information", out=f"Machine {system} doesn't exist"), 404
 
     return jsonify(description="Filesystem information", out=resp_json), 200
-    
-
-    
-
 
 
 # get information about a specific system
@@ -398,7 +395,7 @@ def status_system(machinename):
     [headers, ID] = get_tracing_headers(request)
 
     status_list = []
-    test_system(machinename,headers,status_list)
+    test_system(machinename, headers, status_list, True)
 
     # possible responses:
     # 0: host up and SSH running
@@ -415,11 +412,6 @@ def status_system(machinename):
         out={"system":machinename, "status":"not available", "description": f"Error on JWT token: {reason}"}
         return jsonify(description="Filesystem is not available.", out=out), 200
 
-    if status == -4:
-        filesystem = status_list[0]["filesystem"]
-        out={"system":machinename, "status":"not available", "description": f"Filesystem {filesystem} is not available"}
-        return jsonify(description="Filesystem is not available.", out=out), 200
-
     if status == -3:
         return jsonify(description="System does not exists."), 404
 
@@ -431,8 +423,14 @@ def status_system(machinename):
         out={"system":machinename, "status":"not available", "description":"System does not accept connections"}
         return jsonify(description="System information", out=out), 200
 
-
+    # System is available
     out = {"system": machinename, "status": "available", "description": "System ready"}
+
+    # Check filesystem separately
+    for st in status_list:
+        if st["status"] == -4:
+            filesystem_status = st["filesystem"]
+            out["description"] = f"Filesystem {filesystem_status} is not available"
     return jsonify(description="System information", out=out), 200
 
 
