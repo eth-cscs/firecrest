@@ -9,26 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Support for multiple JWT signature algorithms
-- Added option to follow symbolic links in the `POST /utilities/compress` and `POST /storage/xfer-internal/compress` endpoints
-- Added new "general" section to status/parameters describing `FIRECREST_VERSION` and `FIRECREST_BUILD` timestamp
-- Environment variable `F7T_HOME_ENABLED` to set `False` if `$HOME` is not mounted on systems executing FirecREST commands
+- Support for multiple JWT signature algorithms.
+- Added option to follow symbolic links in the `POST /utilities/compress` and `POST /storage/xfer-internal/compress` endpoints.
+- Added new "general" section to status/parameters describing `FIRECREST_VERSION` and `FIRECREST_BUILD` timestamp.
+- Environment variable `F7T_HOME_ENABLED` to set `False` if `$HOME` is not mounted on systems executing FirecREST commands.
+- Environment variable `F7T_KIBANA_LOG` to enable/disable the JSON format log reporting, detected and parsed by Kibana, and the related Helm chart's annotations.
 
 ### Changed
 
-- SLURM scheduler now uses `--export` option for passing environment variables to a job
-- Variable `F7T_REALM_RSA_PUBLIC_KEYS` changed to `F7T_AUTH_PUBLIC_KEYS`
-- Variable `F7T_REALM_RSA_TYPE_` changed to `F7T_AUTH_ALGORITHMS`
-- Added default values on helm charts
-- Upgrade `requests` library to version `2.32.0`
-
+- SLURM scheduler now uses `--export` option for passing environment variables to a job.
+- Variable `F7T_REALM_RSA_PUBLIC_KEYS` changed to `F7T_AUTH_PUBLIC_KEYS`.
+- Variable `F7T_REALM_RSA_TYPE_` changed to `F7T_AUTH_ALGORITHMS`.
+- Added default values on helm charts.
+- Upgrade `requests` library to version `2.32.0`.
+- System availability is tested using `whoami` instead of `ls -l` on a filesystem. Filesystem failures reported in `status/systems/<SYSTEM>` do not affect the availability of a system.
+- Filesystem check is executed with the command `ls -1f`, skipping listing and sorting of entries.
 
 ### Fixed
 
 - Fix parsing in `GET /utilities/ls` endpoint.
 - The job fields `job_data_out` and `job_file_err` from `GET /compute/jobs` will be empty for jobs that are still pending (so that there is no confusion with older output/error files).
-- Added retry on task creation workflow
-- Error message when `$HOME` is not mounted
+- Added retry on task creation workflow.
+- Error message when `$HOME` is not mounted.
 
 ## [1.16.0]
 
@@ -38,12 +40,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added endpoints `POST /utilities/compress`, `POST /utilities/extract`, `POST /storage/xfer-internal/compress` and `POST /storage/xfer-internal/extract` for file compression and extraction.
 - Added recurisive option to ls utilities command `&recursive=true`.
 - Added the endpoint `/compute/partitions` to retrieve information about partitions in the scheduling queue.
-- Added grep support for tail and head command. `&grep=pattern`
+- Added grep support for tail and head command. `&grep=pattern`.
 - Added `examples` directory for practical use cases of FirecREST.
 
 ### Changed
 
-- Environment variable names
+- Environment variable names:
   - Added: `F7T_CERTIFICATOR_HOST`, `F7T_COMPUTE_HOST`, `F7T_RESERVATION_HOST`, `F7T_STATUS_HOST`, `F7T_STORAGE_HOST`, `F7T_TASKS_HOST`, `F7T_UTILITIES_HOST`
   - Replaced
     - `F7T_SYSTEMS_PUBLIC` by `F7T_SYSTEMS_PUBLIC_NAME`
@@ -64,7 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed error on pipeline when releasing production version.
 - Fixed response in task after timeout in one of the commands.
 - Handle `ChunkedEncodingError` error in task creation to avoid crashing and returning 500 Error.
-- Fixed compute task error message on system not available
+- Fixed compute task error message on system not available.
 
 ## [1.15.0]
 
@@ -87,10 +89,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed demo images dependency declarations preventing docker-compose to build successfully.
-- Fixed check when submitted an empty batch file on `POST /compute/jobs/upload`
-- Fixed error message when `GET /status/systems` encounters error in one filesystem
-- Fixed SSH connection error catching
-- Fixed secured "ssh-keygen" command execution
+- Fixed check when submitted an empty batch file on `POST /compute/jobs/upload`.
+- Fixed error message when `GET /status/systems` encounters error in one filesystem.
+- Fixed SSH connection error catching.
+- Fixed secured "ssh-keygen" command execution.
 
 ## [1.14.0]
 
@@ -102,15 +104,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add description for each parameter in `GET /status/parameters` response.
 - Add support for Object Storage Tenants in S3v4 object storage. The associated environment variable is `F7T_S3_TENANT` and it can be empty or be `null` or `none` when the tenant is not needed. Otherwise the tenant name has to be set.
 - The task that is returned from a successful `GET /jobs/acct` would returns the attribute `time`, which is `cputime` from slurm. The attribute will remain and `cputime` and `elapsed` will be also returned. Similarly, `time_left` is actually the time of termination of the jobs. `time_left` will remain for compatibility reasons, but `elapsed` attribute will also be returned.
-- Added `F7T_AUTH_ISSUER` to specify the JWT token issuer to be checked by Kong GW
-- Removed `F7T_AUTH_REALM` and `F7T_AUTH_URL` which are no longer needed
+- Added `F7T_AUTH_ISSUER` to specify the JWT token issuer to be checked by Kong GW.
+- Removed `F7T_AUTH_REALM` and `F7T_AUTH_URL` which are no longer needed.
 
 ### Changed
 
-- CI/CD pipeline is now adapted to create helm charts images and push to a repository when TDS or Prod are tagged
-  - Also secrets now can be managed from ExternalSecrets on K8s deployment
-  - Deployment on TDS triggers ArgoCD deployment
-- Demo and k8s deployments have the Swagger UI API specification at unauthenticated `/docs` endpoint
+- CI/CD pipeline is now adapted to create helm charts images and push to a repository when TDS or Prod are tagged:
+  - Also secrets now can be managed from ExternalSecrets on K8s deployment.
+  - Deployment on TDS triggers ArgoCD deployment.
+- Demo and k8s deployments have the Swagger UI API specification at unauthenticated `/docs` endpoint.
 
 ### Fixed
 
@@ -121,15 +123,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Tasks microservice now provides filtering by a subset of tasks with a `tasks` parameter
-  - `GET /tasks?tasks=<taskid>,<taskid>,<taskid>`
+  - `GET /tasks?tasks=<taskid>,<taskid>,<taskid>`.
 
-- Tasks microservice now reports in task metadata the system for which the task was created
+- Tasks microservice now reports in task metadata the system for which the task was created.
 
-- For storage tasks, now the `source` and `target` path are part of the `data` field on the response for all statuses
+- For storage tasks, now the `source` and `target` path are part of the `data` field on the response for all statuses.
 
-- For certificator container sets up the environment variables `F7T_CA_KEY_PATH` and `F7T_PUB_USER_KEY_PATH` as absolute paths in the container for the CA Private key (`ca-key`) and the user key (`user-key.pub`), respectively. If not set, the default directory will be root (ie, `/ca-key`)
+- For certificator container sets up the environment variables `F7T_CA_KEY_PATH` and `F7T_PUB_USER_KEY_PATH` as absolute paths in the container for the CA Private key (`ca-key`) and the user key (`user-key.pub`), respectively. If not set, the default directory will be root (ie, `/ca-key`).
 
-- For the rest of microservices, the value to set is `F7T_PRIV_USER_KEY_PATH` (`user-key`)
+- For the rest of microservices, the value to set is `F7T_PRIV_USER_KEY_PATH` (`user-key`).
 
 - The `head` endpoint has a new argument: `skip_ending`. The output will be the whole file, without the last NUM bytes/lines of each file.
 
@@ -137,8 +139,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Demo template UI client has been fixed in order to integrate latest changes
-- Fixed correct header when the result of an operation in the system is `Not a directory` to `X-Not-A-Directory`
+- Demo template UI client has been fixed in order to integrate latest changes.
+- Fixed correct header when the result of an operation in the system is `Not a directory` to `X-Not-A-Directory`.
 - Fixed the automatic change of the filename in uploaded files with empty spaces and other special characters.
 - Fixed the issue with parsing `ls` when encountering filenames with the `$` character and whitespace.
 
@@ -148,9 +150,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Flask version upgraded to `2.3.2`
-- Cryptography version upgraded to `39.0.2`
-- Certificator now uses `f7t-base` as base image
+- Flask version upgraded to `2.3.2`.
+- Cryptography version upgraded to `39.0.2`.
+- Certificator now uses `f7t-base` as base image.
 
 ### Fixed
 
@@ -158,20 +160,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- More tests for `/storage/xfer-external/upload` endpoint
+- More tests for `/storage/xfer-external/upload` endpoint.
 ### Changed
 
-- For `/storage/xfer-external/upload` now is possible for the form parameter `targetPath` to be a file path or a directory path
+- For `/storage/xfer-external/upload` now is possible for the form parameter `targetPath` to be a file path or a directory path.
 
 ### Fixed
 
-- Upgrade to `redis == 4.5.4` in `tasks` API
+- Upgrade to `redis == 4.5.4` in `tasks` API.
 
 ## [1.11.1]
 
 ### Fixed
 
-- Automated process for extracting the version number and using it in K8s OpenAPI pod
+- Automated process for extracting the version number and using it in K8s OpenAPI pod.
 
 ## [1.11.0]
 
@@ -180,7 +182,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add github workflow for automatic releases.
 - Add new endpoints for `head` and `tail` commands.
 - Add endpoint for the `whoami` command.
-- Add `X-Size-Limit` to `/utilities/download` and `/utilities/view` endpoints API specification
+- Add `X-Size-Limit` to `/utilities/download` and `/utilities/view` endpoints API specification.
 
 ### Changed
 

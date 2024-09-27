@@ -3,8 +3,14 @@ kind: Deployment
 metadata:
   name: deploy-compute
   namespace: {{ .Values.global.namespace }}
-  {{ if ne .Values.global.environment "dev" }}
   annotations:
+  {{ if eq .Values.F7T_KIBANA_LOG "true" }}
+    co.elastic.logs/processors.decode_json_fields.fields.0: "message"
+    co.elastic.logs/processors.decode_json_fields.target: ""
+    co.elastic.logs/processors.decode_json_fields.overwrite_keys: "true"
+    co.elastic.logs/processors.decode_json_fields.add_error_key: "true"
+  {{ end }}
+  {{ if ne .Values.global.environment "dev" }}
     configmap.reloader.stakater.com/reload: "compute-env-file,common-env-file"    
   {{ end }}
 spec:

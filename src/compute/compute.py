@@ -148,7 +148,7 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
         ID = headers.get(TRACER_HEADER, '')
         # create tmpdir for sbatch file
         action = f"ID={ID} timeout {UTILITIES_TIMEOUT} mkdir -p -- '{job_dir}'"
-        retval = exec_remote_command(headers, system_name, system_addr, action)
+        retval = exec_remote_command(headers, system_name, system_addr, action, log_command="mkdir")
 
         if retval["error"] != 0:
             app.logger.error(f"(Error creating directory: {retval['msg']}")
@@ -158,7 +158,7 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
         # save the sbatch file in the target cluster FS
         if job_file['content']:
             action = f"ID={ID} cat > '{job_dir}/{job_file['filename']}'"
-            retval = exec_remote_command(headers, system_name, system_addr, action, file_transfer="upload", file_content=job_file['content'])
+            retval = exec_remote_command(headers, system_name, system_addr, action, file_transfer="upload", file_content=job_file['content'], log_command="cat")
             if retval["error"] != 0:
                 app.logger.error(f"(Error uploading file: {retval['msg']}")
                 update_task(task_id, headers, async_task.ERROR, "Failed to upload file")
@@ -171,7 +171,7 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
         action = f"ID={ID} {scheduler_command}"
         app.logger.info(action)
 
-        retval = exec_remote_command(headers, system_name, system_addr, action)
+        retval = exec_remote_command(headers, system_name, system_addr, action, log_command=scheduler_command)
 
         if retval["error"] != 0:
             app.logger.error(f"(Error: {retval['msg']}")
@@ -231,7 +231,7 @@ def get_job_files(headers, system_name, system_addr, job_info, output=False, use
 
     for n_try in range(n_tries):
 
-        resp = exec_remote_command(headers, system_name, system_addr, action)
+        resp = exec_remote_command(headers, system_name, system_addr, action, log_command=sched_command)
 
         # if there was an error, the result will be SUCESS but not available outputs
         if resp["error"] == 0:
@@ -265,12 +265,12 @@ def get_job_files(headers, system_name, system_addr, job_info, output=False, use
         # tail -c {number_of_bytes} --> 1000B = 1KB
 
         action = f"ID={ID} timeout {UTILITIES_TIMEOUT} tail -c {TAIL_BYTES} -- '{control_info['job_file_out']}'"
-        resp = exec_remote_command(headers, system_name, system_addr, action)
+        resp = exec_remote_command(headers, system_name, system_addr, action, log_command="tail")
         if resp["error"] == 0:
             control_info["job_data_out"] = resp["msg"]
 
         action = f"ID={ID} timeout {UTILITIES_TIMEOUT} tail -c {TAIL_BYTES} -- '{control_info['job_file_err']}'"
-        resp = exec_remote_command(headers, system_name, system_addr, action)
+        resp = exec_remote_command(headers, system_name, system_addr, action, log_command="tail")
         if resp["error"] == 0:
             control_info["job_data_err"] = resp["msg"]
 
@@ -287,7 +287,7 @@ def submit_job_path_task(headers, system_name, system_addr, fileName, job_dir, a
     action=f"ID={ID} {scheduler_command}"
     app.logger.info(action)
 
-    resp = exec_remote_command(headers, system_name, system_addr, action)
+    resp = exec_remote_command(headers, system_name, system_addr, action, log_command=scheduler_command)
 
     # in case of error:
     if resp["error"] != 0:
@@ -350,7 +350,7 @@ def submit_job_upload():
 
     [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
-    resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true")
+    resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true", log_command="submit_job_upload")
 
     if resp["error"] != 0:
         error_str = resp["msg"]
@@ -484,7 +484,7 @@ def submit_job_path():
 
     [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
-    resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true")
+    resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true", log_command="submit_job_path")
 
     if resp["error"] != 0:
         error_str = resp["msg"]
@@ -558,7 +558,7 @@ def list_jobs():
 
     [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
-    resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true")
+    resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true", log_command="list_jobs")
 
     if resp["error"] != 0:
         error_str = resp["msg"]
@@ -653,9 +653,9 @@ def list_jobs():
 
 
 
-def list_job_task(headers,system_name, system_addr,action,task_id,pageSize,pageNumber):
+def list_job_task(headers, system_name, system_addr, action, task_id, pageSize, pageNumber):
     # exec command
-    resp = exec_remote_command(headers, system_name, system_addr, action)
+    resp = exec_remote_command(headers, system_name, system_addr, action, log_command="list_job_task")
 
     app.logger.info(resp)
 
@@ -747,7 +747,7 @@ def list_job(jobid):
 
     [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
-    resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true")
+    resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true", log_command="list_job")
 
     if resp["error"] != 0:
         error_str = resp["msg"]
@@ -797,7 +797,7 @@ def list_job(jobid):
 
 
 def cancel_job_task(headers, system_name, system_addr, action, task_id):
-    resp = exec_remote_command(headers, system_name, system_addr, action)
+    resp = exec_remote_command(headers, system_name, system_addr, action, log_command="cancel_job")
 
     app.logger.info(resp)
 
@@ -856,7 +856,7 @@ def cancel_job(jobid):
 
     [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
-    resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true")
+    resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true", log_command="cancel_job")
 
     if resp["error"] != 0:
         error_str = resp["msg"]
@@ -899,7 +899,7 @@ def cancel_job(jobid):
 
 def acct_task(headers, system_name, system_addr, action, task_id, pageSize, pageNumber):
     # exec remote command
-    resp = exec_remote_command(headers, system_name, system_addr, action)
+    resp = exec_remote_command(headers, system_name, system_addr, action, log_command="acct")
 
     # in case of error:
     if resp["error"] == -2:
@@ -960,7 +960,7 @@ def acct_task(headers, system_name, system_addr, action, task_id, pageSize, page
 
 def nodes_task(headers, system_name, system_addr, action, task_id):
     # exec remote command
-    resp = exec_remote_command(headers, system_name, system_addr, action)
+    resp = exec_remote_command(headers, system_name, system_addr, action, log_command="get_nodes")
 
     # in case of error:
     if resp["error"] == -2:
@@ -984,7 +984,7 @@ def nodes_task(headers, system_name, system_addr, action, task_id):
 
 def partitions_task(headers, system_name, system_addr, action, task_id, partitions_list):
     # exec remote command
-    resp = exec_remote_command(headers, system_name, system_addr, action)
+    resp = exec_remote_command(headers, system_name, system_addr, action, log_command="get_partitions")
 
     # in case of error:
     if resp["error"] == -2:
@@ -1012,7 +1012,7 @@ def partitions_task(headers, system_name, system_addr, action, task_id, partitio
 
 def reservations_task(headers, system_name, system_addr, action, task_id, reservations_list=None):
     # exec remote command
-    resp = exec_remote_command(headers, system_name, system_addr, action)
+    resp = exec_remote_command(headers, system_name, system_addr, action, log_command="get_reservations")
 
     # in case of error:
     if resp["error"] == -2:
@@ -1059,7 +1059,7 @@ def acct():
 
     [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
-    resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true")
+    resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true", log_command="acct")
 
     if resp["error"] != 0:
         error_str = resp["msg"]
@@ -1155,7 +1155,7 @@ def get_nodes():
 
     [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
-    resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true")
+    resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true", log_command="get_nodes")
 
     if resp["error"] != 0:
         error_str = resp["msg"]
@@ -1228,7 +1228,7 @@ def get_node(nodeName):
 
     [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
-    resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true")
+    resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true", log_command="get_node")
 
     if resp["error"] != 0:
         error_str = resp["msg"]
@@ -1293,12 +1293,7 @@ def get_partitions():
 
     [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
-    resp = exec_remote_command(
-        headers,
-        system_name,
-        system_addr,
-        f"ID={ID} true"
-    )
+    resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true", log_command="get_partitions")
 
     if resp["error"] != 0:
         error_str = resp["msg"]
@@ -1374,12 +1369,7 @@ def get_reservations():
 
     [headers, ID] = get_tracing_headers(request)
     # check if machine is accessible by user:
-    resp = exec_remote_command(
-        headers,
-        system_name,
-        system_addr,
-        f"ID={ID} true"
-    )
+    resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true", log_command="get_reservations")
 
     if resp["error"] != 0:
         error_str = resp["msg"]

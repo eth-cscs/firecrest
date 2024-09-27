@@ -5,7 +5,10 @@
 #  SPDX-License-Identifier: BSD-3-Clause
 #
 import logging
+import logging.config
+from logging import Logger
 from logging.handlers import TimedRotatingFileHandler
+from pythonjsonlogger import jsonlogger
 import os
 import jwt
 import stat
@@ -49,6 +52,12 @@ def get_null_var(var):
 
 
 DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
+
+KIBANA_LOG = get_boolean_var(os.environ.get("F7T_KIBANA_LOG", False))
+
+LOG_TYPE = os.environ.get("F7T_LOG_TYPE", "file").strip('\'"')
+
+LOG_PATH = os.environ.get("F7T_LOG_PATH", '/var/log').strip('\'"')
 
 AUTH_HEADER_NAME = os.environ.get("F7T_AUTH_HEADER_NAME", "Authorization")
 
@@ -362,13 +371,10 @@ def create_certificate(headers, cluster_name, cluster_addr, command=None, option
         return [None, -1, e]
 
 
-
 # execute remote commands with Paramiko:
-def exec_remote_command(headers, system_name, system_addr, action, file_transfer=None, file_content=None):
+def exec_remote_command(headers, system_name, system_addr, action, file_transfer=None, file_content=None, log_command=""):
 
     import paramiko, socket
-
-    logging.info(f'System name: {system_name} - action: {action}')
 
     if file_transfer == "storage_cert":
         # storage is using a previously generated cert, save cert list from content
@@ -396,6 +402,13 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
         username = is_username_ok["username"]
 
     [pub_cert, pub_key, priv_key, temp_dir] = cert_list
+
+    # JSON FORMAT
+    if KIBANA_LOG:
+        KibanaLogger.get_logger().info(f'System name: {system_name} - action: {action}',
+                                       extra={"system": system_name, "service": KibanaLogger.get_service(), "username": username, "command": log_command})
+    else:
+        logging.info(f'System name: {system_name} - username: {username} - action: {action}')
 
     # -------------------
     # remote exec with paramiko
@@ -842,7 +855,7 @@ def is_valid_file(path, headers, system_name, system_addr):
     ID = headers.get(TRACER_HEADER, '')
     # checks user accessibility to path using head command with 0 bytes
     action = f"ID={ID} head -c 1 -- '{path}' > /dev/null"
-    retval = exec_remote_command(headers, system_name, system_addr, action)
+    retval = exec_remote_command(headers, system_name, system_addr, action, log_command="head")
 
     logging.info(retval)
 
@@ -892,7 +905,7 @@ def is_valid_dir(path, headers, system_name, system_addr):
     tempFileName = f".firecrest.{hashedTS.hexdigest()}"
     ID = headers.get(TRACER_HEADER, '')
     action = f"ID={ID} touch -- '{path}/{tempFileName}'"
-    retval = exec_remote_command(headers, system_name, system_addr, action)
+    retval = exec_remote_command(headers, system_name, system_addr, action, log_command="touch")
 
     logging.info(retval)
 
@@ -921,7 +934,7 @@ def is_valid_dir(path, headers, system_name, system_addr):
 
     # delete test file created
     action = f"ID={ID} rm -- '{path}/{tempFileName}'"
-    retval = exec_remote_command(headers, system_name, system_addr, action)
+    retval = exec_remote_command(headers, system_name, system_addr, action, log_command="rm")
 
     return {"result":True}
 
@@ -1104,15 +1117,53 @@ class LogRequestFormatter(logging.Formatter):
                 record.TID = threading.current_thread().name
             except:
                 record.TID = 'notid'
-
         return super().format(record)
+
+# Log formatter for Kibana
+class KibanaLogger:
+    instance = None
+    def __new__(cls, service):
+        if cls.instance is None:
+            cls.instance = super(KibanaLogger, cls).__new__(cls)
+        return cls.instance
+
+    def __init__(self, service):
+        self.kibana_logger = logging.getLogger("f7t_kibana_log")
+        self.service = service
+        logging.debug("KIBANA INIT 2 " + LOG_TYPE)
+
+        log_formatter = jsonlogger.JsonFormatter('%(asctime)s %(levelname)s %(name)s %(message)s', '%Y-%m-%d %H:%M:%S')
+        if LOG_TYPE == "file":
+            log_handler = TimedRotatingFileHandler(f'{LOG_PATH}/{service}.log', when='D', interval=1)
+        else:
+            log_handler = logging.StreamHandler(stream=sys.stdout)
+        log_handler.setFormatter(log_formatter)
+        self.kibana_logger.addHandler(log_handler)
+
+        if DEBUG_MODE:
+            self.kibana_logger.setLevel(logging.DEBUG)
+            logging.info("Kibana Log DEBUG_MODE: True")
+        else:
+            self.kibana_logger.setLevel(logging.INFO)
+            logging.info("Kibana Log DEBUG_MODE: False")
+
+    @staticmethod
+    def get_logger(service = ""):
+        if KibanaLogger.instance is None:
+            KibanaLogger(service)
+        return KibanaLogger.instance.kibana_logger
+
+    @staticmethod
+    def get_service():
+        if KibanaLogger.instance is None:
+            return ""
+        return KibanaLogger.instance.service
+
 
 def setup_logging(logging, service):
     logger = logging.getLogger()
 
-    LOG_TYPE = os.environ.get("F7T_LOG_TYPE", "file").strip('\'"')
     if LOG_TYPE == "file":
-        LOG_PATH = os.environ.get("F7T_LOG_PATH", '/var/log').strip('\'"')
         # timed rotation: 1 (interval) rotation per day (when="D")
         logHandler = TimedRotatingFileHandler(f'{LOG_PATH}/{service}.log', when='D', interval=1)
     elif LOG_TYPE == "stdout":
@@ -1125,10 +1176,9 @@ def setup_logging(logging, service):
     logFormatter = LogRequestFormatter('%(asctime)s,%(msecs)d %(thread)s [%(TID)s] %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
                                      '%Y-%m-%dT%H:%M:%S')
     logHandler.setFormatter(logFormatter)
-
-    # set handler to logger
+    # Set handler to logger
     logger.addHandler(logHandler)
-
+    # Set logging level
     if DEBUG_MODE:
         logging.getLogger().setLevel(logging.DEBUG)
         logging.info("DEBUG_MODE: True")
@@ -1136,7 +1186,10 @@ def setup_logging(logging, service):
         logging.getLogger().setLevel(logging.INFO)
         logging.info("DEBUG_MODE: False")
 
+    # Initialize Kibana logger
+    KibanaLogger(service)
     return logger
+
 
 def extract_command(file_path, output_directory, type="auto"):
     '''Return the appropriate command based on the file extension, or None if not supported

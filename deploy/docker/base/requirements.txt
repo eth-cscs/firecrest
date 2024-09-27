@@ -7,3 +7,4 @@ jaeger_client==4.5.0
 Flask-Opentracing==1.1.0
 gunicorn==22.0.0
 Flask-Caching==2.1.0
+python-json-logger==2.0.7
