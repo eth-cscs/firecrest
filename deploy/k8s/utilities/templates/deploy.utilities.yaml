@@ -4,7 +4,7 @@ metadata:
   name: deploy-utilities
   namespace: {{ .Values.global.namespace }}
   annotations:
-  {{ if eq .Values.F7T_KIBANA_LOG "true" }}
+  {{ if eq .Values.F7T_LOG_KIBANA "True" }}
     co.elastic.logs/processors.decode_json_fields.fields.0: "message"
     co.elastic.logs/processors.decode_json_fields.target: ""
     co.elastic.logs/processors.decode_json_fields.overwrite_keys: "true"

@@ -53,7 +53,7 @@ def get_null_var(var):
 
 DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
-KIBANA_LOG = get_boolean_var(os.environ.get("F7T_KIBANA_LOG", False))
+ENABLE_LOG_KIBANA = get_boolean_var(os.environ.get("F7T_LOG_KIBANA", False))
 
 LOG_TYPE = os.environ.get("F7T_LOG_TYPE", "file").strip('\'"')
 
@@ -404,7 +404,7 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
     [pub_cert, pub_key, priv_key, temp_dir] = cert_list
 
     # JSON FORMAT
-    if KIBANA_LOG:
+    if ENABLE_LOG_KIBANA:
         KibanaLogger.get_logger().info(f'System name: {system_name} - action: {action}',
                                        extra={"system": system_name, "service": KibanaLogger.get_service(), "username": username, "command": log_command})
     else:
