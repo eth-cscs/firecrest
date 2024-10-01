@@ -402,14 +402,11 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
         username = is_username_ok["username"]
 
     [pub_cert, pub_key, priv_key, temp_dir] = cert_list
-
     # JSON FORMAT
     if ENABLE_LOG_KIBANA:
-        KibanaLogger.get_logger().info(f'System name: {system_name} - action: {action}',
-                                       extra={"system": system_name, "service": KibanaLogger.get_service(), "username": username, "command": log_command})
+        KibanaLogger.get_logger().info({"system": system_name, "service": KibanaLogger.get_service(), "username": username, "command": log_command, "action": action})
     else:
         logging.info(f'System name: {system_name} - username: {username} - action: {action}')
-
     # -------------------
     # remote exec with paramiko
     try:
@@ -1129,8 +1126,8 @@ class KibanaLogger:
 
     def __init__(self, service):
         self.kibana_logger = logging.getLogger("f7t_kibana_log")
+        self.kibana_logger.propagate = False
         self.service = service
-        logging.debug("KIBANA INIT 2 " + LOG_TYPE)
 
         log_formatter = jsonlogger.JsonFormatter('%(asctime)s %(levelname)s %(name)s %(message)s', '%Y-%m-%d %H:%M:%S')
         if LOG_TYPE == "file":
