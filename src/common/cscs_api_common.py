@@ -1135,7 +1135,7 @@ class KibanaLogger:
         self.kibana_logger.propagate = False
         self.service = service
 
-        log_formatter = jsonlogger.JsonFormatter('%(asctime)s %(levelname)s %(name)s %(message)s', '%Y-%m-%d %H:%M:%S')
+        log_formatter = jsonlogger.JsonFormatter('%(asctime)s %(levelname)s %(name)s %(message)s')
         if LOG_TYPE == "file":
             log_handler = TimedRotatingFileHandler(f'{LOG_PATH}/{service}.log', when='D', interval=1)
         else:
