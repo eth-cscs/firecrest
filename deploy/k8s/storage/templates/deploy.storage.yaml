@@ -4,12 +4,6 @@ metadata:
   name: deploy-storage
   namespace: {{ .Values.global.namespace }}
   annotations:
-  {{ if .Values.global.F7T_LOG_KIBANA | default false }}
-    co.elastic.logs/processors.decode_json_fields.fields.0: "message"
-    co.elastic.logs/processors.decode_json_fields.target: ""
-    co.elastic.logs/processors.decode_json_fields.overwrite_keys: "true"
-    co.elastic.logs/processors.decode_json_fields.add_error_key: "true"
-  {{ end }}
   {{ if ne .Values.global.environment "dev" }}
     configmap.reloader.stakater.com/reload: "storage-env-file,common-env-file"
     secret.reloader.stakater.com/reload: "firecrest-common-secrets"
@@ -23,6 +17,13 @@ spec:
     metadata:
       labels:
         app: storage
+      annotations:
+      {{ if .Values.global.F7T_LOG_KIBANA | default false }}
+        co.elastic.logs/processors.decode_json_fields.fields.0: "message"
+        co.elastic.logs/processors.decode_json_fields.target: ""
+        co.elastic.logs/processors.decode_json_fields.overwrite_keys: "true"
+        co.elastic.logs/processors.decode_json_fields.add_error_key: "true"
+      {{ end }}
     spec:
       containers:
       - image: "{{ .Values.global.registry }}/storage:{{ .Values.global.tag }}"

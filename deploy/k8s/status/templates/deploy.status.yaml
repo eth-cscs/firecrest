@@ -4,12 +4,6 @@ metadata:
   name: deploy-status
   namespace: {{ .Values.global.namespace }}
   annotations:
-  {{ if .Values.global.F7T_LOG_KIBANA | default false }}
-    co.elastic.logs/processors.decode_json_fields.fields.0: "message"
-    co.elastic.logs/processors.decode_json_fields.target: ""
-    co.elastic.logs/processors.decode_json_fields.overwrite_keys: "true"
-    co.elastic.logs/processors.decode_json_fields.add_error_key: "true"
-  {{ end }}
   {{ if ne .Values.global.environment "dev" }}
     configmap.reloader.stakater.com/reload: "status-env-file,common-env-file"
   {{ end }}
@@ -23,6 +17,13 @@ spec:
       labels:
         app: status
         role: microservice
+      annotations:
+      {{ if .Values.global.F7T_LOG_KIBANA | default false }}
+        co.elastic.logs/processors.decode_json_fields.fields.0: "message"
+        co.elastic.logs/processors.decode_json_fields.target: ""
+        co.elastic.logs/processors.decode_json_fields.overwrite_keys: "true"
+        co.elastic.logs/processors.decode_json_fields.add_error_key: "true"
+      {{ end }}
     spec:
       containers:
       - image: "{{ .Values.global.registry }}/status:{{ .Values.global.tag }}"
