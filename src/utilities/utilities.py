@@ -168,7 +168,6 @@ def list_directory():
     return common_fs_operation(request, "ls")
 
 
-
 ## parse ls output
 def ls_parse_folder(folder_content:str, path:str=""):
     # Example of ls output

@@ -15,8 +15,6 @@ spec:
       app: storage
   template:
     metadata:
-      labels:
-        app: storage
       annotations:
       {{ if .Values.global.F7T_LOG_KIBANA | default false }}
         co.elastic.logs/processors.decode_json_fields.fields.0: "message"
@@ -24,6 +22,8 @@ spec:
         co.elastic.logs/processors.decode_json_fields.overwrite_keys: "true"
         co.elastic.logs/processors.decode_json_fields.add_error_key: "true"
       {{ end }}
+      labels:
+        app: storage
     spec:
       containers:
       - image: "{{ .Values.global.registry }}/storage:{{ .Values.global.tag }}"
