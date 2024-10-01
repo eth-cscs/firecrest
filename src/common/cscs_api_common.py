@@ -524,8 +524,8 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
                 logging.info(f"stdout: ({stdout_errno}) --> Download OK (content hidden)")
         else:
             logging.info(f"stderr: ({stderr_errno}) --> {stderr_errda}")
-            logging.info(f"stdout: ({stdout_errno}) --> {stdout_errda}")
             if DEBUG_MODE:
+                logging.info(f"stdout: ({stdout_errno}) --> {stdout_errda}")
                 logging.info(f"stdout: ({stdout_errno}) --> {outlines}")
 
         if stderr_errno == 0:
@@ -609,10 +609,10 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
         os.rmdir(temp_dir)
 
     # hiding results from utilities/download, since output is the content of the file
-    if file_transfer == "download" and stderr_errno == 0:
-        logging.info(f"Result: status_code {result['error']} -> Utilities download")
-    else:
-        logging.info(f"Result: status_code {result['error']} -> {result['msg']}")
+    # if file_transfer == "download" and stderr_errno == 0:
+    #     logging.info(f"Result: status_code {result['error']} -> Utilities download")
+    # else:
+    #     logging.info(f"Result: status_code {result['error']} -> {result['msg']}")
     return result
 
 
