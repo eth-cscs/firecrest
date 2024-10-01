@@ -609,10 +609,15 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
         os.rmdir(temp_dir)
 
     # hiding results from utilities/download, since output is the content of the file
-    # if file_transfer == "download" and stderr_errno == 0:
-    #     logging.info(f"Result: status_code {result['error']} -> Utilities download")
-    # else:
-    #     logging.info(f"Result: status_code {result['error']} -> {result['msg']}")
+    if file_transfer == "download" and stderr_errno == 0:
+        logging.info(f"Result: status_code {result['error']} -> Utilities download")
+    elif file_transfer == "download" and stderr_errno != 0:
+        logging.error(f"Result: status_code {result['error']} -> {result['msg']}")
+    else:
+        if DEBUG_MODE:
+            logging.debug(f"Result: status_code {result['error']} -> {result['msg']}")
+        else:
+            logging.info(f"Result: status_code {result['error']}")
     return result
 
 
