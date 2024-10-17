@@ -39,7 +39,7 @@ STATUS_CODES_FS = []
 for system in SYSTEMS:
 	STATUS_CODES_SYSTEMS.append((system,200))
 	STATUS_CODES_FS.append((system,"HOME",200))
-	STATUS_CODES_FS.append((system,"SCRATCH",400))
+	STATUS_CODES_FS.append((system,"PROJECT",400))
 
 STATUS_CODES_SYSTEMS.append(("not-a-system",404))
 
