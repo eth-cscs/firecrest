@@ -167,7 +167,8 @@ def check_header(header):
 
             except jwt.exceptions.InvalidSignatureError:
                 decoding_reason = "JWT token has invalid signature"
-                logging.error(decoding_reason, exc_info=False)
+                if DEBUG_MODE:
+                    logging.debug(decoding_reason, exc_info=False)
                 # try next key
                 continue
             except jwt.exceptions.ExpiredSignatureError:
@@ -245,7 +246,7 @@ def get_username(header):
                                          algorithms=[auth_pubkey["alg"]],
                                          audience=AUTH_AUDIENCE)
                 if DEBUG_MODE:
-                    logging.info("Correctly decoded")
+                    logging.debug("Correctly decoded")
 
                 # if token is correctly decoded, exit the loop
                 decoding_result = True
@@ -253,7 +254,8 @@ def get_username(header):
 
             except jwt.exceptions.InvalidSignatureError:
                 decoding_reason = "JWT token has invalid signature"
-                logging.error(decoding_reason, exc_info=False)
+                if DEBUG_MODE:
+                    logging.debug(decoding_reason, exc_info=False)
                 # try next key
                 continue
             except jwt.exceptions.ExpiredSignatureError:
