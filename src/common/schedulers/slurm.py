@@ -128,7 +128,10 @@ class SlurmScheduler(schedulers.JobScheduler):
 
     def poll(self, user, jobids=None):
         # In Slurm we implement this with the squeue command
-        cmd = ["squeue", f"--user={user}"]
+        cmd = ["squeue"]
+        if user:
+            cmd.append(f"--user={user}")
+
         if jobids:
             cmd.append(f"--jobs='{','.join(jobids)}'")
 

@@ -1642,6 +1642,12 @@ paths:
             type: array
             items:
               type: string
+        - name: userJobs
+          in: query
+          description: When True the ouput will include only the user's jobs. Information about job's files is not available when False.
+          schema:
+            type: boolean
+            default: true
         - $ref: '#/components/parameters/pageSize'
         - $ref: '#/components/parameters/pageNumber'
       responses:
