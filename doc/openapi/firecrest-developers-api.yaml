@@ -1521,7 +1521,16 @@ paths:
                   description: Name of the account associated to the user in the scheduler. If not set, the one incuded in the script is taken.
                 env:
                   type: string
-                  description: serialized JSON dictionary (varName, value) to be loaded as environment variables for the job
+                  description: >-
+                    serialized JSON dictionary (varName, value) to be loaded as environment variables for the job.
+                    If you need to include forbidden characters (e.g., <, |, etc.) in an environment variable, you can
+                    use the following workaround:
+
+                    1) encode the variable's value to Base64 before submitting the job
+                    and
+
+                    2) decode the variable's value within the job script by using a command like:
+                    `export MY_VARIABLE=$(echo MY_VARIABLE | base64 --decode)`.
               required:
                 - file
       responses:
@@ -1588,7 +1597,16 @@ paths:
                   description: Name of the account associated to the user in the scheduler. If not set, the one incuded in the script is taken.
                 env:
                   type: string
-                  description: serialized JSON dictionary (varName, value) to be loaded as environment variables for the job
+                  description: >-
+                    serialized JSON dictionary (varName, value) to be loaded as environment variables for the job.
+                    If you need to include forbidden characters (e.g., <, |, etc.) in an environment variable, you can
+                    use the following workaround:
+
+                    1) encode the variable's value to Base64 before submitting the job
+                    and
+
+                    2) decode the variable's value within the job script by using a command like:
+                    `export MY_VARIABLE=$(echo MY_VARIABLE | base64 --decode)`.
               required:
                 - targetPath
       responses:
