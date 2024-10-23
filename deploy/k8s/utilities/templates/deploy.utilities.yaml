@@ -16,14 +16,14 @@ spec:
     metadata:
       annotations:
       {{ if .Values.global.F7T_LOG_KIBANA | default false }}
-        co.elastic.logs/processors.0.decode_json_fields.fields.0: "message"
-        co.elastic.logs/processors.0.decode_json_fields.target: ""
-        co.elastic.logs/processors.0.decode_json_fields.overwrite_keys: "true"
-        co.elastic.logs/processors.0.decode_json_fields.add_error_key: "true"
-        co.elastic.logs/processors.1.add_fields.target: ""
-        co.elastic.logs/processors.1.add_fields.type: "logs"
-        co.elastic.logs/processors.1.add_fields.dataset: "pilatus-v1.firecrest"
-        co.elastic.logs/processors.1.add_fields.namespace: "firecrest"
+        co.elastic.logs/processors.decode_json_fields.fields.0: "message"
+        co.elastic.logs/processors.decode_json_fields.target: ""
+        co.elastic.logs/processors.decode_json_fields.overwrite_keys: "true"
+        co.elastic.logs/processors.decode_json_fields.add_error_key: "true"
+        co.elastic.logs/processors.add_fields.target: ""
+        co.elastic.logs/processors.add_fields.fields.type: "logs"
+        co.elastic.logs/processors.add_fields.fields.dataset: "pilatus-v1.firecrest"
+        co.elastic.logs/processors.add_fields.fields.namespace: "firecrest"
       {{ end }}
       labels:
         app: utilities
