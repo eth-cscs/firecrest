@@ -406,7 +406,7 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
     [pub_cert, pub_key, priv_key, temp_dir] = cert_list
     # JSON FORMAT
     if ENABLE_LOG_KIBANA:
-        KibanaLogger.get_logger().info({"system": system_name, "service": KibanaLogger.get_service(), "username": username, "command": log_command, "message": action})
+        KibanaLogger.get_logger().info({"machinename": system_name, "microservice": KibanaLogger.get_service(), "username": username, "command": log_command, "message": action})
     else:
         logging.info(f'System name: {system_name} - username: {username} - action: {action}')
     # -------------------
