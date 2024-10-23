@@ -9,10 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Support for multiple JWT signature algorithms.
-- Added option to follow symbolic links in the `POST /utilities/compress` and `POST /storage/xfer-internal/compress` endpoints.
-- Added new "general" section to status/parameters describing `FIRECREST_VERSION` and `FIRECREST_BUILD` timestamp.
-- Environment variable `F7T_HOME_ENABLED` to set `False` if `$HOME` is not mounted on systems executing FirecREST commands.
+- Support for multiple JWT signature algorithms
+- Added option to follow symbolic links in the `POST /utilities/compress` and `POST /storage/xfer-internal/compress` endpoints
+- Added new "general" section to status/parameters describing `FIRECREST_VERSION` and `FIRECREST_BUILD` timestamp
+- Environment variable `F7T_HOME_ENABLED` to set `False` if `$HOME` is not mounted on systems executing FirecREST commands
+- Add support in the `GET /compute/jobs` endopint to poll for jobs of any user
 - Environment variable `F7T_LOG_KIBANA` to enable/disable the JSON format log reporting, detected and parsed by Kibana, and the related Helm chart's annotations.
 
 ### Changed

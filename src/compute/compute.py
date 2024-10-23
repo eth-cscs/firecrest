@@ -571,19 +571,23 @@ def list_jobs():
             return jsonify(description="Failed to retrieve jobs information"), 404, header
         return jsonify(description="Failed to retrieve jobs information"), 400, header
 
-    is_username_ok = get_username(headers[AUTH_HEADER_NAME])
-
-    if not is_username_ok["result"]:
-        return jsonify(description=is_username_ok["reason"],error="Failed to retrieve jobs information"), 401
-
-    username = is_username_ok["username"]
-
-    app.logger.info(f"Getting information of jobs from {system_name} ({system_addr})")
-
     # job list comma separated:
     jobs        = request.args.get("jobs", None)
     pageSize    = request.args.get("pageSize", None)
     pageNumber  = request.args.get("pageNumber", None)
+    userJobs    = get_boolean_var(request.args.get("userJobs", True))
+
+    if userJobs:
+        is_username_ok = get_username(headers[AUTH_HEADER_NAME])
+
+        if not is_username_ok["result"]:
+            return jsonify(description=is_username_ok["reason"],error="Failed to retrieve jobs information"), 401
+
+        username = is_username_ok["username"]
+    else:
+        username = None
+
+    app.logger.info(f"Getting information of jobs from {system_name} ({system_addr})")
 
     if pageSize is not None or pageNumber is not None:
         if pageSize is not None:
@@ -638,7 +642,7 @@ def list_jobs():
 
         # asynchronous task creation
         aTask = threading.Thread(target=list_job_task, name=ID,
-                                 args=(headers, system_name, system_addr, action, task_id, pageSize, pageNumber))
+                                 args=(headers, system_name, system_addr, action, task_id, pageSize, pageNumber, userJobs))
 
         aTask.start()
 
@@ -653,7 +657,7 @@ def list_jobs():
 
 
 
-def list_job_task(headers, system_name, system_addr, action, task_id, pageSize, pageNumber):
+def list_job_task(headers,system_name, system_addr,action,task_id,pageSize,pageNumber,userJobs=True):
     # exec command
     resp = exec_remote_command(headers, system_name, system_addr, action, log_command="list_job_task")
 
@@ -710,7 +714,15 @@ def list_job_task(headers, system_name, system_addr, action, task_id, pageSize, 
     jobs = {}
     for job_index, jobinfo in enumerate(jobList):
         # now looking for log and err files location
-        jobinfo = get_job_files(headers, system_name, system_addr, jobinfo, output=True)
+        if userJobs:
+            jobinfo = get_job_files(headers, system_name, system_addr, jobinfo, output=True)
+        else:
+            jobinfo["job_file_out"] = ""
+            jobinfo["job_file_err"] = ""
+            jobinfo["job_file"] = ""
+            jobinfo["job_data_out"] = ""
+            jobinfo["job_data_err"] = ""
+            jobinfo["job_info_extra"] = "Job files information is not available when `userJobs` is False"
 
         # add jobinfo to the array
         jobs[str(job_index)]=jobinfo

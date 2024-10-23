@@ -176,7 +176,8 @@ def check_header(header):
 
             except jwt.exceptions.InvalidSignatureError:
                 decoding_reason = "JWT token has invalid signature"
-                logging.error(decoding_reason, exc_info=False)
+                if DEBUG_MODE:
+                    logging.debug(decoding_reason, exc_info=False)
                 # try next key
                 continue
             except jwt.exceptions.ExpiredSignatureError:
@@ -254,7 +255,7 @@ def get_username(header):
                                          algorithms=[auth_pubkey["alg"]],
                                          audience=AUTH_AUDIENCE)
                 if DEBUG_MODE:
-                    logging.info("Correctly decoded")
+                    logging.debug("Correctly decoded")
 
                 # if token is correctly decoded, exit the loop
                 decoding_result = True
@@ -262,7 +263,8 @@ def get_username(header):
 
             except jwt.exceptions.InvalidSignatureError:
                 decoding_reason = "JWT token has invalid signature"
-                logging.error(decoding_reason, exc_info=False)
+                if DEBUG_MODE:
+                    logging.debug(decoding_reason, exc_info=False)
                 # try next key
                 continue
             except jwt.exceptions.ExpiredSignatureError:
@@ -530,45 +532,50 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
 
         if stderr_errno == 0:
             if file_transfer == "download":
-                result = {"error": 0, "msg": outlines}
+                result = {"error": 0, "msg": outlines}                
             elif stderr_errda and not (in_str(stderr_errda,"Could not chdir to home directory") or in_str(stderr_errda,"scancel: Terminating job")):
-                result = {"error": 1, "msg": stderr_errda}
+                result = {"error": 1, "msg": stderr_errda}                
             elif in_str(stdout_errda, "No such file"): # in case that error is 0 and the msg is on the stdout (like with some file)
-                result = {"error": 1, "msg": stdout_errda}
+                result = {"error": 1, "msg": stdout_errda}                
             elif in_str(stdout_errda, "no read permission"): # in case that error is 0 and the msg is on the stdout (like with some file)
-                result = {"error": 1, "msg": stdout_errda}
+                result = {"error": 1, "msg": stdout_errda}                
             elif in_str(stdout_errda, "cannot open"): # in case that error is 0 and the msg is on the stdout (like with some file)
-                result = {"error": 1, "msg": stdout_errda}
+                result = {"error": 1, "msg": stdout_errda}                
+            # only in case of SLURM scheduler: stderr_errno == 0 always, and output (error or not) in stderr_errda
+            elif in_str(stderr_errda, "scancel: Terminating job"):
+                if in_str(stderr_errda, "error"):
+                    result = {"error": 1, "msg": stderr_errda}                    
+                else:
+                    result = {"error": 0, "msg": stderr_errda}                    
+
             else:
-                result = {"error": 0, "msg": outlines}
-        elif stderr_errno > 0:
-            # Solving when stderr_errno = 1 and $HOME is not mounted: 
-            # stderr_errno = 1
+                result = {"error": 0, "msg": outlines}                
+        elif stderr_errno != 0:
+            # First solving specific errors
+            if stderr_errno == 7:
+                result = {"error": 7, "msg": "Failed to connect to staging area server"}                
+            elif stderr_errno == 124:
+                result = {"error": 124, "msg": "Command has finished with timeout signal"}                
+            elif stdout_errno == -2:
+                result = {"error": -2, "msg": "Receive ready timeout exceeded"}                
+            elif stderr_errno == -1:
+                result = {"error": -1, "msg": "No exit status was provided by the server"}                
+            # solving error of $HOME not present
             # stderr_errda = "Could not chdir to home directory /users/eirinik: No such file or directory
             # ERROR: you must specify a project account (-A <account>)sbatch: error: cli_filter plugin terminated with error"
             if not HOME_ENABLED and in_str(stderr_errda, "Could not chdir to home directory"):
                 # checking for 2nd 'directory' string (first is at index 33)
                 # 2nd comes after username
-                logging.info(f"$HOME directory is not enabled"
-                             f" (F7T_HOME_ENABLED={HOME_ENABLED})")
+                if DEBUG_MODE:
+                    logging.debug(f"$HOME directory is not enabled"
+                                  f" (F7T_HOME_ENABLED={HOME_ENABLED})")
                 idx = stderr_errda.index("directory", 33)
                 # len(directory) = 9
-                result = {"error": stderr_errno, "msg": stderr_errda[idx+9:]}
-
-            elif stderr_errno == 7:
-                result = {"error": 7, "msg": "Failed to connect to staging area server"}
-            elif stderr_errno == 124:
-                result = {"error": 124, "msg": "Command has finished with timeout signal"}
+                result = {"error": stderr_errno, "msg": stderr_errda[idx+9:]}                
             else:
-                result = {"error": stderr_errno, "msg": stderr_errda or stdout_errda}
+                result = {"error": stderr_errno, "msg": stderr_errda or stdout_errda}                
         elif len(stderr_errda) > 0:
             result = {"error": 1, "msg": stderr_errda}
-        elif stdout_errno == -2:
-            result = {"error": -2, "msg": "Receive ready timeout exceeded"}
-        elif stderr_errno == -1:
-            result = {"error": -1, "msg": "No exit status was provided by the server"}
-
-
 
     # first if paramiko exception raise
     except paramiko.ssh_exception.NoValidConnectionsError as e:

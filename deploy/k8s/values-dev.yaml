@@ -15,7 +15,8 @@ F7T_CERTIFICATOR_HOST: svc-certificator
 F7T_COMPUTE_HOST: svc-compute
 F7T_FILESYSTEMS: "{
                    'cluster': [{'name':'HOME', 'path':'/home', 'description':'Users home filesystem'} , 
-                               {'name':'SCRATCH', 'path':'/scratch', 'description':'Scratch filesystem'}] 
+                               {'name':'SCRATCH', 'path':'/scratch', 'description':'Scratch filesystem'},
+                               {'name':'PROJECT', 'path':'/project', 'description':'Projects filesystem'}, ] 
                  } "
 F7T_GUNICORN_SSL: --ciphers TLS_AES_256_GCM_SHA384,TLS_CHACHA20_POLY1305_SHA256,TLS_AES_128_GCM_SHA256,DHE-RSA-AES256-GCM-SHA384,ECDHE-RSA-AES256-GCM-SHA384,ECDHE-RSA-AES128-GCM-SHA256 --ssl-version TLSv1_2 --keyfile /f7t-ssl.key --certfile /f7t-ssl.crt
 F7T_JAEGER_AGENT: svc-jaeger
