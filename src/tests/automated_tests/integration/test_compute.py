@@ -45,7 +45,7 @@ JOB_ENV_OUTPUT = 'a\nb 1\n'
 
 
 
-# Helper function for job submittings
+# Helper function for job submitting
 def submit_job(machine, headers, file='testsbatch.sh'):
 	files = {'file': ('upload.sh', open(file, 'rb'))}
 	headers.update({"X-Machine-Name": machine})

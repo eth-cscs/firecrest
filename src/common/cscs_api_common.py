@@ -68,6 +68,8 @@ AUTH_ALGORITHMS = os.environ.get("F7T_AUTH_ALGORITHMS",
 
 is_public_key_set = False
 
+regex_trace_id = re.compile(r'ID=([a-f0-9:]+)')
+
 if len(AUTH_PUBLIC_KEYS) != 0:
     auth_pubkeys = []
     is_public_key_set = True
@@ -406,7 +408,14 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
     [pub_cert, pub_key, priv_key, temp_dir] = cert_list
     # JSON FORMAT
     if ENABLE_LOG_KIBANA:
-        KibanaLogger.get_logger().info({"machinename": system_name, "microservice": KibanaLogger.get_service(), "username": username, "command": log_command, "message": action})
+        match = regex_trace_id.search(action)
+        if match:
+            trace_id = str(match.group(1))
+            message = str(action[match.end():]).strip()
+        else:
+            trace_id = ""
+            message = action
+        KibanaLogger.get_logger().info({"machinename": system_name, "microservice": KibanaLogger.get_service(), "username": username, "command": log_command, "trace_id": trace_id, "message": message})
     else:
         logging.info(f'System name: {system_name} - username: {username} - action: {action}')
     # -------------------

@@ -171,7 +171,7 @@ def submit_job_task(headers, system_name, system_addr, job_file, job_dir, accoun
         action = f"ID={ID} {scheduler_command}"
         app.logger.info(action)
 
-        retval = exec_remote_command(headers, system_name, system_addr, action, log_command=scheduler_command)
+        retval = exec_remote_command(headers, system_name, system_addr, action, log_command='batch_job')
 
         if retval["error"] != 0:
             app.logger.error(f"(Error: {retval['msg']}")
@@ -231,7 +231,7 @@ def get_job_files(headers, system_name, system_addr, job_info, output=False, use
 
     for n_try in range(n_tries):
 
-        resp = exec_remote_command(headers, system_name, system_addr, action, log_command=sched_command)
+        resp = exec_remote_command(headers, system_name, system_addr, action, log_command='job_info')
 
         # if there was an error, the result will be SUCESS but not available outputs
         if resp["error"] == 0:
@@ -287,7 +287,7 @@ def submit_job_path_task(headers, system_name, system_addr, fileName, job_dir, a
     action=f"ID={ID} {scheduler_command}"
     app.logger.info(action)
 
-    resp = exec_remote_command(headers, system_name, system_addr, action, log_command=scheduler_command)
+    resp = exec_remote_command(headers, system_name, system_addr, action, log_command='batch_job')
 
     # in case of error:
     if resp["error"] != 0:
