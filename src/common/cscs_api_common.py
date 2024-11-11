@@ -68,8 +68,6 @@ AUTH_ALGORITHMS = os.environ.get("F7T_AUTH_ALGORITHMS",
 
 is_public_key_set = False
 
-regex_trace_id = re.compile(r'ID=([a-f0-9:]+)')
-
 if len(AUTH_PUBLIC_KEYS) != 0:
     auth_pubkeys = []
     is_public_key_set = True
@@ -376,9 +374,15 @@ def create_certificate(headers, cluster_name, cluster_addr, command=None, option
 
 
 # execute remote commands with Paramiko:
-def exec_remote_command(headers, system_name, system_addr, action, file_transfer=None, file_content=None, log_command=""):
+def exec_remote_command(headers, system_name, system_addr, command, file_transfer=None, file_content=None, log_command="", trace_id=""):
 
     import paramiko, socket
+
+    # Append trace ID if any
+    if trace_id == "":
+        action = command
+    else:
+        action = f"ID={trace_id} {command}"
 
     if file_transfer == "storage_cert":
         # storage is using a previously generated cert, save cert list from content
@@ -408,14 +412,7 @@ def exec_remote_command(headers, system_name, system_addr, action, file_transfer
     [pub_cert, pub_key, priv_key, temp_dir] = cert_list
     # JSON FORMAT
     if ENABLE_LOG_KIBANA:
-        match = regex_trace_id.search(action)
-        if match:
-            trace_id = str(match.group(1))
-            message = str(action[match.end():]).strip()
-        else:
-            trace_id = ""
-            message = action
-        KibanaLogger.get_logger().info({"machinename": system_name, "microservice": KibanaLogger.get_service(), "username": username, "command": log_command, "trace_id": trace_id, "message": message})
+        KibanaLogger.get_logger().info({"machinename": system_name, "microservice": KibanaLogger.get_service(), "username": username, "command": log_command, "trace_id": trace_id, "message": command})
     else:
         logging.info(f'System name: {system_name} - username: {username} - action: {action}')
     # -------------------
@@ -873,8 +870,8 @@ def is_valid_file(path, headers, system_name, system_addr):
 
     ID = headers.get(TRACER_HEADER, '')
     # checks user accessibility to path using head command with 0 bytes
-    action = f"ID={ID} head -c 1 -- '{path}' > /dev/null"
-    retval = exec_remote_command(headers, system_name, system_addr, action, log_command="head")
+    action = f"head -c 1 -- '{path}' > /dev/null"
+    retval = exec_remote_command(headers, system_name, system_addr, action, trace_id=ID, log_command="head")
 
     logging.info(retval)
 
@@ -923,8 +920,8 @@ def is_valid_dir(path, headers, system_name, system_addr):
 
     tempFileName = f".firecrest.{hashedTS.hexdigest()}"
     ID = headers.get(TRACER_HEADER, '')
-    action = f"ID={ID} touch -- '{path}/{tempFileName}'"
-    retval = exec_remote_command(headers, system_name, system_addr, action, log_command="touch")
+    action = f"touch -- '{path}/{tempFileName}'"
+    retval = exec_remote_command(headers, system_name, system_addr, action, trace_id=ID, log_command="touch")
 
     logging.info(retval)
 
@@ -952,8 +949,8 @@ def is_valid_dir(path, headers, system_name, system_addr):
         return {"result":False, "headers":{"X-Error": retval["msg"]}}
 
     # delete test file created
-    action = f"ID={ID} rm -- '{path}/{tempFileName}'"
-    retval = exec_remote_command(headers, system_name, system_addr, action, log_command="rm")
+    action = f"rm -- '{path}/{tempFileName}'"
+    retval = exec_remote_command(headers, system_name, system_addr, action, trace_id=ID, log_command="rm")
 
     return {"result":True}
 

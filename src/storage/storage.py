@@ -554,7 +554,7 @@ def download_task(headers, system_name, system_addr, sourcePath, task_id):
     update_task(task_id, headers, async_task.ST_UPL_BEG, msg=msg, is_json=True)
 
     # upload starts:
-    res = exec_remote_command(headers, system_name, system_addr, upload_url["command"], log_command=upload_url["command"])
+    res = exec_remote_command(headers, system_name, system_addr, upload_url["command"], log_command="upload url")
 
     # if upload to SWIFT fails:
     if res["error"] != 0:
@@ -1081,8 +1081,8 @@ def internal_operation(request, command):
 
             username = is_username_ok["username"]
 
-            id_command = f"ID={ID} timeout {UTILITIES_TIMEOUT} id -gn -- {username}"
-            resp = exec_remote_command(headers, system_name, system_addr, id_command, log_command="id")
+            id_command = f"timeout {UTILITIES_TIMEOUT} id -gn -- {username}"
+            resp = exec_remote_command(headers, system_name, system_addr, id_command, trace_id=ID, log_command="id")
             if resp["error"] != 0:
                 retval = check_command_error(resp["msg"], resp["error"], f"{command} job")
                 return jsonify(description=f"Failed to submit {command} job", error=retval["description"]), retval["status_code"], retval["header"]
@@ -1093,7 +1093,7 @@ def internal_operation(request, command):
 
     # check if machine is accessible by user:
     # exec test remote command
-    resp = exec_remote_command(headers, system_name, system_addr, f"ID={ID} true", log_command=command)
+    resp = exec_remote_command(headers, system_name, system_addr, "true", trace_id=ID, log_command=command)
 
     if resp["error"] != 0:
         error_str = resp["msg"]

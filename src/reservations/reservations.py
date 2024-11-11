@@ -159,10 +159,10 @@ def get():
 
     [headers, ID] = get_tracing_headers(request)
     # list reservations
-    action = f"ID={ID} timeout {TIMEOUT} {RESERVATION_CMD} -l"
+    action = f"timeout {TIMEOUT} {RESERVATION_CMD} -l"
 
     #execute command
-    retval = exec_remote_command(headers, system_name, system_addr, action, log_command=RESERVATION_CMD)
+    retval = exec_remote_command(headers, system_name, system_addr, action, trace_id=ID, log_command=RESERVATION_CMD)
 
     error_str = retval["msg"]
 
@@ -320,10 +320,10 @@ def post():
 
     # create a reservation
     # rsvmgmt -a unixGroupName numberOfNodes NodeType startDateTime endDateTime [optional reservationName]
-    action = f"ID={ID} timeout {TIMEOUT} {RESERVATION_CMD} -a {account} {numberOfNodes} {nodeType} {starttime} {endtime} '{reservation}'"
+    action = f"timeout {TIMEOUT} {RESERVATION_CMD} -a {account} {numberOfNodes} {nodeType} {starttime} {endtime} '{reservation}'"
 
     #execute command
-    retval = exec_remote_command(headers, system_name, system_addr, action, log_command=RESERVATION_CMD)
+    retval = exec_remote_command(headers, system_name, system_addr, action, trace_id=ID, log_command=RESERVATION_CMD)
 
     error_str = retval["msg"]
 
@@ -421,10 +421,10 @@ def put(reservation):
     [headers, ID] = get_tracing_headers(request)
     # Update a reservation
     # rsvmgmt -u reservationName numberOfNodes NodeType StartDateTime EndDateTime
-    action = f"ID={ID} timeout {TIMEOUT} {RESERVATION_CMD} -u '{reservation}' {numberOfNodes} {nodeType} {starttime} {endtime}"
+    action = f"timeout {TIMEOUT} {RESERVATION_CMD} -u '{reservation}' {numberOfNodes} {nodeType} {starttime} {endtime}"
 
     #execute command
-    retval = exec_remote_command(headers, system_name, system_addr, action, log_command=RESERVATION_CMD)
+    retval = exec_remote_command(headers, system_name, system_addr, action, trace_id=ID, log_command=RESERVATION_CMD)
     error_str = retval["msg"]
 
     if retval["error"] != 0:
@@ -500,10 +500,10 @@ def delete(reservation):
     [headers, ID] = get_tracing_headers(request)
 
     # rsvmgmt -d reservationName
-    action = f"ID={ID} timeout {TIMEOUT} {RESERVATION_CMD} -d '{reservation}'"
+    action = f"timeout {TIMEOUT} {RESERVATION_CMD} -d '{reservation}'"
 
     #execute command
-    retval = exec_remote_command(headers, system_name, system_addr, action, log_command=RESERVATION_CMD)
+    retval = exec_remote_command(headers, system_name, system_addr, action, trace_id=ID, log_command=RESERVATION_CMD)
 
     error_str = retval["msg"]
 
