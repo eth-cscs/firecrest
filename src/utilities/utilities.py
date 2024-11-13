@@ -168,7 +168,6 @@ def list_directory():
     return common_fs_operation(request, "ls")
 
 
-
 ## parse ls output
 def ls_parse_folder(folder_content:str, path:str=""):
     # Example of ls output
@@ -611,8 +610,8 @@ def common_fs_operation(request, command):
         return jsonify(description="Error on internal operation", error="Internal error"), 400
 
     [headers, ID] = get_tracing_headers(request)
-    action = f"ID={ID} timeout {UTILITIES_TIMEOUT} {action}"
-    retval = exec_remote_command(headers, system_name ,system_addr, action, file_transfer, file_content)
+    action = f"timeout {UTILITIES_TIMEOUT} {action}"
+    retval = exec_remote_command(headers, system_name, system_addr, action, file_transfer, file_content, command, ID)
 
     if retval["error"] != 0:
         error_str   = retval["msg"]

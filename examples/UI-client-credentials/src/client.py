@@ -266,10 +266,6 @@ def list_jobs_with_f7t(system_name: str, job_ids: list[int]) -> dict:
         
         return {"jobs": [], "error": 1}
 
-        
-    
-
-
 
 def mkdir(jobName):
 
@@ -314,7 +310,6 @@ def list_jobs():
 
     if f7t_jobs["error"] == 0:
         return {"rows": f7t_jobs["jobs"]}
-    
 
     return jsonify(response="Error listing jobs"), 400
 
@@ -353,7 +348,6 @@ def results():
 
 def write_sbatch(jobTemplate, jobName="f7t_test", ntasks=1, account=None, partition=None,
                 constraint=None,reservation=None,jobDir=None, problem_ini_file=None, problem_msh_file=None,step=1,lastJobId=None):
-
     try:
         # sbatch templates directory
         basePath = os.path.abspath(os.path.dirname(__file__))
@@ -377,7 +371,6 @@ def write_sbatch(jobTemplate, jobName="f7t_test", ntasks=1, account=None, partit
             app.logger.error(f"Template {jobTemplate} not found")
             app.logger.error(f"Error: {e}")
         return {"error": 1, "msg":"Couldn't create sbatch file"}
-
 
     try:
         # creating temp sbatch file in client to upload in SYSTEM_NAME
@@ -407,8 +400,6 @@ def write_sbatch(jobTemplate, jobName="f7t_test", ntasks=1, account=None, partit
             app.logger.error(e)
             app.logger.error(type(e))
         return {"error": 1, "msg":"Couldn't create sbatch file"}
-
-
     return {"error": 0, "path":sbatch_file_path}
 
 
@@ -419,9 +410,7 @@ def background_submit_postproc(jobTemplate,jobName,ntasks,partition,constraint,r
     global POST_JOB_ID
     
     try:
-
         # write sbatch file using the jobTemplate
-
         res = write_sbatch(jobTemplate=jobTemplate, jobName=f"{jobName}_post",ntasks=ntasks,account=USER_GROUP, partition=partition,
                 constraint=constraint, reservation=reservation, jobDir=targetPath, problem_ini_file=problem_ini_file, problem_msh_file=problem_msh_file)
     except Exception as e:
@@ -515,8 +504,6 @@ def background_submit_task(steps,jobTemplate,jobName,ntasks,partition,constraint
 
             if DEBUG:
                 app.logger.debug(f"Job submission data: {job}")
-
-
 
             lastJobId = job["jobid"]
             data = job

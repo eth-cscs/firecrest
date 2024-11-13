@@ -25,6 +25,7 @@ data:
   F7T_JAEGER_AGENT: {{ .Values.F7T_JAEGER_AGENT | default "" | quote }}
   F7T_LOG_TYPE: {{ .Values.global.F7T_LOG_TYPE | default "file" | quote }}
   F7T_LOG_PATH: {{ .Values.global.F7T_LOG_PATH | default "/var/log" | quote }}
+  F7T_LOG_KIBANA: {{ .Values.global.F7T_LOG_KIBANA | default "False" | quote }}
   F7T_OBJECT_STORAGE: {{ .Values.F7T_OBJECT_STORAGE | default "s3v4" | quote }}
   F7T_AUTH_PUBLIC_KEYS: {{ include "list.listPubKeys" . | default "" | quote }}
   F7T_AUTH_ALGORITHMS: {{ include "list.listPubKeyTypes" . | default "RS256" | quote }}
