@@ -96,7 +96,7 @@ deploy_dev:
         helm uninstall -n ${CI_NAMESPACE_DEV} "$app" || true
         helm install --wait --wait-for-jobs --timeout 240s -n ${CI_NAMESPACE_DEV} -f values-dev.yaml "$app" $app;
       done
-    # Cluster is deployed separatelly ALWAYS with tag = latest
+    # Cluster is deployed separately ALWAYS with tag = latest
     - |
       echo -e "global:\n  registry: ${CI_REGISTRY_PREFIX}\n  tag: latest\n  namespace: ${CI_NAMESPACE_DEV}\n" > values-cluster-dev.yaml;
 

@@ -3,8 +3,8 @@ kind: Deployment
 metadata:
   name: deploy-compute
   namespace: {{ .Values.global.namespace }}
-  {{ if ne .Values.global.environment "dev" }}
   annotations:
+  {{ if ne .Values.global.environment "dev" }}
     configmap.reloader.stakater.com/reload: "compute-env-file,common-env-file"    
   {{ end }}
 spec:
@@ -14,6 +14,18 @@ spec:
       app: compute
   template:
     metadata:
+      annotations:
+      {{ if .Values.global.F7T_LOG_KIBANA | default false }}
+        co.elastic.logs/processors.decode_json_fields.fields.0: "message"
+        co.elastic.logs/processors.decode_json_fields.target: ""
+        co.elastic.logs/processors.decode_json_fields.overwrite_keys: "true"
+        co.elastic.logs/processors.decode_json_fields.add_error_key: "true"
+        co.elastic.logs/processors.decode_json_fields.when.regexp.message: '^\{'
+        co.elastic.logs/processors.add_fields.target: ""
+        co.elastic.logs/processors.add_fields.fields.data_stream.type: "logs"
+        co.elastic.logs/processors.add_fields.fields.data_stream.dataset: {{ .Values.global.namespace | replace "-" "." | quote }}
+        co.elastic.logs/processors.add_fields.fields.data_stream.namespace: "firecrest"
+      {{ end }}
       labels:
         app: compute
     spec:
