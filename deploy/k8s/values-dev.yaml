@@ -73,9 +73,9 @@ F7T_UTILITIES_PORT: "5004"
 global:
   environment: "dev"
   include_reservations: true
-  F7T_DEBUG_MODE: true
+  F7T_DEBUG_MODE: false
   F7T_LOG_TYPE: "stdout"
-  F7T_LOG_KIBANA: true
+  F7T_LOG_KIBANA: false
   F7T_GATEWAY_HOST: "svc-kong"
   F7T_GATEWAY_PORT: "8000"
   F7T_SWAGGER_HOST: "http://svc-openapi"

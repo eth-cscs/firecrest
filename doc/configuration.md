@@ -74,6 +74,7 @@ The most complete way of installing is to setup 3 hosts:
 |`F7T_SSL_CRT`          | Only if `F7T_SSL_ENABLED=True`   | `''`        | Path to the SSL Certificate Key for exposing the container with HTTPS protocol (recommended). | `Backend`, `Certificator` |
 |`F7T_SSL_KEY`          | Only if `F7T_SSL_ENABLED=True`   | `''`        | Path to the SSL Public Key for exposing the container with HTTPS protocol (recommended). Only used if `F7T_SSL_ENABLED=True`  | `Backend`, `Certificator` |
 |`F7T_DEBUG_MODE`       | NO  | `False`     | Set to `True` to log debug type information | `Backend` |
+|`F7T_LOG_KIBANA`       | NO  | `False`     | Set to `True` to log enable [ELK stack](https://www.elastic.co/elastic-stack) JSON log formatting | `Backend` |
 |`F7T_LOG_PATH`         | NO  | `/var/log`  | Directory path in container's filesystem where the logs will be stored | `Backend` |
 |`F7T_LOG_TYPE`         | NO  | `file`      | Type of logs. Valid values are `file` and `stdout` | `Backend` |
 |`F7T_GUNICORN_LOG`     | NO  | `--error-logfile ${F7T_LOG_PATH}/<service>.gunicorn.log` | Logs configuration for Gunicorn Web Server (the server used to expose microservice's containers), Set to empty for stdout output. For more information please refer to [Gunicorn Settings](https://docs.gunicorn.org/en/stable/settings.html) | `Backend`|
