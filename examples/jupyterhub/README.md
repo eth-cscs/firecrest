@@ -18,7 +18,7 @@ For this tutorial it's necessary
 
 ### Building images from FirecREST's Docker Compose demo
 
-The [`docker-compose.yaml`](docker-compose.yaml) that we use in this the demo is a copy of the the one from the Docker demo of FirecREST with only a few small changes. So, to get started, let's clone the FirecREST repository
+The [docker-compose.yaml](docker-compose.yaml) that we use in this the demo is a copy of the the one from the Docker demo of FirecREST with only a few small changes. So, to get started, let's clone the FirecREST repository
 
 ```bash
 git clone https://github.com/eth-cscs/firecrest.git
@@ -57,7 +57,7 @@ pip install --no-cache .
 
 ## Deployment of FirecREST and Slurm cluster
 
-Once all the images have been built we can move to the JupyterHub demo directory and deploy the [`docker-compose.yaml`](docker-compose.yaml).
+Once all the images have been built we can move to the JupyterHub demo directory and deploy the [docker-compose.yaml](docker-compose.yaml).
 
 ```bash
 cd firecrest/examples/jupyterhub 
@@ -98,7 +98,7 @@ docker compose down
 
 ### Setting up the authorization
 
-For both logging in on JupyterHub and letting the spawner authenticate with FirecREST, we need to create an Authorization Code Flow client in the `kcrealm` in Keycloak. In [this page](http://localhost:8080/auth/admin/master/console/#/realms/kcrealm/clients) (username: admin, password: admin2), click on "Create" and then on "Select file". A file system explorer window will open. Navigate to the demo's directory and choose the [`jhub-client.json`](jhub-client.json) file from the file system.
+For both logging in on JupyterHub and letting the spawner authenticate with FirecREST, we need to create an Authorization Code Flow client in the `kcrealm` in Keycloak. In [this page](http://localhost:8080/auth/admin/master/console/#/realms/kcrealm/clients) (username: admin, password: admin2), click on "Create" and then on "Select file". A file system explorer window will open. Navigate to the demo's directory and choose the [jhub-client.json](jhub-client.json) file from the file system.
 
 Once that's done, the client `jhub-client` can be seen listed on the "Clients" tab of the side panel.
 
