@@ -4,8 +4,6 @@
 ##  Please, refer to the LICENSE file in the root directory.
 ##  SPDX-License-Identifier: BSD-3-Clause
 ##
-version: '3.4'
-
 networks:
   firecrest-internal:
     driver: bridge
@@ -202,6 +200,7 @@ services:
     build:
       context: ../test-build
       dockerfile: Dockerfile
+      platform: linux/amd64
       network: host
     networks:
       firecrest-internal:
