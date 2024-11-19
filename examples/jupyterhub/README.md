@@ -114,7 +114,8 @@ Once that's done, the client `jhub-client` can be seen listed on the "Clients" t
 
 ### Launching JupyterHub
 
-The configuration file provided [here](jupyterhub-config.py) has all the setting for using JupyterHub with the our deployment, but the secret for the client we just created must be added on `c.Authenticator.client_secret`.
+The [configuration file](jupyterhub-config.py) provided in the demo has all the settings needed for using JupyterHub with our deployment.
+We only need to add in `c.Authenticator.client_secret` the secret for the client we just created.
 The secret can be found in the client's ["Credentials" tab](http://localhost:8080/auth/admin/master/console/#/realms/kcrealm/clients/f969b69d-4aec-4646-bdbe-09a268f52111/credentials).
 
 Once that's done, JupyterHub can be run with
