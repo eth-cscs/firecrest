@@ -3,13 +3,14 @@
 
 This is a tutorial on how to run JupyterHub with [FirecRESTSpawner](https://github.com/eth-cscs/firecrestspawner) on the [Docker demo of FirecREST](https://github.com/eth-cscs/firecrest/tree/master/deploy/demo).
 
-We are going to start by deploying FirecREST together with a slurm cluster using [Docker Compose](https://docs.docker.com/compose). Then we will install JupyterHub on a virtual environment and configure it to launch notebooks on the slurm cluster via FirecREST.
+We are going to start by deploying FirecREST together with a slurm cluster using [Docker Compose](https://docs.docker.com/compose).
+Then we will install JupyterHub on a virtual environment and configure it to launch notebooks on the slurm cluster via FirecREST.
 
 
 ## Requirements
 
 For this tutorial it's necessary
- * a recent installation of Docker, which includes the `docker compose` command. Alternatively the old `docker-compose` command line could be used.
+ * a recent installation of Docker, which includes the `docker compose` command or the older `docker-compose` command line
  * a python installation (`>=3.9`)
 
 
@@ -18,7 +19,8 @@ For this tutorial it's necessary
 
 ### Building images from FirecREST's Docker Compose demo
 
-The [docker-compose.yaml](docker-compose.yaml) that we use in this the demo is a copy of the the one from the Docker demo of FirecREST with only a few small changes. So, to get started, let's clone the FirecREST repository
+The [docker-compose.yaml](docker-compose.yaml) that we use in this the demo is a copy of the the one from the Docker demo of FirecREST with only a few small changes.
+So, to get started, let's clone the FirecREST repository
 
 ```bash
 git clone https://github.com/eth-cscs/firecrest.git
@@ -64,8 +66,8 @@ cd firecrest/examples/jupyterhub
 docker compose up -d --build
 ```
 
-This step will create a new image that extends the `f7t-cluster` image from the Docker Compose demo with JupyterHub and FirecRESTSpawner.
-It will take some time as it needs first to build a few dependencies needed for JupyterHub.
+This step will create a new image that extends the `f7t-cluster` image from the FirecREST demo to include JupyterLab and other requirements.
+It will take some time since it needs to first build from source a few dependencies of JupyterLab.
 
 Once the building is finished you can check that all containers are running
 
@@ -98,14 +100,22 @@ docker compose down
 
 ### Setting up the authorization
 
-For both logging in on JupyterHub and letting the spawner authenticate with FirecREST, we need to create an Authorization Code Flow client in the `kcrealm` in Keycloak. In [this page](http://localhost:8080/auth/admin/master/console/#/realms/kcrealm/clients) (username: admin, password: admin2), click on "Create" and then on "Select file". A file system explorer window will open. Navigate to the demo's directory and choose the [jhub-client.json](jhub-client.json) file from the file system.
+A requirement for running JupyterHub with FirecRESTSpawner is to use an authenticator that prompts users for login and password in exchange for an access token.
+That token will then be passed to the spawner, allowing users to authenticate with FirecREST when submitting, stopping or polling for jobs.
+For this purpose, we will use an Authorization Code Flow client, which we need to create on the Keycloak web interface.
+
+Let's go to [this page](http://localhost:8080/auth/admin/master/console/#/realms/kcrealm/clients) (username: admin, password: admin2) and make sure that the top left side indicates that we are within the `Kcrealm` realm.
+We click on "Create" and then on "Select file".
+A file system explorer will open.
+Navigate to the demo's directory and choose the [jhub-client.json](jhub-client.json) file.
 
 Once that's done, the client `jhub-client` can be seen listed on the "Clients" tab of the side panel.
 
 
 ### Launching JupyterHub
 
-The configuration file provided [here](jupyterhub-config.py) has all the setting for using JupyterHub with the our deployment, but the secret for the client we just created must be added on `c.Authenticator.client_secret`. The secret can be found in the client's ["Credentials" tab](http://localhost:8080/auth/admin/master/console/#/realms/kcrealm/clients/f969b69d-4aec-4646-bdbe-09a268f52111/credentials).
+The configuration file provided [here](jupyterhub-config.py) has all the setting for using JupyterHub with the our deployment, but the secret for the client we just created must be added on `c.Authenticator.client_secret`.
+The secret can be found in the client's ["Credentials" tab](http://localhost:8080/auth/admin/master/console/#/realms/kcrealm/clients/f969b69d-4aec-4646-bdbe-09a268f52111/credentials).
 
 Once that's done, JupyterHub can be run with
 
@@ -114,7 +124,8 @@ Once that's done, JupyterHub can be run with
 . env.sh 
 jupyterhub --config jupyterhub-config.py --port 8003 --ip 0.0.0.0 --debug
 ```
-Here we are sourcing the file [`env.sh`](env.sh) which defines environment variables needed by the spawner.
-We use the port `8003` for the hub since `8000` is already used for FirecREST itself in the demo deployment. The ip `0.0.0.0` is necessary to allow JupyterLab to connect back to the hub.
+Here we are sourcing the file [env.sh](env.sh) which defines environment variables needed by the spawner(More information can be found [here](https://firecrestspawner.readthedocs.io/en/latest/authentication.html)).
+We use the port `8003` for the hub since `8000` is already used for FirecREST itself in the demo deployment.
+The ip `0.0.0.0` is necessary to allow JupyterLab to connect back to the hub.
 
-The hub should be accessible in the browser at [http://localhost:8003](http://localhost:8003/) (username: test1 and password: test11) and you should be able to launch notebooks on the slurm cluster.
+The hub should be accessible in the browser at [http://localhost:8003](http://localhost:8003/) (username: test1 and password: test11) and it should be possible to launch notebooks on the slurm cluster.
