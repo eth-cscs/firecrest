@@ -126,7 +126,7 @@ Once that's done, JupyterHub can be run with
 jupyterhub --config jupyterhub-config.py --port 8003 --ip 0.0.0.0 --debug
 ```
 Here we are sourcing the file [env.sh](env.sh) which defines environment variables needed by the spawner (more information can be found [here](https://firecrestspawner.readthedocs.io/en/latest/authentication.html)).
-We use the port `8003` for the hub since `8000` is already used for FirecREST itself in the demo deployment.
+We use the port `8003` for the hub since the default one `8000` is already used for FirecREST itself in the demo deployment.
 The ip `0.0.0.0` is necessary to allow JupyterLab to connect back to the hub.
 
 The hub should be accessible in the browser at [http://localhost:8003](http://localhost:8003/) (username: test1 and password: test11) and it should be possible to launch notebooks on the slurm cluster.
