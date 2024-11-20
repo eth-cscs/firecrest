@@ -107,7 +107,7 @@ For this purpose, we will use an Authorization Code Flow client, which we need t
 Let's go to [this page](http://localhost:8080/auth/admin/master/console/#/realms/kcrealm/clients) (username: admin, password: admin2) and make sure that the top left side indicates that we are within the `Kcrealm` realm.
 We click on "Create" and then on "Select file".
 A file system explorer will open.
-Navigate to the demo's directory and choose the [jhub-client.json](jhub-client.json) file.
+Navigate to the demo's directory and choose the [jhub-client.json](jhub-client.json) file and click on "Save".
 
 Once that's done, the client `jhub-client` can be seen listed on the "Clients" tab of the side panel.
 
@@ -115,10 +115,8 @@ Once that's done, the client `jhub-client` can be seen listed on the "Clients" t
 ### Launching JupyterHub
 
 The [configuration file](jupyterhub-config.py) provided in the demo has all the settings needed for using JupyterHub with our deployment.
-We only need to add in `c.Authenticator.client_secret` the secret for the client we just created.
-The secret can be found in the client's ["Credentials" tab](http://localhost:8080/auth/admin/master/console/#/realms/kcrealm/clients/f969b69d-4aec-4646-bdbe-09a268f52111/credentials).
 
-Once that's done, JupyterHub can be run with
+Now we can run JupyterHub with
 
 ```bash
 . jhub-env/bin/activate

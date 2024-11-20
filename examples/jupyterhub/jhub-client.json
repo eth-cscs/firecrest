@@ -5,6 +5,7 @@
     "enabled": true,
     "alwaysDisplayInConsole": false,
     "clientAuthenticatorType": "client-secret",
+    "secret": "Ap45Agq2KpnbTXUGQxaUF1WiVOPm8Wf0",
     "redirectUris": [
         "http://localhost:8003/hub/oauth_callback"
     ],

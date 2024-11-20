@@ -15,7 +15,7 @@ c.JupyterHub.authenticator_class = GenericOAuthenticator
 
 # Keycloak setup
 c.Authenticator.client_id = "jhub-client"
-c.Authenticator.client_secret = "<client-id>"
+c.Authenticator.client_secret = "Ap45Agq2KpnbTXUGQxaUF1WiVOPm8Wf0"
 c.Authenticator.oauth_callback_url = "http://localhost:8003/hub/oauth_callback"
 c.Authenticator.authorize_url = "http://localhost:8080/auth/realms/kcrealm/protocol/openid-connect/auth"
 c.Authenticator.token_url = "http://localhost:8080/auth/realms/kcrealm/protocol/openid-connect/token"
