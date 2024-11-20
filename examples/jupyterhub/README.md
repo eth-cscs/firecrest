@@ -73,22 +73,27 @@ Once the building is finished you can check that all containers are running
 
 ```bash
 docker compose -p demo ps --format 'table {{.ID}}\t{{.Name}}\t{{.State}}'
-# CONTAINER ID   NAME              STATE
-# fa355219633c   certificator      running
-# 8dada9a2f57a   cluster           running
-# bd5f33b3b34e   compute           running
-# 8b8029c9bec2   fckeycloak        running
-# e66970df55a8   jaeger            running
-# 1be08e3707f4   kong              running
-# 9dd5a68a84b0   minio             running
-# 33ce4e9df9c5   opa               running
-# b0cfba2eb816   openapi           running
-# 974356ee229a   reservations      running
-# 143375c02912   status            running
-# c424bca5efef   storage           running
-# 5004cc49e1b8   taskpersistence   running
-# 163d91b0bd8d   tasks             running
-# 5239294e62bb   utilities         running
+```
+
+That should show something like this
+
+```bash
+CONTAINER ID   NAME              STATE
+fa355219633c   certificator      running
+8dada9a2f57a   cluster           running
+bd5f33b3b34e   compute           running
+8b8029c9bec2   fckeycloak        running
+e66970df55a8   jaeger            running
+1be08e3707f4   kong              running
+9dd5a68a84b0   minio             running
+33ce4e9df9c5   opa               running
+b0cfba2eb816   openapi           running
+974356ee229a   reservations      running
+143375c02912   status            running
+c424bca5efef   storage           running
+5004cc49e1b8   taskpersistence   running
+163d91b0bd8d   tasks             running
+5239294e62bb   utilities         running
 ```
 
 When we are done with the tutorial, the deployment can be shutdown by pressing `ctrl+c` and then
