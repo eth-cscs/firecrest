@@ -63,7 +63,7 @@ Once all the images have been built we can move to the JupyterHub demo directory
 
 ```bash
 cd firecrest/examples/jupyterhub 
-docker compose up -d --build
+docker compose -f ../../deploy/demo/docker-compose.yml -f docker-compose.yml up --build
 ```
 
 This step will create a new image that extends the `f7t-cluster` image from the FirecREST demo to include JupyterLab and other requirements.
@@ -91,11 +91,11 @@ docker compose -p demo ps --format 'table {{.ID}}\t{{.Name}}\t{{.State}}'
 # 5239294e62bb   utilities         running
 ```
 
-When we are done with the tutorial, the deployment can be shutdown with
+When we are done with the tutorial, the deployment can be shutdown by pressing `ctrl+c` and then
 
 ```
 cd firecrest/examples/jupyterhub
-docker compose down
+docker compose -f ../../deploy/demo/docker-compose.yml -f docker-compose.yml down
 ```
 
 ### Setting up the authorization

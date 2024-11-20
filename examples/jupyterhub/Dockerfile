@@ -1,4 +1,4 @@
-FROM f7t-cluster
+FROM --platform=linux/amd64 f7t-cluster
  
 RUN yum update -y && \
     yum install -y sqlite-devel openssl-devel bzip2-devel libffi-devel wget && \
