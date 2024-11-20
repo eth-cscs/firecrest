@@ -121,7 +121,7 @@ Now we can run JupyterHub with
 ```bash
 . jhub-env/bin/activate
 . env.sh 
-jupyterhub --config jupyterhub-config.py --port 8003 --ip 0.0.0.0 --debug
+jupyterhub --config jupyterhub-config.py --port 8003 --ip 0.0.0.0
 ```
 Here we are sourcing the file [env.sh](env.sh) which defines environment variables needed by the spawner (more information can be found [here](https://firecrestspawner.readthedocs.io/en/latest/authentication.html)).
 We use the port `8003` for the hub since the default one `8000` is already used for FirecREST itself in the demo deployment.
