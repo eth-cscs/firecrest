@@ -63,6 +63,7 @@ Once all the images have been built we can move to the JupyterHub demo directory
 
 ```bash
 cd firecrest/examples/jupyterhub 
+export JHUB_DOCKERFILE_DIR=$PWD
 docker compose -f ../../deploy/demo/docker-compose.yml -f docker-compose.yml up --build
 ```
 
