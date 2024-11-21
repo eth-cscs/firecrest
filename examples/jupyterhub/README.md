@@ -19,7 +19,7 @@ For this tutorial it's necessary
 
 ### Building images from FirecREST's Docker Compose demo
 
-The [docker-compose.yaml](docker-compose.yaml) that we use in this the demo is a copy of the the one from the Docker demo of FirecREST with only a few small changes.
+The [docker-compose.yaml](docker-compose.yaml) that we use in this tutorial is a copy of the the one from the Docker demo of FirecREST with only a few small changes.
 So, to get started, let's clone the FirecREST repository
 
 ```bash
@@ -33,7 +33,7 @@ cd firecrest/deploy/demo/
 docker compose build
 ```
 
-This step is going to take a few minutes. In the meanwhile we can install JupyterHub on a virtual environment on our machine.
+This step takes a few minutes. In the meanwhile we can install JupyterHub on a virtual environment on our machine.
 
 
 ### Install JupyterHub and FirecRESTSpawner
@@ -62,7 +62,7 @@ pip install --no-cache .
 
 ## Deployment of FirecREST and Slurm cluster
 
-Once all the images have been built we can move to the JupyterHub demo directory and deploy the [docker-compose.yaml](docker-compose.yaml).
+Once all the images have been built we can move to the tutorial directory and deploy the [docker-compose.yaml](docker-compose.yaml).
 
 ```bash
 cd firecrest/examples/jupyterhub 
@@ -70,8 +70,8 @@ export JHUB_DOCKERFILE_DIR=$PWD
 docker compose -f ../../deploy/demo/docker-compose.yml -f docker-compose.yml up --build
 ```
 
-This step will create a new image that extends the `f7t-cluster` image from the FirecREST demo to include JupyterLab and other requirements.
-It will take some time since it needs to first build from source a few dependencies of JupyterLab.
+This step will create a new image that extends the `f7t-cluster` image from the Docker demo of FirecREST to include JupyterLab and other requirements.
+It takes a few minutes since a few dependencies of JupyterLab must be built from source.
 
 Once the building is finished you can check that all containers are running
 
@@ -110,7 +110,7 @@ docker compose -f ../../deploy/demo/docker-compose.yml -f docker-compose.yml dow
 ### Setting up the authorization
 
 A requirement for running JupyterHub with FirecRESTSpawner is to use an authenticator that prompts users for login and password in exchange for an access token.
-That token will then be passed to the spawner, allowing users to authenticate with FirecREST when submitting, stopping or polling for jobs.
+That token is then be passed to the spawner, allowing users to authenticate with FirecREST when submitting, stopping or polling for jobs.
 For this purpose, we will use an Authorization Code Flow client, which we need to create on the Keycloak web interface.
 
 Let's go to the [Clients page](http://localhost:8080/auth/admin/master/console/#/realms/kcrealm/clients) in Keycloak (username: admin, password: admin2) within the `kcrealm` realm.
@@ -123,7 +123,7 @@ Once that's done, the client `jhub-client` can be seen listed on the "Clients" t
 
 ### Launching JupyterHub
 
-The [configuration file](jupyterhub-config.py) provided in the demo has all the settings needed for using JupyterHub with our deployment.
+The [configuration file](jupyterhub-config.py) provided in this tutorial has all the settings needed for using JupyterHub with our deployment.
 Depending on the platform and Docker setup, you may need to adjust a few lines in the configuration to set the correct host IP address for the Docker bridge network. On most Linux systems, you can find this address with `ip addr show docker0`. It is typically `172.17.0.1`, which you can use to replace `host.docker.internal` in the configuration if the latter doesn't work.
 
 Now we can run JupyterHub with
@@ -134,7 +134,7 @@ Now we can run JupyterHub with
 jupyterhub --config jupyterhub-config.py --port 8003 --ip 0.0.0.0
 ```
 Here we are sourcing the file [env.sh](env.sh) which defines environment variables needed by the spawner (more information can be found [here](https://firecrestspawner.readthedocs.io/en/latest/authentication.html)).
-We use the port `8003` for the hub since the default one `8000` is already used for FirecREST itself in the demo deployment.
+We use the port `8003` for the hub since the default one `8000` is already used for FirecREST itself in the deployment.
 The ip `0.0.0.0` is necessary to allow JupyterLab to connect back to the hub.
 
 The hub should be accessible in the browser at [http://localhost:8003](http://localhost:8003/) (username: test1 and password: test11) and it should be possible to launch notebooks on the slurm cluster.
