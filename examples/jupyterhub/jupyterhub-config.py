@@ -1,4 +1,5 @@
 import secrets
+from firecrestspawner.spawner import SlurmSpawner
 from oauthenticator.generic import GenericOAuthenticator
 
 
@@ -21,7 +22,7 @@ c.Authenticator.authorize_url = "http://localhost:8080/auth/realms/kcrealm/proto
 c.Authenticator.token_url = "http://localhost:8080/auth/realms/kcrealm/protocol/openid-connect/token"
 c.Authenticator.userdata_url = "http://localhost:8080/auth/realms/kcrealm/protocol/openid-connect/userinfo"
 c.Authenticator.login_service = "http://localhost:8080"
-c.Authenticator.username_key = "preferred_username"
+c.Authenticator.username_claim = "preferred_username"
 c.Authenticator.userdata_params = {"state": "state"}
 c.Authenticator.scope = ["openid", "profile", "firecrest"]
 
@@ -36,7 +37,7 @@ c.CryptKeeper.keys = gen_hex_string()
 c.JupyterHub.default_url = "/hub/home"
 
 # Spawner setup
-c.JupyterHub.spawner_class = "firecrestspawner.spawner.SlurmSpawner"
+c.JupyterHub.spawner_class = SlurmSpawner
 c.Spawner.req_host = "cluster"
 c.Spawner.cmd = "firecrestspawner-singleuser jupyterhub-singleuser"
 c.Spawner.enable_aux_fc_client = True
