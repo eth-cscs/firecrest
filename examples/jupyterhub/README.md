@@ -113,10 +113,10 @@ A requirement for running JupyterHub with FirecRESTSpawner is to use an authenti
 That token will then be passed to the spawner, allowing users to authenticate with FirecREST when submitting, stopping or polling for jobs.
 For this purpose, we will use an Authorization Code Flow client, which we need to create on the Keycloak web interface.
 
-Let's go to [this page](http://localhost:8080/auth/admin/master/console/#/realms/kcrealm/clients) (username: admin, password: admin2) and make sure that the top left side indicates that we are within the `Kcrealm` realm.
+Let's go to the [Clients page](http://localhost:8080/auth/admin/master/console/#/realms/kcrealm/clients) in Keycloak (username: admin, password: admin2) within the `kcrealm` realm.
 We click on "Create" and then on "Select file".
 A file system explorer will open.
-Navigate to the demo's directory and choose the [jhub-client.json](jhub-client.json) file and click on "Save".
+Navigate to the tutorial's directory, choose the [jhub-client.json](jhub-client.json) file and click on "Save".
 
 Once that's done, the client `jhub-client` can be seen listed on the "Clients" tab of the side panel.
 
@@ -124,6 +124,7 @@ Once that's done, the client `jhub-client` can be seen listed on the "Clients" t
 ### Launching JupyterHub
 
 The [configuration file](jupyterhub-config.py) provided in the demo has all the settings needed for using JupyterHub with our deployment.
+Depending on the platform and Docker setup, you may need to adjust a few lines in the configuration to set the correct host IP address for the Docker bridge network. On most Linux systems, you can find this address with `ip addr show docker0`. It is typically `172.17.0.1`, which you can use to replace `host.docker.internal` in the configuration if the latter doesn't work.
 
 Now we can run JupyterHub with
 
