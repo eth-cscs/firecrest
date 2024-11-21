@@ -38,22 +38,25 @@ This step is going to take a few minutes. In the meanwhile we can install Jupyte
 
 ### Install JupyterHub and FirecRESTSpawner
 
-We can create a virtual environment
+An easy way to install JupyterHub is via [Miniconda](https://docs.anaconda.com/miniconda/install/).
+We need to download the Miniconda installer for our platforms and install it with
 
 ```bash
-python -m venv jhub-env
+bash Miniconda3-latest-<arch>.sh -p /path/to/mc-jhub -b
 ```
 
-and install JupyterHub and FirecRESTSpawner
+Here we use `-p` to pass the absolute path to the install directory and `-b` to accept the [terms of service](https://legal.anaconda.com/policies/en/).
+
+Then we can activate our conda environment and install configurable-http-proxy, JupyterHub and FirecRESTSpawner
 
 ```bash
-. jhub-env/bin/activate
-
+. /path/to/mc-jhub/bin/activate
+conda install -y configurable-http-proxy
 pip install --no-cache jupyterhub==4.1.6 pyfirecrest==2.6.0 SQLAlchemy==1.4.52 oauthenticator==16.3.1 python-hostlist==1.23.0
 
 git clone https://github.com/eth-cscs/firecrestspawner.git
 cd firecrestspawner
-. jhub-env/bin/activate
+. /path/to/mc-jhub/bin/activate
 pip install --no-cache .
 ```
 
@@ -125,7 +128,7 @@ The [configuration file](jupyterhub-config.py) provided in the demo has all the 
 Now we can run JupyterHub with
 
 ```bash
-. jhub-env/bin/activate
+. /path/to/mc-jhub/bin/activate
 . env.sh 
 jupyterhub --config jupyterhub-config.py --port 8003 --ip 0.0.0.0
 ```
