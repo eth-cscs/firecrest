@@ -1,17 +1,25 @@
 # FirecRESTSpawner on the Docker demo
 
 
-This is a tutorial on how to run JupyterHub with [FirecRESTSpawner](https://github.com/eth-cscs/firecrestspawner) on the [Docker demo of FirecREST](https://github.com/eth-cscs/firecrest/tree/master/deploy/demo).
+This tutorial explains how to run JupyterHub with [FirecRESTSpawner](https://github.com/eth-cscs/firecrestspawner) using the [Docker demo of FirecREST](https://github.com/eth-cscs/firecrest/tree/master/deploy/demo).
 
-We are going to start by deploying FirecREST together with a slurm cluster using [Docker Compose](https://docs.docker.com/compose).
-Then we will install JupyterHub on a virtual environment and configure it to launch notebooks on the slurm cluster via FirecREST.
+FirecRESTSpawner is a tool for launching Jupyter Notebook servers from JupyterHub on HPC clusters through [FirecREST](https://firecrest.readthedocs.io/en/stable/).
+It can be deployed on Kubernetes as part of JupyterHub and configured to target different systems.
+
+In this tutorial, we will set up a simplified environment on a local machine, including:
+
+- a [Docker Compose](https://docs.docker.com/compose) deployment of FirecREST and a single-node Slurm cluster
+- a local installation of JupyterHub, configured to launch notebooks on the Slurm cluster
+
+This deployment not only demonstrates the use case but also serves as a platform for testing and developing FirecRESTSpawner.
 
 
 ## Requirements
 
-For this tutorial it's necessary
- * a recent installation of Docker, which includes the `docker compose` command or the older `docker-compose` command line
- * a python installation (`>=3.9`)
+For this tutorial you will need
+
+ * a recent installation of Docker, which includes the `docker compose` command (or the older `docker-compose` command line tool)
+ * a Python installation (version 3.9 or higher)
 
 
 ## Setup
@@ -19,8 +27,11 @@ For this tutorial it's necessary
 
 ### Building images from FirecREST's Docker Compose demo
 
-The [docker-compose.yaml](docker-compose.yaml) that we use in this tutorial is a copy of the the one from the Docker demo of FirecREST with only a few small changes.
-So, to get started, let's clone the FirecREST repository
+This tutorial builds on the Docker demo of FirecREST.
+We will use a small [docker-compose.yaml](docker-compose.yaml) file to override some settings in the FirecREST demo.
+This can be done by passing both files to the `docker compose` command.
+
+To get started, let's clone the FirecREST repository
 
 ```bash
 git clone https://github.com/eth-cscs/firecrest.git
@@ -33,13 +44,13 @@ cd firecrest/deploy/demo/
 docker compose build
 ```
 
-This step takes a few minutes. In the meanwhile we can install JupyterHub on a virtual environment on our machine.
+This step takes a few minutes. In the meanwhile we can install JupyterHub on a local virtual environment.
 
 
 ### Install JupyterHub and FirecRESTSpawner
 
 An easy way to install JupyterHub is via [Miniconda](https://docs.anaconda.com/miniconda/install/).
-We need to download the Miniconda installer for our platforms and install it with
+We need to download the Miniconda installer for our platforms and install it using the following command
 
 ```bash
 bash Miniconda3-latest-<arch>.sh -p /path/to/mc-jhub -b
@@ -47,7 +58,7 @@ bash Miniconda3-latest-<arch>.sh -p /path/to/mc-jhub -b
 
 Here we use `-p` to pass the absolute path to the install directory and `-b` to accept the [terms of service](https://legal.anaconda.com/policies/en/).
 
-Then we can activate our conda environment and install configurable-http-proxy, JupyterHub and FirecRESTSpawner
+We can activate our conda base environment and install configurable-http-proxy, JupyterHub and FirecRESTSpawner
 
 ```bash
 . /path/to/mc-jhub/bin/activate
@@ -71,9 +82,9 @@ docker compose -f ../../deploy/demo/docker-compose.yml -f docker-compose.yml up 
 ```
 
 This step will create a new image that extends the `f7t-cluster` image from the Docker demo of FirecREST to include JupyterLab and other requirements.
-It takes a few minutes since a few dependencies of JupyterLab must be built from source.
+The process may take a few minutes, as some dependencies for JupyterLab need to be built from source.
 
-Once the building is finished you can check that all containers are running
+Once that's finished, you can check that all containers are running
 
 ```bash
 docker compose -p demo ps --format 'table {{.ID}}\t{{.Name}}\t{{.State}}'
@@ -134,7 +145,7 @@ Now we can run JupyterHub with
 jupyterhub --config jupyterhub-config.py --port 8003 --ip 0.0.0.0
 ```
 Here we are sourcing the file [env.sh](env.sh) which defines environment variables needed by the spawner (more information can be found [here](https://firecrestspawner.readthedocs.io/en/latest/authentication.html)).
-We use the port `8003` for the hub since the default one `8000` is already used for FirecREST itself in the deployment.
-The ip `0.0.0.0` is necessary to allow JupyterLab to connect back to the hub.
+We use the port `8003` for the JupyterHub since the default one `8000` is already used for FirecREST in the deployment.
+The ip `0.0.0.0` is necessary to allow JupyterLab to connect back to the JupyterHub.
 
-The hub should be accessible in the browser at [http://localhost:8003](http://localhost:8003/) (username: test1 and password: test11) and it should be possible to launch notebooks on the slurm cluster.
+JupyterHub should be accessible in the browser at [http://localhost:8003](http://localhost:8003/) (username: test1 and password: test11) and it should be possible to launch notebooks on the slurm cluster.
