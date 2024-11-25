@@ -76,9 +76,12 @@ Once all the images have been built we can move to the tutorial directory and de
 
 ```bash
 cd firecrest/examples/jupyterhub 
+chmod 400 ../../deploy/test-build/environment/keys/ca-key  ../../deploy/test-build/environment/keys/user-key
 export JHUB_DOCKERFILE_DIR=$PWD
 docker compose -f ../../deploy/demo/docker-compose.yml -f docker-compose.yml up --build
 ```
+
+The `chmod` command we run before `docker compose` is to make the SSH private keys to access the Slurm cluster (`ca-key` and `user-key`) readable by its owner on the host machine.
 
 This step will create a new image that extends the `f7t-cluster` image from the Docker demo of FirecREST to include JupyterLab and other requirements.
 The process may take a few minutes, as some dependencies for JupyterLab need to be built from source.
