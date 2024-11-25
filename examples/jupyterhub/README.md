@@ -67,7 +67,6 @@ pip install --no-cache jupyterhub==4.1.6 pyfirecrest==2.6.0 SQLAlchemy==1.4.52 o
 
 git clone https://github.com/eth-cscs/firecrestspawner.git
 cd firecrestspawner
-. /path/to/mc-jhub/bin/activate
 pip install --no-cache .
 ```
 
