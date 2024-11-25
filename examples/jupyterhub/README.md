@@ -1,14 +1,14 @@
 # FirecRESTSpawner on the Docker demo
 
 
-This tutorial explains how to run JupyterHub with [FirecRESTSpawner](https://github.com/eth-cscs/firecrestspawner) using the [Docker demo of FirecREST](https://github.com/eth-cscs/firecrest/tree/master/deploy/demo).
+This tutorial explains how to run [JupyterHub](https://jupyterhub.readthedocs.io/en/stable/) with [FirecRESTSpawner](https://github.com/eth-cscs/firecrestspawner) using the [Docker demo of FirecREST](https://github.com/eth-cscs/firecrest/tree/master/deploy/demo).
 
 FirecRESTSpawner is a tool for launching Jupyter Notebook servers from JupyterHub on HPC clusters through [FirecREST](https://firecrest.readthedocs.io/en/stable/).
 It can be deployed on Kubernetes as part of JupyterHub and configured to target different systems.
 
 In this tutorial, we will set up a simplified environment on a local machine, including:
 
-- a [Docker Compose](https://docs.docker.com/compose) deployment of FirecREST and a single-node Slurm cluster
+- a [Docker Compose](https://docs.docker.com/compose) deployment of FirecREST, a single-node Slurm cluster and a [Keycloak](https://www.keycloak.org) server which will be used as identity provider for the authentication
 - a local installation of JupyterHub, configured to launch notebooks on the Slurm cluster
 
 This deployment not only demonstrates the use case but also serves as a platform for testing and developing FirecRESTSpawner.
@@ -50,7 +50,7 @@ This step takes a few minutes. In the meanwhile we can install JupyterHub on a l
 ### Install JupyterHub and FirecRESTSpawner
 
 An easy way to install JupyterHub is via [Miniconda](https://docs.anaconda.com/miniconda/install/).
-We need to download the Miniconda installer for our platforms and install it using the following command
+We need to [download the Miniconda installer](https://docs.anaconda.com/miniconda/install/) for our platforms and install it using the following command
 
 ```bash
 bash Miniconda3-latest-<arch>.sh -p /path/to/mc-jhub -b
