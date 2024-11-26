@@ -81,7 +81,8 @@ export JHUB_DOCKERFILE_DIR=$PWD
 docker compose -f ../../deploy/demo/docker-compose.yml -f docker-compose.yml up --build
 ```
 
-The `chmod` command we run before `docker compose` is to make the SSH private keys to access the Slurm cluster (`ca-key` and `user-key`) readable by its owner on the host machine.
+The `chmod` command we run before `docker compose` comes from the Docker demo of FirecREST.
+It's needed to make the SSH private keys for accessing the Slurm cluster readable by their owner on the host machine.
 
 This step will create a new image that extends the `f7t-cluster` image from the Docker demo of FirecREST to include JupyterLab and other requirements.
 The process may take a few minutes, as some dependencies for JupyterLab need to be built from source.
@@ -137,7 +138,11 @@ Once that's done, the client `jhub-client` can be seen listed on the "Clients" t
 ### Launching JupyterHub
 
 The [configuration file](jupyterhub-config.py) provided in this tutorial has all the settings needed for using JupyterHub with our deployment.
-Depending on the platform and Docker setup, you may need to adjust a few lines in the configuration to set the correct host IP address for the Docker bridge network. On most Linux systems, you can find this address with `ip addr show docker0`. It is typically `172.17.0.1`, which you can use to replace `host.docker.internal` in the configuration if the latter doesn't work.
+
+> Depending on the platform and Docker setup, you may need to adjust a few lines in the configuration to set the correct host IP address for the Docker bridge network.
+> On most Linux systems, you can find this address with `ip addr show docker0`.
+> It's typically `172.17.0.1`.
+> If JupyterHub gets a timeout when launching a notebook, you can try replacing the two instances of `host.docker.internal` in the configuration by that ip.
 
 Now we can run JupyterHub with
 

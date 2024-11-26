@@ -47,7 +47,7 @@ c.Spawner.batch_script = """#!/bin/bash
 #SBATCH --job-name=jhub
 
 export JUPYTERHUB_API_URL="http://host.docker.internal:8003/hub/api"
-export JUPYTERHUB_ACTIVITY_URL="http://host.docker.internal:8003//hub/api/users/${USER}/activity"
+export JUPYTERHUB_ACTIVITY_URL="http://host.docker.internal:8003/hub/api/users/${USER}/activity"
 
 export JUPYTERHUB_OAUTH_ACCESS_SCOPES=$(echo $JUPYTERHUB_OAUTH_ACCESS_SCOPES | base64 --decode)
 export JUPYTERHUB_OAUTH_SCOPES=$(echo $JUPYTERHUB_OAUTH_SCOPES | base64 --decode)
