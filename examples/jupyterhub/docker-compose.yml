@@ -1,0 +1,9 @@
+services:
+  cluster:
+    image: "f7t-cluster:jhub"
+    build:
+      context: .
+      dockerfile: $JHUB_DOCKERFILE_DIR/Dockerfile
+      network: host
+    ports:
+      - "56123:56123"
