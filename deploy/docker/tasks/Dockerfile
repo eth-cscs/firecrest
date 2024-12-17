@@ -27,6 +27,7 @@ ENV F7T_SSL_KEY /ssl/f7t_internal.key
 ENV F7T_GUNICORN_LOG --error-logfile ${F7T_LOG_PATH}/tasks.gunicorn.log
 ENV F7T_GUNICORN_SSL --ciphers TLS_AES_256_GCM_SHA384,TLS_CHACHA20_POLY1305_SHA256,TLS_AES_128_GCM_SHA256,DHE-RSA-AES256-GCM-SHA384,ECDHE-RSA-AES256-GCM-SHA384,ECDHE-RSA-AES128-GCM-SHA256 \
                      --ssl-version TLSv1_2 --keyfile $F7T_SSL_KEY --certfile $F7T_SSL_CRT
-ENV F7T_GUNICORN_WORKER --workers=1 --threads=1
 
-ENTRYPOINT /usr/local/bin/gunicorn ${F7T_GUNICORN_SSL} ${F7T_GUNICORN_WORKER} --bind :${F7T_TASKS_PORT} ${F7T_GUNICORN_LOG} ${F7T_GUNICORN_LOG} tasks:app
+# Note: The tasks microservice stores all live tasks in-memmory.
+#       The code is not thread safe, hence workers are enforced to 1
+ENTRYPOINT /usr/local/bin/gunicorn ${F7T_GUNICORN_SSL} --workers=1 --threads=1 --bind :${F7T_TASKS_PORT} ${F7T_GUNICORN_LOG} ${F7T_GUNICORN_LOG} tasks:app
