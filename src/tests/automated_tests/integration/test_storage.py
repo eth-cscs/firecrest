@@ -133,8 +133,7 @@ def test_post_upload_request(headers,targetPath, expected_response_code):
     # download from OS to FS is automatic
     download_ok = False
     for i in range(20):
-        r = requests.get(TASKS_URL +"/"+task_id, headers=headers, verify=False)
-        assert r.status_code == 200
+        r = get_task(task_id, headers)
         if r.json()["task"]["status"] == "114": # import async_tasks -> async_tasks.ST_DWN_END
             download_ok = True
             break
