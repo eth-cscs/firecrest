@@ -53,6 +53,10 @@ spec:
       - name: tasks
         image: "{{ .Values.global.registry }}/tasks:{{ .Values.global.tag }}"
         imagePullPolicy: Always
+        resources:
+          limits:
+            memory: {{ .Values.tasks.F7T_TASKS_MEMORY | default "128Mi"  | quote }}
+            cpu:  {{ .Values.tasks.F7T_TASKS_CPU | replace "500m" | quote }}
         ports:
         - containerPort: {{ .Values.F7T_TASKS_PORT | default 5003 | atoi }}
         env:
