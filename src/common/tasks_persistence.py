@@ -231,16 +231,12 @@ def get_user_tasks(r,user,task_list=None, status_code=None) -> Union[dict,None]:
     task_dict = {}
 
     try:
-
-        # if a single tasks is requested use optimized pattern mattching
-        key_patern = "task_{user}:*".format(user=user)
-        if len(task_list) == 1:
-            key_patern = "task_{user}:*:{id}".format(user=user,id=task_list[0])
-
         # changed use of keys for hscan, since keys has bad performance in big data sets
         # task_list = r.keys("task_*")
         # scan_iter iterates between matching keys
-        for task_id in r.scan_iter(match=key_patern):
+
+        for task_id in r.scan_iter(match="task_{user}:*".format(user=user)):
+
 
             json_task = r.get(task_id)
             # logging.info(json_task)
@@ -268,6 +264,10 @@ def get_user_tasks(r,user,task_list=None, status_code=None) -> Union[dict,None]:
                     continue
 
                 task_dict[task["hash_id"]] = task
+            
+            # check if all tasks have been found
+            if (task_list != None) and (len(task_list) == len(task_dict)):
+                break
                 
         return task_dict
 
