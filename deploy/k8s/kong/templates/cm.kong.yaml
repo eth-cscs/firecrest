@@ -21,14 +21,6 @@ items:
         config:
           status_code: 400
           message: "Invalid"
-      - name: zipkin
-        config:
-          http_endpoint: http://svc-jaeger:9411/api/v2/spans
-          sample_ratio: 1
-          include_credential: true
-          traceid_byte_count: 16
-          header_type: preserve
-          default_header_type: jaeger
       - name: cors
         config:
           origins:
