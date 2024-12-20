@@ -246,7 +246,6 @@ def get_user_tasks(r,user,task_list=None, status_code=None) -> Union[dict,None]:
             # logging.info(json_task)
             # decode because redis stores it in Bytes not string
             task = json.loads(json_task.decode('latin-1'))
-            task["task_id"]=key_parts(task_id.decode('latin-1'))[2]
 
             try:
                 _user = task["user"]
@@ -268,10 +267,6 @@ def get_user_tasks(r,user,task_list=None, status_code=None) -> Union[dict,None]:
                     continue
 
                 task_dict[task["hash_id"]] = task
-            
-            # check if all tasks have been found
-            if (task_list != None) and (len(task_list) == len(task_dict)):
-                break
                 
         return task_dict
 

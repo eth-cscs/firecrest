@@ -32,7 +32,7 @@ spec:
               command: ["/bin/sh", "-c", "sleep 10"]
         resources:
           limits:
-            memory: {{ .Values.F7T_REDIS_MEMORY | default "128Mi"  | quote }}
+            memory: {{ .Values.F7T_REDIS_MEMORY | default "512Mi"  | quote }}
             cpu:  {{ .Values.F7T_REDIS_CPU | default "500m" | quote }}
         ports:
         - containerPort: {{ .Values.F7T_PERSIST_PORT | default 6379 | atoi }}

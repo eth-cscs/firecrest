@@ -41,7 +41,8 @@ TRACER_HEADER = "uber-trace-id"
 
 DEBUG_MODE = get_boolean_var(os.environ.get("F7T_DEBUG_MODE", False))
 
-
+# task dict, key is the task_id
+tasks = {}
 
 
 app = Flask(__name__)
@@ -79,6 +80,24 @@ def init_queue():
         app.logger.error("Persistence Database is not functional")
         app.logger.error("Tasks microservice cannot be started")
         return
+
+    # dictionary: [task_id] = {hash_id,status_code,user,data}
+    task_list = persistence.get_all_tasks(r)
+
+    # key = task_id ; values = {status_code,user,data}
+    for task_id, value in task_list.items():
+
+
+        status  = value["status"]
+        user    = value["user"]
+        data    = value["data"]
+        service = value["service"]
+        system = value["system"]
+        created_at = value["created_at"]
+
+        t = async_task.AsyncTask(task_id,user,service=service,system=system,created_at=created_at)
+        t.set_status(status,data)
+        tasks[t.hash_id] = t
 
 # init Redis connection
 init_queue()
@@ -170,6 +189,7 @@ def create_task():
 
     t = async_task.AsyncTask(task_id=str(task_id), user=username, service=service, system=system,data=init_data)
 
+    tasks[t.hash_id] = t
     if JAEGER_AGENT != "":
         try:
             span = tracing.get_span(request)
@@ -217,27 +237,19 @@ def get_task(id):
     # for better knowledge of what this id is
     hash_id = id
 
-   
-
-
-    
     try:
-        global r
-        current_task = async_task.AsyncTask.deserialise( persistence.get_user_tasks(r,username,task_list=[hash_id])[hash_id])
-       
-        #if not user_tasks[hash_id].is_owner(username):
-        #    return jsonify(description="Operation not permitted. Invalid task owner."), 403
-        #task_status=user_tasks[hash_id].get_status()
-        #task_status["task_url"] = f"{KONG_URL}/tasks/{hash_id}"
-        current_task = current_task.get_status()
-        current_task["task_url"] = f"/tasks/{hash_id}"
-        data = jsonify(task=current_task)
+        if not tasks[hash_id].is_owner(username):
+            return jsonify(description="Operation not permitted. Invalid task owner."), 403
 
+        task_status=tasks[hash_id].get_status()
+        task_status["task_url"] = f"/tasks/{hash_id}"
+        data = jsonify(task=task_status)
         return data, 200
 
     except KeyError:
         data = jsonify(error=f"Task {id} does not exist")
         return  data, 404
+
 
 # update status of the task with task_id = id
 @app.route("/<id>",methods=["PUT"])
@@ -265,66 +277,52 @@ def update_task(id):
 
     # for better knowledge of what this id is
     hash_id = id
-    auth_header = request.headers[AUTH_HEADER_NAME]
 
-    # getting username from auth_header
-    is_username_ok = get_username(auth_header)
-
-    if not is_username_ok["result"]:
-        app.logger.error(f"Couldn't extract username from JWT token: {is_username_ok['reason']}")
-        return jsonify(description=f"Couldn't retrieve task. Reason: {is_username_ok['reason']}"), 401
-
-    username = is_username_ok["username"]
-
-   
     # check if task exist
     try:
-        global r
-        current_task = async_task.AsyncTask.deserialise(persistence.get_user_tasks(r,username,task_list=[hash_id])[hash_id])
-       
-    
-
-        if JAEGER_AGENT != "":
-            try:
-                span = tracing.get_span(request)
-                span.set_tag('f7t_task_id', hash_id)
-            except Exception as e:
-                app.logger.info(e)
-
-
-        # checks if status request is valid:
-        if status not in async_task.status_codes:
-            data = jsonify(error="Status code error",status=status)
-            app.logger.error(data)
-            return data, 400
-
-
-        # if no msg on request, default status msg:
-        if msg == None:
-            msg = async_task.status_codes[status]
-
-        # update task in memory
-        current_task.set_status(status=status, data=msg)
-
-        # getting service from task, to set exp_time according to the service
-        service = current_task.get_internal_status()["service"]
-
-    
-        exp_time = STORAGE_TASK_EXP_TIME
-
-        if service == "compute":
-            exp_time = COMPUTE_TASK_EXP_TIME
-
-        #update task in persistence server
-        if not persistence.save_task(r,current_task.task_id, task=current_task.get_internal_status(), exp_time=exp_time):
-            app.logger.error("Error saving task")
-            app.logger.error(current_task.get_internal_status())
-            return jsonify(description="Couldn't update task"), 400
-
-        app.logger.info(f"New status for task {hash_id}: {status}")
+        current_task=tasks[hash_id]
     except KeyError:
         data = jsonify(error=f"Task {hash_id} does not exist")
         return data, 404
+
+    if JAEGER_AGENT != "":
+        try:
+            span = tracing.get_span(request)
+            span.set_tag('f7t_task_id', hash_id)
+        except Exception as e:
+            app.logger.info(e)
+
+
+    # checks if status request is valid:
+    if status not in async_task.status_codes:
+        data = jsonify(error="Status code error",status=status)
+        app.logger.error(data)
+        return data, 400
+
+
+    # if no msg on request, default status msg:
+    if msg == None:
+        msg = async_task.status_codes[status]
+
+    # update task in memory
+    tasks[hash_id].set_status(status=status, data=msg)
+
+    # getting service from task, to set exp_time according to the service
+    service = tasks[hash_id].get_internal_status()["service"]
+
+    global r
+    exp_time = STORAGE_TASK_EXP_TIME
+
+    if service == "compute":
+        exp_time = COMPUTE_TASK_EXP_TIME
+
+    #update task in persistence server
+    if not persistence.save_task(r,tasks[hash_id].task_id, task=tasks[hash_id].get_internal_status(), exp_time=exp_time):
+        app.logger.error("Error saving task")
+        app.logger.error(tasks[hash_id].get_internal_status())
+        return jsonify(description="Couldn't update task"), 400
+
+    app.logger.info(f"New status for task {hash_id}: {status}")
 
     data = jsonify(success="task updated")
     return data, 200
@@ -350,19 +348,22 @@ def delete_task(id):
 
     # if username isn't taks owner, then deny access
     try:
-        global r
-        current_task = async_task.AsyncTask.deserialise( persistence.get_user_tasks(r,username,task_list=[hash_id])[hash_id])
-       
-
-        if not persistence.set_expire_task(r,current_task.task_id,current_task.get_internal_status(),secs=300):
-            return jsonify(error=f"Failed to delete task {hash_id} on persistence server"), 400
-
-        data = jsonify(success=f"Task {hash_id} deleted")
-        return data, 204
-
+        if not tasks[hash_id].is_owner(username):
+            return jsonify(description="Operation not permitted. Invalid task owner."), 403
     except KeyError:
         data = jsonify(error=f"Task {id} does not exist")
         return data, 404
+
+    try:
+        global r
+
+        if not persistence.set_expire_task(r,tasks[hash_id].task_id,tasks[hash_id].get_internal_status(),secs=300):
+            return jsonify(error=f"Failed to delete task {hash_id} on persistence server"), 400
+
+        data = jsonify(success=f"Task {hash_id} deleted")
+        tasks[hash_id].set_status(status=async_task.INVALID, data="")
+        return data, 204
+
     except Exception as e:
         app.logger.error(f"Failed to delete task {hash_id} on persistence server")
         app.logger.error(f"Error: {type(e)}")
@@ -402,27 +403,30 @@ def expire_task(id):
 
     # if username isn't taks owner, then deny access
     try:
+        if not tasks[hash_id].is_owner(username):
+            return jsonify(description="Operation not permitted. Invalid task owner."), 403
+    except KeyError:
+        data = jsonify(error=f"Task {id} does not exist")
+        return data, 404
+
+
+    exp_time = STORAGE_TASK_EXP_TIME
+
+    if service == "compute":
+        exp_time = COMPUTE_TASK_EXP_TIME
+
+    try:
         global r
-        current_task = async_task.AsyncTask.deserialise( persistence.get_user_tasks(r,username,task_list=[hash_id])[hash_id])
-   
 
-
-        exp_time = STORAGE_TASK_EXP_TIME
-
-        if service == "compute":
-            exp_time = COMPUTE_TASK_EXP_TIME
-
-        app.logger.info(f"Set expiration for task {current_task.task_id} - {exp_time} secs")
-        if not persistence.set_expire_task(r,current_task.task_id,current_task.get_internal_status(),secs=exp_time):
+        app.logger.info(f"Set expiration for task {tasks[hash_id].task_id} - {exp_time} secs")
+        if not persistence.set_expire_task(r,tasks[hash_id].task_id,tasks[hash_id].get_internal_status(),secs=exp_time):
             app.logger.warning(f"Task couldn't be marked as expired")
             return jsonify(error="Failed to set expiration time on task in persistence server"), 400
 
         data = jsonify(success=f"Task expiration time set to {exp_time} secs.")
 
         return data, 200
-    except KeyError:
-        data = jsonify(error=f"Task {id} does not exist")
-        return data, 404
+
     except Exception:
         data = jsonify(Error="Failed to set expiration time on task in persistence server")
         return data, 400
