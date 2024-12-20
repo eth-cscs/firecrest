@@ -239,6 +239,10 @@ def get_user_tasks(r,user,task_list=None, status_code=None) -> Union[dict,None]:
 
 
             json_task = r.get(task_id)
+
+            if json_task is None:
+                continue
+
             # logging.info(json_task)
             # decode because redis stores it in Bytes not string
             task = json.loads(json_task.decode('latin-1'))
@@ -312,10 +316,12 @@ def get_service_tasks(r,service,status_code=None) -> Union[dict,None]:
 
             #skip if the service specified in the task_id is different
             user,service,id = key_parts(task_id.decode('latin-1'))
-            if service==None or service != service:
+            if service is None or service != service:
                 continue
 
             json_task = r.get(task_id)
+            if json_task is None:
+                continue
             # logging.info(json_task)
             # decode because redis stores it in Bytes not string
             task = json.loads(json_task.decode('latin-1'))
