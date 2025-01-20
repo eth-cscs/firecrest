@@ -42,6 +42,7 @@ data:
   F7T_SYSTEMS_PUBLIC_NAME: {{ .Values.F7T_SYSTEMS_PUBLIC_NAME | quote }}
   F7T_UTILITIES_MAX_FILE_SIZE: {{ .Values.F7T_UTILITIES_MAX_FILE_SIZE | default "5" | quote }}
   F7T_UTILITIES_TIMEOUT: {{ .Values.F7T_UTILITIES_TIMEOUT | default "5" | quote }}
+  F7T_STORAGE_MAX_FILE_SIZE : {{ .Values.F7T_STORAGE_MAX_FILE_SIZE | default "5120" | quote }}
 kind: ConfigMap
 metadata:
   name: common-env-file
