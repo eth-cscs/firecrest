@@ -9,6 +9,7 @@ import time
 import re
 import sys
 import os
+import glob
 
 
 system = "<replace_with_remote_system>"
@@ -68,31 +69,26 @@ def join_parts(sourcedir: str, targetpath: str) -> bool:
     try:
 
         targetfile = open(targetpath, "wb")
+        print()
 
-        parts = os.listdir(sourcedir)
-        [part for part in parts if
-         re.match(r"[a-zA-Z0-9_-]+\.part\.[0-9][0-9]", part)]
+        parts = glob.glob(f'{os.path.basename(targetpath)}.part.*')
         parts.sort()
+        print(parts)
 
         for part in parts:
-
             print(f"Joining part {part} to {targetpath}")
-
             partpath = os.path.join(sourcedir, part)
 
             inputfile = open(partpath, "rb")
             while True:
-
                 bytes = inputfile.read(1024)
                 if not bytes:
                     break
-
                 targetfile.write(bytes)
-
+            inputfile.close()
             print("Finished")
 
-            inputfile.close()
-
+        targetfile.close()
         print(f"File {targetpath} joined")
         return True
 
