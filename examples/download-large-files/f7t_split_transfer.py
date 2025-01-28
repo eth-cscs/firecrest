@@ -70,6 +70,8 @@ def join_parts(sourcedir: str, targetpath: str) -> bool:
         targetfile = open(targetpath, "wb")
 
         parts = os.listdir(sourcedir)
+        [part for part in parts if
+         re.match(r"[a-zA-Z0-9_-]+\.part\.[0-9][0-9]", part)]
         parts.sort()
 
         for part in parts:
