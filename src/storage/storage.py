@@ -545,7 +545,11 @@ def download_task(headers, system_name, system_addr, sourcePath, task_id):
     container_name = is_username_ok["username"]
 
     if not staging.is_container_created(container_name):
-        errno = staging.create_container(container_name)
+        if OBJECT_STORAGE == "swift":
+            errno = staging.create_container(container_name)
+        else:
+            errno = staging.create_container(container_name,
+                                             STORAGE_TEMPURL_EXP_TIME)
 
         if errno == -1:
             error_msg = f"Could not create container {container_name} in Staging Area ({staging.get_object_storage()})"
@@ -775,7 +779,13 @@ def upload_task(headers, system_name, system_addr, targetPath, sourcePath, task_
 
     # create or return container
     if not staging.is_container_created(container_name):
-        errno = staging.create_container(container_name)
+        
+        if OBJECT_STORAGE == "swift":
+            errno = staging.create_container(container_name)
+        else:
+            errno = staging.create_container(container_name,
+                                             STORAGE_TEMPURL_EXP_TIME)
+
         if errno == -1:
             msg = f"Could not create container {container_name} in Staging Area ({staging.get_object_storage()})"
             data["msg"] = msg
