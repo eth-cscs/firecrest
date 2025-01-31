@@ -487,11 +487,22 @@ def os_to_fs(task_id):
 
             # must be deleted after object is moved to storage
             # staging.delete_object(containername=username,prefix=task_id,objectname=objectname)
-            # for big files delete_object consumes a long time and often gives a TimeOut error between system and staging area
+            # for big files delete_object on SWIFT it consumes a long time and often gives a TimeOut error between system and staging area
             # Therefore, using delete_object_after a few minutes (in this case 5 minutes) will trigger internal staging area
             # mechanism to delete the file automatically and without a need of a connection
+            #
+            # For s3v2 and s3v4 the removal can be done immediately using staging.delete_object()
 
-            staging.delete_object_after(containername=username,prefix=task_id,objectname=objectname, ttl = int(time.time())+600)
+            if OBJECT_STORAGE == "swift":
+                staging.delete_object_after(containername=username,
+                                            prefix=task_id,
+                                            objectname=objectname,
+                                            ttl=int(time.time())+600)
+
+            else:
+                staging.delete_object(containername=username,
+                                      prefix=task_id,
+                                      objectname=objectname)
 
         else:
             # if error, should be prepared for try again
@@ -586,12 +597,17 @@ def download_task(headers, system_name, system_addr, sourcePath, task_id):
     msg = {"url": temp_url, "source": sourcePath, "system_name": system_name}
     update_task(task_id, headers, async_task.ST_UPL_END, msg, is_json=True)
     # marked deletion from here to STORAGE_TEMPURL_EXP_TIME (default 30 days)
-    retval = staging.delete_object_after(containername=container_name,prefix=object_prefix,objectname=object_name,ttl=int(time.time()) + STORAGE_TEMPURL_EXP_TIME)
+    # this is only needed for SWIFT objects for S3 objects the Lifecycle Policy is set on bucket creation
+    if OBJECT_STORAGE == "swift":
+        retval = staging.delete_object_after(containername=container_name,
+                                             prefix=object_prefix,
+                                             objectname=object_name,
+                                             ttl=int(time.time()) + STORAGE_TEMPURL_EXP_TIME)
 
-    if retval == 0:
-        app.logger.info(f"Setting {STORAGE_TEMPURL_EXP_TIME} [s] as X-Delete-At")
-    else:
-        app.logger.error("Object couldn't be marked as X-Delete-At")
+        if retval == 0:
+            app.logger.info(f"Setting {STORAGE_TEMPURL_EXP_TIME} [s] as X-Delete-At")
+        else:
+            app.logger.error("Object couldn't be marked as X-Delete-At")
 
 
 
@@ -679,21 +695,31 @@ def invalidate_request():
         return jsonify(error=is_username_ok['reason']), 401
 
     containername = is_username_ok["username"]
-    prefix        = task_id
+    prefix = task_id
 
-    objects = staging.list_objects(containername,prefix)
+    objects = staging.list_objects(containername, prefix)
 
     for objectname in objects:
 
         # error = staging.delete_object(containername,prefix,objectname)
-        # replacing delete_object by delete_object_after 5 minutes
-        error = staging.delete_object_after(containername=containername, prefix=prefix, objectname=objectname, ttl=int(time.time())+600)
+        # replacing delete_object by delete_object_after 5 minutes for SWIFT 
+        # objects
+
+        if OBJECT_STORAGE == "swift":
+            error = staging.delete_object_after(containername=containername,
+                                                prefix=prefix,
+                                                objectname=objectname,
+                                                ttl=int(time.time())+600)
+        else:
+            error = staging.delete_object(containername=containername,
+                                          prefix=prefix,
+                                          objectname=objectname)
 
         if error == -1:
             return jsonify(error="Could not invalidate URL"), 400
 
         # if file is invalidated, then delete the task
-        if not delete_task(task_id,headers):
+        if not delete_task(task_id, headers):
             app.logger.warning(f"Task {task_id} couldn't be marked as invalid in database")
         else:
             app.logger.info(f"Task {task_id} marked as invalid in database")
