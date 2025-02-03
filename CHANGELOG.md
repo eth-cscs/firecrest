@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgrade `requests` library to version `2.32.0`.
 - System availability is tested using `whoami` instead of `ls -l` on a filesystem. Filesystem failures reported in `status/systems/<SYSTEM>` do not affect the availability of a system.
 - Filesystem check is executed with the command `ls -1f`, skipping listing and sorting of entries.
+- External transfers for S3v4 now uses `boto3` version `1.36.8` instead of native calls to AWS S3 API
 
 ### Fixed
 
