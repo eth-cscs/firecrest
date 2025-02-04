@@ -293,7 +293,7 @@ services:
       - ./ssl:/ssl
 
   openapi:
-    image: swaggerapi/swagger-ui:v4.19.1
+    image: swaggerapi/swagger-ui:v5.18.3
     container_name: openapi
     networks:
       firecrest-internal:
@@ -301,6 +301,8 @@ services:
     environment:
       SWAGGER_JSON: /tmp/firecrest-api.yaml
       BASE_URL: /docs
+    ports:
+      - "9090:8080"
     volumes:
       - ../../doc/openapi/:/tmp/
 
