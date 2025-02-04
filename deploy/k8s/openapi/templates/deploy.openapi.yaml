@@ -17,7 +17,7 @@ items:
           app: openapi
       spec:
         containers:
-        - image: swaggerapi/swagger-ui:v4.19.1
+        - image: swaggerapi/swagger-ui:v5.18.3
           env:
           - name: SWAGGER_JSON
             value: /f7t/firecrest-api.yaml
