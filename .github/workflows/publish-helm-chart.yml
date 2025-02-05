@@ -1,0 +1,59 @@
+name: Publish Helm Chart
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+        CHART_DIR: deploy/k8s
+        GH_PAGES_BRANCH: gh-pages
+    permissions:
+      contents: write
+      pages: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup Helm
+      uses: azure/setup-helm@v4.2.0      
+
+    - name: Configure Git User
+      run: |
+        echo "Configured user to '$GITHUB_ACTOR'"
+        git config user.name "$GITHUB_ACTOR"
+        git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+    - name: Package Helm chart
+      run: |
+
+        charts="certificator compute config reservations status storage tasks utilities"
+        for chart in $charts; do
+          helm package $CHART_DIR/$chart --version=${{ github.ref_name }} --app-version=${{ github.ref_name }} 
+          rm -rf $CHART_DIR/$chart/Chart.lock $CHART_DIR/$chart/charts/
+        done
+
+        # move the packages to a directory to avoid issues
+        # when checking out to `gh-pages`
+        mkdir gh_
+        mv *.tgz gh_
+
+    - name: Push to gh-pages branch
+      run: |
+        
+        git fetch origin $GH_PAGES_BRANCH:$GH_PAGES_BRANCH
+        git checkout $GH_PAGES_BRANCH
+        mv gh_/*tgz .
+
+        helm repo index . --url https://eth-cscs.github.io/firecrest --merge index.yaml
+
+        git add *.tgz index.yaml
+        git commit -m "New Firecrest v1 helm chart release (${{ github.ref_name }})"
+        git push -u origin $GH_PAGES_BRANCH
