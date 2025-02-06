@@ -263,8 +263,8 @@ tag_release:
         for tag in $env_tags; do
           if [ "$code_tag" == "prod" ] && [ "$tag" != "prod" ]; then
             #  if code_tag indicates prod and tag is 'v1...'
-            GH_USER = $(vault kv get -field=ghcr_pat_user firecrest/prod/)"
-            GH_PAT = $(vault kv get -field=ghcr_pat_token firecrest/prod/)"
+            GH_USER="$(vault kv get -field=ghcr_pat_user firecrest/prod/)"
+            GH_PAT="$(vault kv get -field=ghcr_pat_token firecrest/prod/)"
             crane auth login ghcr.io --username $GH_USER --password $GH_PAT
             # publish 'f7t-base'
             crane copy ${CI_REGISTRY_PREFIX}/f7t-base:$CI_COMMIT_TAG ghcr.io/eth-cscs/firecrest/f7t-base:${tag}
