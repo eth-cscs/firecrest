@@ -267,7 +267,8 @@ tag_release:
             GH_PAT="$(vault kv get -field=ghcr_pat_token firecrest/prod/)"
             crane auth login ghcr.io --username $GH_USER --password $GH_PAT
             # publish 'f7t-base'
-            crane copy ${CI_REGISTRY_PREFIX}/f7t-base:$CI_COMMIT_TAG ghcr.io/eth-cscs/firecrest/f7t-base:${tag}
+            jfrog rt copy --flat=true --url="https://${CI_REGISTRY}/artifactory" --user="${CI_REGISTRY_USER}" --password="${CI_REGISTRY_PASSWORD}" "${CI_REGISTRY_GROUP}/f7t-base/tmp-${CI_COMMIT_SHORT_SHA}-${CI_PIPELINE_ID}/" "${CI_REGISTRY_GROUP}/f7t-base/$tag/";
+            crane copy ${CI_REGISTRY_PREFIX}/f7t-base:${tag} ghcr.io/eth-cscs/firecrest/f7t-base:${tag}
             crane tag ghcr.io/eth-cscs/firecrest/f7t-base:${tag} latest
           fi
           images="certificator compute reservations status storage tasks utilities";
