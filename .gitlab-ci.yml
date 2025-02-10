@@ -277,7 +277,7 @@ tag_release:
             if [ "$code_tag" == "prod" ] && [ "$tag" != "prod" ] && [ "$img" != "reservations" ]; then
               # if code_tag indicates prod and tag is 'v1...', also publish to GitHub
               crane copy ${CI_REGISTRY_PREFIX}/${img}:${tag} ghcr.io/eth-cscs/firecrest/f7t-${img}:${tag}
-               crane tag ghcr.io/eth-cscs/firecrest/f7t-${img}:${tag} latest
+              crane tag ghcr.io/eth-cscs/firecrest/f7t-${img}:${tag} latest
             fi
           done
         done
