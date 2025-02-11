@@ -8,7 +8,7 @@ import redis
 import redis.exceptions as redis_exceptions
 import logging
 import json
-from typing import Union
+from typing import Union, Dict
 
 # create redis server connection, and return StrictRedis object
 # otherwise returns None
@@ -49,20 +49,34 @@ def create_connection(host,port,passwd="",db=0) -> Union[redis.StrictRedis,None]
         logging.error(e)
         return None
 
-def generate_task_id(task_id:int,task) -> str:
-    #Note: consider escaping the ':' symbol from user and service
-    return "task_{user}:{service}:{id}".format(user=task["user"],service=task["service"],id=task_id)
 
-def key_parts(key:str) -> str:
+def generate_task_id(task_id: int, task) -> str:
+    # Note: consider escaping the ':' symbol from user and service
+    return f"task_{task['user']}:{task['service']}:{task['system']}:{task_id}"
+
+
+def key_parts(key: str) -> Dict[str, str]:
     keyparts = key.split(":")
-    if(len(keyparts)!= 3):
-        return None,None,None
-    else:
-        return keyparts[0][5:],keyparts[1],keyparts[2]
+    # to keep old keys that don't include "system" part
+    if len(keyparts) == 3:
+        return {"user": keyparts[0][5:],
+                "service": keyparts[1],
+                "task_id": keyparts[2]}
+
+    if len(keyparts) == 4:
+        return {"user": keyparts[0][5:],
+                "service": keyparts[1],
+                "system": keyparts[2],
+                "task_id": keyparts[3]}
+
+    return {"user": None,
+            "service": None,
+            "system": None,
+            "task_id": None}
 
 
 # incrementes task id by 1
-def incr_last_task_id(r) -> Union[int,None]:
+def incr_last_task_id(r) -> Union[int, None]:
     '''
     Increments the internal task id counter in backend service by 1 (one)
     
@@ -166,7 +180,7 @@ def del_task(r,task_id,task) -> bool:
 
 
 # return all task in dict format
-def get_all_tasks(r) -> Union[dict,None]:
+def get_all_tasks(r: redis.StrictRedis) -> Union[dict, None]:
     '''
     Return all valid tasks in the backend
     
@@ -188,14 +202,14 @@ def get_all_tasks(r) -> Union[dict,None]:
 
         for redis_task_id in r.scan_iter(match="task_*"):
 
-
             # djson = r.hgetall(task_id)
             task_json = r.get(redis_task_id)
 
             # decode because redis stores it in Bytes not string
             task_json = task_json.decode('latin-1')
-            user,service,task_id = key_parts(redis_task_id.decode('latin-1'))
-            if task_id==None:
+            task_id = key_parts(redis_task_id.decode('latin-1'))["task_id"]
+            
+            if task_id is None:
                 continue
 
             # if d is empty, task_id was removed
@@ -203,7 +217,7 @@ def get_all_tasks(r) -> Union[dict,None]:
             # if len(d) == 0:
             #    continue
             d = json.loads(task_json)
-            task_dict[task_id]=d
+            task_dict[task_id] = d
 
         return task_dict
 
@@ -309,9 +323,9 @@ def get_service_tasks(r,service,status_code=None) -> Union[dict,None]:
             # serv = r.hget(task_id,"service")
             # changed since now is a serialized string, after python redis==3.x
 
-            #skip if the service specified in the task_id is different
-            user,service,id = key_parts(task_id.decode('latin-1'))
-            if service is None or service != service:
+            # skip if the service specified in the task_id is different
+            tService = key_parts(task_id.decode('latin-1'))["service"]
+            if tService is None or tService != service:
                 continue
 
             json_task = r.get(task_id)
