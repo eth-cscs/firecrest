@@ -1,18 +1,14 @@
 # FirecREST version 1
 
-> [!NOTE]
-> There is a new version of FirecREST :rocket: [FirecREST version 2](https://github.com/eth-cscs/firecrest-v2) is public since February 2025 and is being activelly deployed by CSCS.
+> [!IMPORTANT]
+> There is a new version of FirecREST :rocket: [FirecREST version 2](https://github.com/eth-cscs/firecrest-v2) is public since February 2025 and it's being actively deployed by CSCS.
 
 > [!WARNING]
-> The development FirecREST version 1 is, thus, only "maintenance" mode (we will fix issues, but with with best effort).
->
-> We strongly recommend to move your code to FirecREST-v2
+> FirecREST version 1 is now in maintenance mode. Only minimal-effort issue fixes will be addressed, and no new features are planned.
 
-> [!IMPORTANT]
-> If you are new to FirecREST, please redirect yourself to version 2 repository.
-
- 
-
+> [!TIP]
+> If you are new to FirecREST, please start directly with [version 2](https://github.com/eth-cscs/firecrest-v2).
+> If you already use FirecREST v1, we strongly recommend to move your code to FirecREST-v2.
 
 FirecREST platform, a RESTful Services Gateway to High-Performance Computing (HPC) resources, is a high-performance and reusable framework that integrates with existing HPC infrastructure, thus enabling the access to HPC resources to web-enabled services.
 
