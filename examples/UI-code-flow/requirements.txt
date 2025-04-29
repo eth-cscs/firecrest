@@ -1,9 +1,9 @@
 markupsafe==2.1.2
-Flask==2.0.0
+Flask==3.1.0
 itsdangerous==2.0.1
 Flask-WTF==1.2.1
 Flask-Bootstrap==3.3.7.1
 flask-oidc==1.4.0
 Flask_SSLify==0.1.5
-requests==2.22.0
-Werkzeug==2.2
+requests==2.22.3
+Werkzeug==3.1.3
