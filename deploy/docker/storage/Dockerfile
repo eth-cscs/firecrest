@@ -9,7 +9,7 @@ FROM $BASE_IMAGE
 
 LABEL org.opencontainers.image.source=https://github.com/eth-cscs/firecrest
 
-RUN apt-get update && apt-get -y install gcc
+RUN apk update && apk add gcc musl-dev linux-headers
 
 ADD deploy/docker/storage/requirements.txt deps/requirements.txt
 RUN pip3 install -r deps/requirements.txt

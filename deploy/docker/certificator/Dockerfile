@@ -9,7 +9,7 @@ FROM $BASE_IMAGE
 
 LABEL org.opencontainers.image.source=https://github.com/eth-cscs/firecrest
 
-RUN apt-get update && apt-get -y install openssh-client
+RUN apk update && apk add openssh-client 
 
 ADD deploy/docker/base/requirements.txt base/requirements.txt
 ADD deploy/docker/certificator/requirements.txt deps/requirements.txt
