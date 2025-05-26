@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Optional parameter `F7T_PERSIST_STOP_WRITES_ON_ERROR` to stop writing after errors
+
 ### Changed
 
 ### Fixed
