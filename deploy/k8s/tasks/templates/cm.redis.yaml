@@ -20,7 +20,7 @@ items:
       databases 16
       always-show-logo yes
       save 3600 1 300 100 60 10000
-      stop-writes-on-bgsave-error {{ .Values.F7T_PERSIST_STOP_WRITES_ON_ERROR | default no }}
+      stop-writes-on-bgsave-error {{ .Values.F7T_PERSIST_STOP_WRITES_ON_ERROR | default "no" }}
       rdbcompression yes
       rdbchecksum yes
       dbfilename dump.rdb
