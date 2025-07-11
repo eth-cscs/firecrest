@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Wrong status code on task when job is not submitted correctly
+- Fix job parsing when Slurm throws a warning
 - Updated libraries with reported vulnerabilities
 
 ## [1.16.4]
