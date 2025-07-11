@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Wrong status code on task when job is not submitted correctly
 - Updated libraries with reported vulnerabilities
 
 ## [1.16.4]
