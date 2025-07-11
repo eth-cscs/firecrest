@@ -45,23 +45,11 @@ class SlurmScheduler(schedulers.JobScheduler):
         return " ".join(cmd)
 
     def extract_jobid(self, output):
-        if not output:
-            return ""
+        job_id_search = re.search("Submitted batch job ([0-9]+)", output, re.IGNORECASE)
+        if job_id_search:
+            return job_id_search.group(1)
 
-        list_line = output.split()
-        if not self.is_jobid(list_line[-1]):
-            # For compatibility reasons if the jobid is not valid, we
-            # return the original string
-            return output
-
-        # For compatibility with older versions we try to return integer,
-        # even though valid jobids don't have to be integers.
-        try:
-            jobid = int(list_line[-1])
-        except ValueError:
-            jobid = list_line[-1]
-
-        return jobid
+        return None
 
     def is_jobid(self, jobid_str):
         """A valid Slurm job ID can have the form:
