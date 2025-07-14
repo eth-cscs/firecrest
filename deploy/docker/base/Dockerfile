@@ -4,7 +4,7 @@
 ##  Please, refer to the LICENSE file in the root directory.
 ##  SPDX-License-Identifier: BSD-3-Clause
 ##
-FROM python:3.8.12-slim
+FROM python:3.13-alpine
 
 LABEL org.opencontainers.image.source=https://github.com/eth-cscs/firecrest
 

@@ -8,3 +8,4 @@ Flask-Opentracing==1.1.0
 gunicorn==23.0.0
 Flask-Caching==2.1.0
 python-json-logger==2.0.7
+six==1.17.0

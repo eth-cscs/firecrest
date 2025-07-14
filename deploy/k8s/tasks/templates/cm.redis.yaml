@@ -19,10 +19,8 @@ items:
       logfile /data/redis.log
       databases 16
       always-show-logo yes
-      save 900 1
-      save 300 10
-      save 60 10000
-      stop-writes-on-bgsave-error yes
+      save 3600 1 300 100 60 10000
+      stop-writes-on-bgsave-error {{ .Values.F7T_PERSIST_STOP_WRITES_ON_ERROR | default "no" }}
       rdbcompression yes
       rdbchecksum yes
       dbfilename dump.rdb
