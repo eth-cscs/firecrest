@@ -73,7 +73,7 @@ def get_job_id(task_id, headers):
 	for i in range(10):
 		resp = get_task(task_id, headers)
 		if "jobid" in resp.json()["task"]["data"]:
-			if isinstance(resp.json()["task"]["data"]["jobid"], int):
+			if isinstance(int(resp.json()["task"]["data"]["jobid"]), int):
 				job_id = int(resp.json()["task"]["data"]["jobid"])
 				break
 		time.sleep(10)
