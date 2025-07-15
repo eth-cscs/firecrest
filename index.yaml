@@ -2,8 +2,18 @@ apiVersion: v1
 entries:
   certificator:
   - apiVersion: v2
+    appVersion: v1.16.6
+    created: "2025-07-15T14:26:59.954744756Z"
+    description: A Helm chart for Kubernetes
+    digest: 1f1e018adc340cba0000ec10405d857fdf75e7c5250e186da4a5d66f560b150d
+    name: certificator
+    type: application
+    urls:
+    - https://eth-cscs.github.io/firecrest/certificator-v1.16.6.tgz
+    version: v1.16.6
+  - apiVersion: v2
     appVersion: v1.16.5
-    created: "2025-07-15T10:37:56.474363013Z"
+    created: "2025-07-15T14:26:59.954568815Z"
     description: A Helm chart for Kubernetes
     digest: f2806c4581235ed37a99e94d06c68097b2e0c0e2954266ae2efe69d3d5123475
     name: certificator
@@ -13,7 +23,7 @@ entries:
     version: v1.16.5
   - apiVersion: v2
     appVersion: v1.16.4
-    created: "2025-07-15T10:37:56.47421253Z"
+    created: "2025-07-15T14:26:59.954429943Z"
     description: A Helm chart for Kubernetes
     digest: 5ccaf149ca417d30024a4828b69f88851d88085b91c7c9db1af76b082110bff1
     name: certificator
@@ -23,7 +33,7 @@ entries:
     version: v1.16.4
   - apiVersion: v2
     appVersion: v1.16.3
-    created: "2025-07-15T10:37:56.474077345Z"
+    created: "2025-07-15T14:26:59.954249363Z"
     description: A Helm chart for Kubernetes
     digest: 84361311790a152eb4e6e10de63c3de260adb0ff90ea1b6b455a873cd20aca1b
     name: certificator
@@ -33,7 +43,7 @@ entries:
     version: v1.16.3
   - apiVersion: v2
     appVersion: v1.16.2
-    created: "2025-07-15T10:37:56.473882599Z"
+    created: "2025-07-15T14:26:59.954113086Z"
     description: A Helm chart for Kubernetes
     digest: 432c5ada6488902f685ac8fe790b5a99130a8171e573ac8892f8d061c88d9acf
     name: certificator
@@ -43,7 +53,7 @@ entries:
     version: v1.16.2
   - apiVersion: v2
     appVersion: v1.16.1
-    created: "2025-07-15T10:37:56.473743467Z"
+    created: "2025-07-15T14:26:59.953959236Z"
     description: A Helm chart for Kubernetes
     digest: 453473f79f42b324b654f2733febb9607b9543e164485c90fde5da6410cb2581
     name: certificator
@@ -53,8 +63,18 @@ entries:
     version: v1.16.1
   compute:
   - apiVersion: v2
+    appVersion: v1.16.6
+    created: "2025-07-15T14:26:59.955457499Z"
+    description: A Helm chart for Kubernetes
+    digest: 04428559aee616b8b245eb7892a6ee4812bdfff64027f9e13e793a4ba4a7cfbe
+    name: compute
+    type: application
+    urls:
+    - https://eth-cscs.github.io/firecrest/compute-v1.16.6.tgz
+    version: v1.16.6
+  - apiVersion: v2
     appVersion: v1.16.5
-    created: "2025-07-15T10:37:56.475025991Z"
+    created: "2025-07-15T14:26:59.95533624Z"
     description: A Helm chart for Kubernetes
     digest: cd858b8eed230bc4dece61637b29a84d32a41ee7413500402aa90cb1f76db5a4
     name: compute
@@ -64,7 +84,7 @@ entries:
     version: v1.16.5
   - apiVersion: v2
     appVersion: v1.16.4
-    created: "2025-07-15T10:37:56.474859257Z"
+    created: "2025-07-15T14:26:59.955228728Z"
     description: A Helm chart for Kubernetes
     digest: 053a3b4df91aedb9e8557455e7a03b390473643d0b2e9d12b2d058d521e723ab
     name: compute
@@ -74,7 +94,7 @@ entries:
     version: v1.16.4
   - apiVersion: v2
     appVersion: v1.16.3
-    created: "2025-07-15T10:37:56.47474934Z"
+    created: "2025-07-15T14:26:59.955098773Z"
     description: A Helm chart for Kubernetes
     digest: 41bc2ed85ca98e93cac85c02416a459bf3f1f45ca3af38cf23643e3423715446
     name: compute
@@ -84,7 +104,7 @@ entries:
     version: v1.16.3
   - apiVersion: v2
     appVersion: v1.16.2
-    created: "2025-07-15T10:37:56.474641337Z"
+    created: "2025-07-15T14:26:59.954992162Z"
     description: A Helm chart for Kubernetes
     digest: 997b1db7fcaab16447b3cf707628fa93dcb8b7635f44cae52ea3b761fd63100f
     name: compute
@@ -94,7 +114,7 @@ entries:
     version: v1.16.2
   - apiVersion: v2
     appVersion: v1.16.1
-    created: "2025-07-15T10:37:56.474511152Z"
+    created: "2025-07-15T14:26:59.954875963Z"
     description: A Helm chart for Kubernetes
     digest: d2526ca6fbffe8e927b9ea2c3aa1daff0e5acece48d6eeeabd9001f7914be793
     name: compute
@@ -104,8 +124,18 @@ entries:
     version: v1.16.1
   config:
   - apiVersion: v2
+    appVersion: v1.16.6
+    created: "2025-07-15T14:26:59.956600482Z"
+    description: A Helm chart for Kubernetes
+    digest: 97b03de7f5acbd69d491964e426a90dce6783698565b3304dba8e1ebe6c106a4
+    name: config
+    type: application
+    urls:
+    - https://eth-cscs.github.io/firecrest/config-v1.16.6.tgz
+    version: v1.16.6
+  - apiVersion: v2
     appVersion: v1.16.5
-    created: "2025-07-15T10:37:56.476951082Z"
+    created: "2025-07-15T14:26:59.956425221Z"
     description: A Helm chart for Kubernetes
     digest: fd9571d331ba180b55351eac67ddc7200ffc2fa0c297029ab9193f432b846e04
     name: config
@@ -115,7 +145,7 @@ entries:
     version: v1.16.5
   - apiVersion: v2
     appVersion: v1.16.4
-    created: "2025-07-15T10:37:56.476752088Z"
+    created: "2025-07-15T14:26:59.956246796Z"
     description: A Helm chart for Kubernetes
     digest: 9ab12c053e0f8feaedf71f07a243b357a8a872c3a02c030914d1a07365e3902b
     name: config
@@ -125,7 +155,7 @@ entries:
     version: v1.16.4
   - apiVersion: v2
     appVersion: v1.16.3
-    created: "2025-07-15T10:37:56.476568001Z"
+    created: "2025-07-15T14:26:59.956072798Z"
     description: A Helm chart for Kubernetes
     digest: 7a184bed578a192a6df11d1a85ad4a2a179e35997eb28fbbe2ea314faec002b0
     name: config
@@ -135,7 +165,7 @@ entries:
     version: v1.16.3
   - apiVersion: v2
     appVersion: v1.16.2
-    created: "2025-07-15T10:37:56.476321006Z"
+    created: "2025-07-15T14:26:59.955876227Z"
     description: A Helm chart for Kubernetes
     digest: 78869ca0a111b73dfb0c47aaf6f27b70394698c2d703d538fc9c2cdfae94f725
     name: config
@@ -145,7 +175,7 @@ entries:
     version: v1.16.2
   - apiVersion: v2
     appVersion: v1.16.1
-    created: "2025-07-15T10:37:56.475225958Z"
+    created: "2025-07-15T14:26:59.955663587Z"
     description: A Helm chart for Kubernetes
     digest: c18dd0ff54dd937993b2dbb01a4e2df0a3165393c805c0b4b54faa6d83b7162f
     name: config
@@ -155,8 +185,18 @@ entries:
     version: v1.16.1
   reservations:
   - apiVersion: v2
+    appVersion: v1.16.6
+    created: "2025-07-15T14:26:59.958377576Z"
+    description: A Helm chart for Kubernetes
+    digest: a1907a7c826311f0a009e5b9d6587294b191e974bb3f0fc0defc125127717dde
+    name: reservations
+    type: application
+    urls:
+    - https://eth-cscs.github.io/firecrest/reservations-v1.16.6.tgz
+    version: v1.16.6
+  - apiVersion: v2
     appVersion: v1.16.5
-    created: "2025-07-15T10:37:56.477487101Z"
+    created: "2025-07-15T14:26:59.958211002Z"
     description: A Helm chart for Kubernetes
     digest: 76c67ed250d1264df597e953592ba0cdebaac4aed09d2c6dc110e85313ceeb04
     name: reservations
@@ -166,7 +206,7 @@ entries:
     version: v1.16.5
   - apiVersion: v2
     appVersion: v1.16.4
-    created: "2025-07-15T10:37:56.477389668Z"
+    created: "2025-07-15T14:26:59.958031194Z"
     description: A Helm chart for Kubernetes
     digest: 6cb57cb731360c91c3b165bff9be200de57e561c608113cac0b9810106625023
     name: reservations
@@ -176,7 +216,7 @@ entries:
     version: v1.16.4
   - apiVersion: v2
     appVersion: v1.16.3
-    created: "2025-07-15T10:37:56.477292375Z"
+    created: "2025-07-15T14:26:59.957068604Z"
     description: A Helm chart for Kubernetes
     digest: 5a743fbde96ef6373d91db35bc7fefb35c270093277d1cf2cc1a961c21f6f0b9
     name: reservations
@@ -186,7 +226,7 @@ entries:
     version: v1.16.3
   - apiVersion: v2
     appVersion: v1.16.2
-    created: "2025-07-15T10:37:56.477192737Z"
+    created: "2025-07-15T14:26:59.956840023Z"
     description: A Helm chart for Kubernetes
     digest: 5846b8faa38f0fe6d2c1ede67ab2e4bf680ae4fe83202be98eeb58afe7a865c1
     name: reservations
@@ -196,7 +236,7 @@ entries:
     version: v1.16.2
   - apiVersion: v2
     appVersion: v1.16.1
-    created: "2025-07-15T10:37:56.477087028Z"
+    created: "2025-07-15T14:26:59.956736047Z"
     description: A Helm chart for Kubernetes
     digest: 3d8c4c03cb61aada842e614c3d651490588e107ae52da19666d948dd715ef9b5
     name: reservations
@@ -206,8 +246,18 @@ entries:
     version: v1.16.1
   status:
   - apiVersion: v2
+    appVersion: v1.16.6
+    created: "2025-07-15T14:26:59.959520709Z"
+    description: A Helm chart for Kubernetes
+    digest: e8adecff1b29fe7145aa8b2934ef7d9ba8a52cb3e79cc1e3e8e1db5462ec7ff6
+    name: status
+    type: application
+    urls:
+    - https://eth-cscs.github.io/firecrest/status-v1.16.6.tgz
+    version: v1.16.6
+  - apiVersion: v2
     appVersion: v1.16.5
-    created: "2025-07-15T10:37:56.478068426Z"
+    created: "2025-07-15T14:26:59.959316174Z"
     description: A Helm chart for Kubernetes
     digest: 4c161a111d3f09b329d8834e1572d152144559fdb8b66e52948e7cd82944ac84
     name: status
@@ -217,7 +267,7 @@ entries:
     version: v1.16.5
   - apiVersion: v2
     appVersion: v1.16.4
-    created: "2025-07-15T10:37:56.477951676Z"
+    created: "2025-07-15T14:26:59.959111769Z"
     description: A Helm chart for Kubernetes
     digest: d88f890c670ea1e9fced2e7a4cb3d4e16b72875948b7dd4bb36c41ba8c1bbf80
     name: status
@@ -227,7 +277,7 @@ entries:
     version: v1.16.4
   - apiVersion: v2
     appVersion: v1.16.3
-    created: "2025-07-15T10:37:56.477811462Z"
+    created: "2025-07-15T14:26:59.958940907Z"
     description: A Helm chart for Kubernetes
     digest: 3724e5fddb5fb1b5c4daecd61295c1861cf433558e040c27426c99cb022b2970
     name: status
@@ -237,7 +287,7 @@ entries:
     version: v1.16.3
   - apiVersion: v2
     appVersion: v1.16.2
-    created: "2025-07-15T10:37:56.477693961Z"
+    created: "2025-07-15T14:26:59.958754055Z"
     description: A Helm chart for Kubernetes
     digest: 8625d871a7df3943c269e5cefd99700f16c03b98b02622905d2be939da39199a
     name: status
@@ -247,7 +297,7 @@ entries:
     version: v1.16.2
   - apiVersion: v2
     appVersion: v1.16.1
-    created: "2025-07-15T10:37:56.477590987Z"
+    created: "2025-07-15T14:26:59.958558667Z"
     description: A Helm chart for Kubernetes
     digest: 6fa9d5fa58a503c29a386a3191f064a9466960633e40fb8b46fdc1051a4dc5fe
     name: status
@@ -257,8 +307,18 @@ entries:
     version: v1.16.1
   storage:
   - apiVersion: v2
+    appVersion: v1.16.6
+    created: "2025-07-15T14:26:59.960936727Z"
+    description: A Helm chart for Kubernetes
+    digest: 5d926ab11feb62a39259a0e10cbce2632370266bfd97127f4f72efc9027082bc
+    name: storage
+    type: application
+    urls:
+    - https://eth-cscs.github.io/firecrest/storage-v1.16.6.tgz
+    version: v1.16.6
+  - apiVersion: v2
     appVersion: v1.16.5
-    created: "2025-07-15T10:37:56.478666562Z"
+    created: "2025-07-15T14:26:59.960700552Z"
     description: A Helm chart for Kubernetes
     digest: 010582ad74bbba2b9300803d8a54902bd5c9035eca0f115b44b986de0723372a
     name: storage
@@ -268,7 +328,7 @@ entries:
     version: v1.16.5
   - apiVersion: v2
     appVersion: v1.16.4
-    created: "2025-07-15T10:37:56.478556154Z"
+    created: "2025-07-15T14:26:59.960462002Z"
     description: A Helm chart for Kubernetes
     digest: 7742efbf2dd660fe4f2a07cbf49a9405c4fd60a073544dd478faff21abf2db04
     name: storage
@@ -278,7 +338,7 @@ entries:
     version: v1.16.4
   - apiVersion: v2
     appVersion: v1.16.3
-    created: "2025-07-15T10:37:56.478431028Z"
+    created: "2025-07-15T14:26:59.96023772Z"
     description: A Helm chart for Kubernetes
     digest: 2be156fb5855928053b2cdded4534d2f903a20d6419e3e9fd448397485b63d63
     name: storage
@@ -288,7 +348,7 @@ entries:
     version: v1.16.3
   - apiVersion: v2
     appVersion: v1.16.2
-    created: "2025-07-15T10:37:56.478315831Z"
+    created: "2025-07-15T14:26:59.960008458Z"
     description: A Helm chart for Kubernetes
     digest: d497a5e72c845c585576333012f9c89ea4c102c2f81f82b801c51b5254de4c99
     name: storage
@@ -298,7 +358,7 @@ entries:
     version: v1.16.2
   - apiVersion: v2
     appVersion: v1.16.1
-    created: "2025-07-15T10:37:56.47818234Z"
+    created: "2025-07-15T14:26:59.959771221Z"
     description: A Helm chart for Kubernetes
     digest: da79b85fffaa40eae59fda71452f4bf2a640bafef87b866203f613801122738e
     name: storage
@@ -308,8 +368,18 @@ entries:
     version: v1.16.1
   tasks:
   - apiVersion: v2
+    appVersion: v1.16.6
+    created: "2025-07-15T14:26:59.962351512Z"
+    description: A Helm chart for Kubernetes
+    digest: b0507382e8a102eea2a1bae43fee3e68c917791a2d2f5dc51f979b0ed0600bd6
+    name: tasks
+    type: application
+    urls:
+    - https://eth-cscs.github.io/firecrest/tasks-v1.16.6.tgz
+    version: v1.16.6
+  - apiVersion: v2
     appVersion: v1.16.5
-    created: "2025-07-15T10:37:56.479330511Z"
+    created: "2025-07-15T14:26:59.962139132Z"
     description: A Helm chart for Kubernetes
     digest: bf1ad0635878b8fa4ccc7e46eef7485514f85d10248347e2e9487c3223eeed22
     name: tasks
@@ -319,7 +389,7 @@ entries:
     version: v1.16.5
   - apiVersion: v2
     appVersion: v1.16.4
-    created: "2025-07-15T10:37:56.479195397Z"
+    created: "2025-07-15T14:26:59.96192061Z"
     description: A Helm chart for Kubernetes
     digest: 9046c385344c25f3cd840162fcdca2f33428d1ebef45ef8b7a9a3c0ca7ca3645
     name: tasks
@@ -329,7 +399,7 @@ entries:
     version: v1.16.4
   - apiVersion: v2
     appVersion: v1.16.3
-    created: "2025-07-15T10:37:56.479074419Z"
+    created: "2025-07-15T14:26:59.961693032Z"
     description: A Helm chart for Kubernetes
     digest: c8d988dfbabad8a9cb8f2d38a9a37c471806c05fa0fd1f7a2fae86e7fcf691bf
     name: tasks
@@ -339,7 +409,7 @@ entries:
     version: v1.16.3
   - apiVersion: v2
     appVersion: v1.16.2
-    created: "2025-07-15T10:37:56.478948021Z"
+    created: "2025-07-15T14:26:59.961444092Z"
     description: A Helm chart for Kubernetes
     digest: 38fde7c53ef28d77def78a34c747d97ad0208cad9cfdb3d3128ad086203853e7
     name: tasks
@@ -349,7 +419,7 @@ entries:
     version: v1.16.2
   - apiVersion: v2
     appVersion: v1.16.1
-    created: "2025-07-15T10:37:56.478803419Z"
+    created: "2025-07-15T14:26:59.961180466Z"
     description: A Helm chart for Kubernetes
     digest: 4a2d9ddfd1d8b7659020e856c01f659086e576c0c6ab14f89d5f20180e15b325
     name: tasks
@@ -359,8 +429,18 @@ entries:
     version: v1.16.1
   utilities:
   - apiVersion: v2
+    appVersion: v1.16.6
+    created: "2025-07-15T14:26:59.963670386Z"
+    description: A Helm chart for Kubernetes
+    digest: a494ee23b45876117ba078917f4e9b15bb202fbf9c09940df86232bc63385501
+    name: utilities
+    type: application
+    urls:
+    - https://eth-cscs.github.io/firecrest/utilities-v1.16.6.tgz
+    version: v1.16.6
+  - apiVersion: v2
     appVersion: v1.16.5
-    created: "2025-07-15T10:37:56.480647097Z"
+    created: "2025-07-15T14:26:59.963447156Z"
     description: A Helm chart for Kubernetes
     digest: 193b139c057f854299a31e885c56cf7d0a428e2ccebcb33ecc1819948df03f1b
     name: utilities
@@ -370,7 +450,7 @@ entries:
     version: v1.16.5
   - apiVersion: v2
     appVersion: v1.16.4
-    created: "2025-07-15T10:37:56.480380996Z"
+    created: "2025-07-15T14:26:59.96322661Z"
     description: A Helm chart for Kubernetes
     digest: d6feabd0ab57ef103bb1184d21ae9700ff756678743b8ba61c874784c1423620
     name: utilities
@@ -380,7 +460,7 @@ entries:
     version: v1.16.4
   - apiVersion: v2
     appVersion: v1.16.3
-    created: "2025-07-15T10:37:56.480134803Z"
+    created: "2025-07-15T14:26:59.962994052Z"
     description: A Helm chart for Kubernetes
     digest: 03996ce8fd68ab3adef9b5bce8d2f41beb646be9e5bf53d5820a308235eda7e7
     name: utilities
@@ -390,7 +470,7 @@ entries:
     version: v1.16.3
   - apiVersion: v2
     appVersion: v1.16.2
-    created: "2025-07-15T10:37:56.479724894Z"
+    created: "2025-07-15T14:26:59.962778857Z"
     description: A Helm chart for Kubernetes
     digest: f79306f1d3c390cc8c4277ff67362e3807800d7c183eea60a7935d7ddeb98e9b
     name: utilities
@@ -400,7 +480,7 @@ entries:
     version: v1.16.2
   - apiVersion: v2
     appVersion: v1.16.1
-    created: "2025-07-15T10:37:56.479441109Z"
+    created: "2025-07-15T14:26:59.962528856Z"
     description: A Helm chart for Kubernetes
     digest: 4d97cdf1e31d52d555f0002128711cd89fc259eba524062ec20fa557d2036383
     name: utilities
@@ -408,4 +488,4 @@ entries:
     urls:
     - https://eth-cscs.github.io/firecrest/utilities-v1.16.1.tgz
     version: v1.16.1
-generated: "2025-07-15T10:37:56.473491142Z"
+generated: "2025-07-15T14:26:59.953689919Z"
