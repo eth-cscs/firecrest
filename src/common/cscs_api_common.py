@@ -477,7 +477,7 @@ def exec_remote_command(headers, system_name, system_addr, command, file_transfe
                 while not stderr.channel.eof_received:
                     # time.sleep(0.5)
                     if len(stderr.channel.in_buffer) >= stderr.channel.in_window_size:
-                        return {"error": 1, "msg": f"Command output exceeded buffer limit ({tr.default_window_size})"} 
+                        return {"error": 1, "msg": f"Command output exceeded buffer limit ({tr.default_window_size})"}
                     if time.time() > endtime:
                         stderr.channel.close()
                         eof_received = False
@@ -538,34 +538,36 @@ def exec_remote_command(headers, system_name, system_addr, command, file_transfe
 
         if stderr_errno == 0:
             if file_transfer == "download":
-                result = {"error": 0, "msg": outlines}                
-            elif stderr_errda and not (in_str(stderr_errda,"Could not chdir to home directory") or in_str(stderr_errda,"scancel: Terminating job")):
-                result = {"error": 1, "msg": stderr_errda}                
+                result = {"error": 0, "msg": outlines}
+            elif stderr_errda and not (in_str(stderr_errda, "Could not chdir to home directory") or
+                                       in_str(stderr_errda, "scancel: Terminating job") or
+                                       in_str(stderr_errda, "Use of the \"--environment\" option for \"sbatch\" is still considered")):
+                result = {"error": 1, "msg": stderr_errda}
             elif in_str(stdout_errda, "No such file"): # in case that error is 0 and the msg is on the stdout (like with some file)
-                result = {"error": 1, "msg": stdout_errda}                
+                result = {"error": 1, "msg": stdout_errda}
             elif in_str(stdout_errda, "no read permission"): # in case that error is 0 and the msg is on the stdout (like with some file)
-                result = {"error": 1, "msg": stdout_errda}                
+                result = {"error": 1, "msg": stdout_errda}
             elif in_str(stdout_errda, "cannot open"): # in case that error is 0 and the msg is on the stdout (like with some file)
-                result = {"error": 1, "msg": stdout_errda}                
+                result = {"error": 1, "msg": stdout_errda}
             # only in case of SLURM scheduler: stderr_errno == 0 always, and output (error or not) in stderr_errda
             elif in_str(stderr_errda, "scancel: Terminating job"):
                 if in_str(stderr_errda, "error"):
-                    result = {"error": 1, "msg": stderr_errda}                    
+                    result = {"error": 1, "msg": stderr_errda}
                 else:
-                    result = {"error": 0, "msg": stderr_errda}                    
+                    result = {"error": 0, "msg": stderr_errda}
 
             else:
-                result = {"error": 0, "msg": outlines}                
+                result = {"error": 0, "msg": outlines}
         elif stderr_errno != 0:
             # First solving specific errors
             if stderr_errno == 7:
-                result = {"error": 7, "msg": "Failed to connect to staging area server"}                
+                result = {"error": 7, "msg": "Failed to connect to staging area server"}
             elif stderr_errno == 124:
-                result = {"error": 124, "msg": "Command has finished with timeout signal"}                
+                result = {"error": 124, "msg": "Command has finished with timeout signal"}
             elif stdout_errno == -2:
-                result = {"error": -2, "msg": "Receive ready timeout exceeded"}                
+                result = {"error": -2, "msg": "Receive ready timeout exceeded"}
             elif stderr_errno == -1:
-                result = {"error": -1, "msg": "No exit status was provided by the server"}                
+                result = {"error": -1, "msg": "No exit status was provided by the server"}
             # solving error of $HOME not present
             # stderr_errda = "Could not chdir to home directory /users/eirinik: No such file or directory
             # ERROR: you must specify a project account (-A <account>)sbatch: error: cli_filter plugin terminated with error"
@@ -577,9 +579,9 @@ def exec_remote_command(headers, system_name, system_addr, command, file_transfe
                                   f" (F7T_HOME_ENABLED={HOME_ENABLED})")
                 idx = stderr_errda.index("directory", 33)
                 # len(directory) = 9
-                result = {"error": stderr_errno, "msg": stderr_errda[idx+9:]}                
+                result = {"error": stderr_errno, "msg": stderr_errda[idx+9:]}
             else:
-                result = {"error": stderr_errno, "msg": stderr_errda or stdout_errda}                
+                result = {"error": stderr_errno, "msg": stderr_errda or stdout_errda}
         elif len(stderr_errda) > 0:
             result = {"error": 1, "msg": stderr_errda}
 
@@ -693,7 +695,7 @@ def create_task(headers, service=None, system=None, init_data=None) -> Union[str
 
     # returns {"task_id":task_id}
     # first try to create a task:
-    # this might fail due to server error, 
+    # this might fail due to server error,
     # here we're setting a retry policy before sending an error
     # due to ChunkedEncodingError exception
     retries = 5
@@ -1101,7 +1103,7 @@ def check_command_error(error_str, error_code, service_msg):
     if in_str(error_str, "read permission"):
         header = {"X-Permission-Denied": "User does not have permissions to access path"}
         return {"description": service_msg, "error": error_str, "status_code": 400, "header": header}
-    
+
     if service_msg in ["Error on head operation with grep", "Error on tail operation with grep"] and error_code==1 and error_str=="":
         header = {"X-Not-Found":"pattern not found"}
         return {"description": service_msg, "error": "pattern not found", "status_code": 404, "header": header}
