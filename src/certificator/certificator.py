@@ -395,7 +395,6 @@ def get_username(header):
     # with decoded token, checks if it belongs to a client_credentials token structure
     try:
         if AUTH_ROLE in decoded["realm_access"]["roles"]:
-            
             clientId = decoded["client_id"] if "client_id" in decoded else decoded["clientId"]
             username = decoded["resource_access"][clientId]["roles"][0]
             return {"result": True, "reason":"", "username": username}
