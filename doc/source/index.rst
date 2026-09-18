@@ -20,8 +20,9 @@ Among the most prominent services that FirecREST exposes we find authentication 
 Latest Release
 ==============
 
-FirecREST is being actively developed at `CSCS <http://www.cscs.ch/>`__.
-You can always find the latest release `here <https://github.com/eth-cscs/firecrest/releases/latest>`__.
+FirecREST version 1 is in maintenance mode: only minimal-effort issue fixes will be addressed, and no new features are planned.
+Active development at `CSCS <http://www.cscs.ch/>`__ happens in `FirecREST version 2 <https://eth-cscs.github.io/firecrest-v2/>`__.
+You can always find the latest release of FirecREST version 1 `here <https://github.com/eth-cscs/firecrest/releases/latest>`__.
 
 Publications
 ============
