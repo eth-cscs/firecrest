@@ -1,0 +1,14 @@
+{% extends "!layout.html" %}
+
+{% block document %}
+<div class="admonition warning">
+  <p class="admonition-title">Warning</p>
+  <p>
+    FirecREST version 1 is now in maintenance mode. Only minimal-effort issue fixes will be
+    addressed, and no new features are planned. If you are new to FirecREST, please start
+    directly with <a href="https://eth-cscs.github.io/firecrest-v2/">FirecREST version 2</a>.
+    If you already use FirecREST v1, we strongly recommend moving your code to FirecREST v2.
+  </p>
+</div>
+{{ super() }}
+{% endblock %}
