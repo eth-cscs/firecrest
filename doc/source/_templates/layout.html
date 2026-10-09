@@ -1,7 +1,14 @@
 {% extends "!layout.html" %}
 
 {% block document %}
-<div class="admonition warning">
+{#
+  Do not use the "warning" class here: Read the Docs strips
+  "[role=main] > div:first-child.admonition.warning" from every served page
+  (a rule meant for its old "outdated version" banner), see
+  https://github.com/readthedocs/common/blob/main/packages/addons-inject/index.js
+  "caution" renders with the same orange style in sphinx_rtd_theme.
+#}
+<div class="admonition caution">
   <p class="admonition-title">Warning</p>
   <p>
     FirecREST version 1 is now in maintenance mode. Only minimal-effort issue fixes will be
